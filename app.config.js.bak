@@ -1,0 +1,189 @@
+module.exports = {
+  expo: {
+    name: 'AcucaradasEncomendas',
+    slug: 'acucaradas-encomendas',
+    owner: 'acucaradaencomendas',
+    scheme: 'acucaradas-encomendas',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/icon.png',
+    userInterfaceStyle: 'light',
+    splash: {
+      image: './assets/splash.png',
+      resizeMode: 'contain',
+      backgroundColor: '#ffffff',
+    },
+    assetBundlePatterns: ['**/*'],
+    ios: {
+      appleTeamId: '4G75MX4TPA',
+      supportsTablet: true,
+      bundleIdentifier: 'com.acucaradas.encomendas',
+      buildNumber: '273',
+      usesAppleSignIn: true,
+      entitlements: {
+        'aps-environment': 'production',
+        'com.apple.developer.aps-environment': 'production',
+        'com.apple.developer.applesignin': ['Default'],
+        'com.apple.developer.in-app-payments': ['merchant.com.acucaradas.encomendas'],
+        'com.apple.developer.corelocation.background-modes': ['location'],
+      },
+      infoPlist: {
+        CFBundleDisplayName: 'Açucaradas Encomendas',
+        CFBundleIconName: 'AppIcon',
+        UIBackgroundModes: ['location', 'remote-notification'],
+        NSLocationAlwaysAndWhenInUseUsageDescription: 'O aplicativo precisa da sua localização em segundo plano para rastrear a entrega em tempo real.',
+        NSLocationAlwaysUsageDescription: 'O aplicativo precisa da sua localização em segundo plano para rastrear a entrega em tempo real.',
+        NSLocationWhenInUseUsageDescription: 'O aplicativo precisa da sua localização para mostrar as lojas próximas e calcular a taxa de entrega.',
+        NSCameraUsageDescription: 'Permitir que $(PRODUCT_NAME) use a câmera para tirar fotos de perfil e documentos.',
+        NSPhotoLibraryUsageDescription: 'Permitir que $(PRODUCT_NAME) acesse sua galeria para selecionar fotos de perfil.',
+        NSMicrophoneUsageDescription: 'Permitir que $(PRODUCT_NAME) use o microfone para reconhecimento de voz.',
+        NSSpeechRecognitionUsageDescription: 'Este aplicativo usa reconhecimento de fala para ditar pedidos e comandos.',
+        NSFaceIDUsageDescription: 'Usamos Face ID para autenticação segura e rápida do usuário.',
+        ITSAppUsesNonExemptEncryption: false,
+        LSApplicationQueriesSchemes: [
+          'whatsapp',
+          'tel',
+          'mailto',
+          'googlemaps',
+          'comgooglemaps',
+        ],
+        IS_APPINVITE_ENABLED: true,
+        CFBundleURLTypes: [
+          {
+            CFBundleURLSchemes: [
+              'acucaradas-encomendas',
+              'com.googleusercontent.apps.627855691834-cg7iut6b6ebf7tl3eu09icmpbq14h489',
+            ],
+          },
+        ],
+      },
+      associatedDomains: ['applinks:auth.expo.dev'],
+      googleServicesFile: './GoogleService-Info.prod.plist',
+    },
+    android: {
+      package: 'com.acucaradas.encomendas',
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#ffffff',
+      },
+      permissions: [
+        'CAMERA',
+        'READ_EXTERNAL_STORAGE',
+        'WRITE_EXTERNAL_STORAGE',
+        'ACCESS_FINE_LOCATION',
+        'RECORD_AUDIO',
+      ],
+      googleServicesFile: './google-services.prod.json',
+    },
+    web: {
+      bundler: 'metro',
+      favicon: './assets/favicon.png',
+    },
+    plugins: [
+      [
+        'expo-updates',
+        {
+          url: 'https://u.expo.dev/11796c05-728b-4a55-8968-3d1417537446',
+        },
+      ],
+      [
+        'onesignal-expo-plugin',
+        {
+          mode: 'production',
+        },
+      ],
+      [
+        'expo-camera',
+        {
+          cameraPermission: 'Permitir que $(PRODUCT_NAME) acesse sua câmera para fotos de perfil, documentos e registro de coletas.',
+          microphonePermission: 'Permitir que $(PRODUCT_NAME) acesse seu microfone.',
+        },
+      ],
+      [
+        'expo-image-picker',
+        {
+          photosPermission: 'O aplicativo precisa acessar sua galeria para você escolher fotos dos produtos e documentos.',
+          cameraPermission: 'O aplicativo precisa acessar sua câmera para você tirar fotos dos produtos e documentos.',
+        },
+      ],
+      [
+        'expo-location',
+        {
+          locationAlwaysAndWhenInUsePermission: 'O aplicativo precisa da sua localização para rastrear entregas em tempo real.',
+          isAndroidBackgroundLocationEnabled: true,
+        },
+      ],
+      'expo-screen-capture',
+      [
+        'expo-build-properties',
+        {
+          ios: {
+            useFrameworks: 'static',
+            deploymentTarget: '15.1',
+          },
+          android: {
+            minSdkVersion: 24,
+            compileSdkVersion: 35,
+            targetSdkVersion: 35,
+          },
+        },
+      ],
+      [
+        'expo-notifications',
+        {
+          icon: './assets/icon.png',
+          color: '#ffffff',
+        },
+      ],
+      [
+        '@stripe/stripe-react-native',
+        {
+          merchantIdentifier: 'merchant.com.acucaradas.encomendas',
+          enableGooglePay: true,
+        },
+      ],
+      'expo-router',
+      [
+        'expo-media-library',
+        {
+          photosPermission: 'O aplicativo precisa acessar sua galeria para salvar e selecionar imagens.',
+          savePhotosPermission: 'O aplicativo precisa de permissão para salvar imagens na sua galeria.',
+        },
+      ],
+      'expo-document-picker',
+      'expo-sharing',
+      'expo-print',
+      'expo-apple-authentication',
+      'expo-secure-store',
+      'expo-font',
+      'expo-dev-client',
+      [
+        '@sentry/react-native',
+        {
+          organization: 'acucaradas-encomendas',
+          project: 'acucaradas-encomendas',
+        },
+      ],
+      [
+        'expo-local-authentication',
+        {
+          faceIDPermission: 'Usamos Face ID para autenticação segura e rápida do usuário.',
+        },
+      ],
+    ],
+    experiments: {
+      typedRoutes: true,
+    },
+    extra: {
+      eas: {
+        projectId: '11796c05-728b-4a55-8968-3d1417537446',
+      },
+    },
+    updates: {
+      url: 'https://u.expo.dev/11796c05-728b-4a55-8968-3d1417537446',
+    },
+    runtimeVersion: {
+      policy: 'appVersion',
+    },
+  },
+};

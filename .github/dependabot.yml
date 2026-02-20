@@ -1,0 +1,99 @@
+version: 2
+updates:
+  # Atualizações do npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "@acucaradas-team"
+    assignees:
+      - "@acucaradas-team"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    
+    # Configurações específicas para diferentes tipos de dependências
+    groups:
+      # Agrupar atualizações do React Native e Expo
+      react-native:
+        patterns:
+          - "react-native*"
+          - "@react-native*"
+          - "expo*"
+          - "@expo*"
+        update-types:
+          - "minor"
+          - "patch"
+      
+      # Agrupar atualizações de ferramentas de desenvolvimento
+      dev-tools:
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint*"
+          - "prettier*"
+          - "jest*"
+          - "@testing-library*"
+          - "@types*"
+        update-types:
+          - "minor"
+          - "patch"
+      
+      # Agrupar atualizações de UI e navegação
+      ui-navigation:
+        patterns:
+          - "@react-navigation*"
+          - "react-native-vector-icons*"
+          - "react-native-elements*"
+          - "react-native-paper*"
+        update-types:
+          - "minor"
+          - "patch"
+    
+    # Ignorar certas dependências que precisam de atenção manual
+    ignore:
+      # Ignorar major updates do React Native (precisam de migração manual)
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major"]
+      
+      # Ignorar major updates do Expo SDK (precisam de migração manual)
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major"]
+      
+      # Ignorar atualizações específicas que podem quebrar
+      - dependency-name: "@react-native-community/netinfo"
+        update-types: ["version-update:semver-major"]
+    
+    # Permitir apenas atualizações de segurança para dependências críticas
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+        update-types: ["security"]
+
+  # Atualizações do GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "10:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "@acucaradas-team"
+    assignees:
+      - "@acucaradas-team"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "github-actions"
+      - "automated"

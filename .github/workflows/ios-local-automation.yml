@@ -1,0 +1,289 @@
+name: iOS Local Build & Upload (EAS Saver)
+
+on:
+  # Desativado gatilho automático para economizar minutos.
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS Build Profile (production/preview)'
+        required: true
+        default: 'production'
+      ref:
+        description: 'Branch/Ref para build (usar o mais recente)'
+        required: true
+        default: 'upgrade/sdk-52-rn-076'
+
+jobs:
+  build:
+    name: Build iOS locally on GitHub Runner
+    runs-on: macos-latest
+    env:
+      SENTRY_DISABLE_AUTO_UPLOAD: "true"
+      SENTRY_ALLOW_FAILURE: "true"
+      SENTRY_SKIP_AUTO_RELEASE: "1"
+      CI: "true"
+      EXPO_USE_APP_CONFIG: "true"
+      EXPO_NO_CACHE: "true"
+      SENTRY_ENABLED: "0"
+      EXPO_PUBLIC_ENABLE_SENTRY: "false"
+      EXPO_PUBLIC_SENTRY_DSN: ""
+      SENTRY_AUTH_TOKEN: ""
+      SENTRY_ORG: ""
+      SENTRY_PROJECT: ""
+      SENTRY_URL: ""
+      SENTRY_DSN: ""
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔁 Sincronizar ref mais recente
+        run: |
+          git fetch --prune origin "${{ github.event.inputs.ref }}"
+          git checkout "${{ github.event.inputs.ref }}"
+          git reset --hard "origin/${{ github.event.inputs.ref }}"
+          git log -1 --oneline
+
+      - name: 🧹 Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: 🏗 Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 💎 Setup Ruby & Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: 📦 Install Fastlane
+        run: sudo gem install fastlane
+
+      - name: 📦 Install dependencies
+        run: |
+          npm install -g eas-cli
+          npm install --include=dev --legacy-peer-deps
+
+      - name: 📴 Force Sentry OFF (Global)
+        run: |
+          echo "EXPO_PUBLIC_ENABLE_SENTRY=false" >> $GITHUB_ENV
+          echo "EXPO_PUBLIC_SENTRY_DSN=" >> $GITHUB_ENV
+          echo "SENTRY_DISABLE_AUTO_UPLOAD=true" >> $GITHUB_ENV
+          echo "SENTRY_ALLOW_FAILURE=true" >> $GITHUB_ENV
+
+      - name: 🧹 Sentry Guard (Local Build)
+        run: |
+          node scripts/ci-prepare-sentry.js
+          printf "SENTRY_DISABLE_AUTO_UPLOAD=%s\nSENTRY_ALLOW_FAILURE=%s\n" "$SENTRY_DISABLE_AUTO_UPLOAD" "$SENTRY_ALLOW_FAILURE" > .env.sentry-build-plugin
+          mkdir -p ios
+          cp .env.sentry-build-plugin ios/.env.sentry-build-plugin
+          git add -f .env.sentry-build-plugin || true
+
+      - name: 🧾 Write .env.sentry-build-plugin (Workspace Root)
+        run: |
+          echo "SENTRY_DISABLE_AUTO_UPLOAD=1" > "$GITHUB_WORKSPACE/.env.sentry-build-plugin"
+          echo "SENTRY_ALLOW_FAILURE=1" >> "$GITHUB_WORKSPACE/.env.sentry-build-plugin"
+          ls -la "$GITHUB_WORKSPACE/.env.sentry-build-plugin"
+
+      - name: 🔍 Debug Sentry env
+        run: |
+          echo "PWD=$(pwd)"
+          echo "WORKSPACE=$GITHUB_WORKSPACE"
+          echo "SENTRY_DISABLE_AUTO_UPLOAD=$SENTRY_DISABLE_AUTO_UPLOAD"
+          echo "SENTRY_ALLOW_FAILURE=$SENTRY_ALLOW_FAILURE"
+          ls -la "$GITHUB_WORKSPACE/.env.sentry-build-plugin" || true
+
+      - name: 🧨 Stub Sentry CLI (Global PATH)
+        run: |
+          mkdir -p ci-bin
+          cat > ci-bin/sentry-cli << 'EOF'
+          #!/bin/sh
+          echo "[ci] sentry-cli stubbed (skipping upload)"
+          exit 0
+          EOF
+          chmod +x ci-bin/sentry-cli
+          echo "$PWD/ci-bin" >> $GITHUB_PATH
+
+      - name: 🍎 Select Xcode
+        run: |
+          set -e
+          if [ -d "/Applications/Xcode_26.app/Contents/Developer" ]; then
+            sudo xcode-select -s "/Applications/Xcode_26.app/Contents/Developer"
+          elif [ -d "/Applications/Xcode_26.0.app/Contents/Developer" ]; then
+            sudo xcode-select -s "/Applications/Xcode_26.0.app/Contents/Developer"
+          else
+            echo "❌ Xcode 26 não encontrado no runner."
+            ls -d /Applications/Xcode*.app 2>/dev/null || true
+            exit 1
+          fi
+          xcodebuild -version
+          echo "IOS_SDK_VERSION=$(xcrun --sdk iphoneos --show-sdk-version)" >> $GITHUB_ENV
+
+      - name: 🔑 Grant Script Permissions
+        run: chmod +x scripts/*.js
+
+      - name: 🧹 Clean Xcode Derived Data
+        run: |
+          rm -rf ~/Library/Developer/Xcode/DerivedData/*
+          rm -rf ios/build
+
+      - name: 🧹 Clean Native Directories
+        run: rm -rf ios android
+
+      - name: 🧽 Deep Clean (Anti-resíduo)
+        run: |
+          rm -rf ios
+          rm -rf node_modules
+          rm -f package-lock.json yarn.lock pnpm-lock.yaml
+          npm cache verify || true
+          export SENTRY_ENABLED=0
+          npm install --include=dev --legacy-peer-deps
+
+      - name: 🧹 Remove Sentry Packages (CI)
+        run: |
+          export SENTRY_ENABLED=0
+          npm remove sentry-expo @sentry/react-native || true
+
+      - name: 🛠 Prepare iOS Environment
+        run: |
+          npm run prepare:ios
+          # Garante que o GoogleService-Info.prod.plist exista para o build
+          if [ ! -f "GoogleService-Info.prod.plist" ]; then
+            echo "Aviso: GoogleService-Info.prod.plist não encontrado, tentando usar backup..."
+            cp GoogleService-Info.plist GoogleService-Info.prod.plist || echo "Falha ao copiar plist"
+          fi
+
+      - name: 🛠 Expo Prebuild
+        run: |
+          export CI=true
+          export EXPO_USE_APP_CONFIG=true
+          export EXPO_NO_CACHE=true
+          export SENTRY_ENABLED=0
+          npx expo prebuild --platform ios --clean --no-install --config app.config.js
+
+      - name: 🧹 Nuke Sentry build phases
+        run: node scripts/ios-nuke-sentry-phases.js
+
+      - name: 🛠 Fix Podfile Consistency
+        run: node scripts/fix-podfile.js
+
+      - name: 🛠 Fix OneSignal Plist
+        run: node scripts/fix-onesignal-plist.js
+
+      - name: 🛠 Fix Entitlements Mismatch
+        run: node scripts/fix-entitlements.js
+
+      - name: 📦 Install Pods
+        run: |
+          cd ios
+          rm -rf Pods Podfile.lock
+          pod repo update
+          pod install
+        env:
+          CP_HOME: ${{ github.workspace }}/ios
+
+      - name: 🧱 Block Sentry (Post Pods)
+        run: node scripts/block-sentry.js
+
+      - name: � Block Sentry (Pre Build)
+        run: node scripts/block-sentry.js
+
+      - name: � Nuke Sentry build phases (Post Pods)
+        run: |
+          node scripts/ios-nuke-sentry-phases.js
+          node scripts/ci-prepare-sentry.js
+
+      - name: 🔍 Verify Sentry Removal
+        run: |
+          echo "SENTRY_ENABLED=$SENTRY_ENABLED"
+          echo "CI=$CI"
+          grep -R "Sentry" -n ios/*.xcodeproj/project.pbxproj ios/*/*.xcodeproj/project.pbxproj || true
+          grep -R "sentry" -n ios/*.xcodeproj/project.pbxproj ios/*/*.xcodeproj/project.pbxproj || true
+          grep -R "Upload Debug Symbols to Sentry" -n ios/*.xcodeproj/project.pbxproj ios/*/*.xcodeproj/project.pbxproj || true
+          if [ -n "${EAS_BUILD_LOCAL_TEMP_DIR:-}" ]; then
+            grep -R "Sentry" -n "$EAS_BUILD_LOCAL_TEMP_DIR" || true
+            grep -R "sentry" -n "$EAS_BUILD_LOCAL_TEMP_DIR" || true
+            grep -R "Upload Debug Symbols to Sentry" -n "$EAS_BUILD_LOCAL_TEMP_DIR" || true
+          fi
+
+      - name: 🔍 Debug Podfile Failure
+        if: failure()
+        run: |
+          if [ -f "ios/Podfile" ]; then
+            echo "--- Podfile Content ---"
+            cat ios/Podfile
+          fi
+          if [ -d "ios/Pods" ]; then
+            echo "--- Pods Directory Found ---"
+          fi
+
+      - name: 🏗 Build IPA Locally (GitHub Runner)
+        run: |
+          export DEVELOPER_DIR="/Applications/Xcode_26.app/Contents/Developer"
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR"
+          xcodebuild -version
+          export EAS_BUILD_LOCAL_TEMP_DIR="${RUNNER_TEMP:-/tmp}/eas-build-local"
+          mkdir -p "$EAS_BUILD_LOCAL_TEMP_DIR"
+          export CI=true
+          export EXPO_USE_APP_CONFIG=true
+          export EXPO_NO_CACHE=true
+          export SENTRY_ENABLED=0
+          export EXPO_PUBLIC_ENABLE_SENTRY=false
+          export EXPO_PUBLIC_SENTRY_DSN=""
+          export SENTRY_DISABLE_AUTO_UPLOAD=true
+          export SENTRY_ALLOW_FAILURE=true
+          export SENTRY_SKIP_AUTO_RELEASE="1"
+          export SENTRY_AUTH_TOKEN=""
+          env | grep -E 'SENTRY|EXPO_PUBLIC_ENABLE_SENTRY|EXPO_PUBLIC_SENTRY_DSN' || true
+          node scripts/ci-prepare-sentry.js
+          export EAS_BUILD_PLATFORM=ios
+          eas build --platform ios --profile ${{ github.event.inputs.profile || 'production' }} --local --non-interactive --output=./build.ipa
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CP_HOME: ${{ github.workspace }}/ios/Pods
+          FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: 120
+          FASTLANE_XCODEBUILD_SETTINGS_RETRIES: 5
+          DEVELOPER_DIR: /Applications/Xcode_26.app/Contents/Developer
+          EAS_BUILD_LOCAL_TEMP_DIR: ${{ runner.temp }}/eas-build-local
+          EAS_SKIP_AUTO_FINGERPRINT: 1
+          SENTRY_DISABLE_AUTO_UPLOAD: "true"
+          SENTRY_ALLOW_FAILURE: "true"
+          SENTRY_SKIP_AUTO_RELEASE: "1"
+          CI: "true"
+          EXPO_USE_APP_CONFIG: "true"
+          EXPO_NO_CACHE: "true"
+          SENTRY_ENABLED: "0"
+          EXPO_PUBLIC_ENABLE_SENTRY: "false"
+          EXPO_PUBLIC_SENTRY_DSN: ""
+          SENTRY_AUTH_TOKEN: ""
+          SENTRY_ORG: ""
+          SENTRY_PROJECT: ""
+          SENTRY_URL: ""
+          SENTRY_DSN: ""
+
+      - name: 🚀 Submit to TestFlight (Using 0/25 quota)
+        run: |
+          eas submit --platform ios --profile ${{ github.event.inputs.profile || 'production' }} --path ./build.ipa --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📤 Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-${{ github.event.inputs.profile }}
+          path: ./build.ipa
+          retention-days: 5

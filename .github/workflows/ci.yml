@@ -1,0 +1,209 @@
+name: CI/CD Pipeline
+
+on:
+  # Desativado automaticamente para economizar minutos durante o desenvolvimento
+  # workflow_dispatch: permite rodar manualmente se necessário
+  workflow_dispatch:
+  # push:
+  #   branches: [ master, develop, main ]
+
+jobs:
+  # Job unificado de validação para economizar minutos
+  validate:
+    name: Validate (Lint & Test)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.19.4'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+      
+    - name: TypeScript check
+      run: npm run typecheck
+      
+    - name: Run tests
+      run: npm test -- --coverage --watchAll=false
+      
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        fail_ci_if_error: false
+
+  # Job de build para Android (Apenas em branches principais ou tags)
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.19.4'
+        cache: 'npm'
+        
+    - name: Setup Expo
+      uses: expo/expo-github-action@v8
+      with:
+        expo-version: latest
+        eas-version: latest
+        token: ${{ secrets.EXPO_TOKEN }}
+        
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+      
+    - name: Build Android
+      run: eas build --platform android --profile production --local --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  # Job de build para iOS (Apenas manual ou tags para economizar minutos)
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: [validate]
+    if: github.event_name == 'workflow_dispatch' || contains(github.ref, 'refs/tags/v')
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.19.4'
+        cache: 'npm'
+        
+    - name: Setup Expo
+      uses: expo/expo-github-action@v8
+      with:
+        expo-version: latest
+        eas-version: latest
+        token: ${{ secrets.EXPO_TOKEN }}
+        
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+      
+    - name: Install Apple Certificates
+      run: |
+        if [ -n "${{ secrets.IOS_DIST_CERT_BASE64 }}" ]; then
+          echo "${{ secrets.IOS_DIST_CERT_BASE64 }}" | base64 --decode > cert.p12
+          echo "${{ secrets.IOS_PROV_PROFILE_BASE64 }}" | base64 --decode > profile.mobileprovision
+          security create-keychain -p "" build.keychain
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import cert.p12 -k build.keychain -P "${{ secrets.IOS_CERT_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+        fi
+        
+    - name: Build iOS Local
+      run: |
+        npm run prepare:ios
+        eas build --platform ios --profile production --local --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-build
+        path: build-*.ipa
+
+  # Job de deploy para Android
+  deploy-android:
+    name: Deploy Android to Google Play
+    runs-on: ubuntu-latest
+    needs: [build-android]
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/upgrade/sdk-52-rn-076') && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.19.4'
+        cache: 'npm'
+        
+    - name: Setup Expo CLI
+      run: npm install -g @expo/cli eas-cli sharp-cli
+      
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+      
+    - name: Setup EAS
+      run: eas login --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        
+    - name: Submit to Google Play
+      run: eas submit --platform android --latest --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  # Job de deploy para iOS
+  deploy-ios:
+    name: Deploy iOS to TestFlight
+    runs-on: ubuntu-latest
+    needs: [build-ios]
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/upgrade/sdk-52-rn-076') && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.19.4'
+        cache: 'npm'
+        
+    - name: Setup Expo CLI
+      run: npm install -g @expo/cli eas-cli sharp-cli
+      
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+      
+    - name: Setup EAS
+      run: eas login --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        
+    - name: Submit to App Store
+      run: eas submit --platform ios --latest --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  # Job de notificação
+  notify:
+    name: Notify Team
+    runs-on: ubuntu-latest
+    needs: [deploy-android, deploy-ios]
+    if: always()
+    
+    steps:
+    - name: Notify Success
+      if: ${{ needs['deploy-android'].result == 'success' || needs['deploy-ios'].result == 'success' }}
+      run: |
+        echo "✅ Deploy realizado com sucesso!"
+        echo "📱 Apps enviados para as stores"
+        
+    - name: Notify Failure
+      if: ${{ needs['deploy-android'].result == 'failure' || needs['deploy-ios'].result == 'failure' }}
+      run: |
+        echo "❌ Falha no deploy"
+        echo "🔍 Verifique os logs para mais detalhes"

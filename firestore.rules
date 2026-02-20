@@ -1,0 +1,363 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ================================
+    // Funções auxiliares
+    // ================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isProducer() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'producer' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'produtor'
+      );
+    }
+
+    function isCourier() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'courier' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'entregador'
+      );
+    }
+
+    // Produtor dono da loja associada ao pedido (via campo producerId)
+    function isOrderProducer() {
+      return isProducer()
+        && resource.data.producerId != null
+        && get(/databases/$(database)/documents/producers/$(resource.data.producerId)).data.userId == request.auth.uid;
+    }
+
+    function isStoreOwner(storeId) {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/producers/$(storeId)).data.userId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid ||
+        (resource.data.userId == request.auth.uid)
+      );
+    }
+
+    // ================================
+    // Lojas cadastradas usadas na tela "Lojas próximas"
+    // ================================
+    match /stores/{storeId} {
+      // Qualquer usuário (até não autenticado) pode ler as lojas para conseguir listar no app
+      allow read: if true;
+
+      // Apenas admin ou dono da loja podem criar/editar/excluir lojas
+      allow write: if isAdmin() || isStoreOwner(storeId);
+    }
+
+    // ================================
+    // Cadastros de Produtor (sua loja)
+    // ================================
+    match /producers/{producerId} {
+      // Ler:
+      // - o dono do cadastro (userId gravado no documento)
+      // - ou um admin
+      allow read: if isAdmin() || isOwner(resource.data.userId);
+
+      // Criar:
+      // - usuário autenticado
+      // - que está criando um documento com userId igual ao próprio uid
+      allow create: if isAuthenticated()
+                    && request.resource.data.userId == request.auth.uid;
+
+      // Atualizar:
+      // - dono do cadastro ou admin
+      allow update: if isAdmin() || isOwner(resource.data.userId);
+
+      // Deletar:
+      // - só admin
+      allow delete: if isAdmin();
+    }
+
+    // ================================
+    // Usuários
+    // ================================
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ================================
+    // Categorias de produtos
+    // ================================
+    match /categories/{categoryId} {
+      // Todos podem ler categorias
+      allow read: if true;
+      // Apenas admin pode criar/editar/excluir categorias
+      allow write: if isAdmin();
+    }
+    
+    // ================================
+    // Produtos
+    // ================================
+    match /products/{productId} {
+      // Todos podem ler produtos
+      allow read: if true;
+
+      // Criar e deletar produtos: apenas admin ou produtor
+      allow create, delete: if isAdmin() || isProducer();
+
+      // Atualizar produtos:
+      // - admin ou produtor podem atualizar qualquer campo
+      // - clientes autenticados podem apenas reduzir estoque / marcar indisponível
+      allow update: if
+        isAdmin() || isProducer() || (
+          isAuthenticated() &&
+          // Não permitir que o cliente altere dono ou preço do produto
+          request.resource.data.producerId == resource.data.producerId &&
+          request.resource.data.preco == resource.data.preco &&
+          // Controle de estoque somente para baixo ou igual
+          request.resource.data.estoque <= resource.data.estoque &&
+          // Se marcar como indisponível, apenas quando estoque chegar a zero
+          (
+            !('disponivel' in request.resource.data) ||
+            request.resource.data.disponivel == resource.data.disponivel ||
+            (request.resource.data.disponivel == false && request.resource.data.estoque == 0)
+          )
+        );
+    }
+    
+    // ================================
+    // Pedidos
+    // ================================
+    match /orders/{orderId} {
+      allow read: if
+        isOwner(resource.data.userId) ||
+        isAdmin() ||
+        isProducer() ||
+        isCourier();
+
+      allow create: if isAuthenticated();
+
+      allow update: if
+        isAdmin() ||
+        isOwner(resource.data.userId) ||
+        isProducer() ||
+        isCourier();
+
+      allow delete: if isAdmin();
+    }
+
+    // Itens de pedido - seguem regra próxima aos pedidos
+    match /orderItems/{itemId} {
+      allow create: if isAuthenticated();
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+    
+    // ================================
+    // Configurações gerais
+    // ================================
+    match /settings/{settingId} {
+      // Todos podem ler configurações
+      allow read: if true;
+      // Apenas admins podem modificar configurações
+      allow write: if isAdmin();
+    }
+
+    // ================================
+    // Carrinho
+    // ================================
+    match /carts/{cartId} {
+      // Usuário só vê/modifica o próprio carrinho
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    // ================================
+    // Endereços
+    // ================================
+    match /addresses/{addressId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    // ================================
+    // Cartões de pagamento
+    // ================================
+    match /payment_cards/{cardId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    // ================================
+    // Chaves PIX
+    // ================================
+    match /pix_keys/{pixKeyId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    // ================================
+    // Métodos de pagamento unificados
+    // ================================
+    match /payment_methods/{methodId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    // ================================
+    // Transações de pagamento
+    // ================================
+    match /payment_transactions/{transactionId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ================================
+    // Reembolsos de pagamento
+    // ================================
+    match /payment_refunds/{refundId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ================================
+    // Configurações de pagamento por usuário (ID = userId)
+    // ================================
+    match /payment_settings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // ================================
+    // Autenticação de dois fatores
+    // ================================
+    match /usersAuth/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // ================================
+    // Registros de pagamentos gerais
+    // ================================
+    match /payments/{paymentId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // ================================
+    // Configurações de notificação / privacidade
+    // ================================
+    match /notification_settings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /privacy_settings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // ================================
+    // Tokens e notificações
+    // ================================
+    match /push_tokens/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /notificationTokens/{tokenId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    match /notification_preferences/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /notification_logs/{logId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // ================================
+    // Helpers para entregadores
+    // ================================
+    function isDriverResourceOwner(driverId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/delivery_drivers/$(driverId)).data.userId == request.auth.uid;
+    }
+
+    // ================================
+    // Entregadores e ganhos
+    // ================================
+    match /delivery_drivers/{driverId} {
+      allow read: if isAdmin() || isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() || isOwner(resource.data.userId);
+      allow delete: if isAdmin();
+    }
+
+    match /driver_earnings/{earningId} {
+      allow read: if isAdmin() || isDriverResourceOwner(resource.data.driverId);
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /driver_routes/{routeId} {
+      allow read: if isAdmin() || isDriverResourceOwner(resource.data.driverId);
+      allow create: if isAdmin() || isDriverResourceOwner(request.resource.data.driverId);
+      allow update: if isAdmin() || isDriverResourceOwner(resource.data.driverId);
+      allow delete: if isAdmin();
+    }
+
+    match /withdrawals/{withdrawalId} {
+      allow read: if isAdmin() || isDriverResourceOwner(resource.data.driverId);
+      allow create: if isDriverResourceOwner(request.resource.data.driverId);
+      allow update, delete: if isAdmin();
+    }
+
+    match /verification_codes/{driverId} {
+      allow read, write: if isDriverResourceOwner(driverId) || isAdmin();
+    }
+
+    match /deliveryDrivers/{driverId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ================================
+    // Analytics e logs
+    // ================================
+    match /analytics/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ================================
+    // Regra padrão - negar todos os acessos
+    // ================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

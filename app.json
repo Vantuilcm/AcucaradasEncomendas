@@ -1,0 +1,211 @@
+{
+  "expo": {
+    "name": "Açucaradas Encomendas",
+    "slug": "acucaradas-encomendas",
+    "owner": "acucaradaencomendas",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "newArchEnabled": false,
+    "scheme": "acucaradas-encomendas",
+    "ios": {
+      "appleTeamId": "4G75MX4TPA",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.acucaradas.encomendas",
+      "buildNumber": "360",
+      "googleServicesFile": "./GoogleService-Info.prod.plist",
+      "infoPlist": {
+        "CFBundleDisplayName": "Açucaradas Encomendas",
+        "CFBundleIconName": "AppIcon",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "LSApplicationQueriesSchemes": [
+          "whatsapp",
+          "tel",
+          "mailto",
+          "googlemaps",
+          "comgooglemaps"
+        ],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "acucaradas-encomendas",
+              "com.googleusercontent.apps.627855691834-cg7iut6b6ebf7tl3eu09icmpbq14h489"
+            ]
+          }
+        ],
+        "NSFaceIDUsageDescription": "Usamos Face ID para autenticação segura e rápida do usuário.",
+        "NSCameraUsageDescription": "O aplicativo precisa acessar a câmera para ler QR Codes de cupons e tirar fotos de perfil.",
+        "NSLocationWhenInUseUsageDescription": "Usamos sua localização para encontrar lojas próximas e calcular o tempo de entrega.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "O aplicativo precisa acessar o microfone para comandos de voz e pesquisa.",
+        "NSSpeechRecognitionUsageDescription": "O aplicativo utiliza reconhecimento de voz para facilitar a busca de produtos e navegação."
+      },
+      "entitlements": {
+        "aps-environment": "production",
+        "com.apple.developer.applesignin": [
+          "Default"
+        ]
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "E174.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          }
+        ]
+      },
+      "associatedDomains": [
+        "applinks:auth.expo.dev"
+      ]
+    },
+    "android": {
+      "package": "com.acucaradas.encomendas",
+      "googleServicesFile": "./google-services.prod.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-updates",
+        {
+          "url": "https://u.expo.dev/6090106b-e327-4744-bce5-9ddb0d037045"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.0",
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
+        }
+      ],
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O aplicativo precisa da sua localização para rastrear a entrega em tempo real.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir que o aplicativo use a câmera para fotos de perfil e documentos.",
+          "microphonePermission": "Permitir que o aplicativo use o microfone."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permitir que o aplicativo acesse sua galeria para selecionar fotos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ffffff"
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "enableGooglePay": true
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "O aplicativo precisa acessar sua galeria para salvar e selecionar imagens.",
+          "savePhotosPermission": "O aplicativo precisa de permissão para salvar imagens na sua galeria."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Usamos Face ID para autenticação segura e rápida do usuário."
+        }
+      ],
+      "./scripts/withRemoveAppGroups.js"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6090106b-e327-4744-bce5-9ddb0d037045",
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "OneSignalNotificationServiceExtension",
+                  "bundleIdentifier": "com.acucaradas.encomendas.OneSignalNotificationServiceExtension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.acucaradas.encomendas.onesignal"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "onesignalAppId": "2df9c7f0-6fb7-4cbe-87e9-c6fb116203f7",
+      "enableOneSignal": true,
+      "facebookAppId": "1141386540846067",
+      "googleClientIdIos": "627855691834-cg7iut6b6ebf7tl3eu09icmpbq14h489.apps.googleusercontent.com",
+      "googleClientIdWeb": "627855691834-d3jm1hc7o3p6l6j26mc8u3ouhve27iqv.apps.googleusercontent.com"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6090106b-e327-4744-bce5-9ddb0d037045"
+    },
+    "runtimeVersion": "1.0.1"
+  }
+}

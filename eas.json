@@ -1,0 +1,142 @@
+{
+  "cli": {
+    "version": ">= 5.9.0",
+    "requireCommit": false,
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "node": "20.19.4",
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "development",
+        "EXPO_PUBLIC_ENABLE_ONESIGNAL": "true",
+        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "2df9c7f0-6fb7-4cbe-87e9-c6fb116203f7"
+      },
+      "channel": "development",
+      "ios": {
+        "image": "latest"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "node": "20.19.4",
+      "credentialsSource": "remote",
+      "distribution": "internal",
+      "channel": "preview",
+      "autoIncrement": false,
+      "env": {
+        "NODE_ENV": "production",
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "NPM_CONFIG_PRODUCTION": "false",
+        "EXPO_PUBLIC_APP_NAME": "Açucaradas Encomendas (Preview)",
+        "EXPO_PUBLIC_APP_VERSION": "1.0.1",
+        "EAS_SKIP_AUTO_FINGERPRINT": "1",
+        "EXPO_NO_CAPABILITY_SYNC": "1",
+        "EXPO_PUBLIC_API_URL": "https://us-central1-acucaradas-encomendas.cloudfunctions.net/api",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_51R83kwP3V81jclQkVaVnARH82yqXsxyXIQfEXTcij3DpITlJIkS5Vyw3z02ijC1fG2TGeTiQ3VBlIbwHNJHIVJxr00KkaXYQa2",
+        "EXPO_PUBLIC_ENABLE_ONESIGNAL": "true",
+        "EXPO_PUBLIC_ENABLE_DEVICE_SECURITY_CHECKS": "true",
+        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "2df9c7f0-6fb7-4cbe-87e9-c6fb116203f7",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDtb3R9DyV50vpS_6SI_k-6sv0zh8DQuAc",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "acucaradas-encomendas.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "acucaradas-encomendas",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "acucaradas-encomendas.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "627855691834",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:627855691834:ios:802f87fc389cae45af6503",
+        "EXPO_PUBLIC_APPLE_MERCHANT_ID": "merchant.com.acucaradas.encomendas",
+        "EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID": "627855691834-5oflaa1nve907gro3ntehub8g8smg83l.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "627855691834-cg7iut6b6ebf7tl3eu09icmpbq14h489.apps.googleusercontent.com",
+        "EXPO_PUBLIC_FACEBOOK_APP_ID": "1141386540846067",
+        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045",
+        "EXPO_PUBLIC_FIREBASE_VAPID_KEY": "BGsK_P7k_J6R7z_9X_X_X_X_X_X_X_X_X_X_X_X_X_X",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-L9E5XQZ8Z7",
+        "EXPO_PUBLIC_ENABLE_SENTRY": "false"
+      },
+      "ios": {
+        "image": "latest",
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "node": "20.19.4",
+      "credentialsSource": "remote",
+      "env": {
+        "NODE_ENV": "production",
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "NPM_CONFIG_PRODUCTION": "false",
+        "EXPO_PUBLIC_APP_NAME": "Açucaradas Encomendas",
+        "EXPO_PUBLIC_APP_VERSION": "1.0.1",
+        "EAS_SKIP_AUTO_FINGERPRINT": "1",
+        "EXPO_NO_CAPABILITY_SYNC": "1",
+        "EXPO_PUBLIC_API_URL": "https://us-central1-acucaradas-encomendas.cloudfunctions.net/api",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_51R83kwP3V81jclQkVaVnARH82yqXsxyXIQfEXTcij3DpITlJIkS5Vyw3z02ijC1fG2TGeTiQ3VBlIbwHNJHIVJxr00KkaXYQa2",
+        "EXPO_PUBLIC_ENABLE_ONESIGNAL": "true",
+        "EXPO_PUBLIC_ENABLE_DEVICE_SECURITY_CHECKS": "true",
+        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "2df9c7f0-6fb7-4cbe-87e9-c6fb116203f7",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDtb3R9DyV50vpS_6SI_k-6sv0zh8DQuAc",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "acucaradas-encomendas.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "acucaradas-encomendas",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "acucaradas-encomendas.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "627855691834",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:627855691834:ios:802f87fc389cae45af6503",
+        "EXPO_PUBLIC_APPLE_MERCHANT_ID": "merchant.com.acucaradas.encomendas",
+        "EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID": "627855691834-5oflaa1nve907gro3ntehub8g8smg83l.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "627855691834-cg7iut6b6ebf7tl3eu09icmpbq14h489.apps.googleusercontent.com",
+        "EXPO_PUBLIC_FACEBOOK_APP_ID": "1141386540846067",
+        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045",
+        "EXPO_PUBLIC_FIREBASE_VAPID_KEY": "BGsK_P7k_J6R7z_9X_X_X_X_X_X_X_X_X_X_X_X_X_X",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-L9E5XQZ8Z7",
+        "EXPO_PUBLIC_ENABLE_SENTRY": "false"
+      },
+      "channel": "production",
+      "autoIncrement": true,
+      "cache": {
+        "disabled": false
+      },
+      "ios": {
+        "image": "latest",
+        "buildConfiguration": "Release",
+        "simulator": false
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
+      }
+    }
+  },
+  "submit": {
+    "preview": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft",
+        "changesNotSentForReview": true,
+        "serviceAccountKeyPath": "./credentials/acucaradas-encomendas-53a50872014e.json"
+      },
+      "ios": {
+        "appleId": "vantuilcaramez@gmail.com",
+        "ascAppId": "6756029389"
+      }
+    },
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed",
+        "changesNotSentForReview": true,
+        "serviceAccountKeyPath": "./credentials/acucaradas-encomendas-53a50872014e.json"
+      },
+      "ios": {
+        "appleId": "vantuilcaramez@gmail.com",
+        "ascAppId": "6756029389"
+      }
+    }
+  }
+}

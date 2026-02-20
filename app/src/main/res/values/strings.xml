@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Açucaradas Encomendas</string>
+    <string name="settings_title">Configurações</string>
+    
+    <!-- Configurações -->
+    <string name="profile">Meu Perfil</string>
+    <string name="notifications">Notificações</string>
+    <string name="privacy_security">Privacidade e Segurança</string>
+    <string name="account_deletion">Exclusão de Conta</string>
+    <string name="logout">Sair</string>
+    
+    <!-- Exclusão de Conta -->
+    <string name="account_deletion_title">Exclusão de Conta</string>
+    <string name="complete_deletion">Exclusão Completa de Conta</string>
+    <string name="partial_deletion">Exclusão Parcial de Dados</string>
+    <string name="deletion_warning">Atenção: Esta ação não pode ser desfeita!</string>
+    <string name="confirm_deletion">Confirmar Exclusão</string>
+    <string name="cancel">Cancelar</string>
+    <string name="deletion_reason">Motivo da exclusão (opcional)</string>
+    <string name="select_data_types">Selecione os tipos de dados para excluir:</string>
+    <string name="data_type_orders">Histórico de Pedidos</string>
+    <string name="data_type_addresses">Endereços Salvos</string>
+    <string name="data_type_payment">Informações de Pagamento</string>
+    <string name="data_type_preferences">Preferências e Configurações</string>
+    
+    <!-- Diálogos -->
+    <string name="deletion_confirmation_title">Confirmar Exclusão</string>
+    <string name="complete_deletion_message">Você está prestes a excluir permanentemente sua conta e todos os dados associados. Esta ação não pode ser desfeita. Deseja continuar?</string>
+    <string name="partial_deletion_message">Você está prestes a excluir permanentemente os dados selecionados. Esta ação não pode ser desfeita. Deseja continuar?</string>
+    <string name="deletion_success">Solicitação de exclusão enviada com sucesso!</string>
+    <string name="deletion_error">Ocorreu um erro ao processar sua solicitação. Tente novamente mais tarde.</string>
+    
+    <!-- Sobre o App -->
+    <string name="about_app">Sobre o App</string>
+    <string name="app_version">Açucaradas Encomendas v1.0.0</string>
+    <string name="app_copyright">© 2023 Açucaradas Encomendas</string>
+    <string name="privacy_policy">Política de Privacidade</string>
+    <string name="terms_of_use">Termos de Uso</string>
+</resources>
