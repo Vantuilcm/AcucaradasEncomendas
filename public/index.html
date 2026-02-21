@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    
+    <title>Açucaradas Encomendas</title>
+    <meta name="description" content="Aplicativo para encomendas de doces artesanais" />
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+    
+    <!-- Splash screen -->
+    <meta name="theme-color" content="#e91e63" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Açucaradas Encomendas" />
+    
+    <!-- Preload fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <style>
+      /* Reset and base styles */
+      * {
+        box-sizing: border-box;
+      }
+      
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #ffffff;
+        overflow-x: hidden;
+      }
+      
+      /* Loading screen */
+      #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+      }
+      
+      #loading.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .loading-logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+      }
+      
+      .loading-text {
+        color: #e91e63;
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      
+      .loading-subtitle {
+        color: #666;
+        font-size: 16px;
+        margin-bottom: 30px;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #e91e63;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* Hide loading when app is ready */
+      #root:not(:empty) + #loading {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    
+    <!-- Loading screen -->
+    <div id="loading">
+      <svg class="loading-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="45" fill="#e91e63" opacity="0.1"/>
+        <path d="M50 15C65.5 15 78 27.5 78 43C78 58.5 65.5 71 50 71C34.5 71 22 58.5 22 43C22 27.5 34.5 15 50 15Z" fill="#e91e63"/>
+        <circle cx="40" cy="38" r="3" fill="white"/>
+        <circle cx="60" cy="38" r="3" fill="white"/>
+        <path d="M35 50C35 55 42 60 50 60C58 60 65 55 65 50" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <path d="M45 75C45 80 47 85 50 85C53 85 55 80 55 75" fill="#e91e63"/>
+      </svg>
+      <div class="loading-text">Açucaradas Encomendas</div>
+      <div class="loading-subtitle">Carregando aplicativo...</div>
+      <div class="loading-spinner"></div>
+    </div>
+    
+    <script>
+      // Hide loading screen when app is ready
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const loading = document.getElementById('loading');
+          if (loading) {
+            loading.classList.add('hidden');
+            setTimeout(function() {
+              loading.style.display = 'none';
+            }, 500);
+          }
+        }, 1000);
+      });
+      
+      // Error handling
+      window.addEventListener('error', function(e) {
+        console.error('Application error:', e.error);
+      });
+      
+      // Service worker registration (if available)
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('SW registered: ', registration);
+            })
+            .catch(function(registrationError) {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>

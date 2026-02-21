@@ -1,0 +1,18 @@
+module.exports = {
+  addGlobalEventProcessor: jest.fn(),
+  addBreadcrumb: jest.fn(),
+  captureException: jest.fn(),
+  captureEvent: jest.fn(),
+  captureMessage: jest.fn(),
+  getHubFromCarrier: jest.fn(),
+  getCurrentHub: jest.fn(),
+  Hub: jest.fn(),
+  Scope: jest.fn(),
+  setContext: jest.fn(),
+  setExtra: jest.fn(),
+  setExtras: jest.fn(),
+  setTag: jest.fn(),
+  setTags: jest.fn(),
+  setUser: jest.fn(),
+  startTransaction: jest.fn(),
+};

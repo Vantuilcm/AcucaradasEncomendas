@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo da tela -->
+  <rect width="1080" height="1920" fill="#FFFFFF"/>
+  
+  <!-- Barra de status -->
+  <rect width="1080" height="80" fill="#F8F8F8"/>
+  <text x="540" y="50" font-family="Arial" font-size="28" text-anchor="middle" fill="#333333">12:30</text>
+  
+  <!-- Imagem do produto -->
+  <rect y="80" width="1080" height="600" fill="#D2691E"/>
+  
+  <!-- Botão voltar -->
+  <circle cx="60" cy="130" r="30" fill="#FFFFFF" opacity="0.8"/>
+  <polyline points="70,110 50,130 70,150" fill="none" stroke="#333333" stroke-width="3"/>
+  
+  <!-- Botão compartilhar -->
+  <circle cx="1020" cy="130" r="30" fill="#FFFFFF" opacity="0.8"/>
+  <path d="M1010,120 L1030,120 M1020,110 L1020,130 M1005,140 L1035,140" fill="none" stroke="#333333" stroke-width="2"/>
+  
+  <!-- Indicador de imagens -->
+  <circle cx="500" cy="650" r="8" fill="#FF69B4"/>
+  <circle cx="540" cy="650" r="8" fill="#DDDDDD"/>
+  <circle cx="580" cy="650" r="8" fill="#DDDDDD"/>
+  
+  <!-- Detalhes do produto -->
+  <rect x="0" y="680" width="1080" height="1140" rx="30" ry="30" fill="#FFFFFF"/>
+  
+  <!-- Título e avaliação -->
+  <text x="40" y="740" font-family="Arial" font-size="36" font-weight="bold" fill="#333333">Bolo de Chocolate com Morangos</text>
+  
+  <!-- Estrelas -->
+  <polygon points="40,780 55,810 90,815 65,840 75,875 40,855 5,875 15,840 -10,815 25,810" fill="#FFD700"/>
+  <polygon points="100,780 115,810 150,815 125,840 135,875 100,855 65,875 75,840 50,815 85,810" fill="#FFD700"/>
+  <polygon points="160,780 175,810 210,815 185,840 195,875 160,855 125,875 135,840 110,815 145,810" fill="#FFD700"/>
+  <polygon points="220,780 235,810 270,815 245,840 255,875 220,855 185,875 195,840 170,815 205,810" fill="#FFD700"/>
+  <polygon points="280,780 295,810 330,815 305,840 315,875 280,855 245,875 255,840 230,815 265,810" fill="#FFD700"/>
+  
+  <text x="350" y="830" font-family="Arial" font-size="24" fill="#666666">(45 avaliações)</text>
+  
+  <!-- Confeiteiro -->
+  <rect x="40" y="900" width="1000" height="100" rx="15" ry="15" fill="#F8F8F8"/>
+  <circle cx="90" cy="950" r="35" fill="#FFC0CB"/>
+  <text x="90" y="960" font-family="Arial" font-size="20" text-anchor="middle" fill="#FFFFFF">MC</text>
+  <text x="150" y="940" font-family="Arial" font-size="24" font-weight="bold" fill="#333333">Maria Confeitaria</text>
+  <text x="150" y="970" font-family="Arial" font-size="18" fill="#666666">Especialista em bolos e doces finos</text>
+  <rect x="900" y="925" width="100" height="50" rx="25" ry="25" fill="#FF69B4"/>
+  <text x="950" y="955" font-family="Arial" font-size="18" text-anchor="middle" fill="#FFFFFF">Chat</text>
+  
+  <!-- Preço -->
+  <text x="40" y="1050" font-family="Arial" font-size="36" font-weight="bold" fill="#FF69B4">R$ 89,90</text>
+  
+  <!-- Descrição -->
+  <text x="40" y="1120" font-family="Arial" font-size="24" font-weight="bold" fill="#333333">Descrição</text>
+  <text x="40" y="1160" font-family="Arial" font-size="20" fill="#666666">Delicioso bolo de chocolate com recheio de ganache e</text>
+  <text x="40" y="1190" font-family="Arial" font-size="20" fill="#666666">morangos frescos. Cobertura de chocolate meio amargo</text>
+  <text x="40" y="1220" font-family="Arial" font-size="20" fill="#666666">decorada com morangos. Ideal para 15-20 pessoas.</text>
+  
+  <!-- Informações adicionais -->
+  <text x="40" y="1290" font-family="Arial" font-size="24" font-weight="bold" fill="#333333">Informações adicionais</text>
+  
+  <!-- Tempo de preparo -->
+  <rect x="40" y="1320" width="320" height="100" rx="15" ry="15" fill="#F8F8F8"/>
+  <text x="60" y="1360" font-family="Arial" font-size="20" fill="#333333">Tempo de preparo</text>
+  <text x="60" y="1390" font-family="Arial" font-size="18" font-weight="bold" fill="#FF69B4">48 horas</text>
+  
+  <!-- Tamanho -->
+  <rect x="380" y="1320" width="320" height="100" rx="15" ry="15" fill="#F8F8F8"/>
+  <text x="400" y="1360" font-family="Arial" font-size="20" fill="#333333">Tamanho</text>
+  <text x="400" y="1390" font-family="Arial" font-size="18" font-weight="bold" fill="#FF69B4">25cm (diâmetro)</text>
+  
+  <!-- Peso -->
+  <rect x="720" y="1320" width="320" height="100" rx="15" ry="15" fill="#F8F8F8"/>
+  <text x="740" y="1360" font-family="Arial" font-size="20" fill="#333333">Peso aproximado</text>
+  <text x="740" y="1390" font-family="Arial" font-size="18" font-weight="bold" fill="#FF69B4">2,5kg</text>
+  
+  <!-- Opções -->
+  <text x="40" y="1470" font-family="Arial" font-size="24" font-weight="bold" fill="#333333">Opções</text>
+  
+  <!-- Opção 1 -->
+  <rect x="40" y="1500" width="1000" height="60" rx="10" ry="10" fill="#F8F8F8"/>
+  <circle cx="70" cy="1530" r="20" fill="#FFFFFF" stroke="#FF69B4" stroke-width="2"/>
+  <circle cx="70" cy="1530" r="10" fill="#FF69B4"/>
+  <text x="100" y="1535" font-family="Arial" font-size="20" fill="#333333">Sem lactose (+R$ 10,00)</text>
+  
+  <!-- Opção 2 -->
+  <rect x="40" y="1580" width="1000" height="60" rx="10" ry="10" fill="#F8F8F8"/>
+  <circle cx="70" cy="1610" r="20" fill="#FFFFFF" stroke="#DDDDDD" stroke-width="2"/>
+  <text x="100" y="1615" font-family="Arial" font-size="20" fill="#333333">Sem glúten (+R$ 15,00)</text>
+  
+  <!-- Botão adicionar ao carrinho -->
+  <rect x="40" y="1680" width="1000" height="80" rx="40" ry="40" fill="#FF69B4"/>
+  <text x="540" y="1730" font-family="Arial" font-size="28" font-weight="bold" text-anchor="middle" fill="#FFFFFF">Adicionar ao carrinho</text>
+  
+  <!-- Barra de navegação inferior -->
+  <rect y="1820" width="1080" height="100" fill="#FFE4E1"/>
+  
+  <!-- Ícone Home -->
+  <circle cx="180" cy="1870" r="30" fill="none" stroke="#333333" stroke-width="2"/>
+  <polyline points="160,1870 180,1850 200,1870" fill="none" stroke="#333333" stroke-width="2"/>
+  <line x1="180" y1="1850" x2="180" y2="1890" stroke="#333333" stroke-width="2"/>
+  
+  <!-- Ícone Busca (ativo) -->
+  <circle cx="360" cy="1870" r="25" fill="#FF69B4"/>
+  <line x1="378" y1="1888" x2="390" y2="1900" stroke="#FFFFFF" stroke-width="3"/>
+  
+  <!-- Ícone Chat -->
+  <rect x="520" y="1845" width="40" height="50" rx="5" ry="5" fill="none" stroke="#333333" stroke-width="2"/>
+  <line x1="520" y1="1860" x2="560" y2="1860" stroke="#333333" stroke-width="2"/>
+  <line x1="520" y1="1875" x2="560" y2="1875" stroke="#333333" stroke-width="2"/>
+  <line x1="520" y1="1890" x2="540" y2="1890" stroke="#333333" stroke-width="2"/>
+  
+  <!-- Ícone Pedidos -->
+  <rect x="700" y="1845" width="40" height="50" rx="5" ry="5" fill="none" stroke="#333333" stroke-width="2"/>
+  <line x1="700" y1="1860" x2="740" y2="1860" stroke="#333333" stroke-width="2"/>
+  <line x1="700" y1="1875" x2="740" y2="1875" stroke="#333333" stroke-width="2"/>
+  <line x1="700" y1="1890" x2="740" y2="1890" stroke="#333333" stroke-width="2"/>
+  
+  <!-- Ícone Perfil -->
+  <circle cx="900" cy="1870" r="25" fill="none" stroke="#333333" stroke-width="2"/>
+  <circle cx="900" cy="1855" r="10" fill="none" stroke="#333333" stroke-width="2"/>
+  <path d="M875,1890 Q900,1875 925,1890" fill="none" stroke="#333333" stroke-width="2"/>
+</svg>

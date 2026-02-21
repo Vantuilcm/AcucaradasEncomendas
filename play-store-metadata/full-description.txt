@@ -1,0 +1,11 @@
+Acucaradas Encomendas e um aplicativo completo para gerenciamento de encomendas de doces e bolos.
+
+Principais funcionalidades:
+- Cadastro de clientes
+- Cadastro de produtos
+- Gerenciamento de pedidos
+- Controle de estoque
+- Relatorios de vendas
+- Notificacoes de entrega
+
+Ideal para confeiteiros e doceiros que desejam organizar seu negocio de forma eficiente.

@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Açucaradas Encomendas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .app-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .container {
+            text-align: center;
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        .auth-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .app-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem auto;
+            display: block;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+            transition: transform 0.3s ease;
+        }
+        
+        .app-logo:hover {
+            transform: scale(1.05);
+        }
+        
+        .app-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem auto;
+            display: block;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+            transition: transform 0.3s ease;
+        }
+        
+        .app-logo:hover {
+            transform: scale(1.05) rotate(2deg);
+        }
+        
+        .dashboard-logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem auto;
+            display: block;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+        
+        h1 {
+            color: #e91e63;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        h2 {
+            color: #e91e63;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #e91e63;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 1rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #e91e63, #ff6b9d);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+        
+        .auth-switch {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #666;
+        }
+        
+        .auth-switch a {
+            color: #e91e63;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
+        
+        .features {
+            display: grid;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .feature {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #e91e63;
+        }
+        
+        .feature h3 {
+            color: #e91e63;
+            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+        }
+        
+        .feature p {
+            color: #666;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        
+        .status {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #e8f5e8;
+            border-radius: 10px;
+            color: #2e7d32;
+            font-weight: 500;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 0.75rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 0.75rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .dashboard {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin: 0 auto;
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .user-info h3 {
+            color: #e91e63;
+            margin: 0;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .logout-btn:hover {
+            background: #c82333;
+        }
+        
+        /* Notificações */
+        .notifications {
+            margin-bottom: 2rem;
+        }
+        
+        .notification {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 10px;
+            border-left: 4px solid;
+            position: relative;
+        }
+        
+        .notification.warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        
+        .notification.info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        
+        .notification-icon {
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+        }
+        
+        .notification-text {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.7;
+            margin-left: 1rem;
+        }
+        
+        .notification-close:hover {
+            opacity: 1;
+        }
+        
+        /* Estatísticas */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card:nth-child(2) {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .stat-card:nth-child(3) {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .stat-card:nth-child(4) {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-right: 1rem;
+        }
+        
+        .stat-content {
+            flex: 1;
+        }
+        
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-change {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .stat-change.positive {
+            color: #90EE90;
+        }
+        
+        .stat-change.neutral {
+            color: #FFE4B5;
+        }
+        
+        /* Gráfico */
+        .chart-container {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-container h3 {
+            color: #333;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .chart-bars {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            height: 200px;
+            padding: 0 1rem;
+        }
+        
+        .chart-bar {
+            flex: 1;
+            margin: 0 0.25rem;
+            background: linear-gradient(to top, #e91e63, #ff6b9d);
+            border-radius: 5px 5px 0 0;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: end;
+            align-items: center;
+        }
+        
+        .chart-bar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+        }
+        
+        .chart-bar.active {
+            background: linear-gradient(to top, #ff6b9d, #ffd93d);
+        }
+        
+        .bar-value {
+            position: absolute;
+            top: -25px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+        
+        .bar-label {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #666;
+        }
+        
+        /* Ações Rápidas */
+        .quick-actions {
+            margin-bottom: 2rem;
+        }
+        
+        .quick-actions h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        
+        .action-btn {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 1.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .action-btn:hover {
+            border-color: #e91e63;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .action-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .action-text {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        /* Módulos Principais */
+        .main-modules {
+            margin-bottom: 2rem;
+        }
+        
+        .main-modules h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .module-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .module-card:hover {
+            border-color: #e91e63;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .module-icon {
+            font-size: 2.5rem;
+        }
+        
+        .module-badge {
+            background: #e91e63;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .module-card h4 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+        
+        .module-card p {
+            color: #666;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .module-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .module-stats span {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.7rem;
+        }
+        
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status.warning {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        /* Pedidos Recentes */
+        .recent-orders {
+            margin-bottom: 2rem;
+        }
+        
+        .recent-orders h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .orders-list {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #e91e63;
+            transition: transform 0.2s ease;
+        }
+        
+        .order-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .order-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .order-info {
+            flex: 1;
+        }
+        
+        .order-id {
+            font-weight: 700;
+            color: #e91e63;
+            font-size: 0.9rem;
+        }
+        
+        .order-client {
+            font-weight: 600;
+            color: #333;
+            margin: 0.25rem 0;
+        }
+        
+        .order-products {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .order-details {
+            text-align: right;
+        }
+        
+        .order-value {
+            font-weight: 700;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        
+        .order-status {
+            margin: 0.25rem 0;
+        }
+        
+        .order-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .order-status.confirmed {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .order-status.delivered {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .order-time {
+            color: #999;
+            font-size: 0.8rem;
+        }
+        
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+        }
+        
+        .loading-content p {
+            margin-top: 20px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        /* Animações melhoradas */
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .quick-action:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 217, 61, 0.3);
+        }
+        
+        .module-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Efeitos de pulso para estatísticas */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .stat-card.updated {
+            animation: pulse 0.6s ease;
+        }
+        
+        /* Melhorias nas notificações */
+        .notification {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .notification:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 1rem;
+            }
+            
+            .auth-container, .dashboard {
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .modules-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .order-details {
+                text-align: left;
+                margin-top: 0.5rem;
+            }
+            
+            .chart-bars {
+                height: 150px;
+            }
+            
+            .bar-value {
+                font-size: 0.6rem;
+            }
+            
+            .loading-content {
+                margin: 20px;
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Tela de Login -->
+        <div id="loginScreen" class="auth-container">
+            <img src="assets/logo-chef.svg" alt="Açucaradas Encomendas" class="app-logo">
+            <h2>Entrar</h2>
+            
+            <div id="loginError" class="error hidden"></div>
+            <div id="loginSuccess" class="success hidden"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Senha</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Entrar</button>
+                <button type="button" class="btn btn-secondary" onclick="signInWithGoogle()">
+                    Entrar com Google
+                </button>
+            </form>
+            
+            <div class="auth-switch">
+                Não tem conta? <a href="#" onclick="showRegister()">Cadastre-se</a>
+            </div>
+        </div>
+        
+        <!-- Tela de Registro -->
+        <div id="registerScreen" class="auth-container hidden">
+            <img src="assets/logo-chef.svg" alt="Açucaradas Encomendas" class="app-logo">
+            <h2>Cadastrar</h2>
+            
+            <div id="registerError" class="error hidden"></div>
+            <div id="registerSuccess" class="success hidden"></div>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="registerName">Nome Completo</label>
+                    <input type="text" id="registerName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPassword">Senha</label>
+                    <input type="password" id="registerPassword" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerConfirmPassword">Confirmar Senha</label>
+                    <input type="password" id="registerConfirmPassword" required minlength="6">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Cadastrar</button>
+            </form>
+            
+            <div class="auth-switch">
+                Já tem conta? <a href="#" onclick="showLogin()">Entrar</a>
+            </div>
+        </div>
+        
+        <!-- Dashboard Principal -->
+        <div id="dashboard" class="dashboard hidden">
+            <div class="user-info">
+                <img src="assets/logo-chef.svg" alt="Açucaradas Encomendas" class="dashboard-logo">
+                <h2 style="color: #e91e63; font-size: 1.5rem; margin-bottom: 0.5rem; text-align: center;">Açucaradas Encomendas</h2>
+                <h3>Bem-vindo(a), <span id="userName">Usuário</span>!</h3>
+                <button class="logout-btn" onclick="logout()">Sair</button>
+            </div>
+            
+            <!-- Notificações -->
+            <div class="notifications" id="notifications">
+                <div class="notification warning">
+                    <span class="notification-icon">⚠️</span>
+                    <span class="notification-text">3 pedidos pendentes de confirmação</span>
+                    <button class="notification-close" onclick="closeNotification(this)">×</button>
+                </div>
+                <div class="notification info">
+                    <span class="notification-icon">📦</span>
+                    <span class="notification-text">Estoque baixo: Brigadeiros (5 unidades)</span>
+                    <button class="notification-close" onclick="closeNotification(this)">×</button>
+                </div>
+            </div>
+            
+            <!-- Estatísticas Rápidas -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalOrders">24</div>
+                        <div class="stat-label">Pedidos Hoje</div>
+                        <div class="stat-change positive">+12%</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="todayRevenue">R$ 1.247</div>
+                        <div class="stat-label">Vendas Hoje</div>
+                        <div class="stat-change positive">+8%</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="activeClients">156</div>
+                        <div class="stat-label">Clientes Ativos</div>
+                        <div class="stat-change positive">+3</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">🧁</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="topProduct">Brigadeiros</div>
+                        <div class="stat-label">Mais Vendido</div>
+                        <div class="stat-change neutral">47 vendas</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico de Vendas -->
+            <div class="chart-container">
+                <h3>📈 Vendas dos Últimos 7 Dias</h3>
+                <div class="chart" id="salesChart">
+                    <div class="chart-bars">
+                        <div class="chart-bar" style="height: 60%;" data-value="R$ 890">
+                            <div class="bar-value">R$ 890</div>
+                            <div class="bar-label">Seg</div>
+                        </div>
+                        <div class="chart-bar" style="height: 80%;" data-value="R$ 1.200">
+                            <div class="bar-value">R$ 1.200</div>
+                            <div class="bar-label">Ter</div>
+                        </div>
+                        <div class="chart-bar" style="height: 45%;" data-value="R$ 670">
+                            <div class="bar-value">R$ 670</div>
+                            <div class="bar-label">Qua</div>
+                        </div>
+                        <div class="chart-bar" style="height: 90%;" data-value="R$ 1.350">
+                            <div class="bar-value">R$ 1.350</div>
+                            <div class="bar-label">Qui</div>
+                        </div>
+                        <div class="chart-bar" style="height: 100%;" data-value="R$ 1.500">
+                            <div class="bar-value">R$ 1.500</div>
+                            <div class="bar-label">Sex</div>
+                        </div>
+                        <div class="chart-bar" style="height: 75%;" data-value="R$ 1.125">
+                            <div class="bar-value">R$ 1.125</div>
+                            <div class="bar-label">Sáb</div>
+                        </div>
+                        <div class="chart-bar active" style="height: 83%;" data-value="R$ 1.247">
+                            <div class="bar-value">R$ 1.247</div>
+                            <div class="bar-label">Dom</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ações Rápidas -->
+            <div class="quick-actions">
+                <h3>⚡ Ações Rápidas</h3>
+                <div class="actions-grid">
+                    <button class="action-btn" onclick="openModule('newOrder')">
+                        <div class="action-icon">➕</div>
+                        <div class="action-text">Novo Pedido</div>
+                    </button>
+                    <button class="action-btn" onclick="openModule('addProduct')">
+                        <div class="action-icon">🧁</div>
+                        <div class="action-text">Adicionar Produto</div>
+                    </button>
+                    <button class="action-btn" onclick="openModule('addClient')">
+                        <div class="action-icon">👤</div>
+                        <div class="action-text">Novo Cliente</div>
+                    </button>
+                    <button class="action-btn" onclick="openModule('reports')">
+                        <div class="action-icon">📊</div>
+                        <div class="action-text">Relatórios</div>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Módulos Principais -->
+            <div class="main-modules">
+                <h3>📱 Módulos Principais</h3>
+                <div class="modules-grid">
+                    <div class="module-card" onclick="openModule('orders')">
+                        <div class="module-header">
+                            <div class="module-icon">📋</div>
+                            <div class="module-badge">3</div>
+                        </div>
+                        <h4>Pedidos</h4>
+                        <p>Gerencie todos os pedidos</p>
+                        <div class="module-stats">
+                            <span>24 hoje</span>
+                            <span class="status pending">3 pendentes</span>
+                        </div>
+                    </div>
+                    
+                    <div class="module-card" onclick="openModule('products')">
+                        <div class="module-header">
+                            <div class="module-icon">🧁</div>
+                            <div class="module-badge">89</div>
+                        </div>
+                        <h4>Produtos</h4>
+                        <p>Catálogo e estoque</p>
+                        <div class="module-stats">
+                            <span>89 produtos</span>
+                            <span class="status warning">2 em falta</span>
+                        </div>
+                    </div>
+                    
+                    <div class="module-card" onclick="openModule('clients')">
+                        <div class="module-header">
+                            <div class="module-icon">👥</div>
+                            <div class="module-badge">156</div>
+                        </div>
+                        <h4>Clientes</h4>
+                        <p>Gestão de clientes</p>
+                        <div class="module-stats">
+                            <span>156 clientes</span>
+                            <span class="status success">12 novos</span>
+                        </div>
+                    </div>
+                    
+                    <div class="module-card" onclick="openModule('analytics')">
+                        <div class="module-header">
+                            <div class="module-icon">📊</div>
+                            <div class="module-badge">📈</div>
+                        </div>
+                        <h4>Análises</h4>
+                        <p>Relatórios e métricas</p>
+                        <div class="module-stats">
+                            <span>R$ 8.982 este mês</span>
+                            <span class="status success">+15%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pedidos Recentes -->
+            <div class="recent-orders">
+                <h3>🕒 Pedidos Recentes</h3>
+                <div class="orders-list">
+                    <div class="order-item">
+                        <div class="order-info">
+                            <div class="order-id">#001</div>
+                            <div class="order-client">Maria Silva</div>
+                            <div class="order-products">2x Brigadeiros, 1x Beijinho</div>
+                        </div>
+                        <div class="order-details">
+                            <div class="order-value">R$ 45,00</div>
+                            <div class="order-status pending">Pendente</div>
+                            <div class="order-time">há 15 min</div>
+                        </div>
+                    </div>
+                    
+                    <div class="order-item">
+                        <div class="order-info">
+                            <div class="order-id">#002</div>
+                            <div class="order-client">João Santos</div>
+                            <div class="order-products">1x Bolo de Chocolate</div>
+                        </div>
+                        <div class="order-details">
+                            <div class="order-value">R$ 85,00</div>
+                            <div class="order-status confirmed">Confirmado</div>
+                            <div class="order-time">há 32 min</div>
+                        </div>
+                    </div>
+                    
+                    <div class="order-item">
+                        <div class="order-info">
+                            <div class="order-id">#003</div>
+                            <div class="order-client">Ana Costa</div>
+                            <div class="order-products">3x Cupcakes, 2x Brownies</div>
+                        </div>
+                        <div class="order-details">
+                            <div class="order-value">R$ 67,50</div>
+                            <div class="order-status delivered">Entregue</div>
+                            <div class="order-time">há 1h</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="openModule('orders')">Ver Todos os Pedidos</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Estado da aplicação
+        let currentUser = null;
+        let isLoading = false;
+        
+        // Simulação de banco de dados de usuários
+        let users = JSON.parse(localStorage.getItem('acucaradas_users') || '[]');
+        
+        // Inicialização da aplicação
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Açucaradas Encomendas - Sistema carregado com sucesso!');
+            
+            // Verificar se há usuário logado
+            const savedUser = localStorage.getItem('acucaradas_current_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showDashboard();
+            } else {
+                showLogin();
+            }
+            
+            // Configurar eventos dos formulários
+            setupEventListeners();
+            
+            // Animação de entrada
+            setTimeout(() => {
+                const activeScreen = document.querySelector('.auth-container:not(.hidden), .dashboard:not(.hidden)');
+                if (activeScreen) {
+                    activeScreen.style.opacity = '0';
+                    activeScreen.style.transform = 'translateY(20px)';
+                    activeScreen.style.transition = 'all 0.6s ease';
+                    
+                    setTimeout(() => {
+                        activeScreen.style.opacity = '1';
+                        activeScreen.style.transform = 'translateY(0)';
+                    }, 100);
+                }
+            }, 100);
+        });
+        
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Formulário de login
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            
+            // Formulário de registro
+            document.getElementById('registerForm').addEventListener('submit', handleRegister);
+        }
+        
+        // Navegação entre telas
+        function showLogin() {
+            hideAllScreens();
+            document.getElementById('loginScreen').classList.remove('hidden');
+            clearMessages();
+        }
+        
+        function showRegister() {
+            hideAllScreens();
+            document.getElementById('registerScreen').classList.remove('hidden');
+            clearMessages();
+        }
+        
+        function showDashboard() {
+            hideAllScreens();
+            document.getElementById('dashboard').classList.remove('hidden');
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name || currentUser.email;
+            }
+        }
+        
+        function hideAllScreens() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('registerScreen').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+        
+        function clearMessages() {
+            const messages = document.querySelectorAll('.error, .success');
+            messages.forEach(msg => {
+                msg.classList.add('hidden');
+                msg.textContent = '';
+            });
+        }
+        
+        // Funções de autenticação
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            if (isLoading) return;
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            setLoading(true);
+            clearMessages();
+            
+            try {
+                // Simular delay de rede
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Verificar credenciais
+                const user = users.find(u => u.email === email && u.password === password);
+                
+                if (user) {
+                    currentUser = { ...user };
+                    delete currentUser.password; // Não manter senha na sessão
+                    
+                    localStorage.setItem('acucaradas_current_user', JSON.stringify(currentUser));
+                    
+                    showMessage('loginSuccess', 'Login realizado com sucesso!');
+                    
+                    setTimeout(() => {
+                        showDashboard();
+                    }, 1000);
+                } else {
+                    showMessage('loginError', 'Email ou senha incorretos.');
+                }
+            } catch (error) {
+                showMessage('loginError', 'Erro ao fazer login. Tente novamente.');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            if (isLoading) return;
+            
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            
+            setLoading(true);
+            clearMessages();
+            
+            try {
+                // Validações
+                if (password !== confirmPassword) {
+                    showMessage('registerError', 'As senhas não coincidem.');
+                    return;
+                }
+                
+                if (password.length < 6) {
+                    showMessage('registerError', 'A senha deve ter pelo menos 6 caracteres.');
+                    return;
+                }
+                
+                // Verificar se email já existe
+                if (users.find(u => u.email === email)) {
+                    showMessage('registerError', 'Este email já está cadastrado.');
+                    return;
+                }
+                
+                // Simular delay de rede
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Criar novo usuário
+                const newUser = {
+                    id: Date.now().toString(),
+                    name,
+                    email,
+                    password,
+                    createdAt: new Date().toISOString()
+                };
+                
+                users.push(newUser);
+                localStorage.setItem('acucaradas_users', JSON.stringify(users));
+                
+                showMessage('registerSuccess', 'Conta criada com sucesso! Redirecionando...');
+                
+                setTimeout(() => {
+                    // Auto-login após registro
+                    currentUser = { ...newUser };
+                    delete currentUser.password;
+                    localStorage.setItem('acucaradas_current_user', JSON.stringify(currentUser));
+                    showDashboard();
+                }, 1500);
+                
+            } catch (error) {
+                showMessage('registerError', 'Erro ao criar conta. Tente novamente.');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // Login com Google (simulado)
+        async function signInWithGoogle() {
+            if (isLoading) return;
+            
+            setLoading(true);
+            clearMessages();
+            
+            try {
+                // Simular autenticação com Google
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                const googleUser = {
+                    id: 'google_' + Date.now(),
+                    name: 'Usuário Google',
+                    email: 'usuario@gmail.com',
+                    provider: 'google',
+                    createdAt: new Date().toISOString()
+                };
+                
+                currentUser = googleUser;
+                localStorage.setItem('acucaradas_current_user', JSON.stringify(currentUser));
+                
+                showMessage('loginSuccess', 'Login com Google realizado com sucesso!');
+                
+                setTimeout(() => {
+                    showDashboard();
+                }, 1000);
+                
+            } catch (error) {
+                showMessage('loginError', 'Erro ao fazer login com Google.');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // Logout
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('acucaradas_current_user');
+            showLogin();
+        }
+        
+        // Funções auxiliares
+        function setLoading(loading) {
+            isLoading = loading;
+            const forms = document.querySelectorAll('form');
+            const buttons = document.querySelectorAll('button');
+            
+            forms.forEach(form => {
+                if (loading) {
+                    form.classList.add('loading');
+                } else {
+                    form.classList.remove('loading');
+                }
+            });
+            
+            buttons.forEach(button => {
+                button.disabled = loading;
+            });
+        }
+        
+        function showMessage(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.remove('hidden');
+        }
+        
+        // Função para limpar dados de teste (útil para desenvolvimento)
+        function clearTestData() {
+            localStorage.removeItem('acucaradas_users');
+            localStorage.removeItem('acucaradas_current_user');
+            users = [];
+            currentUser = null;
+            showLogin();
+            console.log('Dados de teste limpos!');
+        }
+        
+        // Funções do Dashboard Avançado
+        function closeNotification(button) {
+            const notification = button.parentElement;
+            notification.style.transform = 'translateX(100%)';
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }
+        
+        function openModule(moduleName) {
+            const moduleMessages = {
+                'newOrder': 'Abrindo formulário de novo pedido...',
+                'addProduct': 'Abrindo cadastro de produto...',
+                'addClient': 'Abrindo cadastro de cliente...',
+                'reports': 'Carregando relatórios...',
+                'orders': 'Abrindo módulo de pedidos...',
+                'products': 'Abrindo catálogo de produtos...',
+                'clients': 'Abrindo gestão de clientes...',
+                'analytics': 'Carregando análises e métricas...'
+            };
+            
+            const message = moduleMessages[moduleName] || 'Carregando módulo...';
+            
+            // Simular carregamento
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading-overlay';
+            loadingDiv.innerHTML = `
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <p>${message}</p>
+                </div>
+            `;
+            
+            document.body.appendChild(loadingDiv);
+            
+            setTimeout(() => {
+                loadingDiv.remove();
+                alert(`Módulo "${moduleName}" será implementado na próxima versão!\n\nFuncionalidades planejadas:\n- Interface completa\n- Operações CRUD\n- Integração com banco de dados\n- Relatórios detalhados`);
+            }, 1500);
+        }
+        
+        // Atualizar estatísticas em tempo real
+        function updateDashboardStats() {
+            const stats = {
+                totalOrders: Math.floor(Math.random() * 10) + 20,
+                todayRevenue: (Math.random() * 500 + 1000).toFixed(0),
+                activeClients: Math.floor(Math.random() * 20) + 150,
+                topProducts: ['Brigadeiros', 'Beijinhos', 'Cupcakes', 'Brownies']
+            };
+            
+            // Atualizar números com animação
+            animateNumber('totalOrders', stats.totalOrders);
+            animateNumber('todayRevenue', `R$ ${stats.todayRevenue}`);
+            animateNumber('activeClients', stats.activeClients);
+            
+            const topProductElement = document.getElementById('topProduct');
+            if (topProductElement) {
+                const randomProduct = stats.topProducts[Math.floor(Math.random() * stats.topProducts.length)];
+                topProductElement.textContent = randomProduct;
+            }
+        }
+        
+        function animateNumber(elementId, newValue) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            element.style.transform = 'scale(1.1)';
+            element.style.color = '#ffd93d';
+            
+            setTimeout(() => {
+                element.textContent = newValue;
+                element.style.transform = 'scale(1)';
+                element.style.color = '';
+            }, 200);
+        }
+        
+        // Simular notificações em tempo real
+        function addRandomNotification() {
+            const notifications = [
+                {
+                    type: 'info',
+                    icon: '🎉',
+                    text: 'Novo pedido recebido de Cliente Premium!'
+                },
+                {
+                    type: 'warning',
+                    icon: '⏰',
+                    text: 'Lembrete: Entrega agendada para 14h'
+                },
+                {
+                    type: 'info',
+                    icon: '💰',
+                    text: 'Meta diária de vendas atingida!'
+                },
+                {
+                    type: 'warning',
+                    icon: '📦',
+                    text: 'Estoque baixo: Chocolate em pó (3 unidades)'
+                }
+            ];
+            
+            const randomNotification = notifications[Math.floor(Math.random() * notifications.length)];
+            const notificationsContainer = document.getElementById('notifications');
+            
+            if (notificationsContainer) {
+                const newNotification = document.createElement('div');
+                newNotification.className = `notification ${randomNotification.type}`;
+                newNotification.innerHTML = `
+                    <span class="notification-icon">${randomNotification.icon}</span>
+                    <span class="notification-text">${randomNotification.text}</span>
+                    <button class="notification-close" onclick="closeNotification(this)">×</button>
+                `;
+                
+                newNotification.style.transform = 'translateX(-100%)';
+                newNotification.style.opacity = '0';
+                
+                notificationsContainer.appendChild(newNotification);
+                
+                setTimeout(() => {
+                    newNotification.style.transform = 'translateX(0)';
+                    newNotification.style.opacity = '1';
+                }, 100);
+                
+                // Auto-remover após 10 segundos
+                setTimeout(() => {
+                    if (newNotification.parentElement) {
+                        closeNotification(newNotification.querySelector('.notification-close'));
+                    }
+                }, 10000);
+            }
+        }
+        
+        // Animar gráfico de barras
+        function animateChart() {
+            const chartBars = document.querySelectorAll('.chart-bar');
+            chartBars.forEach((bar, index) => {
+                setTimeout(() => {
+                    bar.style.transform = 'scaleY(0)';
+                    bar.style.transformOrigin = 'bottom';
+                    bar.style.transition = 'transform 0.8s ease';
+                    
+                    setTimeout(() => {
+                        bar.style.transform = 'scaleY(1)';
+                    }, 100);
+                }, index * 100);
+            });
+        }
+        
+        // Inicializar dashboard quando mostrado
+        function initializeDashboard() {
+            // Animar entrada dos elementos
+            setTimeout(() => {
+                animateChart();
+            }, 500);
+            
+            // Atualizar estatísticas periodicamente
+            updateDashboardStats();
+            setInterval(updateDashboardStats, 30000); // A cada 30 segundos
+            
+            // Adicionar notificações aleatórias
+            setInterval(addRandomNotification, 45000); // A cada 45 segundos
+            
+            console.log('Dashboard avançado inicializado!');
+        }
+        
+        // Modificar a função showDashboard existente
+        const originalShowDashboard = showDashboard;
+        showDashboard = function() {
+            originalShowDashboard();
+            setTimeout(initializeDashboard, 100);
+        };
+        
+        // Expor função para console (desenvolvimento)
+        window.clearTestData = clearTestData;
+        window.updateDashboardStats = updateDashboardStats;
+        window.addRandomNotification = addRandomNotification;
+        
+        console.log('Sistema de autenticação carregado!');
+        console.log('Para limpar dados de teste, execute: clearTestData()');
+        console.log('Para testar notificações, execute: addRandomNotification()');
+        console.log('Para atualizar estatísticas, execute: updateDashboardStats()');
+    </script>
+</body>
+</html>

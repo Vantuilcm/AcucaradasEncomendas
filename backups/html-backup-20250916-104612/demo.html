@@ -1,0 +1,2469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Açucaradas Encomendas - Aplicativo Web</title>
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧁</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9f9f9;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .app-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Tela de Login */
+        .login-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
+            text-align: center;
+        }
+
+        .login-logo {
+            width: 150px;
+            height: 150px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            color: white;
+            animation: logoFloat 3s ease-in-out infinite;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-10px) scale(1.05); }
+        }
+
+        .login-title {
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .login-subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        .login-form {
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-label {
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            background: white;
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            background: white;
+            color: #FF6B6B;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-bottom: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn.secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn.secondary:hover {
+            background: white;
+            color: #FF6B6B;
+        }
+
+        /* Telas principais */
+        .screen {
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .logout-btn {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Tela Home */
+        .home-screen {
+            text-align: center;
+            padding: 40px 20px;
+            background: #f9f9f9;
+        }
+
+        .home-logo {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+            border-radius: 50%;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            color: white;
+            animation: pulse 2s infinite;
+            box-shadow: 0 8px 30px rgba(255, 107, 107, 0.3);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .home-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            color: #333;
+        }
+
+        .home-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .home-btn {
+            background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .home-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .home-btn.secondary {
+            background: white;
+            color: #FF6B6B;
+            border: 2px solid #FF6B6B;
+        }
+
+        /* Cards e componentes */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 10px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .product-image {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .product-price {
+            color: #FF6B6B;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .stars {
+            color: #FFD700;
+            margin: 5px 0;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #FF6B6B;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+        }
+
+        .categories {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .category-btn {
+            background: #f0f0f0;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .category-btn.active {
+            background: #FF6B6B;
+            color: white;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quantity-btn {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .cart-total {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .total-amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FF6B6B;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #FF6B6B;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .voice-btn {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-left: 10px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-btn.recording {
+            background: #ff4444;
+            animation: pulse 1s infinite;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 10px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .step.active {
+            background: #FF6B6B;
+        }
+
+        .step.completed {
+            background: #4ECDC4;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #FF6B6B;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+        }
+
+        .order-summary {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .summary-total {
+            border-top: 2px solid #e0e0e0;
+            padding-top: 10px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .success-message {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #4ECDC4;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* Responsividade */
+        @media (max-width: 480px) {
+            .app-container {
+                max-width: 100%;
+                box-shadow: none;
+            }
+            
+            .product-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 10px;
+            }
+            
+            .login-title {
+                font-size: 28px;
+            }
+            
+            .home-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Tela de Login -->
+        <div id="login" class="screen active">
+            <div class="login-screen">
+                <div class="login-logo">🧁</div>
+                <h1 class="login-title">Açucaradas Encomendas</h1>
+                <p class="login-subtitle">Faça login para continuar</p>
+                
+                <form class="login-form" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="email" placeholder="seu@email.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Senha</label>
+                        <input type="password" class="form-input" id="password" placeholder="Sua senha" required>
+                    </div>
+                    
+                    <button type="submit" class="btn">Entrar</button>
+                    <button type="button" class="btn secondary" onclick="showDemo()">Entrar como Demo</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tela Home -->
+        <div id="home" class="screen">
+            <div class="header">
+                <button class="logout-btn" onclick="logout()">Sair</button>
+                <h1>Açucaradas Encomendas</h1>
+                <p>Bem-vindo de volta!</p>
+            </div>
+            
+            <div class="home-screen">
+                <div class="home-logo">🧁</div>
+                <h2 class="home-title">Açucaradas Encomendas</h2>
+                
+                <div class="home-buttons">
+                    <button class="home-btn" onclick="showScreen('pedidos')">Ver Pedidos</button>
+                    <button class="home-btn secondary" onclick="showScreen('novo-pedido')">Realizar Encomenda</button>
+                </div>
+            </div>
+        </div>
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #FF6B6B;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quantity-btn {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .total {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .total-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #FF6B6B;
+        }
+
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #FF6B6B;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 4px;
+            border-radius: 2px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+        }
+
+        .step.active {
+            background: #FF6B6B;
+        }
+
+        .step.completed {
+            background: #4ECDC4;
+        }
+
+        .voice-btn {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .voice-btn:hover {
+            background: #45b7aa;
+            transform: scale(1.1);
+        }
+
+        .voice-btn.recording {
+            background: #e74c3c;
+            animation: pulse 1s infinite;
+        }
+
+        .search-container {
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 40px 12px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #FF6B6B;
+        }
+
+        .categories {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        .category-btn {
+            background: white;
+            border: 2px solid #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-btn.active {
+            background: #FF6B6B;
+            color: white;
+            border-color: #FF6B6B;
+        }
+
+        .order-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-in-progress {
+            background: #cce7ff;
+            color: #004085;
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                max-width: 100%;
+            }
+            
+            .product-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Loading Overlay -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Tela de Login -->
+        <div class="screen active" id="login">
+            <div class="login-screen">
+                <div class="login-logo">🧁</div>
+                <h1 class="login-title">Açucaradas Encomendas</h1>
+                <p class="login-subtitle">Doces que fazem a vida mais doce</p>
+                <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email</label>
+                        <input type="email" id="email" class="form-input" placeholder="Seu email" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password">Senha</label>
+                        <input type="password" id="password" class="form-input" placeholder="Sua senha" required>
+                    </div>
+                    <button type="submit" class="btn">Entrar</button>
+                    <button type="button" class="btn secondary" onclick="showDemo()">Demonstração</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tela Inicial -->
+        <div class="screen" id="home">
+            <div class="home-screen">
+                <div class="logo">🧁</div>
+                <h1>Açucaradas Encomendas</h1>
+                <p>Doces que fazem a vida mais doce</p>
+                <div class="home-buttons">
+                    <button class="btn" onclick="navigateTo('orders')">Ver Pedidos</button>
+                    <button class="btn secondary" onclick="navigateTo('products')">Realizar Encomenda</button>
+                    <button class="btn secondary" onclick="logout()">Sair da Conta</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela de Pedidos -->
+        <div class="screen" id="orders">
+            <div class="header">
+                <button class="back-btn" onclick="navigateTo('home')">← Voltar</button>
+                <h1>Meus Pedidos</h1>
+                <p>Acompanhe seus pedidos</p>
+            </div>
+            <div style="padding: 20px;">
+                <button class="btn" onclick="navigateTo('new-order')">+ Novo Pedido</button>
+                
+                <div class="card" onclick="showOrderDetails('1')">
+                    <h3>Pedido #001</h3>
+                    <p><strong>Cliente:</strong> Maria Silva</p>
+                    <p><strong>Data:</strong> 31/03/2024</p>
+                    <p><strong>Valor:</strong> R$ 150,00</p>
+                    <span class="order-status status-in-progress">Em andamento</span>
+                </div>
+
+                <div class="card" onclick="showOrderDetails('2')">
+                    <h3>Pedido #002</h3>
+                    <p><strong>Cliente:</strong> João Santos</p>
+                    <p><strong>Data:</strong> 30/03/2024</p>
+                    <p><strong>Valor:</strong> R$ 200,00</p>
+                    <span class="order-status status-completed">Concluído</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela de Produtos -->
+        <div class="screen" id="products">
+            <div class="header">
+                <button class="back-btn" onclick="navigateTo('home')">← Voltar</button>
+                <h1>Produtos</h1>
+                <p>Escolha seus doces favoritos</p>
+            </div>
+            <div style="padding: 20px;">
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="Buscar produtos..." id="searchInput" oninput="filterProducts()">
+                    <button class="voice-btn" onclick="startVoiceSearch()" id="voiceBtn">🎤</button>
+                </div>
+
+                <div class="categories">
+                    <button class="category-btn active" onclick="filterByCategory('all')">Todos</button>
+                    <button class="category-btn" onclick="filterByCategory('bolos')">Bolos</button>
+                    <button class="category-btn" onclick="filterByCategory('doces')">Doces</button>
+                    <button class="category-btn" onclick="filterByCategory('salgados')">Salgados</button>
+                    <button class="category-btn" onclick="filterByCategory('bebidas')">Bebidas</button>
+                </div>
+
+                <div class="product-grid" id="productGrid">
+                    <div class="product-card" data-category="bolos" onclick="addToCart('bolo-chocolate', 'Bolo de Chocolate', 90.00)">
+                        <div class="product-image">🍰</div>
+                        <div class="product-name">Bolo de Chocolate</div>
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 90,00</div>
+                    </div>
+
+                    <div class="product-card" data-category="bolos" onclick="addToCart('bolo-morango', 'Bolo de Morango', 85.00)">
+                        <div class="product-image">🍓</div>
+                        <div class="product-name">Bolo de Morango</div>
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 85,00</div>
+                    </div>
+
+                    <div class="product-card" data-category="doces" onclick="addToCart('brigadeiro', 'Brigadeiro Gourmet', 3.50)">
+                        <div class="product-image">🍫</div>
+                        <div class="product-name">Brigadeiro Gourmet</div>
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 3,50</div>
+                    </div>
+
+                    <div class="product-card" data-category="doces" onclick="addToCart('beijinho', 'Beijinho', 3.00)">
+                        <div class="product-image">🥥</div>
+                        <div class="product-name">Beijinho</div>
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 3,00</div>
+                    </div>
+
+                    <div class="product-card" data-category="salgados" onclick="addToCart('coxinha', 'Coxinha', 8.00)">
+                        <div class="product-image">🥟</div>
+                        <div class="product-name">Coxinha</div>
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 8,00</div>
+                    </div>
+
+                    <div class="product-card" data-category="bebidas" onclick="addToCart('suco-natural', 'Suco Natural', 12.00)">
+                        <div class="product-image">🧃</div>
+                        <div class="product-name">Suco Natural</div>
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 12,00</div>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="navigateTo('cart')" id="cartBtn">
+                    🛒 Carrinho (<span id="cartCount">0</span>)
+                </button>
+            </div>
+        </div>
+
+        <!-- Tela do Carrinho -->
+        <div class="screen" id="cart">
+            <div class="header">
+                <button class="back-btn" onclick="navigateTo('products')">← Voltar</button>
+                <h1>Carrinho</h1>
+                <p>Seus itens selecionados</p>
+            </div>
+            <div style="padding: 20px;">
+                <div id="cartItems">
+                    <div class="empty-state" id="emptyCart">
+                        <div class="empty-icon">🛒</div>
+                        <h3>Carrinho vazio</h3>
+                        <p>Adicione produtos para continuar</p>
+                        <button class="btn" onclick="navigateTo('products')">Ver Produtos</button>
+                    </div>
+                </div>
+
+                <div class="total" id="cartTotal" style="display: none;">
+                    <div class="total-amount">Total: R$ <span id="totalAmount">0,00</span></div>
+                    <button class="btn" onclick="navigateTo('new-order')">Finalizar Pedido</button>
+                    <button class="btn secondary" onclick="clearCart()">Limpar Carrinho</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela de Novo Pedido -->
+        <div class="screen" id="new-order">
+            <div class="header">
+                <button class="back-btn" onclick="navigateTo('cart')">← Voltar</button>
+                <h1>Novo Pedido</h1>
+                <p>Finalize sua encomenda</p>
+            </div>
+            <div style="padding: 20px;">
+                <div class="step-indicator">
+                    <div class="step active" id="step1">1</div>
+                    <div class="step" id="step2">2</div>
+                    <div class="step" id="step3">3</div>
+                </div>
+
+                <!-- Etapa 1: Produtos -->
+                <div class="form-section" id="orderStep1">
+                    <h3>Produtos Selecionados</h3>
+                    <div id="orderProducts"></div>
+                    <button class="btn" onclick="nextStep(2)">Continuar</button>
+                </div>
+
+                <!-- Etapa 2: Dados do Cliente -->
+                <div class="form-section" id="orderStep2" style="display: none;">
+                    <h3>Dados do Cliente</h3>
+                    <input type="text" class="form-input" placeholder="Nome completo" id="customerName" required>
+                    <input type="tel" class="form-input" placeholder="Telefone" id="customerPhone" required>
+                    <input type="email" class="form-input" placeholder="Email" id="customerEmail" required>
+                    <textarea class="form-input" placeholder="Endereço de entrega" id="customerAddress" rows="3" required></textarea>
+                    <textarea class="form-input" placeholder="Observações (opcional)" id="orderNotes" rows="2"></textarea>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn secondary" onclick="previousStep(1)">Voltar</button>
+                        <button class="btn" onclick="nextStep(3)">Continuar</button>
+                    </div>
+                </div>
+
+                <!-- Etapa 3: Confirmação -->
+                <div class="form-section" id="orderStep3" style="display: none;">
+                    <h3>Confirmação do Pedido</h3>
+                    <div class="order-summary" id="orderSummary"></div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn secondary" onclick="previousStep(2)">Voltar</button>
+                        <button class="btn" onclick="submitOrder()">Confirmar Pedido</button>
+                    </div>
+                </div>
+
+                <!-- Etapa de Sucesso -->
+                <div class="form-section" id="orderSuccess" style="display: none;">
+                    <div class="success-message">
+                        <div class="success-icon">✅</div>
+                        <h3>Pedido Confirmado!</h3>
+                        <p>Seu pedido foi recebido e será processado em breve.</p>
+                        <p><strong>Número do Pedido:</strong> <span id="orderNumber"></span></p>
+                        <button class="btn" onclick="navigateTo('orders')">Ver Pedidos</button>
+                        <button class="btn secondary" onclick="navigateTo('home')">Voltar ao Início</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela de Detalhes do Pedido -->
+    <div class="screen" id="order-details">
+        <div class="header">
+            <button class="back-btn" onclick="navigateTo('orders')">← Voltar</button>
+            <h1>Detalhes do Pedido</h1>
+            <p>Informações completas</p>
+        </div>
+        <div style="padding: 20px;" id="orderDetailsContainer">
+            <!-- Conteúdo será preenchido dinamicamente -->
+        </div>
+    </div>
+
+    <script>
+        // Estado da aplicação
+        let currentScreen = 'login';
+        // Removido: let cart = []; (agora usando Services.cart)
+        let currentStep = 1;
+        let isLoggedIn = false;
+        let currentUser = null;
+
+        // Dados de exemplo para login
+        const users = [
+            { email: 'admin@acucaradas.com', password: '123456', name: 'Administrador' },
+            { email: 'cliente@email.com', password: '123456', name: 'Cliente Teste' }
+        ];
+
+        // Produtos disponíveis
+        const products = [
+            { id: 'bolo-chocolate', name: 'Bolo de Chocolate', price: 90.00, category: 'bolos', emoji: '🍰' },
+            { id: 'bolo-morango', name: 'Bolo de Morango', price: 85.00, category: 'bolos', emoji: '🍓' },
+            { id: 'brigadeiro', name: 'Brigadeiro Gourmet', price: 3.50, category: 'doces', emoji: '🍫' },
+            { id: 'beijinho', name: 'Beijinho', price: 3.00, category: 'doces', emoji: '🥥' },
+            { id: 'coxinha', name: 'Coxinha', price: 8.00, category: 'salgados', emoji: '🥟' },
+            { id: 'suco-natural', name: 'Suco Natural', price: 12.00, category: 'bebidas', emoji: '🧃' }
+        ];
+
+        // Função de login
+        function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const user = users.find(u => u.email === email && u.password === password);
+            
+            if (user) {
+                currentUser = user;
+                isLoggedIn = true;
+                showScreen('home');
+                showNotification('Login realizado com sucesso!', 'success');
+            } else {
+                showNotification('Email ou senha incorretos!', 'error');
+            }
+        }
+
+        // Função para entrar como demo
+        function showDemo() {
+            currentUser = { name: 'Usuário Demo', email: 'demo@acucaradas.com' };
+            isLoggedIn = true;
+            showScreen('home');
+            showNotification('Bem-vindo ao modo demonstração!', 'success');
+        }
+
+        // Função de logout
+        function logout() {
+            isLoggedIn = false;
+            currentUser = null;
+            cart = [];
+            updateCartDisplay();
+            showScreen('login');
+            showNotification('Logout realizado com sucesso!', 'success');
+        }
+
+        // Navegação entre telas
+        function showScreen(screenId) {
+            // Esconder todas as telas
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            // Mostrar a tela solicitada
+            document.getElementById(screenId).classList.add('active');
+            currentScreen = screenId;
+
+            // Atualizar dados específicos da tela
+            if (screenId === 'products') {
+                updateCartDisplay();
+            } else if (screenId === 'cart') {
+                displayCartItems();
+            } else if (screenId === 'new-order') {
+                resetOrderForm();
+                displayOrderProducts();
+            }
+        }
+
+        // Adicionar produto ao carrinho - Redirecionando para implementação unificada
+        function addToCart(productId, productName, price) {
+            // Redireciona para a implementação unificada no final do arquivo
+            window.addToCart(productId, productName, price);
+            showNotification(`${productName} adicionado ao carrinho!`, 'success');
+        }
+
+        // Remover produto do carrinho - Redirecionando para implementação unificada
+        function removeFromCart(productId) {
+            // Redireciona para a implementação unificada no final do arquivo
+            window.removeFromCart(productId);
+            showNotification('Item removido do carrinho!', 'info');
+        }
+
+        // Atualizar quantidade no carrinho - Redirecionando para implementação unificada
+        function updateQuantity(productId, change) {
+            // Redireciona para a implementação unificada no final do arquivo
+            window.updateQuantity(productId, change);
+        }
+
+        // Limpar carrinho - Redirecionando para implementação unificada
+        function clearCart() {
+            // Redireciona para a implementação unificada no final do arquivo
+            window.clearCart();
+            showNotification('Carrinho limpo!', 'info');
+        }
+
+        // Atualizar display do carrinho - Redirecionando para implementação unificada
+        function updateCartDisplay() {
+            // Redireciona para a implementação unificada no final do arquivo
+            window.updateCartDisplay();
+        }
+
+        // Exibir itens do carrinho
+        function displayCartItems() {
+            const cartItemsContainer = document.getElementById('cartItems');
+            const emptyCart = document.getElementById('emptyCart');
+            const cartTotal = document.getElementById('cartTotal');
+            
+            if (cart.length === 0) {
+                emptyCart.style.display = 'block';
+                cartTotal.style.display = 'none';
+                cartItemsContainer.innerHTML = '<div class="empty-state" id="emptyCart"><div class="empty-icon">🛒</div><h3>Carrinho vazio</h3><p>Adicione produtos para continuar</p><button class="btn" onclick="showScreen(\'products\')">Ver Produtos</button></div>';
+            } else {
+                emptyCart.style.display = 'none';
+                cartTotal.style.display = 'block';
+                
+                let itemsHTML = '';
+                let total = 0;
+                
+                cart.forEach(item => {
+                    const itemTotal = item.price * item.quantity;
+                    total += itemTotal;
+                    
+                    itemsHTML += `
+                        <div class="cart-item">
+                            <div>
+                                <h4>${item.name}</h4>
+                                <p>R$ ${item.price.toFixed(2)} cada</p>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn" onclick="updateQuantity('${item.id}', -1)">-</button>
+                                <span>${item.quantity}</span>
+                                <button class="quantity-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
+                                <button class="btn secondary" onclick="removeFromCart('${item.id}')" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;">Remover</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                cartItemsContainer.innerHTML = itemsHTML;
+                document.getElementById('totalAmount').textContent = total.toFixed(2);
+            }
+        }
+
+        // Filtrar produtos por categoria
+        function filterByCategory(category) {
+            const productCards = document.querySelectorAll('.product-card');
+            const categoryBtns = document.querySelectorAll('.category-btn');
+            
+            // Atualizar botões de categoria
+            categoryBtns.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Filtrar produtos
+            productCards.forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Filtrar produtos por busca
+        function filterProducts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const productCards = document.querySelectorAll('.product-card');
+            
+            productCards.forEach(card => {
+                const productName = card.querySelector('.product-name').textContent.toLowerCase();
+                if (productName.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Busca por voz
+        function startVoiceSearch() {
+            if ('webkitSpeechRecognition' in window) {
+                const recognition = new webkitSpeechRecognition();
+                const voiceBtn = document.getElementById('voiceBtn');
+                
+                recognition.lang = 'pt-BR';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                
+                voiceBtn.classList.add('recording');
+                voiceBtn.textContent = '🔴';
+                
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('searchInput').value = transcript;
+                    filterProducts();
+                    showNotification(`Busca por voz: "${transcript}"`, 'info');
+                };
+                
+                recognition.onend = function() {
+                    voiceBtn.classList.remove('recording');
+                    voiceBtn.textContent = '🎤';
+                };
+                
+                recognition.onerror = function() {
+                    voiceBtn.classList.remove('recording');
+                    voiceBtn.textContent = '🎤';
+                    showNotification('Erro na busca por voz. Tente novamente.', 'error');
+                };
+                
+                recognition.start();
+            } else {
+                showNotification('Busca por voz não suportada neste navegador.', 'error');
+            }
+        }
+
+        // Gerenciamento do formulário de pedido
+        function resetOrderForm() {
+            currentStep = 1;
+            updateStepIndicator();
+            showOrderStep(1);
+        }
+
+        function nextStep(step) {
+            if (validateCurrentStep()) {
+                currentStep = step;
+                updateStepIndicator();
+                showOrderStep(step);
+                
+                if (step === 3) {
+                    generateOrderSummary();
+                }
+            }
+        }
+
+        function previousStep(step) {
+            currentStep = step;
+            updateStepIndicator();
+            showOrderStep(step);
+        }
+
+        function showOrderStep(step) {
+            // Esconder todas as etapas
+            for (let i = 1; i <= 3; i++) {
+                const stepElement = document.getElementById(`orderStep${i}`);
+                if (stepElement) {
+                    stepElement.style.display = 'none';
+                }
+            }
+            
+            // Mostrar etapa atual
+            const currentStepElement = document.getElementById(`orderStep${step}`);
+            if (currentStepElement) {
+                currentStepElement.style.display = 'block';
+            }
+        }
+
+        function updateStepIndicator() {
+            for (let i = 1; i <= 3; i++) {
+                const stepElement = document.getElementById(`step${i}`);
+                if (stepElement) {
+                    stepElement.classList.remove('active', 'completed');
+                    if (i < currentStep) {
+                        stepElement.classList.add('completed');
+                    } else if (i === currentStep) {
+                        stepElement.classList.add('active');
+                    }
+                }
+            }
+        }
+
+        function validateCurrentStep() {
+            if (currentStep === 1) {
+                if (cart.length === 0) {
+                    showNotification('Adicione pelo menos um produto ao carrinho!', 'error');
+                    return false;
+                }
+            } else if (currentStep === 2) {
+                const name = document.getElementById('customerName').value;
+                const phone = document.getElementById('customerPhone').value;
+                const email = document.getElementById('customerEmail').value;
+                const address = document.getElementById('customerAddress').value;
+                
+                if (!name || !phone || !email || !address) {
+                    showNotification('Preencha todos os campos obrigatórios!', 'error');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function displayOrderProducts() {
+            const orderProductsContainer = document.getElementById('orderProducts');
+            
+            if (cart.length === 0) {
+                orderProductsContainer.innerHTML = '<p>Nenhum produto selecionado. <a href="#" onclick="showScreen(\'products\')">Adicionar produtos</a></p>';
+            } else {
+                let productsHTML = '';
+                let total = 0;
+                
+                cart.forEach(item => {
+                    const itemTotal = item.price * item.quantity;
+                    total += itemTotal;
+                    
+                    productsHTML += `
+                        <div class="cart-item">
+                            <div>
+                                <h4>${item.name}</h4>
+                                <p>${item.quantity}x R$ ${item.price.toFixed(2)} = R$ ${itemTotal.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                productsHTML += `<div class="total"><div class="total-amount">Total: R$ ${total.toFixed(2)}</div></div>`;
+                orderProductsContainer.innerHTML = productsHTML;
+            }
+        }
+
+        function generateOrderSummary() {
+            const orderSummaryContainer = document.getElementById('orderSummary');
+            
+            const customerName = document.getElementById('customerName').value;
+            const customerPhone = document.getElementById('customerPhone').value;
+            const customerEmail = document.getElementById('customerEmail').value;
+            const customerAddress = document.getElementById('customerAddress').value;
+            const orderNotes = document.getElementById('orderNotes').value;
+            
+            let total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            let summaryHTML = `
+                <h4>Dados do Cliente</h4>
+                <p><strong>Nome:</strong> ${customerName}</p>
+                <p><strong>Telefone:</strong> ${customerPhone}</p>
+                <p><strong>Email:</strong> ${customerEmail}</p>
+                <p><strong>Endereço:</strong> ${customerAddress}</p>
+                ${orderNotes ? `<p><strong>Observações:</strong> ${orderNotes}</p>` : ''}
+                
+                <h4>Produtos</h4>
+            `;
+            
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                summaryHTML += `
+                    <div class="summary-item">
+                        <span>${item.name} (${item.quantity}x)</span>
+                        <span>R$ ${itemTotal.toFixed(2)}</span>
+                    </div>
+                `;
+            });
+            
+            summaryHTML += `
+                <div class="summary-total">
+                    <span>Total</span>
+                    <span>R$ ${total.toFixed(2)}</span>
+                </div>
+            `;
+            
+            orderSummaryContainer.innerHTML = summaryHTML;
+        }
+
+        function submitOrder() {
+            showLoading(true);
+            
+            // Simular processamento do pedido
+            setTimeout(() => {
+                const orderNumber = 'PED' + Date.now().toString().slice(-6);
+                document.getElementById('orderNumber').textContent = orderNumber;
+                
+                // Limpar carrinho
+                cart = [];
+                updateCartDisplay();
+                
+                // Mostrar tela de sucesso
+                document.getElementById('orderStep3').style.display = 'none';
+                document.getElementById('orderSuccess').style.display = 'block';
+                
+                showLoading(false);
+                showNotification('Pedido realizado com sucesso!', 'success');
+            }, 2000);
+        }
+
+        // Funções utilitárias
+
+        function showNotification(message, type = 'info') {
+            // Criar elemento de notificação
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#4ECDC4' : type === 'error' ? '#e74c3c' : '#3498db'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1001;
+                max-width: 300px;
+                animation: slideInRight 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Remover após 3 segundos
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar se já está logado (localStorage)
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                isLoggedIn = true;
+                showScreen('home');
+            }
+            
+            updateCartDisplay();
+        });
+
+        // Salvar estado do usuário
+        function saveUserState() {
+            if (currentUser) {
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            } else {
+                localStorage.removeItem('currentUser');
+            }
+        }
+
+        // CSS para animações de notificação
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            @keyframes slideIn {
+                from { transform: translateY(-20px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+    
+    <!-- Scripts da aplicação -->
+    <script src="api.js"></script>
+    <script src="services.js"></script>
+    <script src="utils.js"></script>
+    <script>
+        // Inicialização da aplicação com os novos serviços
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Verificar se já está logado
+            const user = Services.auth.getCurrentUser();
+            if (user) {
+                isLoggedIn = true;
+                currentUser = user;
+                navigateTo('home');
+                showNotification(`Bem-vindo de volta, ${user.name}!`, 'success');
+                
+                // Carregar produtos
+                await loadProducts();
+                
+                // Carregar pedidos se estiver logado
+                await loadOrders();
+                
+                // Atualizar exibição do carrinho
+                updateCartDisplay();
+            } else {
+                // Se não estiver logado, manter na tela de login
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById('login').classList.add('active');
+                
+                // Pré-carregar produtos para melhorar a experiência após o login
+                await loadProducts();
+            }
+        });
+        
+        // Função para mostrar demonstração sem login
+        function showDemo() {
+            isLoggedIn = true;
+            currentUser = {
+                id: 999,
+                name: 'Usuário Demo',
+                email: 'demo@acucaradas.com',
+                role: 'customer'
+            };
+            navigateTo('home');
+            showNotification('Modo demonstração ativado!', 'success');
+        }
+        
+        // Função para carregar produtos
+        async function loadProducts() {
+            const products = await Services.products.getProducts();
+            displayProducts(products);
+        }
+        
+        // Função para exibir produtos na tela
+        function displayProducts(products) {
+            const productGrid = document.getElementById('productGrid');
+            if (!productGrid) return;
+            
+            let productsHTML = '';
+            
+            products.forEach(product => {
+                productsHTML += `
+                    <div class="product-card" data-category="${product.category}" onclick="addToCart('${product.id}')">
+                        <div class="product-image">${product.emoji}</div>
+                        <div class="product-name">${product.name}</div>
+                        <div class="stars">${'⭐'.repeat(product.rating)}</div>
+                        <div class="product-price">${Utils.formatCurrency(product.price)}</div>
+                    </div>
+                `;
+            });
+            
+            productGrid.innerHTML = productsHTML;
+        }
+        
+        // Função para carregar pedidos
+        async function loadOrders() {
+            const orders = await Services.orders.getOrders();
+            displayOrders(orders);
+        }
+        
+        // Função para exibir pedidos na tela
+        function displayOrders(orders) {
+            const ordersContainer = document.getElementById('ordersContainer');
+            if (!ordersContainer) return;
+            
+            if (orders.length === 0) {
+                ordersContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <h3>Nenhum pedido encontrado</h3>
+                        <p>Você ainda não realizou nenhum pedido</p>
+                        <button class="btn" onclick="navigateTo('products')">Fazer Pedido</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            let ordersHTML = '';
+            
+            orders.forEach(order => {
+                const statusClass = Utils.getStatusClass(order.status);
+                const statusText = Utils.translateOrderStatus(order.status);
+                
+                ordersHTML += `
+                    <div class="card" onclick="showOrderDetails('${order.id}')">
+                        <h3>Pedido #${order.id}</h3>
+                        <p><strong>Cliente:</strong> ${order.customer.name}</p>
+                        <p><strong>Data:</strong> ${Utils.formatDate(order.date)}</p>
+                        <p><strong>Valor:</strong> ${Utils.formatCurrency(order.total)}</p>
+                        <span class="order-status ${statusClass}">${statusText}</span>
+                    </div>
+                `;
+            });
+            
+            ordersContainer.innerHTML = ordersHTML;
+        }
+        
+        // Função para mostrar detalhes do pedido
+        async function showOrderDetails(orderId) {
+            const order = await Services.orders.getOrderById(orderId);
+            if (!order) {
+                showNotification('Pedido não encontrado', 'error');
+                return;
+            }
+            
+            // Navegar para a tela de detalhes do pedido
+            navigateTo('order-details');
+            
+            // Preencher os detalhes do pedido
+            const orderDetailsContainer = document.getElementById('orderDetailsContainer');
+            if (!orderDetailsContainer) return;
+            
+            const statusClass = Utils.getStatusClass(order.status);
+            const statusText = Utils.translateOrderStatus(order.status);
+            
+            let itemsHTML = '';
+            order.items.forEach(item => {
+                itemsHTML += `
+                    <div class="order-item">
+                        <div>
+                            <h4>${item.name}</h4>
+                            <p>${item.quantity}x ${Utils.formatCurrency(item.price)}</p>
+                        </div>
+                        <div>
+                            <strong>${Utils.formatCurrency(item.price * item.quantity)}</strong>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            orderDetailsContainer.innerHTML = `
+                <div class="order-header">
+                    <h3>Pedido #${order.id}</h3>
+                    <span class="order-status ${statusClass}">${statusText}</span>
+                </div>
+                
+                <div class="order-section">
+                    <h4>Dados do Cliente</h4>
+                    <p><strong>Nome:</strong> ${order.customer.name}</p>
+                    <p><strong>Email:</strong> ${order.customer.email}</p>
+                    <p><strong>Telefone:</strong> ${order.customer.phone}</p>
+                    <p><strong>Endereço:</strong> ${order.customer.address}</p>
+                    ${order.notes ? `<p><strong>Observações:</strong> ${order.notes}</p>` : ''}
+                </div>
+                
+                <div class="order-section">
+                    <h4>Itens do Pedido</h4>
+                    <div class="order-items">
+                        ${itemsHTML}
+                    </div>
+                </div>
+                
+                <div class="order-total">
+                    <span>Total</span>
+                    <span>${Utils.formatCurrency(order.total)}</span>
+                </div>
+                
+                <div class="order-footer">
+                    <p><strong>Data do Pedido:</strong> ${Utils.formatDateTime(order.date)}</p>
+                </div>
+            `;
+        }
+        
+        // Função de login atualizada para usar o serviço de autenticação
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                showLoading();
+                const response = await Services.auth.login(email, password);
+                hideLoading();
+                
+                if (response.success) {
+                    currentUser = response.user;
+                    isLoggedIn = true;
+                    navigateTo('home');
+                    showNotification('Login realizado com sucesso!', 'success');
+                } else {
+                    showNotification(response.message || 'Email ou senha incorretos!', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Erro ao fazer login:', error);
+                showNotification('Erro ao fazer login. Tente novamente.', 'error');
+            }
+        }
+        
+        // Função de logout atualizada
+        async function logout() {
+            try {
+                showLoading();
+                const response = await Services.auth.logout();
+                hideLoading();
+                
+                if (response.success) {
+                    currentUser = null;
+                    isLoggedIn = false;
+                    await Services.cart.clearCart();
+                    navigateTo('login');
+                    showNotification('Logout realizado com sucesso!', 'success');
+                } else {
+                    showNotification(response.message || 'Erro ao fazer logout!', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Erro ao fazer logout:', error);
+                showNotification('Erro ao fazer logout. Tente novamente.', 'error');
+            }
+        }
+        
+        // Função para adicionar ao carrinho - Implementação unificada
+        async function addToCart(productId, productName, price) {
+            const response = await Services.cart.addToCart(productId);
+            if (response.success) {
+                updateCartDisplay();
+                updateCartButton();
+            }
+        }
+        
+        // Função para atualizar quantidade no carrinho - Implementação unificada
+        async function updateQuantity(productId, change) {
+            const cart = Services.cart.getCart();
+            const item = cart.find(item => item.id === productId);
+            
+            if (item) {
+                const newQuantity = item.quantity + change;
+                await Services.cart.updateQuantity(productId, newQuantity);
+                updateCartDisplay();
+                updateCartButton();
+                displayCartItems();
+            }
+        }
+        
+        // Função para remover do carrinho - Implementação unificada
+        async function removeFromCart(productId) {
+            await Services.cart.removeFromCart(productId);
+            updateCartDisplay();
+            updateCartButton();
+            displayCartItems();
+        }
+        
+        // Função para limpar carrinho - Implementação unificada
+        async function clearCart() {
+            await Services.cart.clearCart();
+            updateCartDisplay();
+            updateCartButton();
+            displayCartItems();
+        }
+        
+        // Função para atualizar exibição do carrinho - Implementação unificada
+        function updateCartDisplay() {
+            const cart = Services.cart.getCart();
+            const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+            const cartCountElement = document.getElementById('cartCount');
+            
+            if (cartCountElement) {
+                cartCountElement.textContent = cartCount;
+            }
+        }
+        
+        // Função para exibir itens do carrinho
+        function displayCartItems() {
+            const cartItemsContainer = document.getElementById('cartItems');
+            const emptyCart = document.getElementById('emptyCart');
+            const cartTotal = document.getElementById('cartTotal');
+            
+            if (!cartItemsContainer) return;
+            
+            const cart = Services.cart.getCart();
+            
+            if (cart.length === 0) {
+                if (emptyCart) emptyCart.style.display = 'block';
+                if (cartTotal) cartTotal.style.display = 'none';
+                cartItemsContainer.innerHTML = '<div class="empty-state" id="emptyCart"><div class="empty-icon">🛒</div><h3>Carrinho vazio</h3><p>Adicione produtos para continuar</p><button class="btn" onclick="navigateTo(\'products\')">Ver Produtos</button></div>';
+            } else {
+                if (emptyCart) emptyCart.style.display = 'none';
+                if (cartTotal) cartTotal.style.display = 'block';
+                
+                let itemsHTML = '';
+                let total = Services.cart.calculateTotal();
+                
+                cart.forEach(item => {
+                    const itemTotal = item.price * item.quantity;
+                    
+                    itemsHTML += `
+                        <div class="cart-item">
+                            <div>
+                                <h4>${item.name}</h4>
+                                <p>${Utils.formatCurrency(item.price)} cada</p>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn" onclick="updateQuantity('${item.id}', -1)">-</button>
+                                <span>${item.quantity}</span>
+                                <button class="quantity-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
+                                <button class="btn secondary" onclick="removeFromCart('${item.id}')" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;">Remover</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                cartItemsContainer.innerHTML = itemsHTML;
+                
+                const totalAmountElement = document.getElementById('totalAmount');
+                if (totalAmountElement) {
+                    totalAmountElement.textContent = Utils.formatCurrency(total).replace('R$', '');
+                }
+            }
+        }
+        
+        // Função para enviar pedido atualizada
+        async function submitOrder() {
+            if (!validateCurrentStep()) return;
+            
+            showLoading(true);
+            
+            const customerName = document.getElementById('customerName').value;
+            const customerPhone = document.getElementById('customerPhone').value;
+            const customerEmail = document.getElementById('customerEmail').value;
+            const customerAddress = document.getElementById('customerAddress').value;
+            const orderNotes = document.getElementById('orderNotes').value;
+            
+            const cart = Services.cart.getCart();
+            const total = Services.cart.calculateTotal();
+            
+            const orderData = {
+                customer: {
+                    name: customerName,
+                    phone: customerPhone,
+                    email: customerEmail,
+                    address: customerAddress
+                },
+                items: cart,
+                total: total,
+                notes: orderNotes
+            };
+            
+            const response = await Services.orders.createOrder(orderData);
+            
+            if (response.success) {
+                const orderNumber = response.order.id;
+                document.getElementById('orderNumber').textContent = orderNumber;
+                
+                // Mostrar tela de sucesso
+                document.getElementById('orderStep3').style.display = 'none';
+                document.getElementById('orderSuccess').style.display = 'block';
+                
+                showNotification('Pedido realizado com sucesso!', 'success');
+            } else {
+                showNotification('Erro ao realizar pedido. Tente novamente.', 'error');
+            }
+            
+            showLoading(false);
+        }
+    </script>
+    <!-- Scripts da aplicação -->
+    <script src="api.js"></script>
+    <script src="services.js"></script>
+    <script src="utils.js"></script>
+    <script>
+        // Inicialização com os novos serviços
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializa a aplicação
+            updateCartButton();
+            
+            // Carrega produtos e pedidos usando os novos serviços
+            if (Services.auth.isLoggedIn()) {
+                loadProducts();
+                loadOrders();
+            }
+        });
+        
+        // Função para carregar produtos
+        async function loadProducts() {
+            const products = await Services.products.getProducts();
+            // Implementação da exibição de produtos pode ser adicionada aqui
+        }
+        
+        // Função para carregar pedidos
+        async function loadOrders() {
+            const orders = await Services.orders.getOrders();
+            // Implementação da exibição de pedidos pode ser adicionada aqui
+        }
+    </script>
+                    </div>
+
+                    <div class="product-card" data-category="bolos" onclick="addToCart('bolo-morango', 'Bolo de Morango', 85.00)">
+                        <div class="product-image">🍓</div>
+                        <div class="product-name">Bolo de Morango</div>
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 85,00</div>
+                    </div>
+
+                    <div class="product-card" data-category="doces" onclick="addToCart('brigadeiro', 'Brigadeiro', 3.00)">
+                        <div class="product-image">🍫</div>
+                        <div class="product-name">Brigadeiro</div>
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 3,00</div>
+                    </div>
+
+                    <div class="product-card" data-category="doces" onclick="addToCart('beijinho', 'Beijinho', 3.00)">
+                        <div class="product-image">🥥</div>
+                        <div class="product-name">Beijinho</div>
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 3,00</div>
+                    </div>
+
+                    <div class="product-card" data-category="salgados" onclick="addToCart('coxinha', 'Coxinha', 4.00)">
+                        <div class="product-image">🥟</div>
+                        <div class="product-name">Coxinha</div>
+                        <div class="stars">⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 4,00</div>
+                    </div>
+
+                    <div class="product-card" data-category="salgados" onclick="addToCart('pastel', 'Pastel', 5.00)">
+                        <div class="product-image">🥟</div>
+                        <div class="product-name">Pastel</div>
+                        <div class="stars">⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 5,00</div>
+                    </div>
+
+                    <div class="product-card" data-category="bebidas" onclick="addToCart('refrigerante', 'Refrigerante', 8.00)">
+                        <div class="product-image">🥤</div>
+                        <div class="product-name">Refrigerante</div>
+                        <div class="stars">⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 8,00</div>
+                    </div>
+
+                    <div class="product-card" data-category="bebidas" onclick="addToCart('suco', 'Suco Natural', 12.00)">
+                        <div class="product-image">🧃</div>
+                        <div class="product-name">Suco Natural</div>
+                        <div class="stars">⭐⭐⭐⭐⭐</div>
+                        <div class="product-price">R$ 12,00</div>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="navigateTo('cart')" id="cartBtn">🛒 Ver Carrinho (0)</button>
+            </div>
+        </div>
+
+        <!-- Tela de Novo Pedido -->
+        <div class="screen" id="new-order">
+            <div class="header">
+                <button class="back-btn" onclick="navigateTo('orders')">← Voltar</button>
+                <h1>Novo Pedido</h1>
+                <p>Preencha os dados do pedido</p>
+            </div>
+            <div style="padding: 20px;">
+                <div class="step-indicator">
+                    <div class="step active" id="step1">1</div>
+                    <div class="step" id="step2">2</div>
+                    <div class="step" id="step3">3</div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 33%"></div>
+                </div>
+
+                <div id="orderStep1">
+                    <h3>Dados do Cliente</h3>
+                    <div class="form-group">
+                        <label>Nome Completo</label>
+                        <input type="text" id="clientName" placeholder="Digite o nome do cliente">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone</label>
+                        <input type="tel" id="clientPhone" placeholder="(11) 99999-9999">
+                    </div>
+                    <div class="form-group">
+                        <label>Endereço</label>
+                        <textarea id="clientAddress" placeholder="Endereço completo para entrega"></textarea>
+                    </div>
+                    <button class="btn" onclick="nextStep()">Próximo</button>
+                </div>
+
+                <div id="orderStep2" style="display: none;">
+                    <h3>Selecionar Produtos</h3>
+                    <p>Clique nos produtos para adicionar ao pedido</p>
+                    <div class="product-grid">
+                        <div class="product-card" onclick="toggleOrderProduct('bolo-chocolate', 'Bolo de Chocolate', 90.00)">
+                            <div class="product-image">🍰</div>
+                            <div class="product-name">Bolo de Chocolate</div>
+                            <div class="product-price">R$ 90,00</div>
+                        </div>
+                        <div class="product-card" onclick="toggleOrderProduct('brigadeiro', 'Brigadeiro', 3.00)">
+                            <div class="product-image">🍫</div>
+                            <div class="product-name">Brigadeiro</div>
+                            <div class="product-price">R$ 3,00</div>
+                        </div>
+                    </div>
+                    <div id="selectedProducts"></div>
+                    <button class="btn secondary" onclick="prevStep()">Anterior</button>
+                    <button class="btn" onclick="nextStep()">Próximo</button>
+                </div>
+
+                <div id="orderStep3" style="display: none;">
+                    <h3>Confirmação</h3>
+                    <div id="orderSummary"></div>
+                    <div class="total">
+                        <div class="total-amount" id="orderTotal">R$ 0,00</div>
+                    </div>
+                    <button class="btn secondary" onclick="prevStep()">Anterior</button>
+                    <button class="btn" onclick="finishOrder()">Finalizar Pedido</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela do Carrinho -->
+        <div class="screen" id="cart">
+            <div class="header">
+                <button class="back-btn" onclick="navigateTo('products')">← Voltar</button>
+                <h1>Carrinho</h1>
+                <p>Seus produtos selecionados</p>
+            </div>
+            <div style="padding: 20px;">
+                <div id="cartItems"></div>
+                <div class="total">
+                    <div class="total-amount" id="cartTotal">R$ 0,00</div>
+                </div>
+                <button class="btn" onclick="checkout()">Finalizar Compra</button>
+                <button class="btn secondary" onclick="clearCart()">Limpar Carrinho</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado da aplicação
+        let currentScreen = 'login';
+        // Removendo declaração duplicada de cart
+        let orderStep = 1;
+        let orderProducts = [];
+        let isRecording = false;
+        let isLoggedIn = false;
+        let currentUser = null;
+
+        // Navegação entre telas
+        function navigateTo(screen) {
+            showLoading();
+            setTimeout(() => {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(screen).classList.add('active');
+                currentScreen = screen;
+                hideLoading();
+                
+                if (screen === 'cart') {
+                    updateCartDisplay();
+                }
+            }, 500);
+        }
+
+        // Loading
+        function showLoading(show = true) {
+            const loading = document.getElementById('loading');
+            if (show) {
+                loading.classList.add('active');
+            } else {
+                loading.classList.remove('active');
+            }
+        }
+
+        function hideLoading() {
+            showLoading(false);
+        }
+
+        // Carrinho de compras - Implementação unificada
+        async function addToCart(id, name, price) {
+            try {
+                // Busca o produto completo para adicionar ao carrinho
+                const product = await api.getProductById(id);
+                if (product) {
+                    await Services.cart.addToCart(id, 1);
+                    updateCartDisplay();
+                    updateCartButton();
+                } else {
+                    showNotification('Produto não encontrado', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao adicionar ao carrinho:', error);
+                showNotification('Erro ao adicionar ao carrinho', 'error');
+            }
+        }
+
+        async function removeFromCart(id) {
+            await Services.cart.removeFromCart(id);
+            updateCartDisplay();
+            updateCartButton();
+        }
+
+        async function updateQuantity(id, change) {
+            const cart = Services.cart.getCart();
+            const item = cart.find(item => item.id === id);
+            if (item) {
+                const newQuantity = item.quantity + change;
+                if (newQuantity <= 0) {
+                    await removeFromCart(id);
+                } else {
+                    await Services.cart.updateQuantity(id, newQuantity);
+                    updateCartDisplay();
+                    updateCartButton();
+                }
+            }
+        }
+
+        function updateCartButton() {
+            const cart = Services.cart.getCart();
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const cartBtn = document.getElementById('cartBtn');
+            if (cartBtn) {
+                cartBtn.textContent = `🛒 Ver Carrinho (${totalItems})`;
+            }
+        }
+        
+        function updateCartDisplay() {
+            const cartItems = document.getElementById('cartItems');
+            const cartTotal = document.getElementById('cartTotal');
+            const cart = Services.cart.getCart();
+            
+            if (cart.length === 0) {
+                cartItems.innerHTML = '<p style="text-align: center; color: #666;">Carrinho vazio</p>';
+                cartTotal.textContent = 'R$ 0,00';
+                return;
+            }
+
+            cartItems.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <div>
+                        <div style="font-weight: 600;">${item.name}</div>
+                        <div style="color: #666;">R$ ${item.price.toFixed(2)}</div>
+                    </div>
+                    <div class="quantity-controls">
+                        <button class="quantity-btn" onclick="updateQuantity('${item.id}', -1)">-</button>
+                        <span>${item.quantity}</span>
+                        <button class="quantity-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
+                        <button class="quantity-btn" onclick="removeFromCart('${item.id}')" style="background: #e74c3c; margin-left: 10px;">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            cartTotal.textContent = `R$ ${total.toFixed(2)}`;
+        }
+
+        async function clearCart() {
+            await Services.cart.clearCart();
+            updateCartDisplay();
+            updateCartButton();
+            showNotification('Carrinho limpo!');
+        }
+
+        function checkout() {
+            const cart = Services.cart.getCart();
+            if (cart.length === 0) {
+                showNotification('Carrinho vazio!');
+                return;
+            }
+            
+            showLoading();
+            setTimeout(() => {
+                hideLoading();
+                showNotification('Pedido realizado com sucesso!');
+                clearCart();
+                navigateTo('orders');
+            }, 2000);
+        }
+
+        // Filtros de produtos
+        function filterProducts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const products = document.querySelectorAll('.product-card');
+            
+            products.forEach(product => {
+                const name = product.querySelector('.product-name').textContent.toLowerCase();
+                if (name.includes(searchTerm)) {
+                    product.style.display = 'block';
+                } else {
+                    product.style.display = 'none';
+                }
+            });
+        }
+
+        function filterByCategory(category) {
+            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const products = document.querySelectorAll('.product-card');
+            products.forEach(product => {
+                if (category === 'all' || product.dataset.category === category) {
+                    product.style.display = 'block';
+                } else {
+                    product.style.display = 'none';
+                }
+            });
+        }
+
+        // Busca por voz
+        function startVoiceSearch() {
+            if (!('webkitSpeechRecognition' in window)) {
+                showNotification('Reconhecimento de voz não suportado neste navegador');
+                return;
+            }
+
+            const recognition = new webkitSpeechRecognition();
+            const voiceBtn = document.getElementById('voiceBtn');
+            
+            recognition.lang = 'pt-BR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                isRecording = true;
+                voiceBtn.classList.add('recording');
+                voiceBtn.textContent = '🔴';
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('searchInput').value = transcript;
+                filterProducts();
+                showNotification(`Buscando por: ${transcript}`);
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                voiceBtn.classList.remove('recording');
+                voiceBtn.textContent = '🎤';
+            };
+
+            recognition.onerror = () => {
+                showNotification('Erro no reconhecimento de voz');
+                isRecording = false;
+                voiceBtn.classList.remove('recording');
+                voiceBtn.textContent = '🎤';
+            };
+
+            recognition.start();
+        }
+
+        // Fluxo de novo pedido
+        function nextStep() {
+            if (orderStep < 3) {
+                document.getElementById(`orderStep${orderStep}`).style.display = 'none';
+                orderStep++;
+                document.getElementById(`orderStep${orderStep}`).style.display = 'block';
+                
+                // Atualizar indicadores
+                document.getElementById(`step${orderStep}`).classList.add('active');
+                document.getElementById(`step${orderStep - 1}`).classList.add('completed');
+                document.getElementById('progressFill').style.width = `${(orderStep / 3) * 100}%`;
+                
+                if (orderStep === 3) {
+                    updateOrderSummary();
+                }
+            }
+        }
+
+        function prevStep() {
+            if (orderStep > 1) {
+                document.getElementById(`orderStep${orderStep}`).style.display = 'none';
+                document.getElementById(`step${orderStep}`).classList.remove('active');
+                orderStep--;
+                document.getElementById(`orderStep${orderStep}`).style.display = 'block';
+                document.getElementById('progressFill').style.width = `${(orderStep / 3) * 100}%`;
+            }
+        }
+
+        function toggleOrderProduct(id, name, price) {
+            const existingIndex = orderProducts.findIndex(p => p.id === id);
+            if (existingIndex >= 0) {
+                orderProducts.splice(existingIndex, 1);
+                event.target.style.background = 'white';
+            } else {
+                orderProducts.push({ id, name, price, quantity: 1 });
+                event.target.style.background = '#ffe6e6';
+            }
+            updateSelectedProducts();
+        }
+
+        function updateSelectedProducts() {
+            const container = document.getElementById('selectedProducts');
+            container.innerHTML = orderProducts.map(product => `
+                <div class="card">
+                    <strong>${product.name}</strong> - R$ ${product.price.toFixed(2)}
+                </div>
+            `).join('');
+        }
+
+        function updateOrderSummary() {
+            const clientName = document.getElementById('clientName').value;
+            const clientPhone = document.getElementById('clientPhone').value;
+            const clientAddress = document.getElementById('clientAddress').value;
+            
+            const total = orderProducts.reduce((sum, product) => sum + product.price, 0);
+            
+            document.getElementById('orderSummary').innerHTML = `
+                <div class="card">
+                    <h4>Cliente</h4>
+                    <p><strong>Nome:</strong> ${clientName}</p>
+                    <p><strong>Telefone:</strong> ${clientPhone}</p>
+                    <p><strong>Endereço:</strong> ${clientAddress}</p>
+                </div>
+                <div class="card">
+                    <h4>Produtos</h4>
+                    ${orderProducts.map(p => `<p>${p.name} - R$ ${p.price.toFixed(2)}</p>`).join('')}
+                </div>
+            `;
+            
+            document.getElementById('orderTotal').textContent = `R$ ${total.toFixed(2)}`;
+        }
+
+        function finishOrder() {
+            showLoading();
+            setTimeout(() => {
+                hideLoading();
+                showNotification('Pedido criado com sucesso!');
+                orderStep = 1;
+                orderProducts = [];
+                document.getElementById('orderStep3').style.display = 'none';
+                document.getElementById('orderStep1').style.display = 'block';
+                document.querySelectorAll('.step').forEach(step => {
+                    step.classList.remove('active', 'completed');
+                });
+                document.getElementById('step1').classList.add('active');
+                document.getElementById('progressFill').style.width = '33%';
+                navigateTo('orders');
+            }, 2000);
+        }
+
+        // Detalhes do pedido
+        function showOrderDetails(orderId) {
+            showNotification(`Carregando detalhes do pedido #${orderId}`);
+        }
+
+        // Função showNotification já definida anteriormente
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCartButton();
+        });
+    </script>
+</body>
+</html>

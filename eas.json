@@ -1,0 +1,65 @@
+{
+  "cli": {
+    "version": ">= 5.9.0",
+    "requireCommit": false,
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "development"
+      },
+      "channel": "development",
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "production": {
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_APP_NAME": "Açucaradas Encomendas",
+        "EXPO_PUBLIC_APP_VERSION": "1.0.0"
+      },
+      "channel": "production",
+      "autoIncrement": true,
+      "ios": {
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
+      }
+    },
+    "internal": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

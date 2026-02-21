@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screenshot Detalhes do Produto iPhone XS Max - Açucaradas Encomendas</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .device-frame {
+            width: 1242px;
+            height: 2688px;
+            background-color: white;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .notch {
+            position: absolute;
+            width: 375px;
+            height: 50px;
+            background-color: #000;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-bottom-left-radius: 18px;
+            border-bottom-right-radius: 18px;
+            z-index: 100;
+        }
+        
+        .status-bar {
+            height: 100px;
+            background-color: #FF69B4;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            box-sizing: border-box;
+            color: white;
+            padding-top: 50px;
+        }
+        
+        .time {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .icons {
+            display: flex;
+            gap: 18px;
+            font-size: 18px;
+        }
+        
+        .app-header {
+            height: 120px;
+            background-color: #FFF;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #EEE;
+        }
+        
+        .app-logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #FF69B4;
+        }
+        
+        .header-icons {
+            display: flex;
+            gap: 25px;
+            font-size: 22px;
+        }
+        
+        .content-area {
+            padding: 0;
+            height: calc(100% - 220px - 180px);
+            overflow: auto;
+            box-sizing: border-box;
+            position: relative;
+        }
+        
+        .product-header {
+            padding: 30px;
+            position: relative;
+        }
+        
+        .product-image-main {
+            width: 100%;
+            height: 600px;
+            background-color: #FFE6F2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .product-image-main img {
+            width: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255,255,255,0.9);
+            border-radius: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            font-size: 28px;
+            color: #333;
+        }
+        
+        .share-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255,255,255,0.9);
+            border-radius: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            font-size: 28px;
+            color: #333;
+        }
+        
+        .product-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .product-price {
+            font-size: 36px;
+            font-weight: bold;
+            color: #FF69B4;
+            margin-bottom: 15px;
+        }
+        
+        .product-rating {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .stars {
+            display: flex;
+            color: #FFD700;
+            gap: 5px;
+            font-size: 22px;
+        }
+        
+        .rating-count {
+            color: #999;
+            font-size: 18px;
+        }
+        
+        .section-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .product-description {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .product-options {
+            margin-bottom: 30px;
+        }
+        
+        .option-label {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .option-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .option-button {
+            padding: 15px 30px;
+            background-color: #f5f5f5;
+            border-radius: 30px;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        .option-button.selected {
+            background-color: #FF69B4;
+            color: white;
+        }
+        
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .quantity-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            color: #333;
+        }
+        
+        .quantity-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .add-to-cart-button {
+            width: 100%;
+            padding: 25px;
+            background-color: #FF69B4;
+            color: white;
+            border-radius: 20px;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        
+        .dimensions {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            font-size: 16px;
+            color: rgba(0,0,0,0.5);
+            background-color: rgba(255,255,255,0.8);
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 100;
+        }
+        
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 180px;
+            background-color: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #EEE;
+            padding-bottom: 50px;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 16px;
+            color: #999;
+        }
+        
+        .nav-item.active {
+            color: #FF69B4;
+        }
+        
+        .nav-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        .home-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 6px;
+            background-color: #000;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="notch"></div>
+        
+        <div class="status-bar">
+            <div class="time">10:30</div>
+            <div class="icons">
+                <span>📶</span>
+                <span>📊</span>
+                <span>🔋</span>
+            </div>
+        </div>
+        
+        <div class="app-header">
+            <div class="app-logo">Açucaradas</div>
+            <div class="header-icons">
+                <span>🔍</span>
+                <span>♥️</span>
+                <span>🛒</span>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            <div class="product-image-main">
+                <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1242' height='600' viewBox='0 0 1242 600'><rect width='1242' height='600' fill='%23FFE6F2'/><text x='621' y='300' font-family='Arial' font-size='70' fill='%23FF69B4' text-anchor='middle'>Bolo de Chocolate com Morango</text></svg>" alt="Bolo de Chocolate">
+                <div class="back-button">←</div>
+                <div class="share-button">↗️</div>
+            </div>
+            
+            <div class="product-header">
+                <div class="product-title">Bolo de Chocolate com Morango</div>
+                <div class="product-price">R$ 89,90</div>
+                
+                <div class="product-rating">
+                    <div class="stars">★★★★★</div>
+                    <div class="rating-count">(127 avaliações)</div>
+                </div>
+                
+                <div class="section-title">Descrição</div>
+                <div class="product-description">
+                    Delicioso bolo de chocolate coberto com ganache e decorado com morangos frescos. 
+                    Massa fofinha e úmida, ideal para festas e ocasiões especiais. Feito com ingredientes 
+                    selecionados e chocolate belga de alta qualidade.
+                </div>
+                
+                <div class="product-options">
+                    <div class="option-label">Tamanho</div>
+                    <div class="option-buttons">
+                        <div class="option-button">Pequeno</div>
+                        <div class="option-button selected">Médio</div>
+                        <div class="option-button">Grande</div>
+                    </div>
+                </div>
+                
+                <div class="product-options">
+                    <div class="option-label">Cobertura Extra</div>
+                    <div class="option-buttons">
+                        <div class="option-button">Chantilly</div>
+                        <div class="option-button selected">Ganache</div>
+                        <div class="option-button">Brigadeiro</div>
+                    </div>
+                </div>
+                
+                <div class="option-label">Quantidade</div>
+                <div class="quantity-selector">
+                    <div class="quantity-button">-</div>
+                    <div class="quantity-value">1</div>
+                    <div class="quantity-button">+</div>
+                </div>
+                
+                <div class="add-to-cart-button">
+                    Adicionar ao Carrinho • R$ 89,90
+                </div>
+            </div>
+        </div>
+        
+        <div class="bottom-nav">
+            <div class="nav-item">
+                <div class="nav-icon">🏠</div>
+                <div>Início</div>
+            </div>
+            <div class="nav-item active">
+                <div class="nav-icon">🧁</div>
+                <div>Produtos</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">🛒</div>
+                <div>Carrinho</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">❤️</div>
+                <div>Favoritos</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">👤</div>
+                <div>Perfil</div>
+            </div>
+        </div>
+        
+        <div class="home-indicator"></div>
+        
+        <div class="dimensions">1242 x 2688</div>
+    </div>
+</body>
+</html> 

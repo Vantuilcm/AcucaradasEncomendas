@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exclusão de Conta - Açucaradas Encomendas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #e91e63;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 20px;
+        }
+        .steps {
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+        .step {
+            margin-bottom: 20px;
+            padding-left: 20px;
+            border-left: 3px solid #e91e63;
+        }
+        .data-info {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .contact-form {
+            margin-top: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #e91e63;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        button:hover {
+            background-color: #c2185b;
+        }
+        .partial-deletion {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Exclusão de Conta - Açucaradas Encomendas</h1>
+        
+        <p>Esta página fornece informações sobre como solicitar a exclusão da sua conta e dados pessoais do aplicativo Açucaradas Encomendas.</p>
+        
+        <h2>Exclusão Completa da Conta</h2>
+        
+        <div class="steps">
+            <h3>Como solicitar a exclusão da sua conta:</h3>
+            
+            <div class="step">
+                <h4>Opção 1: Diretamente pelo aplicativo</h4>
+                <p>1. Faça login no aplicativo Açucaradas Encomendas</p>
+                <p>2. Acesse o menu "Configurações"</p>
+                <p>3. Selecione "Minha Conta"</p>
+                <p>4. Toque em "Excluir Conta"</p>
+                <p>5. Confirme sua decisão seguindo as instruções na tela</p>
+            </div>
+            
+            <div class="step">
+                <h4>Opção 2: Por e-mail</h4>
+                <p>Envie um e-mail para <strong>privacidade@acucaradas.com.br</strong> com o assunto "Solicitação de Exclusão de Conta" incluindo:</p>
+                <p>1. Seu nome completo</p>
+                <p>2. E-mail cadastrado no aplicativo</p>
+                <p>3. Motivo da exclusão (opcional)</p>
+            </div>
+            
+            <div class="step">
+                <h4>Opção 3: Formulário abaixo</h4>
+                <p>Preencha o formulário de solicitação de exclusão disponível nesta página.</p>
+            </div>
+        </div>
+        
+        <div class="data-info">
+            <h3>Dados que serão excluídos:</h3>
+            <ul>
+                <li>Informações de conta (nome, e-mail, telefone, senha)</li>
+                <li>Informações de perfil (foto, endereço comercial)</li>
+                <li>Preferências e configurações pessoais</li>
+                <li>Dados de clientes cadastrados por você</li>
+                <li>Histórico de pedidos e transações</li>
+            </ul>
+            
+            <h3>Dados que serão mantidos:</h3>
+            <ul>
+                <li>Registros de transações financeiras (por 5 anos, conforme exigido pela legislação fiscal brasileira)</li>
+                <li>Dados anonimizados para fins estatísticos</li>
+                <li>Informações necessárias para cumprimento de obrigações legais</li>
+            </ul>
+            
+            <h3>Prazo para processamento:</h3>
+            <p>Sua solicitação será processada em até 15 dias úteis. Você receberá uma confirmação por e-mail quando a exclusão for concluída.</p>
+        </div>
+        
+        <div class="partial-deletion">
+            <h2>Exclusão Parcial de Dados</h2>
+            <p>Você também pode solicitar a exclusão de dados específicos sem excluir sua conta completamente.</p>
+            
+            <h3>Tipos de dados que podem ser excluídos parcialmente:</h3>
+            <ul>
+                <li>Histórico de pedidos antigos</li>
+                <li>Dados de clientes específicos</li>
+                <li>Fotos de perfil e outras mídias enviadas</li>
+                <li>Preferências e configurações específicas</li>
+            </ul>
+            
+            <p>Para solicitar uma exclusão parcial de dados, selecione a opção correspondente no formulário abaixo ou entre em contato pelo e-mail <strong>privacidade@acucaradas.com.br</strong>.</p>
+        </div>
+        
+        <div class="contact-form">
+            <h2>Formulário de Solicitação</h2>
+            
+            <form id="deletionForm">
+                <div class="form-group">
+                    <label for="name">Nome Completo:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">E-mail cadastrado:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Telefone:</label>
+                    <input type="tel" id="phone" name="phone">
+                </div>
+                
+                <div class="form-group">
+                    <label for="deletionType">Tipo de exclusão:</label>
+                    <select id="deletionType" name="deletionType" required>
+                        <option value="">Selecione uma opção</option>
+                        <option value="complete">Exclusão completa da conta</option>
+                        <option value="partial">Exclusão parcial de dados</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="partialDataSection" style="display: none;">
+                    <label>Selecione os dados que deseja excluir:</label>
+                    <div>
+                        <input type="checkbox" id="deleteOrders" name="deleteData" value="orders">
+                        <label for="deleteOrders">Histórico de pedidos antigos</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="deleteClients" name="deleteData" value="clients">
+                        <label for="deleteClients">Dados de clientes específicos</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="deleteMedia" name="deleteData" value="media">
+                        <label for="deleteMedia">Fotos de perfil e outras mídias</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="deletePreferences" name="deleteData" value="preferences">
+                        <label for="deletePreferences">Preferências e configurações</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="reason">Motivo da exclusão (opcional):</label>
+                    <textarea id="reason" name="reason" rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmation">
+                        <input type="checkbox" id="confirmation" name="confirmation" required>
+                        Confirmo que desejo prosseguir com esta solicitação e entendo que este processo pode ser irreversível.
+                    </label>
+                </div>
+                
+                <button type="submit">Enviar Solicitação</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>© 2023 Açucaradas Encomendas. Todos os direitos reservados.</p>
+        <p><a href="politica-privacidade.html">Política de Privacidade</a></p>
+    </div>
+
+    <script>
+        // Script para mostrar/ocultar opções de exclusão parcial
+        document.getElementById('deletionType').addEventListener('change', function() {
+            const partialSection = document.getElementById('partialDataSection');
+            if (this.value === 'partial') {
+                partialSection.style.display = 'block';
+            } else {
+                partialSection.style.display = 'none';
+            }
+        });
+        
+        // Script para processar o formulário (simulação)
+        document.getElementById('deletionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Sua solicitação foi recebida. Processaremos seu pedido em até 15 dias úteis e enviaremos uma confirmação para o e-mail informado.');
+            // Aqui você adicionaria o código para enviar os dados do formulário para seu servidor
+        });
+    </script>
+</body>
+</html>

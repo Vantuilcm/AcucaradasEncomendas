@@ -1,0 +1,71 @@
+import * as React from 'react';
+declare const _default: React.ForwardRefExoticComponent<Omit<{
+    inputMode: "end" | "start";
+    locale: string;
+    onChange: (date: Date | undefined) => void;
+    value: Date | undefined;
+    validRange?: import("./Calendar").ValidRangeType | undefined;
+    withModal?: boolean | undefined;
+    withDateFormatInLabel?: boolean | undefined;
+    hideValidationErrors?: boolean | undefined;
+    hasError?: boolean | undefined;
+    onValidationError?: ((error: string | null) => void) | undefined;
+    calendarIcon?: string | undefined;
+    saveLabel?: string | undefined;
+    saveLabelDisabled?: boolean | undefined;
+    uppercase?: boolean | undefined;
+    startYear?: number | undefined;
+    endYear?: number | undefined;
+    onChangeText?: ((text: string | undefined) => void) | undefined;
+    inputEnabled?: boolean | undefined;
+} & Omit<import("react-native").TextInputProps & React.RefAttributes<import("react-native").TextInput> & {
+    mode?: "flat" | "outlined" | undefined;
+    left?: React.ReactNode;
+    right?: React.ReactNode;
+    disabled?: boolean | undefined;
+    label?: import("react-native-paper/lib/typescript/src/components/TextInput/types").TextInputLabelProp | undefined;
+    placeholder?: string | undefined;
+    error?: boolean | undefined;
+    onChangeText?: Function | undefined;
+    selectionColor?: string | undefined;
+    underlineColor?: string | undefined;
+    activeUnderlineColor?: string | undefined;
+    outlineColor?: string | undefined;
+    activeOutlineColor?: string | undefined;
+    textColor?: string | undefined;
+    dense?: boolean | undefined;
+    multiline?: boolean | undefined;
+    numberOfLines?: number | undefined;
+    onFocus?: ((args: any) => void) | undefined;
+    onBlur?: ((args: any) => void) | undefined;
+    render?: ((props: import("react-native-paper/lib/typescript/src/components/TextInput/types").RenderProps) => React.ReactNode) | undefined;
+    value?: string | undefined;
+    style?: import("react-native").StyleProp<import("react-native").TextStyle>;
+    theme?: import("react-native-paper/lib/typescript/src/types").ThemeProp | undefined;
+    testID?: string | undefined;
+    contentStyle?: import("react-native").StyleProp<import("react-native").TextStyle>;
+    outlineStyle?: import("react-native").StyleProp<import("react-native").ViewStyle>;
+    underlineStyle?: import("react-native").StyleProp<import("react-native").ViewStyle>;
+} & React.RefAttributes<{
+    focus: () => void;
+    clear: () => void;
+    blur: () => void;
+    isFocused: () => boolean;
+    setNativeProps: (nativeProps: object) => void;
+}>, "onChange" | "onChangeText" | "value" | "inputMode"> & {
+    modal?: ((params: {
+        value: Date | undefined;
+        locale: string;
+        inputMode: "end" | "start";
+        validRange: import("./Calendar").ValidRangeType | undefined;
+        saveLabel: string | undefined;
+        saveLabelDisabled: boolean | undefined;
+        uppercase: boolean | undefined;
+        startYear: number | undefined;
+        endYear: number | undefined;
+        inputEnabled: boolean | undefined;
+    }) => any) | undefined;
+    inputButtons?: any;
+}, "ref"> & React.RefAttributes<unknown>>;
+export default _default;
+//# sourceMappingURL=DatePickerInputWithoutModal.d.ts.map

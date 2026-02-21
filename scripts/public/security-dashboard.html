@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Segurança - Acucaradas Encomendas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #6a1b9a;
+            --secondary-color: #9c27b0;
+            --accent-color: #e1bee7;
+            --danger-color: #f44336;
+            --warning-color: #ff9800;
+            --success-color: #4caf50;
+            --info-color: #2196f3;
+            --dark-bg: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background-color: var(--primary-color);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            background-color: rgba(106, 27, 154, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .alert-critical {
+            background-color: rgba(244, 67, 54, 0.2);
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .alert-high {
+            background-color: rgba(255, 152, 0, 0.2);
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .alert-warning {
+            background-color: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #ffc107;
+        }
+
+        .alert-info {
+            background-color: rgba(33, 150, 243, 0.2);
+            border-left: 4px solid var(--info-color);
+        }
+
+        .alert-item {
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+        }
+
+        .alert-timestamp {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .alert-message {
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-ok {
+            background-color: var(--success-color);
+        }
+
+        .status-warning {
+            background-color: var(--warning-color);
+        }
+
+        .status-error {
+            background-color: var(--danger-color);
+        }
+
+        .status-unknown {
+            background-color: #9e9e9e;
+        }
+
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .badge-critical {
+            background-color: var(--danger-color);
+        }
+
+        .badge-high {
+            background-color: var(--warning-color);
+        }
+
+        .badge-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .badge-info {
+            background-color: var(--info-color);
+        }
+
+        .refresh-btn {
+            background-color: var(--secondary-color);
+            border: none;
+        }
+
+        .refresh-btn:hover {
+            background-color: var(--primary-color);
+        }
+
+        /* Animação de pulso para alertas críticos */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #2d2d2d;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-shield-lock-fill me-2"></i>
+                Acucaradas Encomendas - Dashboard de Segurança
+            </a>
+            <div class="d-flex align-items-center">
+                <div id="connection-status" class="me-3">
+                    <span class="status-indicator status-unknown"></span>
+                    <span id="status-text">Conectando...</span>
+                </div>
+                <button class="btn btn-sm refresh-btn" id="refresh-btn">
+                    <i class="bi bi-arrow-clockwise"></i> Atualizar
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <!-- Estatísticas Gerais -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-icon text-danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div class="stat-value text-danger" id="critical-count">0</div>
+                    <div class="stat-label">Alertas Críticos</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-icon text-warning">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                    </div>
+                    <div class="stat-value text-warning" id="high-count">0</div>
+                    <div class="stat-label">Alertas de Alto Risco</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-icon" style="color: #ffc107;">
+                        <i class="bi bi-info-circle-fill"></i>
+                    </div>
+                    <div class="stat-value" style="color: #ffc107;" id="warning-count">0</div>
+                    <div class="stat-label">Avisos</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-icon text-info">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="stat-value text-info" id="total-count">0</div>
+                    <div class="stat-label">Total de Eventos</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Gráficos -->
+            <div class="col-md-8">
+                <div class="row">
+                    <!-- Gráfico de Eventos por Tipo -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-pie-chart-fill me-2"></i>Eventos por Tipo</span>
+                                <small id="events-chart-updated">Atualizado: Nunca</small>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="events-chart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico de Eventos por Nível -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-bar-chart-fill me-2"></i>Eventos por Nível</span>
+                                <small id="levels-chart-updated">Atualizado: Nunca</small>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="levels-chart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status de Integridade -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-check-circle-fill me-2"></i>Status de Integridade do Sistema</span>
+                        <small id="integrity-updated">Atualizado: Nunca</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 text-center mb-3">
+                                <h5>Status Geral</h5>
+                                <div class="d-flex align-items-center justify-content-center mb-2">
+                                    <span class="status-indicator status-unknown" id="integrity-status-indicator"></span>
+                                    <span id="integrity-status">Desconhecido</span>
+                                </div>
+                                <small id="integrity-last-check">Última verificação: Nunca</small>
+                            </div>
+                            <div class="col-md-4 text-center mb-3">
+                                <h5>Arquivos Monitorados</h5>
+                                <div class="stat-value" id="monitored-files-count">0</div>
+                                <small>Arquivos críticos sob monitoramento</small>
+                            </div>
+                            <div class="col-md-4 text-center mb-3">
+                                <h5>Violações Detectadas</h5>
+                                <div class="stat-value text-danger" id="violations-count">0</div>
+                                <small>Nas últimas 24 horas</small>
+                            </div>
+                        </div>
+
+                        <div id="violations-container" class="mt-3" style="display: none;">
+                            <h5 class="mb-3">Detalhes das Violações</h5>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Arquivo</th>
+                                            <th>Mensagem</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="violations-table">
+                                        <!-- Preenchido dinamicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Arquivos Críticos Monitorados -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-file-earmark-lock-fill me-2"></i>Arquivos Críticos Monitorados
+                    </div>
+                    <div class="card-body">
+                        <div class="file-list" id="critical-files-list">
+                            <!-- Preenchido dinamicamente -->
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-hourglass me-2"></i>Carregando arquivos monitorados...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alertas Recentes e Logs -->
+            <div class="col-md-4">
+                <!-- Alertas Recentes -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-bell-fill me-2"></i>Alertas Recentes</span>
+                        <small id="alerts-updated">Atualizado: Nunca</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="recent-alerts" class="p-3">
+                            <!-- Preenchido dinamicamente -->
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-hourglass me-2"></i>Carregando alertas recentes...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Atividade em Tempo Real -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-activity me-2"></i>Atividade em Tempo Real
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="live-activity" class="p-3" style="max-height: 300px; overflow-y: auto;">
+                            <!-- Preenchido dinamicamente -->
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-broadcast me-2"></i>Aguardando atividades...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Padrões de Detecção -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-search me-2"></i>Padrões de Detecção
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush bg-transparent" id="detection-patterns">
+                            <!-- Preenchido dinamicamente -->
+                            <li class="list-group-item bg-transparent text-light border-bottom border-secondary">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge badge-critical me-2">Crítico</span>
+                                        <span>SQL injection attempt</span>
+                                    </div>
+                                    <small>Limite: 1 em 60s</small>
+                                </div>
+                            </li>
+                            <li class="list-group-item bg-transparent text-light border-bottom border-secondary">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge badge-critical me-2">Crítico</span>
+                                        <span>XSS attempt</span>
+                                    </div>
+                                    <small>Limite: 1 em 60s</small>
+                                </div>
+                            </li>
+                            <li class="list-group-item bg-transparent text-light border-bottom border-secondary">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge badge-high me-2">Alto</span>
+                                        <span>CSRF token mismatch</span>
+                                    </div>
+                                    <small>Limite: 3 em 300s</small>
+                                </div>
+                            </li>
+                            <li class="list-group-item bg-transparent text-light border-bottom border-secondary">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge badge-warning me-2">Aviso</span>
+                                        <span>failed login attempt</span>
+                                    </div>
+                                    <small>Limite: 5 em 300s</small>
+                                </div>
+                            </li>
+                            <li class="list-group-item bg-transparent text-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge badge-warning me-2">Aviso</span>
+                                        <span>invalid JWT</span>
+                                    </div>
+                                    <small>Limite: 5 em 300s</small>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-center text-light py-3 mt-5">
+        <div class="container">
+            <p class="mb-0">© 2023 Acucaradas Encomendas - Sistema de Monitoramento de Segurança</p>
+            <small class="text-muted">Desenvolvido seguindo as recomendações OWASP e NIST</small>
+        </div>
+    </footer>
+
+    <script>
+        // Configurações
+        const CONFIG = {
+            refreshInterval: 30000, // 30 segundos
+            maxLiveActivities: 50,
+            chartColors: {
+                critical: '#f44336',
+                high: '#ff9800',
+                warning: '#ffc107',
+                info: '#2196f3',
+                background: '#1e1e1e',
+                text: '#e0e0e0'
+            }
+        };
+
+        // Variáveis globais
+        let socket;
+        let eventsChart;
+        let levelsChart;
+        let securityStats = {
+            events: {
+                alerts: {
+                    critical: 0,
+                    high: 0,
+                    warning: 0,
+                    info: 0,
+                    total: 0
+                },
+                patterns: {},
+                recentAlerts: []
+            },
+            integrityStatus: {
+                lastCheck: null,
+                status: 'unknown',
+                fileCount: 0,
+                violations: []
+            }
+        };
+
+        // Elementos DOM
+        const elements = {
+            connectionStatus: document.getElementById('connection-status'),
+            statusText: document.getElementById('status-text'),
+            refreshBtn: document.getElementById('refresh-btn'),
+            criticalCount: document.getElementById('critical-count'),
+            highCount: document.getElementById('high-count'),
+            warningCount: document.getElementById('warning-count'),
+            totalCount: document.getElementById('total-count'),
+            eventsChartUpdated: document.getElementById('events-chart-updated'),
+            levelsChartUpdated: document.getElementById('levels-chart-updated'),
+            integrityUpdated: document.getElementById('integrity-updated'),
+            integrityStatus: document.getElementById('integrity-status'),
+            integrityStatusIndicator: document.getElementById('integrity-status-indicator'),
+            integrityLastCheck: document.getElementById('integrity-last-check'),
+            monitoredFilesCount: document.getElementById('monitored-files-count'),
+            violationsCount: document.getElementById('violations-count'),
+            violationsContainer: document.getElementById('violations-container'),
+            violationsTable: document.getElementById('violations-table'),
+            criticalFilesList: document.getElementById('critical-files-list'),
+            recentAlerts: document.getElementById('recent-alerts'),
+            liveActivity: document.getElementById('live-activity'),
+            alertsUpdated: document.getElementById('alerts-updated'),
+            detectionPatterns: document.getElementById('detection-patterns')
+        };
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            connectToServer();
+            setupEventListeners();
+
+            // Atualizar dados periodicamente
+            setInterval(fetchSecurityStats, CONFIG.refreshInterval);
+        });
+
+        // Conectar ao servidor via Socket.IO
+        function connectToServer() {
+            try {
+                // Obter o host e porta do servidor a partir da URL atual
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const host = window.location.hostname;
+                const port = window.location.port || (protocol === 'wss:' ? '443' : '80');
+                
+                socket = io(`${protocol}//${host}:${port}`);
+
+                socket.on('connect', () => {
+                    updateConnectionStatus('connected');
+                    fetchSecurityStats();
+                });
+
+                socket.on('disconnect', () => {
+                    updateConnectionStatus('disconnected');
+                });
+
+                socket.on('security-stats', (data) => {
+                    updateSecurityStats(data);
+                });
+
+                socket.on('security-alert', (alert) => {
+                    handleLiveAlert(alert);
+                });
+
+                socket.on('connect_error', (error) => {
+                    console.error('Erro de conexão:', error);
+                    updateConnectionStatus('error');
+                });
+            } catch (error) {
+                console.error('Erro ao conectar ao servidor:', error);
+                updateConnectionStatus('error');
+            }
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            elements.refreshBtn.addEventListener('click', fetchSecurityStats);
+        }
+
+        // Atualizar status de conexão
+        function updateConnectionStatus(status) {
+            const statusIndicator = elements.connectionStatus.querySelector('.status-indicator');
+            
+            statusIndicator.classList.remove('status-ok', 'status-warning', 'status-error', 'status-unknown');
+            
+            switch (status) {
+                case 'connected':
+                    statusIndicator.classList.add('status-ok');
+                    elements.statusText.textContent = 'Conectado';
+                    break;
+                case 'disconnected':
+                    statusIndicator.classList.add('status-warning');
+                    elements.statusText.textContent = 'Desconectado';
+                    break;
+                case 'error':
+                    statusIndicator.classList.add('status-error');
+                    elements.statusText.textContent = 'Erro de conexão';
+                    break;
+                default:
+                    statusIndicator.classList.add('status-unknown');
+                    elements.statusText.textContent = 'Desconhecido';
+            }
+        }
+
+        // Buscar estatísticas de segurança
+        function fetchSecurityStats() {
+            if (socket && socket.connected) {
+                socket.emit('get-security-stats');
+            } else {
+                // Fallback para API REST se o socket não estiver disponível
+                fetch('/api/security/stats')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateSecurityStats(data);
+                    })
+                    .catch(error => {
+                        console.error('Erro ao buscar estatísticas:', error);
+                    });
+            }
+        }
+
+        // Atualizar estatísticas de segurança
+        function updateSecurityStats(data) {
+            securityStats = data;
+            
+            // Atualizar contadores
+            elements.criticalCount.textContent = data.events.alerts.critical || 0;
+            elements.highCount.textContent = data.events.alerts.high || 0;
+            elements.warningCount.textContent = data.events.alerts.warning || 0;
+            elements.totalCount.textContent = data.events.alerts.total || 0;
+            
+            // Atualizar gráficos
+            updateCharts(data);
+            
+            // Atualizar status de integridade
+            updateIntegrityStatus(data.integrityStatus);
+            
+            // Atualizar alertas recentes
+            updateRecentAlerts(data.events.recentAlerts);
+            
+            // Atualizar timestamps
+            const timestamp = new Date().toLocaleString();
+            elements.eventsChartUpdated.textContent = `Atualizado: ${timestamp}`;
+            elements.levelsChartUpdated.textContent = `Atualizado: ${timestamp}`;
+            elements.integrityUpdated.textContent = `Atualizado: ${timestamp}`;
+            elements.alertsUpdated.textContent = `Atualizado: ${timestamp}`;
+        }
+
+        // Inicializar gráficos
+        function initCharts() {
+            // Configurações comuns para os gráficos
+            Chart.defaults.color = CONFIG.chartColors.text;
+            Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+            
+            // Gráfico de eventos por tipo
+            const eventsCtx = document.getElementById('events-chart').getContext('2d');
+            eventsChart = new Chart(eventsCtx, {
+                type: 'pie',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderWidth: 1,
+                        borderColor: '#1e1e1e'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: CONFIG.chartColors.text,
+                                padding: 10,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            titleColor: CONFIG.chartColors.text,
+                            bodyColor: CONFIG.chartColors.text,
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            padding: 10
+                        }
+                    }
+                }
+            });
+            
+            // Gráfico de eventos por nível
+            const levelsCtx = document.getElementById('levels-chart').getContext('2d');
+            levelsChart = new Chart(levelsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Crítico', 'Alto', 'Aviso', 'Info'],
+                    datasets: [{
+                        label: 'Eventos por Nível',
+                        data: [0, 0, 0, 0],
+                        backgroundColor: [
+                            CONFIG.chartColors.critical,
+                            CONFIG.chartColors.high,
+                            CONFIG.chartColors.warning,
+                            CONFIG.chartColors.info
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: CONFIG.chartColors.text
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: CONFIG.chartColors.text
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            titleColor: CONFIG.chartColors.text,
+                            bodyColor: CONFIG.chartColors.text,
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            padding: 10
+                        }
+                    }
+                }
+            });
+        }
+
+        // Atualizar gráficos
+        function updateCharts(data) {
+            // Atualizar gráfico de eventos por tipo
+            const patterns = data.events.patterns || {};
+            const patternLabels = Object.keys(patterns);
+            const patternValues = patternLabels.map(label => patterns[label]);
+            
+            // Gerar cores para cada padrão
+            const patternColors = patternLabels.map((label, index) => {
+                // Cores predefinidas para padrões conhecidos
+                if (label.includes('injection')) return CONFIG.chartColors.critical;
+                if (label.includes('XSS')) return CONFIG.chartColors.critical;
+                if (label.includes('CSRF')) return CONFIG.chartColors.high;
+                if (label.includes('login')) return CONFIG.chartColors.warning;
+                if (label.includes('JWT')) return CONFIG.chartColors.warning;
+                
+                // Cores aleatórias para outros padrões
+                const hue = (index * 137) % 360; // Distribuição de cores
+                return `hsl(${hue}, 70%, 60%)`;
+            });
+            
+            eventsChart.data.labels = patternLabels;
+            eventsChart.data.datasets[0].data = patternValues;
+            eventsChart.data.datasets[0].backgroundColor = patternColors;
+            eventsChart.update();
+            
+            // Atualizar gráfico de eventos por nível
+            levelsChart.data.datasets[0].data = [
+                data.events.alerts.critical || 0,
+                data.events.alerts.high || 0,
+                data.events.alerts.warning || 0,
+                data.events.alerts.info || 0
+            ];
+            levelsChart.update();
+        }
+
+        // Atualizar status de integridade
+        function updateIntegrityStatus(integrityStatus) {
+            // Atualizar indicador de status
+            elements.integrityStatusIndicator.classList.remove('status-ok', 'status-warning', 'status-error', 'status-unknown');
+            
+            switch (integrityStatus.status) {
+                case 'ok':
+                    elements.integrityStatusIndicator.classList.add('status-ok');
+                    elements.integrityStatus.textContent = 'OK';
+                    break;
+                case 'violated':
+                    elements.integrityStatusIndicator.classList.add('status-error');
+                    elements.integrityStatus.textContent = 'Violado';
+                    break;
+                case 'error':
+                    elements.integrityStatusIndicator.classList.add('status-warning');
+                    elements.integrityStatus.textContent = 'Erro';
+                    break;
+                default:
+                    elements.integrityStatusIndicator.classList.add('status-unknown');
+                    elements.integrityStatus.textContent = 'Desconhecido';
+            }
+            
+            // Atualizar última verificação
+            if (integrityStatus.lastCheck) {
+                const lastCheck = new Date(integrityStatus.lastCheck).toLocaleString();
+                elements.integrityLastCheck.textContent = `Última verificação: ${lastCheck}`;
+            } else {
+                elements.integrityLastCheck.textContent = 'Última verificação: Nunca';
+            }
+            
+            // Atualizar contadores
+            elements.monitoredFilesCount.textContent = integrityStatus.fileCount || 0;
+            elements.violationsCount.textContent = integrityStatus.violations.length || 0;
+            
+            // Atualizar tabela de violações
+            if (integrityStatus.violations && integrityStatus.violations.length > 0) {
+                elements.violationsContainer.style.display = 'block';
+                elements.violationsTable.innerHTML = '';
+                
+                integrityStatus.violations.forEach(violation => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${new Date(violation.timestamp).toLocaleString()}</td>
+                        <td>${violation.file}</td>
+                        <td>${violation.message}</td>
+                    `;
+                    elements.violationsTable.appendChild(row);
+                });
+            } else {
+                elements.violationsContainer.style.display = 'none';
+            }
+            
+            // Atualizar lista de arquivos críticos
+            updateCriticalFilesList();
+        }
+
+        // Atualizar lista de arquivos críticos
+        function updateCriticalFilesList() {
+            // Esta é uma lista simulada de arquivos críticos
+            // Em um ambiente real, isso viria do servidor
+            const criticalFiles = [
+                { path: 'server.js', level: 'critical' },
+                { path: 'src/utils/auth.js', level: 'critical' },
+                { path: 'src/utils/robust-auth.js', level: 'critical' },
+                { path: 'src/utils/security-logging.js', level: 'critical' },
+                { path: 'src/utils/brute-force-protection.js', level: 'critical' },
+                { path: 'src/routes/auth.js', level: 'high' },
+                { path: 'src/controllers/auth.js', level: 'high' },
+                { path: 'src/middleware/auth.js', level: 'high' },
+                { path: 'config/security.js', level: 'high' },
+                { path: '.env', level: 'critical' }
+            ];
+            
+            elements.criticalFilesList.innerHTML = '';
+            
+            criticalFiles.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item d-flex justify-content-between align-items-center';
+                
+                const badgeClass = file.level === 'critical' ? 'badge-critical' : 'badge-high';
+                
+                fileItem.innerHTML = `
+                    <div>
+                        <i class="bi bi-file-earmark-code me-2"></i>
+                        ${file.path}
+                    </div>
+                    <span class="badge ${badgeClass}">${file.level}</span>
+                `;
+                
+                elements.criticalFilesList.appendChild(fileItem);
+            });
+        }
+
+        // Atualizar alertas recentes
+        function updateRecentAlerts(alerts) {
+            if (!alerts || alerts.length === 0) {
+                elements.recentAlerts.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-shield-check me-2"></i>Nenhum alerta recente
+                    </div>
+                `;
+                return;
+            }
+            
+            elements.recentAlerts.innerHTML = '';
+            
+            alerts.forEach(alert => {
+                const alertClass = `alert-${alert.level}`;
+                const alertItem = document.createElement('div');
+                alertItem.className = `alert-item ${alertClass} mb-2`;
+                
+                alertItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge badge-${alert.level}">${alert.level.toUpperCase()}</span>
+                        <span class="alert-timestamp">${new Date(alert.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="alert-message">${alert.message}</div>
+                `;
+                
+                elements.recentAlerts.appendChild(alertItem);
+            });
+        }
+
+        // Lidar com alertas em tempo real
+        function handleLiveAlert(alert) {
+            // Adicionar à lista de atividades em tempo real
+            const activityItem = document.createElement('div');
+            activityItem.className = `alert-item alert-${alert.level} mb-2`;
+            
+            activityItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge badge-${alert.level}">${alert.level.toUpperCase()}</span>
+                    <span class="alert-timestamp">${new Date(alert.timestamp).toLocaleString()}</span>
+                </div>
+                <div class="alert-message">${alert.message}</div>
+            `;
+            
+            // Adicionar classe de pulso para alertas críticos
+            if (alert.level === 'critical') {
+                activityItem.classList.add('pulse');
+            }
+            
+            // Remover mensagem de espera se for o primeiro item
+            if (elements.liveActivity.querySelector('.text-muted')) {
+                elements.liveActivity.innerHTML = '';
+            }
+            
+            // Adicionar no topo da lista
+            elements.liveActivity.insertBefore(activityItem, elements.liveActivity.firstChild);
+            
+            // Limitar o número de itens
+            const items = elements.liveActivity.querySelectorAll('.alert-item');
+            if (items.length > CONFIG.maxLiveActivities) {
+                elements.liveActivity.removeChild(items[items.length - 1]);
+            }
+            
+            // Reproduzir som de alerta para eventos críticos
+            if (alert.level === 'critical') {
+                playAlertSound();
+            }
+            
+            // Atualizar estatísticas
+            fetchSecurityStats();
+        }
+
+        // Reproduzir som de alerta
+        function playAlertSound() {
+            // Implementação simulada - em um ambiente real, você usaria um elemento de áudio
+            console.log('Reproduzindo som de alerta');
+        }
+    </script>
+</body>
+</html>

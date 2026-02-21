@@ -1,0 +1,1 @@
+{"version":3,"file":"DayNames.d.ts","sourceRoot":"","sources":["../../../src/Date/DayNames.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,KAAK,MAAM,OAAO,CAAA;AAI9B,OAAO,EAAE,mBAAmB,EAAe,MAAM,aAAa,CAAA;AAE9D,eAAO,MAAM,cAAc,KAAK,CAAA;AAahC,iBAAS,QAAQ,CAAC,EAChB,eAAe,EACf,MAAM,GACP,EAAE;IACD,MAAM,EAAE,SAAS,GAAG,MAAM,CAAA;IAC1B,eAAe,CAAC,EAAE,mBAAmB,CAAA;CACtC,qBAqBA;;AASD,wBAAmC"}

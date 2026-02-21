@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screenshot Template - Açucaradas Encomendas</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .device-frame {
+            width: 1242px;
+            height: 2688px;
+            background-color: white;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .status-bar {
+            height: 80px;
+            background-color: #FF69B4;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            box-sizing: border-box;
+            color: white;
+        }
+        
+        .time {
+            font-weight: bold;
+        }
+        
+        .icons {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .app-header {
+            height: 140px;
+            background-color: #FFF;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #EEE;
+        }
+        
+        .app-logo {
+            font-size: 36px;
+            font-weight: bold;
+            color: #FF69B4;
+        }
+        
+        .header-icons {
+            display: flex;
+            gap: 25px;
+            font-size: 24px;
+        }
+        
+        .content-area {
+            padding: 30px;
+            height: calc(100% - 220px);
+            overflow: auto;
+            box-sizing: border-box;
+        }
+        
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+        
+        .product-card {
+            background-color: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .product-image {
+            height: 220px;
+            background-color: #FFE6F2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 80px;
+        }
+        
+        .product-details {
+            padding: 15px;
+        }
+        
+        .product-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 20px;
+        }
+        
+        .product-price {
+            color: #FF69B4;
+            font-weight: bold;
+            font-size: 24px;
+        }
+        
+        .search-bar {
+            width: 100%;
+            padding: 22px;
+            background-color: #F9F9F9;
+            border-radius: 30px;
+            border: 1px solid #EEE;
+            margin-bottom: 30px;
+            box-sizing: border-box;
+            font-size: 20px;
+        }
+        
+        .category-tabs {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+        }
+        
+        .category-tab {
+            padding: 15px 30px;
+            background-color: #FFE6F2;
+            border-radius: 30px;
+            color: #FF69B4;
+            font-weight: bold;
+            white-space: nowrap;
+            font-size: 18px;
+        }
+        
+        .category-tab.active {
+            background-color: #FF69B4;
+            color: white;
+        }
+        
+        .dimensions {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            font-size: 14px;
+            color: rgba(0,0,0,0.5);
+            background-color: rgba(255,255,255,0.8);
+            padding: 8px;
+            border-radius: 8px;
+        }
+        
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 120px;
+            background-color: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #EEE;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 14px;
+            color: #999;
+        }
+        
+        .nav-item.active {
+            color: #FF69B4;
+        }
+        
+        .nav-icon {
+            font-size: 30px;
+            margin-bottom: 5px;
+        }
+        
+        .featured-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="status-bar">
+            <div class="time">14:30</div>
+            <div class="icons">📶 📶 🔋</div>
+        </div>
+        <div class="app-header">
+            <div class="app-logo">Açucaradas Encomendas</div>
+            <div class="header-icons">🔔 💖</div>
+        </div>
+        <div class="content-area">
+            <input type="text" class="search-bar" placeholder="Buscar doces, bolos, tortas...">
+            <div class="featured-section">
+                <div class="section-title">Destaques da Semana</div>
+                <div class="product-card">
+                    <div class="product-image">🎂</div>
+                    <div class="product-details">
+                        <div class="product-name">Bolo Red Velvet Especial</div>
+                        <div class="product-price">R$ 119,90</div>
+                    </div>
+                </div>
+            </div>
+            <div class="category-tabs">
+                <div class="category-tab active">Todos</div>
+                <div class="category-tab">Bolos</div>
+                <div class="category-tab">Doces</div>
+                <div class="category-tab">Tortas</div>
+                <div class="category-tab">Sobremesas</div>
+                <div class="category-tab">Personalizados</div>
+            </div>
+            <div class="section-title">Mais Pedidos</div>
+            <div class="product-grid">
+                <div class="product-card">
+                    <div class="product-image">🍰</div>
+                    <div class="product-details">
+                        <div class="product-name">Bolo de Chocolate Belga</div>
+                        <div class="product-price">R$ 89,90</div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">🍮</div>
+                    <div class="product-details">
+                        <div class="product-name">Pudim Gourmet</div>
+                        <div class="product-price">R$ 49,90</div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">🧁</div>
+                    <div class="product-details">
+                        <div class="product-name">Cupcake de Morango</div>
+                        <div class="product-price">R$ 12,90</div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">🍦</div>
+                    <div class="product-details">
+                        <div class="product-name">Sorvete Artesanal</div>
+                        <div class="product-price">R$ 25,90</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <div>Início</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">🔍</div>
+                <div>Explorar</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">🛒</div>
+                <div>Carrinho</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">📋</div>
+                <div>Pedidos</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">👤</div>
+                <div>Perfil</div>
+            </div>
+        </div>
+        <div class="dimensions">1242 x 2688 px</div>
+    </div>
+</body>
+</html>

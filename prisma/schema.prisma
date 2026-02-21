@@ -1,0 +1,14 @@
+model Payment {
+  id          String   @id @default(uuid())
+  userId      String
+  amount      Float
+  paymentMethod String
+  status      String
+  paymentId   String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([paymentId])
+} 

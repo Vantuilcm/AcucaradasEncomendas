@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1125" height="2436" viewBox="0 0 1125 2436">
+  <!-- Background -->
+  <rect width="1125" height="2436" fill="#f5f5f5"/>
+  
+  <!-- Device Frame -->
+  <rect x="35" y="55" width="1055" height="2326" rx="35" ry="35" fill="white" stroke="#e0e0e0" stroke-width="2"/>
+  
+  <!-- Status Bar -->
+  <rect x="35" y="55" width="1055" height="75" rx="35" ry="35" fill="#FF69B4"/>
+  <text x="562" y="100" font-family="Arial" font-size="22" fill="white" text-anchor="middle" font-weight="bold">10:30</text>
+  <rect x="472" y="65" width="180" height="28" rx="14" ry="14" fill="black"/>
+  <text x="1000" y="100" font-family="Arial" font-size="22" fill="white" font-weight="bold">100%</text>
+  
+  <!-- App Header -->
+  <rect x="35" y="130" width="1055" height="110" fill="white" stroke="#EEE" stroke-width="1"/>
+  <text x="75" y="195" font-family="Arial" font-size="32" fill="#FF69B4" font-weight="bold">Finalizar Pedido</text>
+  
+  <!-- Order Summary -->
+  <rect x="55" y="260" width="1015" height="170" fill="white" stroke="#e0e0e0" stroke-width="1" rx="10" ry="10"/>
+  <text x="75" y="295" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Resumo do Pedido</text>
+  <line x1="75" y1="315" x2="1050" y2="315" stroke="#e0e0e0" stroke-width="1"/>
+  
+  <!-- Order Items -->
+  <text x="75" y="350" font-family="Arial" font-size="20" fill="#666">1x Bolo de Chocolate</text>
+  <text x="1015" y="350" font-family="Arial" font-size="20" fill="#666" text-anchor="end">R$ 59,90</text>
+  
+  <text x="75" y="385" font-family="Arial" font-size="20" fill="#666">2x Cupcakes de Morango</text>
+  <text x="1015" y="385" font-family="Arial" font-size="20" fill="#666" text-anchor="end">R$ 17,80</text>
+  
+  <line x1="75" y1="405" x2="1050" y2="405" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="75" y="440" font-family="Arial" font-size="22" fill="#333" font-weight="bold">Total</text>
+  <text x="1015" y="440" font-family="Arial" font-size="22" fill="#FF69B4" font-weight="bold" text-anchor="end">R$ 77,70</text>
+  
+  <!-- Delivery Address -->
+  <rect x="55" y="450" width="1015" height="180" fill="white" stroke="#e0e0e0" stroke-width="1" rx="10" ry="10"/>
+  <text x="75" y="485" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Endereço de Entrega</text>
+  <line x1="75" y1="505" x2="1050" y2="505" stroke="#e0e0e0" stroke-width="1"/>
+  
+  <text x="75" y="540" font-family="Arial" font-size="20" fill="#666">Maria Silva</text>
+  <text x="75" y="575" font-family="Arial" font-size="20" fill="#666">Rua das Flores, 123 - Apto 45</text>
+  <text x="75" y="610" font-family="Arial" font-size="20" fill="#666">Jardim Primavera - São Paulo/SP</text>
+  
+  <!-- Payment Method -->
+  <rect x="55" y="650" width="1015" height="280" fill="white" stroke="#e0e0e0" stroke-width="1" rx="10" ry="10"/>
+  <text x="75" y="685" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Forma de Pagamento</text>
+  <line x1="75" y1="705" x2="1050" y2="705" stroke="#e0e0e0" stroke-width="1"/>
+  
+  <!-- Payment Options -->
+  <rect x="75" y="725" width="975" height="55" rx="10" ry="10" fill="white" stroke="#FF69B4" stroke-width="2"/>
+  <circle cx="95" cy="752" r="11" fill="#FF69B4"/>
+  <text x="120" y="760" font-family="Arial" font-size="20" fill="#333">Cartão de Crédito</text>
+  
+  <rect x="75" y="795" width="975" height="55" rx="10" ry="10" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <circle cx="95" cy="822" r="11" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="120" y="830" font-family="Arial" font-size="20" fill="#333">PIX</text>
+  
+  <rect x="75" y="865" width="975" height="55" rx="10" ry="10" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <circle cx="95" cy="892" r="11" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="120" y="900" font-family="Arial" font-size="20" fill="#333">Dinheiro na Entrega</text>
+  
+  <!-- Delivery Time -->
+  <rect x="55" y="950" width="1015" height="180" fill="white" stroke="#e0e0e0" stroke-width="1" rx="10" ry="10"/>
+  <text x="75" y="985" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Horário de Entrega</text>
+  <line x1="75" y1="1005" x2="1050" y2="1005" stroke="#e0e0e0" stroke-width="1"/>
+  
+  <text x="75" y="1040" font-family="Arial" font-size="20" fill="#666">Data: 15/06/2023</text>
+  <text x="75" y="1075" font-family="Arial" font-size="20" fill="#666">Horário: Entre 14:00 e 16:00</text>
+  
+  <!-- Confirm Button -->
+  <rect x="55" y="1150" width="1015" height="70" rx="35" ry="35" fill="#FF69B4"/>
+  <text x="562" y="1195" font-family="Arial" font-size="26" fill="white" text-anchor="middle" font-weight="bold">Confirmar Pedido</text>
+  
+  <!-- Bottom Navigation -->
+  <rect x="35" y="2326" width="1055" height="55" fill="white" stroke="#EEE" stroke-width="1"/>
+  <text x="165" y="2360" font-family="Arial" font-size="15" fill="#999" text-anchor="middle">Início</text>
+  <text x="420" y="2360" font-family="Arial" font-size="15" fill="#999" text-anchor="middle">Catálogo</text>
+  <text x="675" y="2360" font-family="Arial" font-size="15" fill="#FF69B4" text-anchor="middle">Carrinho</text>
+  <text x="930" y="2360" font-family="Arial" font-size="15" fill="#999" text-anchor="middle">Perfil</text>
+</svg>

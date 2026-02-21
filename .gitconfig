@@ -1,0 +1,15 @@
+[user]
+    name = Acucaradas Encomendas
+    email = acucaradasencomendas@gmail.com
+
+[core]
+    autocrlf = true
+    filemode = false
+    symlinks = false
+    ignorecase = true
+
+[init]
+    defaultBranch = main
+
+[credential]
+    helper = manager 
