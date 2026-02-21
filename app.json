@@ -68,7 +68,10 @@
       "fallbackToCacheTimeout": 0
     },
     "extra": {
-      "hostUri": "177.192.13.46:8081"
+      "hostUri": "177.192.13.46:8081",
+      "eas": {
+        "projectId": "6090106b-e327-4744-bce5-9ddb0d037045"
+      }
     },
     "owner": "acucaradas",
     "runtimeVersion": {
