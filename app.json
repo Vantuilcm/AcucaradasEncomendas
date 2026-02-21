@@ -25,7 +25,8 @@
         "NSLocationWhenInUseUsageDescription": "Este aplicativo usa sua localização para encontrar confeitarias próximas e calcular o tempo de entrega.",
         "UIBackgroundModes": [
           "remote-notification"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       },
       "googleServicesFile": "./ios/GoogleService-Info.prod.plist"
     },
