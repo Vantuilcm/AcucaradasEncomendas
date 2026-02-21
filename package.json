@@ -7,8 +7,9 @@
                     "npm":  "\u003e=8.0.0",
                     "pnpm":  "\u003e=8.0.0"
                 },
-    "scripts":  {
-                    "start":  "expo start",
+    "scripts": {
+        "prepare:ios": "node ./scripts/prepare-ios-build.js",
+        "start": "expo start",
                     "web":  "expo start --web",
                     "android":  "expo run:android",
                     "ios":  "expo run:ios",
