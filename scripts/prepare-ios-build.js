@@ -122,6 +122,27 @@ function prepare() {
     // Espaço para lógica de legado se necessário
   }
 
+  // 4. Gerar credentials.json para EAS Build Local
+  const credentialsJsonPath = path.join(process.cwd(), 'credentials.json');
+  const certPath = path.join('credentials', 'ios', 'AcucaradasEncomendas-dist-cert.p12');
+  const profilePath = path.join('credentials', 'ios', 'AcucaradasEncomendas-profile.mobileprovision');
+  
+  if (fs.existsSync(path.join(process.cwd(), certPath)) && fs.existsSync(path.join(process.cwd(), profilePath))) {
+    const credentialsJson = {
+      ios: {
+        provisioningProfilePath: profilePath,
+        distributionCertificate: {
+          path: certPath,
+          password: process.env.APPLE_CERT_PASSWORD || ''
+        }
+      }
+    };
+    fs.writeFileSync(credentialsJsonPath, JSON.stringify(credentialsJson, null, 2));
+    console.log('✅ credentials.json gerado para build local.');
+  } else {
+    console.warn('⚠️ Credenciais não encontradas, credentials.json não foi gerado.');
+  }
+
   console.log('\n✅ Ambiente preparado com sucesso!');
 }
 
