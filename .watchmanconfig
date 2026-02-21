@@ -1,6 +1,0 @@
-{
-  "ignore_dirs": ["node_modules", ".git", "android", "ios", "web-build", ".expo", "dist", "build"],
-  "fsevents_latency": 0.1,
-  "settle": 10000,
-  "defer_vcs": false
-}
