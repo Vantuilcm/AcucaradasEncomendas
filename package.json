@@ -9,6 +9,7 @@
                 },
     "scripts": {
         "prepare:ios": "node ./scripts/prepare-ios-build.js",
+        "build:ios": "eas build --platform ios --profile production --local --non-interactive --output ./build-artifacts/Acucaradas.ipa",
         "start": "expo start",
                     "web":  "expo start --web",
                     "android":  "expo run:android",
