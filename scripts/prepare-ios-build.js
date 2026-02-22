@@ -47,7 +47,6 @@ function prepare() {
     }
   }
 
-  // 2. Gerenciamento do GoogleService-Info.plist
   const source = 'GoogleService-Info.prod.plist';
   
   if (process.env.GOOGLE_SERVICE_INFO_PLIST) {
@@ -69,6 +68,19 @@ function prepare() {
     }
   } else {
     console.log(`✅ ${source} já existe.`);
+  }
+
+  const iosGooglePath = path.join(process.cwd(), 'ios', 'GoogleService-Info.prod.plist');
+  try {
+    fs.mkdirSync(path.dirname(iosGooglePath), { recursive: true });
+    if (fs.existsSync(source)) {
+      fs.copyFileSync(source, iosGooglePath);
+      console.log('✅ Copiado GoogleService-Info.prod.plist para ios/GoogleService-Info.prod.plist');
+    } else {
+      console.warn('⚠️ GoogleService-Info.prod.plist não existe na raiz; arquivo em ios/ pode faltar.');
+    }
+  } catch (e) {
+    console.warn('⚠️ Erro ao copiar GoogleService-Info.prod.plist para ios/:', e.message);
   }
 
   const sentryEnvPath = path.join(process.cwd(), '.env.sentry-build-plugin');
