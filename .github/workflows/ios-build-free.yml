@@ -143,7 +143,7 @@ jobs:
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20.19.4
+          node-version: 18
           cache: 'npm'
 
       - name: 📦 Install dependencies
@@ -153,6 +153,7 @@ jobs:
           npm config set fetch-retry-maxtimeout 120000
           npm ci --legacy-peer-deps --no-audit --fund=false
         env:
+          # Garantir que instala tudo, inclusive devDependencies, para que o EAS CLI funcione corretamente
           NODE_ENV: development
           NO_SENTRY_VALIDATE: 1
 
@@ -197,7 +198,7 @@ jobs:
       - name: 🚀 Setup Expo
         uses: expo/expo-github-action@v8
         with:
-          eas-version: latest
+          eas-version: 5.9.0
           token: ${{ secrets.EXPO_TOKEN }}
           expo-cache: false
           eas-cache: false
@@ -243,7 +244,7 @@ jobs:
       - name: 🚀 Setup Expo
         uses: expo/expo-github-action@v8
         with:
-          eas-version: latest
+          eas-version: 5.9.0
           token: ${{ secrets.EXPO_TOKEN }}
           expo-cache: false
           eas-cache: false
@@ -280,7 +281,7 @@ jobs:
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20.19.4
+          node-version: 18
           cache: 'npm'
 
       - name: 🔒 Forçar buildNumber mínimo 362
@@ -379,7 +380,7 @@ jobs:
       - name: 🚀 Setup Expo
         uses: expo/expo-github-action@v8
         with:
-          eas-version: latest
+          eas-version: 5.9.0
           token: ${{ secrets.EXPO_TOKEN }}
           expo-cache: false
           eas-cache: false
@@ -482,7 +483,7 @@ jobs:
           SENTRY_DISABLE_AUTO_UPLOAD: 1
           SENTRY_ALLOW_FAILURE: 1
 
-      - name: 🛠 Build iOS (Local on Runner)
+      - name: 🛠 Build iOS (Cloud EAS + download IPA)
         run: |
           if [ -z "${DEVELOPER_DIR:-}" ]; then
             echo "❌ DEVELOPER_DIR não definido"
@@ -491,27 +492,15 @@ jobs:
           echo "DEVELOPER_DIR=$DEVELOPER_DIR"
           "$DEVELOPER_DIR/usr/bin/xcodebuild" -version
           xcodebuild -version
-          export SENTRY_DISABLE_AUTO_UPLOAD=1
-          export SENTRY_ALLOW_FAILURE=1
-          export SENTRY_AUTH_TOKEN=""
-          export SENTRY_ORG=""
-          export SENTRY_PROJECT=""
-          export SENTRY_URL=""
-          export SENTRY_DSN=""
-          cat > .env.sentry-build-plugin << 'EOF'
-          SENTRY_DISABLE_AUTO_UPLOAD=1
-          SENTRY_ALLOW_FAILURE=1
-          EOF
-          mkdir -p ios
-          cp .env.sentry-build-plugin ios/.env.sentry-build-plugin
-          git add -f .env.sentry-build-plugin || true
-          echo "SENTRY_DISABLE_AUTO_UPLOAD=$SENTRY_DISABLE_AUTO_UPLOAD"
-          echo "SENTRY_ALLOW_FAILURE=$SENTRY_ALLOW_FAILURE"
-          ls -la .env.sentry-build-plugin
-          cat .env.sentry-build-plugin
-          echo "🚀 Iniciando Build iOS Local via Script Seguro"
+
+          echo "🚀 Iniciando Build iOS na Nuvem (EAS Cloud)"
+          eas build --platform ios --profile production --non-interactive --wait
+
+          echo "📥 Baixando última IPA gerada"
           mkdir -p ./build-artifacts
-          npm run build:ios 2>&1 | tee ./build-artifacts/build.log
+          eas build:download --platform ios --profile production --latest --non-interactive -o ./build-artifacts/Acucaradas.ipa
+
+          echo "✅ Build iOS concluído e IPA baixada para build-artifacts/Acucaradas.ipa"
         env:
           SENTRY_DISABLE_AUTO_UPLOAD: 1
           SENTRY_ALLOW_FAILURE: 1
@@ -543,7 +532,6 @@ jobs:
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           EXPO_USE_METRO_WORKSPACE_ROOT: 1
-          EAS_NO_VCS: 1
           EXPO_NO_TELEMETRY: 1
           NODE_OPTIONS: "--max-old-space-size=8192"
           CI: 1
