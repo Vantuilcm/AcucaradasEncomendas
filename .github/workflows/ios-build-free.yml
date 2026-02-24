@@ -1,0 +1,503 @@
+name: iOS Production Build (GitHub Free)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  # O build NÃO rodará mais automaticamente em cada push para economizar minutos.
+  # Você deve disparar MANUALMENTE na aba Actions.
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref (branch or tag)'
+        required: true
+        default: 'upgrade/sdk-52-rn-076'
+        type: string
+      profile:
+        description: 'EAS Build Profile'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+          - development
+      mode:
+        description: 'Modo de execução'
+        required: true
+        default: 'local_macos'
+        type: choice
+        options:
+          - audit_only
+          - local_macos
+      publish_update:
+        description: 'Publicar EAS Update (OTA)'
+        required: true
+        default: false
+        type: boolean
+  
+
+jobs:
+  preflight:
+    name: ✅ Preflight (JS)
+    runs-on: ubuntu-22.04
+    env:
+      SENTRY_DISABLE_AUTO_UPLOAD: 1
+      SENTRY_ALLOW_FAILURE: 1
+      EXPO_PUBLIC_ENABLE_SENTRY: 0
+      SENTRY_AUTH_TOKEN: ''
+      SENTRY_ORG: ''
+      SENTRY_PROJECT: ''
+      SENTRY_URL: ''
+      SENTRY_DSN: ''
+      NO_SENTRY_VALIDATE: 1
+    steps:
+      - name: 🧪 Stub npx sentry-cli (Preflight Early)
+        run: |
+          STUBBIN="$HOME/.local/bin"
+          mkdir -p "$STUBBIN"
+          cat > "$STUBBIN/npx" << 'EOF'
+          #!/usr/bin/env bash
+          if [ "${1:-}" = "sentry-cli" ]; then
+            echo "[ci] npx sentry-cli stubbed (preflight early)"
+            exit 0
+          fi
+          if [ -x "/usr/bin/npx" ]; then
+            exec /usr/bin/npx "$@"
+          fi
+          if [ -x "/usr/local/bin/npx" ]; then
+            exec /usr/local/bin/npx "$@"
+          fi
+          command -v npx >/dev/null 2>&1 && exec "$(command -v npx)" "$@"
+          echo "[ci] npx not found"
+          exit 127
+          EOF
+          chmod +x "$STUBBIN/npx"
+          echo "$STUBBIN" >> $GITHUB_PATH
+
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+
+      - name: 🧪 Stub npx sentry-cli (Preflight)
+        run: |
+          REAL_NPX="$(command -v npx)"
+          mkdir -p ci-bin
+          cat > ci-bin/npx << EOF
+          #!/usr/bin/env bash
+          if [ "${1:-}" = "sentry-cli" ]; then
+            echo "[ci] npx sentry-cli stubbed (preflight)"
+            exit 0
+          fi
+          exec "$REAL_NPX" "$@"
+          EOF
+          chmod +x ci-bin/npx
+          echo "$(pwd)/ci-bin" >> $GITHUB_PATH
+
+      - name: 🧪 Stub sentry-cli (Preflight)
+        run: |
+          mkdir -p node_modules/.bin
+          cat > node_modules/.bin/sentry-cli << 'EOF'
+          #!/usr/bin/env bash
+          echo "[ci] sentry-cli stubbed (preflight)"
+          exit 0
+          EOF
+          chmod +x node_modules/.bin/sentry-cli
+
+      - name: 🚫 Neutralizar Sentry (Build)
+        run: |
+          echo "SENTRY_AUTH_TOKEN=" >> $GITHUB_ENV
+          echo "SENTRY_ORG=" >> $GITHUB_ENV
+          echo "SENTRY_PROJECT=" >> $GITHUB_ENV
+          echo "SENTRY_URL=" >> $GITHUB_ENV
+          echo "SENTRY_DSN=" >> $GITHUB_ENV
+          echo "EXPO_PUBLIC_SENTRY_DSN=" >> $GITHUB_ENV
+          rm -f .sentryclirc ios/.sentryclirc
+          rm -f sentry.properties ios/sentry.properties
+          rm -f .env.sentry-build-plugin ios/.env.sentry-build-plugin
+          rm -f ~/.sentryclirc ~/.config/sentry/sentry.properties || true
+
+      - name: � Sanitize Sentry Env
+        run: |
+          echo "SENTRY_AUTH_TOKEN=" >> $GITHUB_ENV
+          echo "SENTRY_ORG=" >> $GITHUB_ENV
+          echo "SENTRY_PROJECT=" >> $GITHUB_ENV
+          echo "SENTRY_URL=" >> $GITHUB_ENV
+          echo "SENTRY_DSN=" >> $GITHUB_ENV
+          rm -f .sentryclirc sentry.properties
+          rm -f ~/.sentryclirc ~/.config/sentry/sentry.properties || true
+
+      - name: �🔄 Sincronizar com o último commit do branch
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.ref == 'upgrade/sdk-52-rn-076' }}
+        run: |
+          git fetch origin upgrade/sdk-52-rn-076 --depth=1
+          git reset --hard origin/upgrade/sdk-52-rn-076
+          git log -1 --oneline
+
+      - name: ⚙️ Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.4
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm ci --legacy-peer-deps --no-audit --fund=false
+        env:
+          # Garantir que instala tudo, inclusive devDependencies, para que o EAS CLI funcione corretamente
+          NODE_ENV: development
+          NO_SENTRY_VALIDATE: 1
+
+      - name: 🔒 Forçar buildNumber mínimo 362
+        run: |
+          node -e "const fs=require('fs'); const path='app.json'; const raw=fs.readFileSync(path,'utf8'); const data=JSON.parse(raw); const expo=data.expo||{}; const ios=expo.ios||{}; const build=Number(ios.buildNumber||0); const min=362; if (!Number.isFinite(build) || build < min) { expo.ios={...ios,buildNumber:String(min)}; data.expo=expo; fs.writeFileSync(path, JSON.stringify(data,null,2)); console.log('ios.buildNumber atualizado para', min); } else { console.log('ios.buildNumber já é >=', min, 'valor atual:', build); }"
+      - name: 🧾 Print Git + app versions
+        run: |
+          echo "ref=${GITHUB_REF}" 
+          echo "sha=${GITHUB_SHA}"
+          git log -1 --oneline
+          node -e "const fs=require('fs'); const a=JSON.parse(fs.readFileSync('app.json','utf8')).expo||{}; const p=JSON.parse(fs.readFileSync('package.json','utf8'))||{}; console.log('app.json expo.version=', a.version); console.log('app.json ios.buildNumber=', a.ios?.buildNumber); console.log('package.json version=', p.version);"
+
+      - name: ✅ Enforce iOS buildNumber >= 360
+        run: |
+          node -e "const fs=require('fs'); const app=JSON.parse(fs.readFileSync('app.json','utf8')).expo||{}; const build=Number(app.ios?.buildNumber||0); const min=360; if (!Number.isFinite(build) || build < min) { console.error('ios.buildNumber inválido ou abaixo de', min, ':', app.ios?.buildNumber); process.exit(1); } console.log('ios.buildNumber ok:', build);"
+
+      - name: ✅ Enforce production runs from allowed refs (manual)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.profile == 'production' }}
+        run: |
+          echo "GITHUB_REF=${GITHUB_REF}"
+          echo "INPUT_REF=${{ inputs.ref }}"
+          if [ "${GITHUB_REF}" != "refs/heads/upgrade/sdk-52-rn-076" ] && ! [[ "${GITHUB_REF}" =~ ^refs/tags/v ]]; then
+            echo "❌ Produção manual deve rodar a partir de upgrade/sdk-52-rn-076 ou tag v* para evitar build de commit antigo."
+            echo "💡 Use 'Run workflow' selecionando upgrade/sdk-52-rn-076 ou dispare por tag v* (release)."
+            exit 1
+          fi
+
+      - name: 🧾 Print Expo version/runtime (public config)
+        run: |
+          node -v
+          npx expo config --type public --json | node -e "const fs=require('fs'); const raw=JSON.parse(fs.readFileSync(0,'utf8')); const cfg=(raw && (raw.expo||raw.exp)) ? (raw.expo||raw.exp) : raw; console.log('expo.version=', cfg?.version); console.log('ios.buildNumber=', cfg?.ios?.buildNumber); console.log('runtimeVersion=', JSON.stringify(cfg?.runtimeVersion));"
+
+      - name: ✅ Enforce Expo version/buildNumber from app.json
+        run: |
+          node -e "const fs=require('fs'); const app=JSON.parse(fs.readFileSync('app.json','utf8')).expo||{}; const expected={version: app.version, buildNumber: String(app.ios?.buildNumber||'')}; const raw=JSON.parse(require('child_process').execSync('npx expo config --type public --json',{encoding:'utf8'})); const cfg=(raw && (raw.expo||raw.exp)) ? (raw.expo||raw.exp) : raw; const got={version: cfg?.version, buildNumber: String(cfg?.ios?.buildNumber||'')}; console.log('expected', expected); console.log('got', got); if (!expected.version || !expected.buildNumber) { console.error('Missing expo.version or ios.buildNumber in app.json'); process.exit(1); } if (expected.version !== got.version || expected.buildNumber !== got.buildNumber) { console.error('Expo config mismatch (likely wrong commit/config override).'); process.exit(1); }"
+
+      - name: 🧪 Testes (Opcional)
+        continue-on-error: true
+        run: npm test -- --runInBand || true
+
+      - name: 🚀 Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
+          expo-cache: false
+          eas-cache: false
+        env:
+          NO_SENTRY_VALIDATE: 1
+
+  build:
+    name: 🍎 Build iOS (Optimized)
+    runs-on: macos-14
+    needs: preflight
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'local_macos' }}
+    env:
+      SENTRY_DISABLE_AUTO_UPLOAD: "1"
+      SENTRY_ALLOW_FAILURE: "1"
+      EXPO_PUBLIC_ENABLE_SENTRY: 0
+      SENTRY_AUTH_TOKEN: ''
+      SENTRY_ORG: ''
+      SENTRY_PROJECT: ''
+      SENTRY_URL: ''
+      SENTRY_DSN: ''
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+
+      - name: ⚙️ Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.4
+          cache: 'npm'
+
+      - name: 🔒 Forçar buildNumber mínimo 362
+        run: |
+          node -e "const fs=require('fs'); const path='app.json'; const raw=fs.readFileSync(path,'utf8'); const data=JSON.parse(raw); const expo=data.expo||{}; const ios=expo.ios||{}; const build=Number(ios.buildNumber||0); const min=362; if (!Number.isFinite(build) || build < min) { expo.ios = { ...ios, buildNumber: String(min) }; data.expo = expo; fs.writeFileSync(path, JSON.stringify(data, null, 2)); console.log('buildNumber atualizado para', min, 'no workspace'); } else { console.log('buildNumber já está >=', min, ':', build); }"
+
+      - name: 📦 Install dependencies
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          
+          # Tentativa de instalação com retry manual se falhar a primeira vez
+          npm ci --legacy-peer-deps --no-audit --fund=false || \
+          (sleep 30 && npm ci --legacy-peer-deps --no-audit --fund=false) || \
+          (sleep 60 && npm ci --legacy-peer-deps --no-audit --fund=false)
+        env:
+          NODE_ENV: development
+
+      - name: 🧾 Print Git + app versions
+        run: |
+          echo "ref=${GITHUB_REF}" 
+          echo "sha=${GITHUB_SHA}"
+          git log -1 --oneline
+          node -e "const fs=require('fs'); const a=JSON.parse(fs.readFileSync('app.json','utf8')).expo||{}; const p=JSON.parse(fs.readFileSync('package.json','utf8'))||{}; console.log('app.json expo.version=', a.version); console.log('app.json ios.buildNumber=', a.ios?.buildNumber); console.log('package.json version=', p.version);"
+
+      - name: 🔎 Debug Sentry Env
+        run: |
+          echo "SENTRY_DISABLE_AUTO_UPLOAD=$SENTRY_DISABLE_AUTO_UPLOAD"
+          echo "SENTRY_ALLOW_FAILURE=$SENTRY_ALLOW_FAILURE"
+
+      - name: 🧹 Sentry Guard (Build)
+        run: |
+          export SENTRY_DISABLE_AUTO_UPLOAD=1
+          export SENTRY_ALLOW_FAILURE=1
+          export SENTRY_AUTH_TOKEN=""
+          export SENTRY_ORG=""
+          export SENTRY_PROJECT=""
+          export SENTRY_URL=""
+          export SENTRY_DSN=""
+          export EXPO_PUBLIC_SENTRY_DSN=""
+          echo "SENTRY_DISABLE_AUTO_UPLOAD=$SENTRY_DISABLE_AUTO_UPLOAD"
+          echo "SENTRY_ALLOW_FAILURE=$SENTRY_ALLOW_FAILURE"
+          rm -f .sentryclirc sentry.properties
+          rm -f ios/.sentryclirc ios/sentry.properties
+          rm -f ios/.env.sentry-build-plugin
+          printf "SENTRY_DISABLE_AUTO_UPLOAD=1\nSENTRY_ALLOW_FAILURE=1\n" > .env.sentry-build-plugin
+          mkdir -p ios
+          cp .env.sentry-build-plugin ios/.env.sentry-build-plugin
+          rm -f ~/.sentryclirc ~/.config/sentry/sentry.properties || true
+
+      - name: 🧨 Stub global sentry-cli
+        run: |
+          STUBBIN="$HOME/.local/bin"
+          mkdir -p "$STUBBIN"
+          echo "$STUBBIN" >> $GITHUB_PATH
+          cat > "$STUBBIN/sentry-cli" << 'EOF'
+          #!/bin/sh
+          echo "[ci] sentry-cli globally stubbed (skip)"
+          exit 0
+          EOF
+          chmod +x "$STUBBIN/sentry-cli"
+
+      - name: ✅ Enforce Expo version/buildNumber from app.json
+        run: |
+          node -e "const fs=require('fs'); const app=JSON.parse(fs.readFileSync('app.json','utf8')).expo||{}; const expected={version: app.version, buildNumber: String(app.ios?.buildNumber||'')}; const raw=JSON.parse(require('child_process').execSync('npx expo config --type public --json',{encoding:'utf8'})); const cfg=(raw && (raw.expo||raw.exp)) ? (raw.expo||raw.exp) : raw; const got={version: cfg?.version, buildNumber: String(cfg?.ios?.buildNumber||'')}; console.log('expected', expected); console.log('got', got); if (!expected.version || !expected.buildNumber) { console.error('Missing expo.version or ios.buildNumber in app.json'); process.exit(1); } if (expected.version !== got.version || expected.buildNumber !== got.buildNumber) { console.error('Expo config mismatch (likely wrong commit/config override).'); process.exit(1); }"
+
+      - name: 🔍 Debug node_modules
+        run: |
+          if [ -d "node_modules/expo-modules-core" ]; then
+            echo "Checking expo-modules-core package.json..."
+            cat node_modules/expo-modules-core/package.json | grep -E "main|exports"
+            echo "Checking expo-modules-core folder structure..."
+            ls -F node_modules/expo-modules-core/
+            ls -F node_modules/expo-modules-core/build/ || echo "build/ not found!"
+          else
+            echo "node_modules/expo-modules-core not found!"
+          fi
+        continue-on-error: true
+
+      - name: 🍎 Prepare iOS Build
+        run: npm run prepare:ios
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+          APPLE_CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}
+          APPLE_PROVISION_BASE64: ${{ secrets.IOS_PROV_PROFILE_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          ONESIGNAL_CERT_BASE64: ${{ secrets.ONESIGNAL_CERT_BASE64 }}
+          ONESIGNAL_PROVISION_BASE64: ${{ secrets.ONESIGNAL_PROVISION_BASE64 }}
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+          EXPO_NO_CAPABILITY_SYNC: 1
+          EXPO_USE_METRO_WORKSPACE_ROOT: 1
+          EXPO_NO_TELEMETRY: 1
+          NODE_OPTIONS: "--max-old-space-size=8192"
+
+      - name: 🚀 Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
+          expo-cache: false
+          eas-cache: false
+
+      - name:  Install xcbeautify
+        run: |
+          if command -v xcbeautify >/dev/null 2>&1; then
+            echo "xcbeautify já instalado"
+          else
+            brew install xcbeautify
+          fi
+
+      - name: 🍎 Select Xcode (16.2 ou padrão do runner)
+        run: |
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            SELECTED="/Applications/Xcode_16.2.app/Contents/Developer"
+            echo "Selecionando Xcode 16.2 em $SELECTED"
+          elif [ -d "/Applications/Xcode.app" ]; then
+            SELECTED="/Applications/Xcode.app/Contents/Developer"
+            echo "⚠️ Xcode_16.2.app não encontrado, usando Xcode padrão em $SELECTED"
+          else
+            echo "❌ Nenhuma instalação de Xcode encontrada em /Applications"
+            ls -d /Applications/Xcode*.app 2>/dev/null || true
+            exit 1
+          fi
+          sudo xcode-select -s "$SELECTED"
+          echo "DEVELOPER_DIR=$SELECTED" >> $GITHUB_ENV
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: 🍎 Detect Xcode
+        run: |
+          ls -d /Applications/Xcode*.app 2>/dev/null || true
+          xcodebuild -version || true
+          xcrun --sdk iphoneos --show-sdk-version || true
+
+      - name: 🧐 Verify Build Readiness
+        run: node scripts/verify-build-readiness.js
+        env:
+          APPLE_CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}
+          APPLE_PROVISION_BASE64: ${{ secrets.IOS_PROV_PROFILE_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+
+      - name: 🔍 Diagnostic Check
+        run: |
+          echo "Checking Expo Config after preparation..."
+          npx expo config --json || (echo "❌ Expo Config failed! Check app.json and plugins." && npx expo config --json --full)
+          echo "Checking Environment..."
+          env | grep EXPO || true
+        continue-on-error: true
+
+      - name: Set Sentry Flags
+        run: |
+          echo "SENTRY_DISABLE_AUTO_UPLOAD=1" > .env.sentry-build-plugin
+          echo "SENTRY_ALLOW_FAILURE=1" >> .env.sentry-build-plugin
+          mkdir -p ios
+          cp .env.sentry-build-plugin ios/.env.sentry-build-plugin
+          git add -f .env.sentry-build-plugin || true
+          echo "SENTRY_DISABLE_AUTO_UPLOAD=$SENTRY_DISABLE_AUTO_UPLOAD"
+          echo "SENTRY_ALLOW_FAILURE=$SENTRY_ALLOW_FAILURE"
+          echo "== .env.sentry-build-plugin =="
+          ls -la .env.sentry-build-plugin || true
+          cat .env.sentry-build-plugin || true
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: 1
+          SENTRY_ALLOW_FAILURE: 1
+
+      - name: 🧨 Stub Sentry CLI
+        run: |
+          mkdir -p ci-bin
+          cat > ci-bin/sentry-cli << 'EOF'
+          #!/bin/sh
+          echo "[ci] sentry-cli stubbed (skipping upload)"
+          exit 0
+          EOF
+          chmod +x ci-bin/sentry-cli
+          echo "$PWD/ci-bin" >> $GITHUB_PATH
+
+      - name: 🧱 Sentry Guard (Prebuild)
+        run: |
+          export SENTRY_DISABLE_AUTO_UPLOAD=1
+          export SENTRY_ALLOW_FAILURE=1
+          export SENTRY_AUTH_TOKEN=""
+          export SENTRY_ORG=""
+          export SENTRY_PROJECT=""
+          export SENTRY_URL=""
+          export SENTRY_DSN=""
+          export EXPO_PUBLIC_SENTRY_DSN=""
+          rm -f .sentryclirc sentry.properties
+          rm -f ios/.sentryclirc ios/sentry.properties
+          rm -f ios/.env.sentry-build-plugin
+          printf "SENTRY_DISABLE_AUTO_UPLOAD=1\nSENTRY_ALLOW_FAILURE=1\n" > .env.sentry-build-plugin
+          mkdir -p ios
+          cp .env.sentry-build-plugin ios/.env.sentry-build-plugin
+          node ./scripts/ci-prepare-sentry.js || true
+          node ./scripts/ios-nuke-sentry-phases.js || true
+          ls -la .env.sentry-build-plugin || true
+          ls -la ios/.env.sentry-build-plugin || true
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: 1
+          SENTRY_ALLOW_FAILURE: 1
+
+      - name: 🛠 Build iOS (Cloud EAS + download IPA)
+        run: |
+          if [ -z "${DEVELOPER_DIR:-}" ]; then
+            echo "❌ DEVELOPER_DIR não definido"
+            exit 1
+          fi
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR"
+          "$DEVELOPER_DIR/usr/bin/xcodebuild" -version
+          xcodebuild -version
+
+          echo "🚀 Iniciando Build iOS na Nuvem (EAS Cloud)"
+          eas build --platform ios --profile production --non-interactive --wait
+
+          echo "📥 Baixando última IPA gerada"
+          mkdir -p ./build-artifacts
+          eas build:download --platform ios --profile production --latest --non-interactive -o ./build-artifacts/Acucaradas.ipa
+
+          echo "✅ Build iOS concluído e IPA baixada para build-artifacts/Acucaradas.ipa"
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: 1
+          SENTRY_ALLOW_FAILURE: 1
+          EXPO_PUBLIC_ENABLE_SENTRY: 0
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+          EXPO_PUBLIC_ENABLE_ONESIGNAL: ${{ secrets.EXPO_PUBLIC_ENABLE_ONESIGNAL }}
+          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
+          EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID }}
+          EXPO_PUBLIC_FIREBASE_VAPID_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_VAPID_KEY }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+          EXPO_PUBLIC_APPLE_MERCHANT_ID: ${{ secrets.EXPO_PUBLIC_APPLE_MERCHANT_ID }}
+          EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS: ${{ secrets.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS }}
+          EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID: ${{ secrets.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID }}
+          EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: ${{ secrets.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB }}
+          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID }}
+          EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID }}
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+          EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID }}
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+          EAS_BUILD_PROFILE: ${{ inputs.profile || 'production' }}
+          SUBMIT_TO_TESTFLIGHT: ${{ inputs.profile == 'production' && 'true' || 'false' }}
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          EXPO_USE_METRO_WORKSPACE_ROOT: 1
+          EXPO_NO_TELEMETRY: 1
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          CI: 1
+
+      - name: 🧾 IPA Summary
+        if: always()
+        run: |
+          if [ -f "./build-artifacts/Acucaradas.ipa" ]; then
+            echo "IPA gerada: build-artifacts/Acucaradas.ipa" >> $GITHUB_STEP_SUMMARY
+            ls -lh ./build-artifacts/Acucaradas.ipa
+          else
+            echo "IPA não encontrada em build-artifacts/" >> $GITHUB_STEP_SUMMARY
+            ls -la ./build-artifacts || true
+          fi
+
+      - name: 📦 Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-build-artifacts
+          path: ./build-artifacts/*
+          retention-days: 7

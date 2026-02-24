@@ -1,0 +1,79 @@
+{
+  "expo": {
+    "name": "Açucaradas Encomendas",
+    "slug": "acucaradas-encomendas",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./node_modules/expo-dev-menu/ios/assets/_expo-dev-client-components/assets/x-icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./node_modules/expo-dev-menu/ios/assets/_expo-dev-client-components/assets/x-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.acucaradas.encomendas",
+      "buildNumber": "362",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Este aplicativo usa a câmera para escanear códigos QR e tirar fotos dos produtos.",
+        "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar sua galeria para selecionar imagens para os produtos.",
+        "NSMicrophoneUsageDescription": "Este aplicativo usa o microfone para gravar notas de voz para os pedidos.",
+        "NSLocationWhenInUseUsageDescription": "Este aplicativo usa sua localização para encontrar confeitarias próximas e calcular o tempo de entrega.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "googleServicesFile": "./GoogleService-Info.prod.plist"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./node_modules/expo-dev-menu/ios/assets/_expo-dev-client-components/assets/x-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.acucaradas.encomendas",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "RECORD_AUDIO"
+      ],
+      "googleServicesFile": "./google-services.prod.json"
+    },
+    "web": {
+      "favicon": "./node_modules/expo-dev-menu/ios/assets/_expo-dev-client-components/assets/x-icon.png",
+      "bundler": "metro"
+    },
+    "scheme": "acucaradas-encomendas",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./node_modules/expo-dev-menu/ios/assets/_expo-dev-client-components/assets/x-icon.png",
+          "color": "#ffffff"
+        }
+      ]
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/acucaradas-encomendas",
+      "fallbackToCacheTimeout": 0
+    },
+    "extra": {
+      "hostUri": "177.192.13.46:8081",
+      "eas": {
+        "projectId": "6090106b-e327-4744-bce5-9ddb0d037045"
+      }
+    },
+    "owner": "acucaradaencomendas",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
+  }
+}

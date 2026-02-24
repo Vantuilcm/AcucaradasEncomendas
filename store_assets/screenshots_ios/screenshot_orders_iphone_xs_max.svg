@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1242" height="2688" viewBox="0 0 1242 2688">
+  <!-- Background -->
+  <rect width="1242" height="2688" fill="#f5f5f5"/>
+  
+  <!-- Device Frame -->
+  <rect x="40" y="60" width="1162" height="2568" rx="40" ry="40" fill="white" stroke="#e0e0e0" stroke-width="2"/>
+  
+  <!-- Status Bar -->
+  <rect x="40" y="60" width="1162" height="80" rx="40" ry="40" fill="#FF69B4"/>
+  <text x="621" y="110" font-family="Arial" font-size="24" fill="white" text-anchor="middle" font-weight="bold">10:30</text>
+  <rect x="521" y="70" width="200" height="30" rx="15" ry="15" fill="black"/>
+  <text x="1100" y="110" font-family="Arial" font-size="24" fill="white" font-weight="bold">100%</text>
+  
+  <!-- App Header -->
+  <rect x="40" y="140" width="1162" height="120" fill="white" stroke="#EEE" stroke-width="1"/>
+  <text x="80" y="215" font-family="Arial" font-size="36" fill="#FF69B4" font-weight="bold">Meus Pedidos</text>
+  
+  <!-- Filter Tabs -->
+  <rect x="60" y="280" width="1122" height="60" fill="white" stroke="#e0e0e0" stroke-width="1" rx="10" ry="10"/>
+  
+  <rect x="70" y="285" width="200" height="50" rx="25" ry="25" fill="#FF69B4"/>
+  <text x="170" y="320" font-family="Arial" font-size="22" fill="white" text-anchor="middle" font-weight="bold">Em Andamento</text>
+  
+  <text x="370" y="320" font-family="Arial" font-size="22" fill="#999" text-anchor="middle">Concluídos</text>
+  <text x="570" y="320" font-family="Arial" font-size="22" fill="#999" text-anchor="middle">Cancelados</text>
+  
+  <!-- Order 1 -->
+  <rect x="60" y="360" width="1122" height="220" rx="15" ry="15" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="60" y="360" width="10" height="220" rx="5" ry="5" fill="#FF69B4"/>
+  
+  <text x="90" y="400" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Pedido #12345</text>
+  <text x="1120" y="400" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="end" font-weight="bold">Em Preparo</text>
+  
+  <text x="90" y="440" font-family="Arial" font-size="22" fill="#666">1x Bolo de Chocolate</text>
+  <text x="90" y="470" font-family="Arial" font-size="22" fill="#666">2x Cupcakes de Morango</text>
+  
+  <line x1="90" y1="490" x2="1150" y2="490" stroke="#e0e0e0" stroke-width="1"/>
+  
+  <text x="90" y="530" font-family="Arial" font-size="20" fill="#999">Entrega prevista: Hoje, 14:00-16:00</text>
+  <text x="1120" y="530" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="end" font-weight="bold">R$ 77,70</text>
+  
+  <!-- Order 2 -->
+  <rect x="60" y="600" width="1122" height="220" rx="15" ry="15" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="60" y="600" width="10" height="220" rx="5" ry="5" fill="#FF69B4"/>
+  
+  <text x="90" y="640" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Pedido #12346</text>
+  <text x="1120" y="640" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="end" font-weight="bold">Saiu para Entrega</text>
+  
+  <text x="90" y="680" font-family="Arial" font-size="22" fill="#666">1x Torta de Morango</text>
+  <text x="90" y="710" font-family="Arial" font-size="22" fill="#666">6x Cookies Artesanais</text>
+  
+  <line x1="90" y1="730" x2="1150" y2="730" stroke="#e0e0e0" stroke-width="1"/>
+  
+  <text x="90" y="770" font-family="Arial" font-size="20" fill="#999">Entrega prevista: Hoje, 15:30-17:30</text>
+  <text x="1120" y="770" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="end" font-weight="bold">R$ 91,30</text>
+  
+  <!-- Order 3 -->
+  <rect x="60" y="840" width="1122" height="220" rx="15" ry="15" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="60" y="840" width="10" height="220" rx="5" ry="5" fill="#FF69B4"/>
+  
+  <text x="90" y="880" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Pedido #12347</text>
+  <text x="1120" y="880" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="end" font-weight="bold">Confirmado</text>
+  
+  <text x="90" y="920" font-family="Arial" font-size="22" fill="#666">1x Bolo Red Velvet</text>
+  <text x="90" y="950" font-family="Arial" font-size="22" fill="#666">12x Brigadeiros Gourmet</text>
+  
+  <line x1="90" y1="970" x2="1150" y2="970" stroke="#e0e0e0" stroke-width="1"/>
+  
+  <text x="90" y="1010" font-family="Arial" font-size="20" fill="#999">Entrega prevista: Amanhã, 10:00-12:00</text>
+  <text x="1120" y="1010" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="end" font-weight="bold">R$ 105,80</text>
+  
+  <!-- Order 4 -->
+  <rect x="60" y="1080" width="1122" height="220" rx="15" ry="15" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="60" y="1080" width="10" height="220" rx="5" ry="5" fill="#FF69B4"/>
+  
+  <text x="90" y="1120" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Pedido #12348</text>
+  <text x="1120" y="1120" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="end" font-weight="bold">Agendado</text>
+  
+  <text x="90" y="1160" font-family="Arial" font-size="22" fill="#666">1x Bolo de Aniversário Personalizado</text>
+  <text x="90" y="1190" font-family="Arial" font-size="22" fill="#666">24x Docinhos Sortidos</text>
+  
+  <line x1="90" y1="1210" x2="1150" y2="1210" stroke="#e0e0e0" stroke-width="1"/>
+  
+  <text x="90" y="1250" font-family="Arial" font-size="20" fill="#999">Entrega prevista: 20/06/2023, 14:00-16:00</text>
+  <text x="1120" y="1250" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="end" font-weight="bold">R$ 249,90</text>
+  
+  <!-- Bottom Navigation -->
+  <rect x="40" y="2568" width="1162" height="60" fill="white" stroke="#EEE" stroke-width="1"/>
+  <text x="180" y="2608" font-family="Arial" font-size="16" fill="#999" text-anchor="middle">Início</text>
+  <text x="460" y="2608" font-family="Arial" font-size="16" fill="#999" text-anchor="middle">Catálogo</text>
+  <text x="740" y="2608" font-family="Arial" font-size="16" fill="#999" text-anchor="middle">Carrinho</text>
+  <text x="1020" y="2608" font-family="Arial" font-size="16" fill="#FF69B4" text-anchor="middle">Pedidos</text>
+</svg>

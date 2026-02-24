@@ -1,0 +1,66 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    ":maintainLockFilesWeekly",
+    ":prHourlyLimitNone",
+    ":prConcurrentLimitNone"
+  ],
+  "schedule": ["after 10pm and before 5am every weekday", "every weekend"],
+  "timezone": "America/Sao_Paulo",
+  "labels": ["dependencies", "renovate"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "labels": ["dependencies", "renovate", "minor-update"]
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "labels": ["dependencies", "renovate", "major-update"],
+      "assignees": ["@admin"]
+    },
+    {
+      "matchPackagePatterns": ["^react", "^@react", "^react-dom"],
+      "groupName": "react dependencies",
+      "labels": ["react", "dependencies"]
+    },
+    {
+      "matchPackagePatterns": ["^@testing-library"],
+      "groupName": "testing library",
+      "labels": ["testing", "dependencies"]
+    },
+    {
+      "matchPackagePatterns": ["^eslint"],
+      "groupName": "eslint packages",
+      "labels": ["linting", "dependencies"]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "assignees": ["@admin"],
+    "schedule": ["at any time"],
+    "automerge": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on monday"],
+    "automerge": true
+  },
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "📦 Dependency Dashboard",
+  "major": {
+    "dependencyDashboardApproval": true
+  },
+  "prCreation": "immediate",
+  "prNotPendingHours": 1,
+  "rangeStrategy": "pin",
+  "separateMajorMinor": true,
+  "separateMinorPatch": false
+}

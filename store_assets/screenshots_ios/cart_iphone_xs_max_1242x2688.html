@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screenshot Carrinho iPhone XS Max - Açucaradas Encomendas</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .device-frame {
+            width: 1242px;
+            height: 2688px;
+            background-color: white;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .notch {
+            position: absolute;
+            width: 375px;
+            height: 50px;
+            background-color: #000;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-bottom-left-radius: 18px;
+            border-bottom-right-radius: 18px;
+            z-index: 100;
+        }
+        
+        .status-bar {
+            height: 100px;
+            background-color: #FF69B4;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            box-sizing: border-box;
+            color: white;
+            padding-top: 50px;
+        }
+        
+        .time {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .icons {
+            display: flex;
+            gap: 18px;
+            font-size: 18px;
+        }
+        
+        .app-header {
+            height: 120px;
+            background-color: #FFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 30px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #EEE;
+            position: relative;
+        }
+        
+        .page-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .back-button {
+            position: absolute;
+            left: 25px;
+            font-size: 28px;
+        }
+        
+        .clear-button {
+            position: absolute;
+            right: 25px;
+            font-size: 18px;
+            color: #999;
+        }
+        
+        .content-area {
+            padding: 30px;
+            height: calc(100% - 220px - 350px);
+            overflow: auto;
+            box-sizing: border-box;
+        }
+        
+        .cart-item {
+            display: flex;
+            margin-bottom: 40px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .item-image {
+            width: 150px;
+            height: 150px;
+            background-color: #FFE6F2;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 25px;
+            flex-shrink: 0;
+            font-size: 60px;
+        }
+        
+        .item-details {
+            flex-grow: 1;
+        }
+        
+        .item-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .item-options {
+            font-size: 18px;
+            color: #999;
+            margin-bottom: 20px;
+        }
+        
+        .item-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FF69B4;
+            margin-bottom: 20px;
+        }
+        
+        .item-quantity {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .quantity-button {
+            width: 45px;
+            height: 45px;
+            border-radius: 22px;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .quantity-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .item-remove {
+            color: #999;
+            font-size: 24px;
+            align-self: flex-start;
+            margin-left: 15px;
+        }
+        
+        .cart-summary {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background-color: white;
+            border-top: 1px solid #eee;
+            padding: 30px;
+            box-sizing: border-box;
+            padding-bottom: 80px;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .summary-label {
+            color: #666;
+            font-size: 20px;
+        }
+        
+        .summary-value {
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            margin-bottom: 35px;
+        }
+        
+        .total-label {
+            font-size: 26px;
+            font-weight: bold;
+        }
+        
+        .total-value {
+            font-size: 30px;
+            font-weight: bold;
+            color: #FF69B4;
+        }
+        
+        .checkout-button {
+            width: 100%;
+            padding: 25px;
+            background-color: #FF69B4;
+            color: white;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        
+        .dimensions {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            font-size: 16px;
+            color: rgba(0,0,0,0.5);
+            background-color: rgba(255,255,255,0.8);
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 100;
+        }
+        
+        .promo-code {
+            display: flex;
+            margin-bottom: 25px;
+            gap: 15px;
+        }
+        
+        .promo-input {
+            flex-grow: 1;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            font-size: 18px;
+        }
+        
+        .apply-button {
+            padding: 20px 30px;
+            background-color: #f5f5f5;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .home-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 6px;
+            background-color: #000;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="notch"></div>
+        
+        <div class="status-bar">
+            <div class="time">10:45</div>
+            <div class="icons">
+                <span>📶</span>
+                <span>📊</span>
+                <span>🔋</span>
+            </div>
+        </div>
+        
+        <div class="app-header">
+            <div class="back-button">←</div>
+            <div class="page-title">Carrinho de Compras</div>
+            <div class="clear-button">Limpar</div>
+        </div>
+        
+        <div class="content-area">
+            <div class="cart-item">
+                <div class="item-image">🍰</div>
+                <div class="item-details">
+                    <div class="item-name">Bolo de Chocolate com Morango</div>
+                    <div class="item-options">Tamanho: Médio • Cobertura: Ganache</div>
+                    <div class="item-price">R$ 89,90</div>
+                    <div class="item-quantity">
+                        <div class="quantity-button">-</div>
+                        <div class="quantity-value">1</div>
+                        <div class="quantity-button">+</div>
+                    </div>
+                </div>
+                <div class="item-remove">×</div>
+            </div>
+            
+            <div class="cart-item">
+                <div class="item-image">🧁</div>
+                <div class="item-details">
+                    <div class="item-name">Cupcakes de Baunilha</div>
+                    <div class="item-options">Cobertura: Chantilly • Quantidade: 6 unidades</div>
+                    <div class="item-price">R$ 42,50</div>
+                    <div class="item-quantity">
+                        <div class="quantity-button">-</div>
+                        <div class="quantity-value">2</div>
+                        <div class="quantity-button">+</div>
+                    </div>
+                </div>
+                <div class="item-remove">×</div>
+            </div>
+            
+            <div class="cart-item">
+                <div class="item-image">🍮</div>
+                <div class="item-details">
+                    <div class="item-name">Pudim de Leite Condensado</div>
+                    <div class="item-options">Tamanho: Grande • Calda: Extra</div>
+                    <div class="item-price">R$ 35,90</div>
+                    <div class="item-quantity">
+                        <div class="quantity-button">-</div>
+                        <div class="quantity-value">1</div>
+                        <div class="quantity-button">+</div>
+                    </div>
+                </div>
+                <div class="item-remove">×</div>
+            </div>
+        </div>
+        
+        <div class="cart-summary">
+            <div class="promo-code">
+                <input type="text" class="promo-input" placeholder="Código promocional">
+                <div class="apply-button">Aplicar</div>
+            </div>
+            
+            <div class="summary-row">
+                <div class="summary-label">Subtotal</div>
+                <div class="summary-value">R$ 210,80</div>
+            </div>
+            
+            <div class="summary-row">
+                <div class="summary-label">Taxa de entrega</div>
+                <div class="summary-value">R$ 15,00</div>
+            </div>
+            
+            <div class="summary-row">
+                <div class="summary-label">Desconto</div>
+                <div class="summary-value">- R$ 20,00</div>
+            </div>
+            
+            <div class="total-row">
+                <div class="total-label">Total</div>
+                <div class="total-value">R$ 205,80</div>
+            </div>
+            
+            <div class="checkout-button">
+                Finalizar Pedido
+            </div>
+        </div>
+        
+        <div class="home-indicator"></div>
+        
+        <div class="dimensions">1242 x 2688</div>
+    </div>
+</body>
+</html> 

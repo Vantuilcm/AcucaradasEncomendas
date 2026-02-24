@@ -1,0 +1,31 @@
+<pt-BR>
+Primeira versão beta do app Açucaradas Encomendas.
+
+Inclui:
+- Navegação principal
+- Catálogo de produtos
+- Carrinho de compras
+- Chat com atendimento
+- Rastreamento de pedidos
+- Sistema de avaliações
+- Perfil de usuário
+- Promoções e descontos
+
+Esta é uma versão para testes internos. Por favor, reporte quaisquer bugs ou problemas encontrados através do formulário de feedback disponível no app.
+</pt-BR>
+
+<en-US>
+First beta version of Açucaradas Encomendas app.
+
+Includes:
+- Main navigation
+- Product catalog
+- Shopping cart
+- Customer service chat
+- Order tracking
+- Rating system
+- User profile
+- Promotions and discounts
+
+This is an internal testing version. Please report any bugs or issues found through the feedback form available in the app.
+</en-US>

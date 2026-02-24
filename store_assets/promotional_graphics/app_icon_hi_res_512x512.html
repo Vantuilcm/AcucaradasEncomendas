@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Graphic Template - Açucaradas Encomendas</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .feature-graphic {
+            width: 1024px;
+            height: 500px;
+            background: linear-gradient(to right, #FF69B4, #FFB6C1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            color: white;
+            padding: 0 60px;
+            box-sizing: border-box;
+        }
+        
+        .graphic-content {
+            width: 60%;
+            z-index: 2;
+        }
+        
+        .app-name {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .app-tagline {
+            font-size: 32px;
+            margin-bottom: 40px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .decoration {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 45%;
+            height: 400px;
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .cake-icon {
+            width: 300px;
+            height: 300px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            left: 100px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .cake-icon::after {
+            content: "🍰";
+            font-size: 120px;
+        }
+        
+        .dimensions {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="feature-graphic">
+        <div class="decoration"></div>
+        <div class="cake-icon"></div>
+        <div class="graphic-content">
+            <div class="app-name">Açucaradas Encomendas</div>
+            <div class="app-tagline">Doces artesanais direto na sua porta</div>
+        </div>
+        <div class="dimensions">1024 x 500 px</div>
+    </div>
+</body>
+</html> 

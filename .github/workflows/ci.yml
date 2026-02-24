@@ -1,0 +1,188 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Job de verificação de qualidade de código
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run ESLint
+      run: npm run lint
+      
+    - name: Run Prettier check
+      run: npm run format:check
+      
+    - name: TypeScript check
+      run: npm run type-check
+
+  # Job de testes
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run tests
+      run: npm test -- --coverage --watchAll=false
+      
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+
+  # Job de build para Android
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: [code-quality, tests]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Expo CLI
+      run: npm install -g @expo/cli eas-cli
+      
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Setup EAS
+      run: eas login --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        
+    - name: Build Android
+      run: eas build --platform android --profile production --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  # Job de build para iOS
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: [code-quality, tests]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Expo CLI
+      run: npm install -g @expo/cli eas-cli
+      
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Setup EAS
+      run: eas login --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        
+    - name: Build iOS
+      run: eas build --platform ios --profile production --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  # Job de deploy (apenas para branch main)
+  deploy:
+    name: Deploy to Stores
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Expo CLI
+      run: npm install -g @expo/cli eas-cli
+      
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Setup EAS
+      run: eas login --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        
+    - name: Submit to Google Play
+      run: eas submit --platform android --latest --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        
+    - name: Submit to App Store
+      run: eas submit --platform ios --latest --non-interactive
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  # Job de notificação
+  notify:
+    name: Notify Team
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+    
+    steps:
+    - name: Notify Success
+      if: needs.deploy.result == 'success'
+      run: |
+        echo "✅ Deploy realizado com sucesso!"
+        echo "📱 Apps enviados para as stores"
+        
+    - name: Notify Failure
+      if: needs.deploy.result == 'failure'
+      run: |
+        echo "❌ Falha no deploy"
+        echo "🔍 Verifique os logs para mais detalhes"

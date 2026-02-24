@@ -1,0 +1,263 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente para deploy (development, staging, production)'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      test_only:
+        description: 'Apenas testar build sem publicar'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.determine-env.outputs.environment }}
+      version: ${{ steps.package-version.outputs.version }}
+      test_only: ${{ github.event.inputs.test_only || 'false' }}
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Determinar ambiente
+        id: determine-env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_REF == refs/tags/v* ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "environment=development" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Obter versão do package.json
+        id: package-version
+        run: |
+          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+  lint-and-test:
+    name: Lint e Testes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verificar tipos
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Testes unitários
+        run: npm run test:unit
+
+  build-test:
+    name: Build de Teste
+    needs: [setup, lint-and-test]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.environment }}
+    env:
+      APP_ENV: ${{ needs.setup.outputs.environment }}
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Remover console.logs
+        if: needs.setup.outputs.environment != 'development'
+        run: npm run clean-logs
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Configurar variáveis de ambiente
+        run: |
+          echo "STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}" >> .env
+          echo "ONE_SIGNAL_APP_ID=${{ secrets.ONE_SIGNAL_APP_ID }}" >> .env
+          echo "SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}" >> .env
+
+      - name: Preparar Google Services
+        run: |
+          if [ "${{ needs.setup.outputs.environment }}" == "production" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_PROD }}" > google-services.prod.json
+            cp google-services.prod.json google-services.json
+          elif [ "${{ needs.setup.outputs.environment }}" == "staging" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_STAGING }}" > google-services.staging.json
+            cp google-services.staging.json google-services.json
+          else
+            echo "${{ secrets.GOOGLE_SERVICES_DEV }}" > google-services.dev.json
+            cp google-services.dev.json google-services.json
+          fi
+
+      - name: Preparar Apple Services
+        if: needs.setup.outputs.environment == 'production' || needs.setup.outputs.environment == 'staging'
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" | base64 -d > GoogleService-Info.prod.plist
+
+      - name: Verificar EAS Config
+        run: |
+          eas diagnostics
+
+      - name: Build de teste para Android
+        run: |
+          eas build --platform android --profile preview --non-interactive --no-wait
+
+      - name: Build de teste para iOS
+        if: needs.setup.outputs.environment == 'production' || needs.setup.outputs.environment == 'staging'
+        run: |
+          eas build --platform ios --profile preview --non-interactive --no-wait
+
+  build-and-deploy:
+    name: Build e Deploy
+    needs: [setup, lint-and-test, build-test]
+    if: needs.setup.outputs.test_only == 'false'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup.outputs.environment }}
+    env:
+      APP_ENV: ${{ needs.setup.outputs.environment }}
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Remover console.logs
+        if: needs.setup.outputs.environment != 'development'
+        run: npm run clean-logs
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Configurar variáveis de ambiente
+        run: |
+          echo "STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}" >> .env
+          echo "ONE_SIGNAL_APP_ID=${{ secrets.ONE_SIGNAL_APP_ID }}" >> .env
+          echo "SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}" >> .env
+
+      - name: Preparar Google Services
+        run: |
+          if [ "${{ needs.setup.outputs.environment }}" == "production" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_PROD }}" > google-services.prod.json
+            cp google-services.prod.json google-services.json
+          elif [ "${{ needs.setup.outputs.environment }}" == "staging" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_STAGING }}" > google-services.staging.json
+            cp google-services.staging.json google-services.json
+          else
+            echo "${{ secrets.GOOGLE_SERVICES_DEV }}" > google-services.dev.json
+            cp google-services.dev.json google-services.json
+          fi
+
+      - name: Preparar Apple Services
+        if: needs.setup.outputs.environment == 'production' || needs.setup.outputs.environment == 'staging'
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" | base64 -d > GoogleService-Info.prod.plist
+
+      - name: Build com EAS
+        run: |
+          if [ "${{ needs.setup.outputs.environment }}" == "production" ]; then
+            eas build --platform all --profile production --non-interactive
+          elif [ "${{ needs.setup.outputs.environment }}" == "staging" ]; then
+            eas build --platform all --profile staging --non-interactive
+          else
+            eas build --platform all --profile development --non-interactive
+          fi
+
+      - name: Submit para lojas (apenas production)
+        if: needs.setup.outputs.environment == 'production'
+        run: |
+          echo "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}" > google-play-service-account.json
+          eas submit --platform android --profile production --non-interactive
+          eas submit --platform ios --profile production --non-interactive
+
+      - name: Publicar atualização OTA
+        run: |
+          eas update --branch ${{ needs.setup.outputs.environment }} --message "Build ${{ github.run_number }} - ${{ github.event.head_commit.message || 'Manual update' }}"
+
+      - name: Notificar equipe via Slack
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: 'deployments'
+          slack-message: "🚀 Nova versão do app Açucaradas (${{ needs.setup.outputs.environment }}) - v${{ needs.setup.outputs.version }} - Deploy #${{ github.run_number }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  notify-success:
+    name: Notificar Sucesso
+    needs: [setup, build-and-deploy]
+    if: success() && needs.setup.outputs.test_only == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notificar via Slack
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: 'deployments'
+          slack-message: "✅ Deploy do Açucaradas v${{ needs.setup.outputs.version }} completado com sucesso para ${{ needs.setup.outputs.environment }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  notify-test-success:
+    name: Notificar Sucesso do Teste
+    needs: [setup, build-test]
+    if: success() && needs.setup.outputs.test_only == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notificar via Slack
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: 'deployments'
+          slack-message: "✅ Teste de build do Açucaradas v${{ needs.setup.outputs.version }} completado com sucesso para ${{ needs.setup.outputs.environment }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }} 

@@ -1,0 +1,18 @@
+email,nome,grupo,dispositivo
+testador1@exemplo.com,Testador 1,Equipe Interna,Samsung Galaxy S21
+testador2@exemplo.com,Testador 2,Equipe Interna,Xiaomi Mi 11
+testador3@exemplo.com,Testador 3,Equipe Interna,Motorola Edge
+testador4@exemplo.com,Testador 4,Equipe Interna,Google Pixel 6
+testador5@exemplo.com,Testador 5,Parceiros,Samsung Galaxy A52
+testador6@exemplo.com,Testador 6,Parceiros,Xiaomi Redmi Note 10
+testador7@exemplo.com,Testador 7,Parceiros,Motorola G60
+testador8@exemplo.com,Testador 8,Parceiros,Samsung Galaxy S22
+testador9@exemplo.com,Testador 9,Clientes VIP,OnePlus 9
+testador10@exemplo.com,Testador 10,Clientes VIP,Realme GT
+
+# Instruções:
+# 1. Substitua os e-mails de exemplo pelos e-mails reais dos testadores
+# 2. Certifique-se de que todos os e-mails estão corretos e ativos
+# 3. Você pode adicionar até 100 testadores para o teste interno
+# 4. Salve este arquivo e importe-o no Google Play Console
+# 5. Ou copie os e-mails diretamente na seção de testadores do Console
