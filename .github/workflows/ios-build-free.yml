@@ -183,9 +183,10 @@ jobs:
         run: |
           echo "GITHUB_REF=${GITHUB_REF}"
           echo "INPUT_REF=${{ inputs.ref }}"
-          if [ "${GITHUB_REF}" != "refs/heads/upgrade/sdk-52-rn-076" ] && ! [[ "${GITHUB_REF}" =~ ^refs/tags/v ]]; then
+          REF_INPUT="${{ inputs.ref }}"
+          if [ "$REF_INPUT" != "upgrade/sdk-52-rn-076" ] && ! [[ "$REF_INPUT" =~ ^v ]]; then
             echo "❌ Produção manual deve rodar a partir de upgrade/sdk-52-rn-076 ou tag v* para evitar build de commit antigo."
-            echo "💡 Use 'Run workflow' selecionando upgrade/sdk-52-rn-076 ou dispare por tag v* (release)."
+            echo "💡 Use 'Run workflow' com ref=upgrade/sdk-52-rn-076 ou ref=v* (release)."
             exit 1
           fi
 
