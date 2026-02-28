@@ -469,8 +469,16 @@ jobs:
           printf "SENTRY_DISABLE_AUTO_UPLOAD=1\nSENTRY_ALLOW_FAILURE=1\n" > .env.sentry-build-plugin
           mkdir -p ios
           cp .env.sentry-build-plugin ios/.env.sentry-build-plugin
-          node ./scripts/ci-prepare-sentry.js || true
-          node ./scripts/ios-nuke-sentry-phases.js || true
+          if [ -f ./scripts/ci-prepare-sentry.js ]; then
+            node ./scripts/ci-prepare-sentry.js || true
+          else
+            echo "scripts/ci-prepare-sentry.js não encontrado, ignorando."
+          fi
+          if [ -f ./scripts/ios-nuke-sentry-phases.js ]; then
+            node ./scripts/ios-nuke-sentry-phases.js || true
+          else
+            echo "scripts/ios-nuke-sentry-phases.js não encontrado, ignorando."
+          fi
           ls -la .env.sentry-build-plugin || true
           ls -la ios/.env.sentry-build-plugin || true
         env:
