@@ -192,9 +192,9 @@ jobs:
 
       - name: ✅ Auditar uso de EAS Local no workflow
         run: |
-          if grep -n "eas build --" .github/workflows/ios-build-free.yml | grep -v -- "--local" >/dev/null; then
+          if grep -n "eas build --" .github/workflows/ios-build-free.yml | grep -v "grep -n" | grep -v -- "--local" >/dev/null; then
             echo "❌ Encontrado eas build sem --local no workflow."
-            grep -n "eas build --" .github/workflows/ios-build-free.yml
+            grep -n "eas build --" .github/workflows/ios-build-free.yml | grep -v "grep -n"
             exit 1
           fi
 
