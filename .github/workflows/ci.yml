@@ -119,15 +119,33 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Setup EAS
-      run: eas login --non-interactive
+    - name: Preparar credenciais iOS (Local)
+      run: node ./scripts/prepare-ios-build.js
+      env:
+        GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
+        APPLE_PROVISION_BASE64: ${{ secrets.APPLE_PROVISION_BASE64 }}
+        APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+        ONESIGNAL_CERT_BASE64: ${{ secrets.ONESIGNAL_CERT_BASE64 }}
+        ONESIGNAL_PROVISION_BASE64: ${{ secrets.ONESIGNAL_PROVISION_BASE64 }}
+
+    - name: Build iOS Local (sem EAS Cloud)
+      run: |
+        mkdir -p ./build-artifacts
+        eas build --platform ios --profile production_local --local --non-interactive --output ./build-artifacts/Acucaradas.ipa
       env:
         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        
-    - name: Build iOS
-      run: eas build --platform ios --profile production --non-interactive
-      env:
-        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        EAS_BUILD_PROFILE: production_local
+        EXPO_NO_TELEMETRY: 1
+        CI: 1
+
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ios-build-artifacts
+        path: ./build-artifacts/*
+        retention-days: 7
 
   # Job de deploy (apenas para branch main)
   deploy:

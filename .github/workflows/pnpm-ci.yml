@@ -92,8 +92,4 @@ jobs:
 
     - name: Run EAS Build
       run: |
-        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          eas build --platform all --profile production --non-interactive
-        else
-          eas build --platform all --profile preview --non-interactive
-        fi
+        echo "⛔ EAS Build desativado neste workflow para evitar EAS Cloud."

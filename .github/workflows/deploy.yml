@@ -148,7 +148,7 @@ jobs:
       - name: Build de teste para iOS
         if: needs.setup.outputs.environment == 'production' || needs.setup.outputs.environment == 'staging'
         run: |
-          eas build --platform ios --profile preview --non-interactive --no-wait
+          echo "⛔ Build iOS desativado neste workflow para evitar EAS Cloud."
 
   build-and-deploy:
     name: Build e Deploy
@@ -208,11 +208,11 @@ jobs:
       - name: Build com EAS
         run: |
           if [ "${{ needs.setup.outputs.environment }}" == "production" ]; then
-            eas build --platform all --profile production --non-interactive
+            eas build --platform android --profile production --non-interactive
           elif [ "${{ needs.setup.outputs.environment }}" == "staging" ]; then
-            eas build --platform all --profile staging --non-interactive
+            eas build --platform android --profile staging --non-interactive
           else
-            eas build --platform all --profile development --non-interactive
+            eas build --platform android --profile development --non-interactive
           fi
 
       - name: Submit para lojas (apenas production)
@@ -220,7 +220,7 @@ jobs:
         run: |
           echo "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}" > google-play-service-account.json
           eas submit --platform android --profile production --non-interactive
-          eas submit --platform ios --profile production --non-interactive
+          echo "⛔ Submit iOS desativado neste workflow para evitar dependência de build na nuvem."
 
       - name: Publicar atualização OTA
         run: |
