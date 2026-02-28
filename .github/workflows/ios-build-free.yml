@@ -500,6 +500,8 @@ jobs:
             exit 1
           fi
 
+          node -e "const fs=require('fs'); const path='eas.json'; const cfg=JSON.parse(fs.readFileSync(path,'utf8')); cfg.build=cfg.build||{}; if(!cfg.build.production_local){ if(!cfg.build.production){ console.error('Missing build.production in eas.json'); process.exit(1);} const clone=JSON.parse(JSON.stringify(cfg.build.production)); clone.credentialsSource='local'; cfg.build.production_local=clone; fs.writeFileSync(path, JSON.stringify(cfg,null,2)); console.log('Criado perfil production_local em eas.json'); }"
+
           echo "🚀 Iniciando Build iOS Local (EAS Local)"
           mkdir -p ./build-artifacts
           eas build --platform ios --profile production_local --local --non-interactive --output ./build-artifacts/Acucaradas.ipa
