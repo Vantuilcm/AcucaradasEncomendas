@@ -26,11 +26,11 @@ on:
       mode:
         description: 'Modo de execução'
         required: true
-        default: 'local_macos'
+        default: 'github_macos'
         type: choice
         options:
           - audit_only
-          - local_macos
+          - github_macos
       publish_update:
         description: 'Publicar EAS Update (OTA)'
         required: true
@@ -41,7 +41,7 @@ on:
 jobs:
   preflight:
     name: ✅ Preflight (JS)
-    runs-on: [self-hosted, macOS]
+    runs-on: ubuntu-latest
     env:
       SENTRY_DISABLE_AUTO_UPLOAD: 1
       SENTRY_ALLOW_FAILURE: 1
@@ -230,9 +230,9 @@ jobs:
 
   build:
     name: 🍎 Build iOS (Optimized)
-    runs-on: [self-hosted, macOS]
+    runs-on: macos-14
     needs: preflight
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'local_macos' && inputs.profile == 'production_local' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'github_macos' && inputs.profile == 'production_local' }}
     env:
       EAS_BUILD_PROFILE: production_local
       SENTRY_DISABLE_AUTO_UPLOAD: "1"
