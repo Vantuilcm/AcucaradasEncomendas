@@ -2,7 +2,7 @@ import { AppState, InteractionManager, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
 import { Asset } from 'expo-asset';
-import CacheService from './CacheService';
+import CacheService from './cacheService';
 import PerformanceService from './PerformanceService';
 
 // Manter a tela de splash visível enquanto inicializamos
@@ -17,7 +17,7 @@ const CRITICAL_FONTS = {
 };
 
 // Imagens críticas que devem ser carregadas antes da exibição da primeira tela
-const CRITICAL_IMAGES = [require('../../assets/splash.png'), require('../../assets/icon.png')];
+const CRITICAL_IMAGES = [require('../../assets/splash.png'), require('../../assets/app-icon.png')];
 
 // Recursos não críticos que podem ser carregados após a exibição do app
 const NON_CRITICAL_FONTS = {
