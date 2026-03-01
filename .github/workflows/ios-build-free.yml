@@ -41,7 +41,7 @@ on:
 jobs:
   preflight:
     name: ✅ Preflight (JS)
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, macOS]
     env:
       SENTRY_DISABLE_AUTO_UPLOAD: 1
       SENTRY_ALLOW_FAILURE: 1
@@ -230,7 +230,7 @@ jobs:
 
   build:
     name: 🍎 Build iOS (Optimized)
-    runs-on: macos-14
+    runs-on: [self-hosted, macOS]
     needs: preflight
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'local_macos' && inputs.profile == 'production_local' }}
     env:
