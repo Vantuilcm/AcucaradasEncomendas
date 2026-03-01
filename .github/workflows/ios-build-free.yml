@@ -17,10 +17,10 @@ on:
       profile:
         description: 'EAS Build Profile'
         required: true
-        default: 'production'
+        default: 'production_local'
         type: choice
         options:
-          - production
+          - production_local
           - preview
           - development
       mode:
@@ -30,17 +30,13 @@ on:
         type: choice
         options:
           - audit_only
-          - eas_cloud
           - local_macos
       publish_update:
         description: 'Publicar EAS Update (OTA)'
         required: true
         default: false
         type: boolean
-  # Opcionalmente, rodar apenas quando uma versão for lançada (ex: v1.0.1)
-  push:
-    tags:
-      - 'v*' 
+  
 
 jobs:
   preflight:
@@ -84,6 +80,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+
+      - name: 🖼 Ajustar caminhos de ícones
+        run: |
+          node -e "const fs=require('fs'); const path='app.json'; const raw=fs.readFileSync(path,'utf8'); const data=JSON.parse(raw); const expo=data.expo||{}; expo.icon='./assets/app-icon.png'; const android=expo.android||{}; const adaptive=android.adaptiveIcon||{}; expo.android={...android, adaptiveIcon:{...adaptive, foregroundImage:'./assets/app-icon.png', backgroundColor: adaptive.backgroundColor || '#ffffff'}}; const web=expo.web||{}; expo.web={...web, favicon:'./assets/app-icon.png'}; data.expo=expo; fs.writeFileSync(path, JSON.stringify(data,null,2)); console.log('Ícones ajustados para ./assets/app-icon.png');"
+
+      - name: ✅ Validar profile gratuito
+        run: |
+          if [ "${{ inputs.profile }}" = "production" ]; then
+            echo "❌ Use production_local para build gratuito no GitHub."
+            exit 1
+          fi
+          if [ "${{ inputs.profile }}" != "production_local" ]; then
+            echo "❌ Este workflow só permite production_local para evitar EAS Cloud."
+            exit 1
+          fi
 
       - name: 🧪 Stub npx sentry-cli (Preflight)
         run: |
@@ -143,7 +154,7 @@ jobs:
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20.19.4
           cache: 'npm'
 
       - name: 📦 Install dependencies
@@ -151,7 +162,7 @@ jobs:
           npm config set fetch-retries 5
           npm config set fetch-retry-mintimeout 20000
           npm config set fetch-retry-maxtimeout 120000
-          npm ci --legacy-peer-deps --no-audit --fund=false
+          npm install --legacy-peer-deps --no-audit --fund=false
         env:
           # Garantir que instala tudo, inclusive devDependencies, para que o EAS CLI funcione corretamente
           NODE_ENV: development
@@ -172,14 +183,24 @@ jobs:
           node -e "const fs=require('fs'); const app=JSON.parse(fs.readFileSync('app.json','utf8')).expo||{}; const build=Number(app.ios?.buildNumber||0); const min=360; if (!Number.isFinite(build) || build < min) { console.error('ios.buildNumber inválido ou abaixo de', min, ':', app.ios?.buildNumber); process.exit(1); } console.log('ios.buildNumber ok:', build);"
 
       - name: ✅ Enforce production runs from allowed refs (manual)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.profile == 'production' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.profile == 'production_local' }}
         run: |
           echo "GITHUB_REF=${GITHUB_REF}"
           echo "INPUT_REF=${{ inputs.ref }}"
-          if [ "${GITHUB_REF}" != "refs/heads/upgrade/sdk-52-rn-076" ] && ! [[ "${GITHUB_REF}" =~ ^refs/tags/v ]]; then
-            echo "❌ Produção manual deve rodar a partir de upgrade/sdk-52-rn-076 ou tag v* para evitar build de commit antigo."
-            echo "💡 Use 'Run workflow' selecionando upgrade/sdk-52-rn-076 ou dispare por tag v* (release)."
+          REF_INPUT="${{ inputs.ref }}"
+          if [ "$REF_INPUT" != "upgrade/sdk-52-rn-076" ] && [ "$REF_INPUT" != "master" ] && ! [[ "$REF_INPUT" =~ ^v ]]; then
+            echo "❌ Produção manual deve rodar a partir de master, upgrade/sdk-52-rn-076 ou tag v* para evitar build de commit antigo."
+            echo "💡 Use 'Run workflow' com ref=master, ref=upgrade/sdk-52-rn-076 ou ref=v* (release)."
             exit 1
+          fi
+
+      - name: ✅ Auditar uso de EAS Local no workflow
+        run: |
+          if grep -n "eas build --" .github/workflows/ios-build-free.yml | grep -v "grep -n" | grep -v -- "--local" >/dev/null; then
+            echo "⚠️ Encontrado eas build sem --local no workflow."
+            grep -n "eas build --" .github/workflows/ios-build-free.yml | grep -v "grep -n"
+          else
+            echo "✅ Auditoria ok (somente --local)"
           fi
 
       - name: 🧾 Print Expo version/runtime (public config)
@@ -198,72 +219,22 @@ jobs:
       - name: 🚀 Setup Expo
         uses: expo/expo-github-action@v8
         with:
-          eas-version: 5.9.0
+          expo-version: latest
+          eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
           expo-cache: false
           eas-cache: false
         env:
           NO_SENTRY_VALIDATE: 1
 
-  build-cloud:
-    name: ☁️ Kickoff iOS Build (EAS Cloud)
-    runs-on: ubuntu-22.04
-    needs: preflight
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.mode == 'eas_cloud') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
-    steps:
-      - name: 🏗 Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
-
-      - name: ⚙️ Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.19.4
-
-      - name: 🔒 Forçar buildNumber mínimo 362
-        run: |
-          node -e "const fs=require('fs'); const path='app.json'; const raw=fs.readFileSync(path,'utf8'); const data=JSON.parse(raw); const expo=data.expo||{}; const ios=expo.ios||{}; const build=Number(ios.buildNumber||0); const min=362; if (!Number.isFinite(build) || build < min) { expo.ios={...ios,buildNumber:String(min)}; data.expo=expo; fs.writeFileSync(path, JSON.stringify(data,null,2)); console.log('buildNumber atualizado para', min, 'no workspace'); } else { console.log('buildNumber já está >=', min, ':', build); }"
-
-      - name: 🧾 Print Git + app versions
-        run: |
-          echo "ref=${GITHUB_REF}" 
-          echo "sha=${GITHUB_SHA}"
-          git log -1 --oneline
-          node -e "const fs=require('fs'); const a=JSON.parse(fs.readFileSync('app.json','utf8')).expo||{}; const p=JSON.parse(fs.readFileSync('package.json','utf8'))||{}; console.log('app.json expo.version=', a.version); console.log('app.json ios.buildNumber=', a.ios?.buildNumber); console.log('package.json version=', p.version);"
-
-      - name: 🧾 Print Expo version/runtime (public config)
-        run: |
-          node -v
-          npx expo config --type public --json | node -e "const fs=require('fs'); const raw=JSON.parse(fs.readFileSync(0,'utf8')); const cfg=(raw && (raw.expo||raw.exp)) ? (raw.expo||raw.exp) : raw; console.log('expo.version=', cfg?.version); console.log('ios.buildNumber=', cfg?.ios?.buildNumber); console.log('runtimeVersion=', JSON.stringify(cfg?.runtimeVersion));"
-
-      - name: ✅ Enforce Expo version/buildNumber from app.json
-        run: |
-          node -e "const fs=require('fs'); const app=JSON.parse(fs.readFileSync('app.json','utf8')).expo||{}; const expected={version: app.version, buildNumber: String(app.ios?.buildNumber||'')}; const raw=JSON.parse(require('child_process').execSync('npx expo config --type public --json',{encoding:'utf8'})); const cfg=(raw && (raw.expo||raw.exp)) ? (raw.expo||raw.exp) : raw; const got={version: cfg?.version, buildNumber: String(cfg?.ios?.buildNumber||'')}; console.log('expected', expected); console.log('got', got); if (!expected.version || !expected.buildNumber) { console.error('Missing expo.version or ios.buildNumber in app.json'); process.exit(1); } if (expected.version !== got.version || expected.buildNumber !== got.buildNumber) { console.error('Expo config mismatch (likely wrong commit/config override).'); process.exit(1); }"
-
-      - name: 🚀 Setup Expo
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: 5.9.0
-          token: ${{ secrets.EXPO_TOKEN }}
-          expo-cache: false
-          eas-cache: false
-
-      - name: 🧾 Kickoff EAS Build (no-wait)
-        run: |
-          PROFILE="${{ inputs.profile || 'production' }}"
-          echo "Profile selecionado: $PROFILE"
-          eas build --platform ios --profile "$PROFILE" --non-interactive --no-wait
-          eas build:list --platform ios --limit 1 || true
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
   build:
     name: 🍎 Build iOS (Optimized)
     runs-on: macos-14
     needs: preflight
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'local_macos' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'local_macos' && inputs.profile == 'production_local' }}
     env:
+      EAS_BUILD_PROFILE: production_local
       SENTRY_DISABLE_AUTO_UPLOAD: "1"
       SENTRY_ALLOW_FAILURE: "1"
       EXPO_PUBLIC_ENABLE_SENTRY: 0
@@ -278,10 +249,14 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
 
+      - name: 🖼 Ajustar caminhos de ícones
+        run: |
+          node -e "const fs=require('fs'); const path='app.json'; const raw=fs.readFileSync(path,'utf8'); const data=JSON.parse(raw); const expo=data.expo||{}; expo.icon='./assets/app-icon.png'; const android=expo.android||{}; const adaptive=android.adaptiveIcon||{}; expo.android={...android, adaptiveIcon:{...adaptive, foregroundImage:'./assets/app-icon.png', backgroundColor: adaptive.backgroundColor || '#ffffff'}}; const web=expo.web||{}; expo.web={...web, favicon:'./assets/app-icon.png'}; data.expo=expo; fs.writeFileSync(path, JSON.stringify(data,null,2)); console.log('Ícones ajustados para ./assets/app-icon.png');"
+
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20.19.4
           cache: 'npm'
 
       - name: 🔒 Forçar buildNumber mínimo 362
@@ -295,9 +270,9 @@ jobs:
           npm config set fetch-retry-maxtimeout 120000
           
           # Tentativa de instalação com retry manual se falhar a primeira vez
-          npm ci --legacy-peer-deps --no-audit --fund=false || \
-          (sleep 30 && npm ci --legacy-peer-deps --no-audit --fund=false) || \
-          (sleep 60 && npm ci --legacy-peer-deps --no-audit --fund=false)
+          npm install --legacy-peer-deps --no-audit --fund=false || \
+          (sleep 30 && npm install --legacy-peer-deps --no-audit --fund=false) || \
+          (sleep 60 && npm install --legacy-peer-deps --no-audit --fund=false)
         env:
           NODE_ENV: development
 
@@ -380,8 +355,10 @@ jobs:
       - name: 🚀 Setup Expo
         uses: expo/expo-github-action@v8
         with:
-          eas-version: 5.9.0
+          expo-version: latest
+          eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
           expo-cache: false
           eas-cache: false
 
@@ -432,6 +409,31 @@ jobs:
           env | grep EXPO || true
         continue-on-error: true
 
+      - name: ✅ Validar Secrets Essenciais
+        run: |
+          missing=0
+          check() {
+            if [ -z "${!1:-}" ]; then
+              echo "❌ Secret ausente: $1"
+              missing=1
+            else
+              echo "✅ Secret ok: $1"
+            fi
+          }
+          check EXPO_TOKEN
+          check IOS_DIST_CERT_BASE64
+          check IOS_PROV_PROFILE_BASE64
+          check IOS_CERT_PASSWORD
+          if [ "$missing" -ne 0 ]; then
+            echo "❌ Secrets essenciais faltando. Corrija antes do build."
+            exit 1
+          fi
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          IOS_DIST_CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}
+          IOS_PROV_PROFILE_BASE64: ${{ secrets.IOS_PROV_PROFILE_BASE64 }}
+          IOS_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+
       - name: Set Sentry Flags
         run: |
           echo "SENTRY_DISABLE_AUTO_UPLOAD=1" > .env.sentry-build-plugin
@@ -475,15 +477,23 @@ jobs:
           printf "SENTRY_DISABLE_AUTO_UPLOAD=1\nSENTRY_ALLOW_FAILURE=1\n" > .env.sentry-build-plugin
           mkdir -p ios
           cp .env.sentry-build-plugin ios/.env.sentry-build-plugin
-          node ./scripts/ci-prepare-sentry.js || true
-          node ./scripts/ios-nuke-sentry-phases.js || true
+          if [ -f ./scripts/ci-prepare-sentry.js ]; then
+            node ./scripts/ci-prepare-sentry.js || true
+          else
+            echo "scripts/ci-prepare-sentry.js não encontrado, ignorando."
+          fi
+          if [ -f ./scripts/ios-nuke-sentry-phases.js ]; then
+            node ./scripts/ios-nuke-sentry-phases.js || true
+          else
+            echo "scripts/ios-nuke-sentry-phases.js não encontrado, ignorando."
+          fi
           ls -la .env.sentry-build-plugin || true
           ls -la ios/.env.sentry-build-plugin || true
         env:
           SENTRY_DISABLE_AUTO_UPLOAD: 1
           SENTRY_ALLOW_FAILURE: 1
 
-      - name: 🛠 Build iOS (Cloud EAS + download IPA)
+      - name: 🛠 Build iOS (Local EAS no GitHub)
         run: |
           if [ -z "${DEVELOPER_DIR:-}" ]; then
             echo "❌ DEVELOPER_DIR não definido"
@@ -493,14 +503,18 @@ jobs:
           "$DEVELOPER_DIR/usr/bin/xcodebuild" -version
           xcodebuild -version
 
-          echo "🚀 Iniciando Build iOS na Nuvem (EAS Cloud)"
-          eas build --platform ios --profile production --non-interactive --wait
+          if [ "$EAS_BUILD_PROFILE" != "production_local" ]; then
+            echo "❌ Profile inválido para build gratuito: $EAS_BUILD_PROFILE"
+            exit 1
+          fi
 
-          echo "📥 Baixando última IPA gerada"
+          node -e "const fs=require('fs'); const path='eas.json'; const cfg=JSON.parse(fs.readFileSync(path,'utf8')); cfg.build=cfg.build||{}; if(!cfg.build.production_local){ if(!cfg.build.production){ console.error('Missing build.production in eas.json'); process.exit(1);} const clone=JSON.parse(JSON.stringify(cfg.build.production)); clone.credentialsSource='remote'; cfg.build.production_local=clone; fs.writeFileSync(path, JSON.stringify(cfg,null,2)); console.log('Criado perfil production_local em eas.json'); }"
+
+          echo "🚀 Iniciando Build iOS Local (EAS Local)"
           mkdir -p ./build-artifacts
-          eas build:download --platform ios --profile production --latest --non-interactive -o ./build-artifacts/Acucaradas.ipa
+          eas build --platform ios --profile production_local --local --non-interactive --output ./build-artifacts/Acucaradas.ipa
 
-          echo "✅ Build iOS concluído e IPA baixada para build-artifacts/Acucaradas.ipa"
+          echo "✅ Build iOS local concluído em build-artifacts/Acucaradas.ipa"
         env:
           SENTRY_DISABLE_AUTO_UPLOAD: 1
           SENTRY_ALLOW_FAILURE: 1
@@ -527,14 +541,41 @@ jobs:
           EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
           EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID }}
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-          EAS_BUILD_PROFILE: ${{ inputs.profile || 'production' }}
-          SUBMIT_TO_TESTFLIGHT: ${{ inputs.profile == 'production' && 'true' || 'false' }}
+          EAS_BUILD_PROFILE: production_local
+          SUBMIT_TO_TESTFLIGHT: "false"
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           EXPO_USE_METRO_WORKSPACE_ROOT: 1
           EXPO_NO_TELEMETRY: 1
           NODE_OPTIONS: "--max-old-space-size=8192"
           CI: 1
+
+      - name: ✅ Validar IPA e versões
+        if: always()
+        run: |
+          if [ ! -f "./build-artifacts/Acucaradas.ipa" ]; then
+            echo "❌ IPA não encontrada para validação."
+            exit 1
+          fi
+          rm -rf ./build-artifacts/ipa-unpack
+          mkdir -p ./build-artifacts/ipa-unpack
+          /usr/bin/unzip -q ./build-artifacts/Acucaradas.ipa -d ./build-artifacts/ipa-unpack
+          APP_PATH=$(find ./build-artifacts/ipa-unpack/Payload -maxdepth 1 -name "*.app" -print -quit)
+          if [ -z "$APP_PATH" ]; then
+            echo "❌ App não encontrado dentro do IPA."
+            exit 1
+          fi
+          APP_VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP_PATH/Info.plist")
+          APP_BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$APP_PATH/Info.plist")
+          EXPECTED_VERSION=$(node -e "const a=require('./app.json').expo||{}; console.log(a.version||'')") 
+          EXPECTED_BUILD=$(node -e "const a=require('./app.json').expo||{}; console.log(String(a.ios?.buildNumber||''))")
+          echo "IPA version=$APP_VERSION build=$APP_BUILD"
+          echo "app.json version=$EXPECTED_VERSION build=$EXPECTED_BUILD"
+          if [ "$APP_VERSION" != "$EXPECTED_VERSION" ] || [ "$APP_BUILD" != "$EXPECTED_BUILD" ]; then
+            echo "❌ Versões divergentes entre IPA e app.json."
+            exit 1
+          fi
+          echo "✅ IPA validada com versão e build corretos."
 
       - name: 🧾 IPA Summary
         if: always()
