@@ -213,8 +213,6 @@ jobs:
         run: |
           node -e "const fs=require('fs'); const app=JSON.parse(fs.readFileSync('app.json','utf8')).expo||{}; const expected={version: app.version, buildNumber: String(app.ios?.buildNumber||'')}; const raw=JSON.parse(require('child_process').execSync('npx expo config --type public --json',{encoding:'utf8'})); const cfg=(raw && (raw.expo||raw.exp)) ? (raw.expo||raw.exp) : raw; const got={version: cfg?.version, buildNumber: String(cfg?.ios?.buildNumber||'')}; console.log('expected', expected); console.log('got', got); if (!expected.version || !expected.buildNumber) { console.error('Missing expo.version or ios.buildNumber in app.json'); process.exit(1); } if (expected.version !== got.version || expected.buildNumber !== got.buildNumber) { console.error('Expo config mismatch (likely wrong commit/config override).'); process.exit(1); }"
         continue-on-error: true
-        continue-on-error: true
-        continue-on-error: true
 
       - name: 🧪 Testes (Opcional)
         continue-on-error: true
