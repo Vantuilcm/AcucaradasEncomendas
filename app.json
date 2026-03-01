@@ -4,7 +4,7 @@
     "slug": "acucaradas-encomendas",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -28,11 +28,11 @@
         ],
         "ITSAppUsesNonExemptEncryption": false
       },
-      "googleServicesFile": "./ios/GoogleService-Info.prod.plist"
+      "googleServicesFile": "./GoogleService-Info.prod.plist"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.acucaradas.encomendas",
@@ -47,20 +47,26 @@
       "googleServicesFile": "./google-services.prod.json"
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./node_modules/expo-dev-menu/ios/assets/_expo-dev-client-components/assets/x-icon.png",
       "bundler": "metro"
     },
     "scheme": "acucaradas-encomendas",
     "plugins": [
       "expo-router",
+      "./plugins/withSentryCppExceptions",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.0"
+          }
+        }
+      ],
       [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#ffffff",
-          "sounds": [
-            "./assets/notification-sound.wav"
-          ]
+          "color": "#ffffff"
         }
       ]
     ],
