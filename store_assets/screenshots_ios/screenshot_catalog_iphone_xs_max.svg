@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1242" height="2688" viewBox="0 0 1242 2688">
+  <!-- Background -->
+  <rect width="1242" height="2688" fill="#f5f5f5"/>
+  
+  <!-- Device Frame -->
+  <rect x="40" y="60" width="1162" height="2568" rx="40" ry="40" fill="white" stroke="#e0e0e0" stroke-width="2"/>
+  
+  <!-- Status Bar -->
+  <rect x="40" y="60" width="1162" height="80" rx="40" ry="40" fill="#FF69B4"/>
+  <text x="621" y="110" font-family="Arial" font-size="24" fill="white" text-anchor="middle" font-weight="bold">10:30</text>
+  <rect x="521" y="70" width="200" height="30" rx="15" ry="15" fill="black"/>
+  <text x="1100" y="110" font-family="Arial" font-size="24" fill="white" font-weight="bold">100%</text>
+  
+  <!-- App Header -->
+  <rect x="40" y="140" width="1162" height="120" fill="white" stroke="#EEE" stroke-width="1"/>
+  <text x="80" y="215" font-family="Arial" font-size="36" fill="#FF69B4" font-weight="bold">Catálogo</text>
+  
+  <!-- Search Bar -->
+  <rect x="60" y="280" width="1122" height="70" rx="35" ry="35" fill="white" stroke="#e0e0e0" stroke-width="2"/>
+  <text x="120" y="325" font-family="Arial" font-size="24" fill="#999">Buscar produtos...</text>
+  <circle cx="90" cy="315" r="18" fill="none" stroke="#999" stroke-width="2"/>
+  
+  <!-- Categories -->
+  <text x="60" y="400" font-family="Arial" font-size="28" fill="#333" font-weight="bold">Categorias</text>
+  
+  <!-- Category Pills -->
+  <rect x="60" y="420" width="180" height="60" rx="30" ry="30" fill="#FF69B4"/>
+  <text x="150" y="460" font-family="Arial" font-size="22" fill="white" text-anchor="middle" font-weight="bold">Bolos</text>
+  
+  <rect x="260" y="420" width="180" height="60" rx="30" ry="30" fill="white" stroke="#FF69B4" stroke-width="2"/>
+  <text x="350" y="460" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="middle" font-weight="bold">Doces</text>
+  
+  <rect x="460" y="420" width="180" height="60" rx="30" ry="30" fill="white" stroke="#FF69B4" stroke-width="2"/>
+  <text x="550" y="460" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="middle" font-weight="bold">Tortas</text>
+  
+  <rect x="660" y="420" width="180" height="60" rx="30" ry="30" fill="white" stroke="#FF69B4" stroke-width="2"/>
+  <text x="750" y="460" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="middle" font-weight="bold">Cookies</text>
+  
+  <rect x="860" y="420" width="180" height="60" rx="30" ry="30" fill="white" stroke="#FF69B4" stroke-width="2"/>
+  <text x="950" y="460" font-family="Arial" font-size="22" fill="#FF69B4" text-anchor="middle" font-weight="bold">Especiais</text>
+  
+  <!-- Products List -->
+  <text x="60" y="530" font-family="Arial" font-size="28" fill="#333" font-weight="bold">Bolos</text>
+  
+  <!-- Product 1 -->
+  <rect x="60" y="550" width="1122" height="240" rx="15" ry="15" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="60" y="550" width="240" height="240" rx="15" ry="15" fill="#FFE6F2"/>
+  <text x="180" y="670" font-family="Arial" font-size="60" fill="#FF69B4" text-anchor="middle">🎂</text>
+  <text x="320" y="620" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Bolo de Chocolate</text>
+  <text x="320" y="660" font-family="Arial" font-size="22" fill="#666">Delicioso bolo de chocolate com cobertura especial</text>
+  <text x="320" y="700" font-family="Arial" font-size="24" fill="#FF69B4" font-weight="bold">R$ 59,90</text>
+  <rect x="1020" y="650" width="140" height="50" rx="25" ry="25" fill="#FF69B4"/>
+  <text x="1090" y="680" font-family="Arial" font-size="20" fill="white" text-anchor="middle" font-weight="bold">Adicionar</text>
+  
+  <!-- Product 2 -->
+  <rect x="60" y="810" width="1122" height="240" rx="15" ry="15" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="60" y="810" width="240" height="240" rx="15" ry="15" fill="#FFE6F2"/>
+  <text x="180" y="930" font-family="Arial" font-size="60" fill="#FF69B4" text-anchor="middle">🎂</text>
+  <text x="320" y="880" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Bolo Red Velvet</text>
+  <text x="320" y="920" font-family="Arial" font-size="22" fill="#666">Bolo vermelho aveludado com cream cheese</text>
+  <text x="320" y="960" font-family="Arial" font-size="24" fill="#FF69B4" font-weight="bold">R$ 69,90</text>
+  <rect x="1020" y="910" width="140" height="50" rx="25" ry="25" fill="#FF69B4"/>
+  <text x="1090" y="940" font-family="Arial" font-size="20" fill="white" text-anchor="middle" font-weight="bold">Adicionar</text>
+  
+  <!-- Product 3 -->
+  <rect x="60" y="1070" width="1122" height="240" rx="15" ry="15" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="60" y="1070" width="240" height="240" rx="15" ry="15" fill="#FFE6F2"/>
+  <text x="180" y="1190" font-family="Arial" font-size="60" fill="#FF69B4" text-anchor="middle">🎂</text>
+  <text x="320" y="1140" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Bolo de Cenoura</text>
+  <text x="320" y="1180" font-family="Arial" font-size="22" fill="#666">Bolo de cenoura com cobertura de chocolate</text>
+  <text x="320" y="1220" font-family="Arial" font-size="24" fill="#FF69B4" font-weight="bold">R$ 49,90</text>
+  <rect x="1020" y="1170" width="140" height="50" rx="25" ry="25" fill="#FF69B4"/>
+  <text x="1090" y="1200" font-family="Arial" font-size="20" fill="white" text-anchor="middle" font-weight="bold">Adicionar</text>
+  
+  <!-- Product 4 -->
+  <rect x="60" y="1330" width="1122" height="240" rx="15" ry="15" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="60" y="1330" width="240" height="240" rx="15" ry="15" fill="#FFE6F2"/>
+  <text x="180" y="1450" font-family="Arial" font-size="60" fill="#FF69B4" text-anchor="middle">🎂</text>
+  <text x="320" y="1400" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Bolo de Coco</text>
+  <text x="320" y="1440" font-family="Arial" font-size="22" fill="#666">Bolo de coco com cobertura de coco ralado</text>
+  <text x="320" y="1480" font-family="Arial" font-size="24" fill="#FF69B4" font-weight="bold">R$ 54,90</text>
+  <rect x="1020" y="1430" width="140" height="50" rx="25" ry="25" fill="#FF69B4"/>
+  <text x="1090" y="1460" font-family="Arial" font-size="20" fill="white" text-anchor="middle" font-weight="bold">Adicionar</text>
+  
+  <!-- Product 5 -->
+  <rect x="60" y="1590" width="1122" height="240" rx="15" ry="15" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="60" y="1590" width="240" height="240" rx="15" ry="15" fill="#FFE6F2"/>
+  <text x="180" y="1710" font-family="Arial" font-size="60" fill="#FF69B4" text-anchor="middle">🎂</text>
+  <text x="320" y="1660" font-family="Arial" font-size="26" fill="#333" font-weight="bold">Bolo de Morango</text>
+  <text x="320" y="1700" font-family="Arial" font-size="22" fill="#666">Bolo com recheio e cobertura de morango</text>
+  <text x="320" y="1740" font-family="Arial" font-size="24" fill="#FF69B4" font-weight="bold">R$ 64,90</text>
+  <rect x="1020" y="1690" width="140" height="50" rx="25" ry="25" fill="#FF69B4"/>
+  <text x="1090" y="1720" font-family="Arial" font-size="20" fill="white" text-anchor="middle" font-weight="bold">Adicionar</text>
+  
+  <!-- Bottom Navigation -->
+  <rect x="40" y="2568" width="1162" height="60" fill="white" stroke="#EEE" stroke-width="1"/>
+  <text x="180" y="2608" font-family="Arial" font-size="16" fill="#999" text-anchor="middle">Início</text>
+  <text x="460" y="2608" font-family="Arial" font-size="16" fill="#FF69B4" text-anchor="middle">Catálogo</text>
+  <text x="740" y="2608" font-family="Arial" font-size="16" fill="#999" text-anchor="middle">Carrinho</text>
+  <text x="1020" y="2608" font-family="Arial" font-size="16" fill="#999" text-anchor="middle">Perfil</text>
+</svg>

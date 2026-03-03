@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "987654321098",
+    "project_id": "acucaradas-encomendas-prod",
+    "storage_bucket": "acucaradas-encomendas-prod.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:987654321098:android:fedcba0987654321",
+        "android_client_info": {
+          "package_name": "com.acucaradas.encomendas"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "987654321098-zyxwvutsrqponmlkjihgfedcba123456.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyZ9Y8X7W6V5U4T3S2R1Q0P9O8N7M6B5A4C"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "987654321098-zyxwvutsrqponmlkjihgfedcba123456.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "987654321098-zyxwvutsrqponmlkjihgfedcba654321.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.acucaradas.encomendas"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
