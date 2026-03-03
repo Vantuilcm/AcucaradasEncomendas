@@ -207,13 +207,25 @@ jobs:
 
       - name: Build com EAS
         run: |
+          mkdir -p build-artifacts
           if [ "${{ needs.setup.outputs.environment }}" == "production" ]; then
             eas build --platform android --profile production --non-interactive
+            node ./scripts/prepare-ios-build.js
+            eas build --platform ios --profile production --non-interactive --local --output ./build-artifacts/Acucaradas.ipa
           elif [ "${{ needs.setup.outputs.environment }}" == "staging" ]; then
             eas build --platform android --profile staging --non-interactive
+            node ./scripts/prepare-ios-build.js
+            eas build --platform ios --profile staging --non-interactive --local --output ./build-artifacts/Acucaradas-Staging.ipa
           else
             eas build --platform android --profile development --non-interactive
           fi
+        env:
+          APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
+          APPLE_PROVISION_BASE64: ${{ secrets.APPLE_PROVISION_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+          EXPO_APPLE_PASSWORD: ${{ secrets.EXPO_APPLE_PASSWORD }}
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
 
       - name: Submit para lojas (apenas production)
         if: needs.setup.outputs.environment == 'production'

@@ -51,13 +51,22 @@ export interface ProductFilter {
   precoMax?: number;
   tagEspecial?: string;
   busca?: string;
+  ordenarPor?: string;
+  ordem?: 'asc' | 'desc';
+  limite?: number;
 }
 
 export interface ProductStats {
-  vendasTotais: number;
-  quantidadeVendida: number;
-  avaliacaoMedia: number;
-  quantidadeAvaliacoes: number;
+  total?: number;
+  disponiveis?: number;
+  indisponiveis?: number;
+  destacados?: number;
+  semEstoque?: number;
+  categorias?: Record<string, number>;
+  vendasTotais?: number;
+  quantidadeVendida?: number;
+  avaliacaoMedia?: number;
+  quantidadeAvaliacoes?: number;
 }
 
 export enum ProductCategories {
