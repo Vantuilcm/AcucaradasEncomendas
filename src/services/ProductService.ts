@@ -457,48 +457,43 @@ export class ProductService {
       loggingService.error('Erro ao obter estatísticas dos produtos', { error: error.message });
       throw error;
     }
-
-    if (!produto.avaliacoes) {
-      produto.avaliacoes = [];
-    }
-
-    const novaAvaliacao = {
-      id: `review_${Date.now()}`,
-      clienteId,
-      clienteNome,
-      avaliacao,
-      comentario,
-      data: new Date(),
-    };
-
-    produto.avaliacoes.push(novaAvaliacao);
-    produto.dataAtualizacao = new Date();
-
-    this.produtos.set(produtoId, produto);
-    return produto;
   }
 
+  /**
+   * Obtém estatísticas detalhadas de um produto específico
+   * @param produtoId ID do produto
+   * @returns Estatísticas detalhadas do produto
+   */
   public async obterEstatisticasProduto(produtoId: string): Promise<ProductStats> {
-    const produto = this.produtos.get(produtoId);
-    if (!produto) {
-      throw new Error('Produto não encontrado');
+    try {
+      const docRef = doc(db, this.collectionName, produtoId);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        throw new Error('Produto não encontrado');
+      }
+
+      const produto = docSnap.data() as Product;
+
+      // Dados simulados (em um cenário real seriam buscados de uma coleção de vendas/logs)
+      const vendasTotais = Math.floor(Math.random() * 10000);
+      const quantidadeVendida = Math.floor(Math.random() * 100);
+
+      // Cálculo da avaliação média
+      const avaliacoes = produto.avaliacoes || [];
+      const somaAvaliacoes = avaliacoes.reduce((total, av) => total + av.avaliacao, 0);
+      const avaliacaoMedia = avaliacoes.length > 0 ? somaAvaliacoes / avaliacoes.length : 0;
+
+      return {
+        vendasTotais,
+        quantidadeVendida,
+        avaliacaoMedia,
+        quantidadeAvaliacoes: avaliacoes.length,
+      };
+    } catch (error: any) {
+      loggingService.error('Erro ao obter estatísticas detalhadas do produto', { produtoId, error: error.message });
+      throw error;
     }
-
-    // Dados simulados
-    const vendasTotais = Math.floor(Math.random() * 10000);
-    const quantidadeVendida = Math.floor(Math.random() * 100);
-
-    // Cálculo da avaliação média
-    const avaliacoes = produto.avaliacoes || [];
-    const somaAvaliacoes = avaliacoes.reduce((total, av) => total + av.avaliacao, 0);
-    const avaliacaoMedia = avaliacoes.length > 0 ? somaAvaliacoes / avaliacoes.length : 0;
-
-    return {
-      vendasTotais,
-      quantidadeVendida,
-      avaliacaoMedia,
-      quantidadeAvaliacoes: avaliacoes.length,
-    };
   }
 
   public async listarCategorias(): Promise<string[]> {

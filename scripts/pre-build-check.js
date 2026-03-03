@@ -73,8 +73,7 @@ const REQUIRED_ENV_VARS = {
 const REQUIRED_FILES = [
   'app.json',
   'eas.json',
-  'package.json',
-  'expo-env.d.ts'
+  'package.json'
 ];
 
 // Scripts obrigatórios no package.json

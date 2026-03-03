@@ -1,9 +1,11 @@
-import * as Sentry from '@sentry/react-native';
-import { PerformanceObserver, performance } from 'perf_hooks';
+import * as Sentry from 'sentry-expo';
 import { Platform } from 'react-native';
 import { performanceConfig } from '../config/performance';
 import { startTransaction } from '../config/sentry';
 import CacheService from './cacheService';
+
+const performance = typeof window !== 'undefined' ? window.performance : undefined;
+const PerformanceObserver = typeof window !== 'undefined' ? (window as any).PerformanceObserver : undefined;
 
 interface PerformanceMetrics {
   pageLoadTime: number;
@@ -73,16 +75,15 @@ export class PerformanceService {
    * Configura o observer de performance para monitorar métricas automaticamente
    */
   private setupPerformanceObserver(): void {
+    if (!PerformanceObserver) return;
     try {
-      this.observer = new PerformanceObserver((list) => {
+      this.observer = new PerformanceObserver((list: any) => {
         const entries = list.getEntries();
-        entries.forEach((entry) => {
-          // Processar entradas de performance
+        entries.forEach((entry: any) => {
           this.processPerformanceEntry(entry);
         });
       });
 
-      // Observar diferentes tipos de métricas
       this.observer.observe({ entryTypes: ['measure', 'resource', 'navigation'] });
       this.isMonitoring = true;
     } catch (error) {
@@ -260,7 +261,7 @@ export class PerformanceService {
         const duration = entries[0].duration;
         
         // Registrar no Sentry
-        const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        const transaction = (Sentry as any).Native?.getCurrentHub()?.getScope()?.getTransaction();
         if (transaction) {
           transaction.setData('duration', duration);
           transaction.setData('success', success);
@@ -397,7 +398,7 @@ export class PerformanceService {
       });
       
       // Finalizar transação no Sentry
-      const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+      const transaction = (Sentry as any).Native?.getCurrentHub()?.getScope()?.getTransaction();
       if (transaction) {
         transaction.setData('duration', duration);
         transaction.setData('screenName', screenLoad.componentName);
@@ -426,7 +427,7 @@ export class PerformanceService {
     }
     
     // Reportar para Sentry
-    Sentry.addBreadcrumb({
+    (Sentry as any).Native?.addBreadcrumb({
       category: 'performance',
       message: `Performance issue: ${issueType}`,
       level: 'warning',
