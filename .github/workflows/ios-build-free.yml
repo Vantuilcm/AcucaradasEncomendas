@@ -10,12 +10,13 @@ on:
     branches:
       - master
       - main
+      - upgrade/sdk-52-rn-076
   workflow_dispatch:
     inputs:
       ref:
         description: 'Git ref (branch or tag)'
         required: true
-        default: 'master'
+        default: 'upgrade/sdk-52-rn-076'
         type: string
       profile:
         description: 'EAS Build Profile'
