@@ -5,8 +5,10 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  # O build N├âãÆO rodar├â┬í mais automaticamente em cada push para economizar minutos.
-  # Voc├â┬¬ deve disparar MANUALMENTE na aba Actions.
+  push:
+    branches:
+      - master
+      - main
   workflow_dispatch:
     inputs:
       ref:
