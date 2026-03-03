@@ -1,7 +1,7 @@
-import { Product, ProductFilter, ProductStats, ProductCategories } from '../types/Product';
+import { Product, ProductFilter, ProductStats, ProductTag } from '../types/Product';
 import { loggingService } from './LoggingService';
 import { db } from '../config/firebase';
-import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 export class ProductService {
   private readonly collectionName = 'products';
@@ -59,7 +59,7 @@ export class ProductService {
       };
 
       // Salvar no Firestore
-      await setDoc(docRef, novoProduto);
+      await setDoc(docRef, novoProduto as any);
       loggingService.info('Produto criado com sucesso', { id: novoProduto.id });
 
       return novoProduto;
@@ -83,7 +83,7 @@ export class ProductService {
         throw new Error('Produto não encontrado');
       }
 
-      return docSnap.data() as Product;
+      return { id: docSnap.id, ...(docSnap.data() as any) } as Product;
     } catch (error: any) {
       loggingService.error('Erro ao consultar produto', { id, error: error.message });
       throw error;
@@ -112,8 +112,7 @@ export class ProductService {
       }
 
       // Preparar dados atualizados
-      const produtoAtual = docSnap.data() as Product;
-      const produtoAtualizado: Partial<Product> = {
+      const produtoAtualizado: any = {
         ...dados,
         dataAtualizacao: new Date()
       };
@@ -125,7 +124,7 @@ export class ProductService {
       const docSnapAtualizado = await getDoc(docRef);
       loggingService.info('Produto atualizado com sucesso', { id });
       
-      return docSnapAtualizado.data() as Product;
+      return { id: docSnapAtualizado.id, ...(docSnapAtualizado.data() as any) } as Product;
     } catch (error: any) {
       loggingService.error('Erro ao atualizar produto', { id, error: error.message });
       throw error;
@@ -210,8 +209,8 @@ export class ProductService {
       
       // Processar resultados
       const produtos: Product[] = [];
-      querySnapshot.forEach((doc) => {
-        produtos.push(doc.data() as Product);
+      querySnapshot.docs.forEach((doc) => {
+        produtos.push({ id: doc.id, ...(doc.data() as any) } as Product);
       });
 
       // Filtro de texto (feito no cliente pois Firestore não suporta busca textual complexa)
@@ -257,7 +256,7 @@ export class ProductService {
 
       // Buscar produto atualizado
       const docSnapAtualizado = await getDoc(docRef);
-      return docSnapAtualizado.data() as Product;
+      return { id: docSnapAtualizado.id, ...(docSnapAtualizado.data() as any) } as Product;
     } catch (error: any) {
       loggingService.error('Erro ao atualizar disponibilidade do produto', { id, error: error.message });
       throw error;
@@ -293,7 +292,7 @@ export class ProductService {
 
       // Buscar produto atualizado
       const docSnapAtualizado = await getDoc(docRef);
-      return docSnapAtualizado.data() as Product;
+      return { id: docSnapAtualizado.id, ...(docSnapAtualizado.data() as any) } as Product;
     } catch (error: any) {
       loggingService.error('Erro ao atualizar preço do produto', { id, error: error.message });
       throw error;
@@ -319,12 +318,12 @@ export class ProductService {
         throw new Error('Produto não encontrado');
       }
 
-      const produto = docSnap.data() as Product;
+      const produto = { id: docSnap.id, ...(docSnap.data() as any) } as Product;
       if (!produto.temEstoque) {
         throw new Error('Produto não utiliza controle de estoque');
       }
 
-      const atualizacao: Partial<Product> = {
+      const atualizacao: any = {
         estoque: quantidade,
         dataAtualizacao: new Date()
       };
@@ -339,7 +338,7 @@ export class ProductService {
 
       // Buscar produto atualizado
       const docSnapAtualizado = await getDoc(docRef);
-      return docSnapAtualizado.data() as Product;
+      return { id: docSnapAtualizado.id, ...(docSnapAtualizado.data() as any) } as Product;
     } catch (error: any) {
       loggingService.error('Erro ao atualizar estoque do produto', { id, error: error.message });
       throw error;
@@ -374,7 +373,7 @@ export class ProductService {
         throw new Error('Avaliação deve ser entre 1 e 5');
       }
 
-      const produto = docSnap.data() as Product;
+      const produto = { id: docSnap.id, ...(docSnap.data() as any) } as Product;
       const avaliacoes = produto.avaliacoes || [];
 
       // Verificar se o cliente já avaliou este produto
@@ -396,7 +395,7 @@ export class ProductService {
       }
 
       // Atualizar produto no Firestore
-      const atualizacao = {
+      const atualizacao: any = {
         avaliacoes,
         dataAtualizacao: new Date()
       };
@@ -406,7 +405,7 @@ export class ProductService {
 
       // Buscar produto atualizado
       const docSnapAtualizado = await getDoc(docRef);
-      return docSnapAtualizado.data() as Product;
+      return { id: docSnapAtualizado.id, ...(docSnapAtualizado.data() as any) } as Product;
     } catch (error: any) {
       loggingService.error('Erro ao adicionar avaliação ao produto', { produtoId, error: error.message });
       throw error;
@@ -429,8 +428,8 @@ export class ProductService {
       let semEstoque = 0;
       let categorias: Record<string, number> = {};
       
-      querySnapshot.forEach((doc) => {
-        const produto = doc.data() as Product;
+      querySnapshot.docs.forEach((doc) => {
+        const produto = { id: doc.id, ...(doc.data() as any) } as Product;
         total++;
         
         if (produto.disponivel) disponiveis++;
@@ -473,7 +472,7 @@ export class ProductService {
         throw new Error('Produto não encontrado');
       }
 
-      const produto = docSnap.data() as Product;
+      const produto = { id: docSnap.id, ...(docSnap.data() as any) } as Product;
 
       // Dados simulados (em um cenário real seriam buscados de uma coleção de vendas/logs)
       const vendasTotais = Math.floor(Math.random() * 10000);
@@ -497,312 +496,56 @@ export class ProductService {
   }
 
   public async listarCategorias(): Promise<string[]> {
-    const categorias = new Set<string>();
+    try {
+      const produtosRef = collection(db, this.collectionName);
+      const querySnapshot = await getDocs(produtosRef);
+      const categorias = new Set<string>();
 
-    this.produtos.forEach(produto => {
-      categorias.add(produto.categoria);
-    });
+      querySnapshot.docs.forEach(doc => {
+        const produto = { id: doc.id, ...(doc.data() as any) } as Product;
+        if (produto.categoria) {
+          categorias.add(produto.categoria);
+        }
+      });
 
-    return Array.from(categorias);
+      return Array.from(categorias);
+    } catch (error: any) {
+      loggingService.error('Erro ao listar categorias', { error: error.message });
+      throw error;
+    }
   }
 
   public async listarProdutosDestacados(): Promise<Product[]> {
-    return Array.from(this.produtos.values()).filter(p => p.destacado && p.disponivel);
+    return this.listarProdutos({ destacado: true, disponivel: true });
   }
 
   public async listarProdutosPromocao(): Promise<Product[]> {
-    return Array.from(this.produtos.values()).filter(
-      p => p.tagsEspeciais?.includes('promocao') && p.disponivel
-    );
+    return this.listarProdutos({ tagEspecial: 'promocao', disponivel: true });
   }
 
+  /**
+   * Métodos legados ou duplicados mapeados para as novas implementações
+   */
+
   async getProducts(filters?: ProductFilter): Promise<Product[]> {
-    try {
-      // Se estamos em modo de desenvolvimento ou teste, fornecemos dados de mock
-      if (__DEV__ || process.env.NODE_ENV === 'test') {
-        return this.getMockProducts();
-      }
-
-      let productQuery = collection(db, this.collection);
-      let queryConstraints = [];
-
-      // Aplicar filtros se fornecidos
-      if (filters) {
-        if (filters.categoria) {
-          queryConstraints.push(where('categoria', '==', filters.categoria));
-        }
-
-        if (filters.disponivel !== undefined) {
-          queryConstraints.push(where('disponivel', '==', filters.disponivel));
-        }
-
-        if (filters.destacado !== undefined) {
-          queryConstraints.push(where('destacado', '==', filters.destacado));
-        }
-
-        if (filters.precoMin !== undefined) {
-          queryConstraints.push(where('preco', '>=', filters.precoMin));
-        }
-
-        if (filters.precoMax !== undefined) {
-          queryConstraints.push(where('preco', '<=', filters.precoMax));
-        }
-
-        if (filters.tagEspecial) {
-          queryConstraints.push(where('tagsEspeciais', 'array-contains', filters.tagEspecial));
-        }
-      }
-
-      // Adicionar ordenação por destacado (primeiro) e depois por data de criação (mais recentes)
-      queryConstraints.push(orderBy('destacado', 'desc'));
-      queryConstraints.push(orderBy('dataCriacao', 'desc'));
-
-      const q = query(productQuery, ...queryConstraints);
-      const snapshot = await getDocs(q);
-
-      const products: Product[] = [];
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        products.push({
-          id: doc.id,
-          ...data,
-          dataCriacao: data.dataCriacao?.toDate() || new Date(),
-          dataAtualizacao: data.dataAtualizacao?.toDate() || undefined,
-        } as Product);
-      });
-
-      // Se há uma busca textual, filtrar os resultados localmente
-      if (filters?.busca) {
-        const searchTerm = filters.busca.toLowerCase();
-        return products.filter(
-          product =>
-            product.nome.toLowerCase().includes(searchTerm) ||
-            product.descricao.toLowerCase().includes(searchTerm)
-        );
-      }
-
-      return products;
-    } catch (error) {
-      loggingService.error('Erro ao buscar produtos', { error });
-      throw error;
-    }
+    return this.listarProdutos(filters);
   }
 
   async getProductById(id: string): Promise<Product | null> {
     try {
-      // Se estamos em modo de desenvolvimento ou teste, fornecemos dados de mock
-      if (__DEV__ || process.env.NODE_ENV === 'test') {
-        const mockProducts = this.getMockProducts();
-        return mockProducts.find(p => p.id === id) || null;
-      }
-
-      const productRef = doc(db, this.collection, id);
-      const productSnap = await getDoc(productRef);
-
-      if (!productSnap.exists()) {
-        return null;
-      }
-
-      const data = productSnap.data();
-      return {
-        id: productSnap.id,
-        ...data,
-        dataCriacao: data.dataCriacao?.toDate() || new Date(),
-        dataAtualizacao: data.dataAtualizacao?.toDate() || undefined,
-      } as Product;
+      return await this.consultarProduto(id);
     } catch (error) {
-      loggingService.error('Erro ao buscar produto por ID', { error, productId: id });
-      throw error;
+      return null;
     }
   }
 
-  async getFeaturedProducts(limit: number = 10): Promise<Product[]> {
-    try {
-      // Se estamos em modo de desenvolvimento ou teste, fornecemos dados de mock
-      if (__DEV__ || process.env.NODE_ENV === 'test') {
-        const mockProducts = this.getMockProducts();
-        return mockProducts.filter(p => p.destacado).slice(0, limit);
-      }
-
-      const q = query(
-        collection(db, this.collection),
-        where('destacado', '==', true),
-        where('disponivel', '==', true),
-        orderBy('dataCriacao', 'desc'),
-        limit(limit)
-      );
-
-      const snapshot = await getDocs(q);
-
-      const products: Product[] = [];
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        products.push({
-          id: doc.id,
-          ...data,
-          dataCriacao: data.dataCriacao?.toDate() || new Date(),
-          dataAtualizacao: data.dataAtualizacao?.toDate() || undefined,
-        } as Product);
-      });
-
-      return products;
-    } catch (error) {
-      loggingService.error('Erro ao buscar produtos em destaque', { error });
-      throw error;
-    }
+  async getFeaturedProducts(limite: number = 10): Promise<Product[]> {
+    return this.listarProdutos({ destacado: true, disponivel: true, limite });
   }
 
-  async getProductsByCategory(category: string, limit: number = 20): Promise<Product[]> {
-    try {
-      // Se estamos em modo de desenvolvimento ou teste, fornecemos dados de mock
-      if (__DEV__ || process.env.NODE_ENV === 'test') {
-        const mockProducts = this.getMockProducts();
-        return mockProducts.filter(p => p.categoria === category && p.disponivel).slice(0, limit);
-      }
-
-      const q = query(
-        collection(db, this.collection),
-        where('categoria', '==', category),
-        where('disponivel', '==', true),
-        orderBy('dataCriacao', 'desc'),
-        limit(limit)
-      );
-
-      const snapshot = await getDocs(q);
-
-      const products: Product[] = [];
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        products.push({
-          id: doc.id,
-          ...data,
-          dataCriacao: data.dataCriacao?.toDate() || new Date(),
-          dataAtualizacao: data.dataAtualizacao?.toDate() || undefined,
-        } as Product);
-      });
-
-      return products;
-    } catch (error) {
-      loggingService.error('Erro ao buscar produtos por categoria', { error, category });
-      throw error;
-    }
-  }
-
-  private getMockProducts(): Product[] {
-    return [
-      {
-        id: '1',
-        nome: 'Bolo de Chocolate',
-        descricao: 'Delicioso bolo de chocolate com cobertura de brigadeiro e granulado.',
-        preco: 45.9,
-        categoria: 'Bolos',
-        disponivel: true,
-        imagens: ['https://via.placeholder.com/400x300/FF69B4/FFFFFF?text=Bolo+de+Chocolate'],
-        ingredientes: ['Chocolate', 'Farinha', 'Açúcar', 'Ovos', 'Leite'],
-        tempoPreparacao: 60,
-        destacado: true,
-        pesoAproximado: 800,
-        informacoesNutricionais: {
-          calorias: 320,
-          carboidratos: 45,
-          proteinas: 6,
-          gorduras: 15,
-          porcao: 100,
-        },
-        dataCriacao: new Date(),
-        estoque: 5,
-        temEstoque: true,
-        alergenos: ['Glúten', 'Leite', 'Ovos'],
-        tagsEspeciais: ['Mais Vendido'],
-      },
-      {
-        id: '2',
-        nome: 'Cupcake de Baunilha',
-        descricao:
-          'Cupcake de baunilha com cobertura de buttercream decorado com confeitos coloridos.',
-        preco: 8.5,
-        categoria: 'Cupcakes',
-        disponivel: true,
-        imagens: ['https://via.placeholder.com/400x300/FFB6C1/FFFFFF?text=Cupcake+de+Baunilha'],
-        ingredientes: ['Baunilha', 'Farinha', 'Açúcar', 'Ovos', 'Leite'],
-        tempoPreparacao: 30,
-        destacado: false,
-        pesoAproximado: 90,
-        dataCriacao: new Date(),
-        estoque: 20,
-        temEstoque: true,
-        tagsEspeciais: ['Novo'],
-      },
-      {
-        id: '3',
-        nome: 'Torta de Limão',
-        descricao:
-          'Torta de limão com base de biscoito, recheio de creme cítrico e cobertura de merengue.',
-        preco: 40.0,
-        categoria: 'Tortas',
-        disponivel: true,
-        imagens: ['https://via.placeholder.com/400x300/FFFFE0/000000?text=Torta+de+Limão'],
-        ingredientes: ['Limão', 'Biscoito', 'Leite Condensado', 'Gema de Ovo', 'Manteiga'],
-        tempoPreparacao: 120,
-        destacado: true,
-        pesoAproximado: 600,
-        dataCriacao: new Date(),
-        estoque: 3,
-        temEstoque: true,
-        tagsEspeciais: ['Mais Vendido'],
-      },
-      {
-        id: '4',
-        nome: 'Docinhos de Festa - Kit 50 unidades',
-        descricao: 'Kit com 50 docinhos sortidos: brigadeiro, beijinho, casadinho e cajuzinho.',
-        preco: 75.0,
-        categoria: 'Docinhos',
-        disponivel: true,
-        imagens: ['https://via.placeholder.com/400x300/8B4513/FFFFFF?text=Docinhos+Sortidos'],
-        ingredientes: ['Chocolate', 'Leite Condensado', 'Coco', 'Amendoim', 'Açúcar'],
-        tempoPreparacao: 180,
-        destacado: false,
-        pesoAproximado: 500,
-        dataCriacao: new Date(),
-        estoque: 10,
-        temEstoque: true,
-        tagsEspeciais: ['Kit Festa'],
-      },
-      {
-        id: '5',
-        nome: 'Bolo de Morango',
-        descricao:
-          'Bolo recheado com creme de baunilha e morangos frescos, cobertura de chantilly.',
-        preco: 55.0,
-        categoria: 'Bolos',
-        disponivel: true,
-        imagens: ['https://via.placeholder.com/400x300/FF0000/FFFFFF?text=Bolo+de+Morango'],
-        ingredientes: ['Morango', 'Farinha', 'Açúcar', 'Ovos', 'Leite', 'Chantilly'],
-        tempoPreparacao: 90,
-        destacado: true,
-        pesoAproximado: 950,
-        dataCriacao: new Date(),
-        estoque: 2,
-        temEstoque: true,
-        tagsEspeciais: ['Sazonal'],
-      },
-      {
-        id: '6',
-        nome: 'Brownies - Pacote com 6 unidades',
-        descricao: 'Brownies de chocolate meio amargo, densos e úmidos, com nozes.',
-        preco: 32.0,
-        categoria: 'Sobremesas',
-        disponivel: true,
-        imagens: ['https://via.placeholder.com/400x300/8B4513/FFFFFF?text=Brownies'],
-        ingredientes: ['Chocolate meio amargo', 'Farinha', 'Açúcar', 'Ovos', 'Manteiga', 'Nozes'],
-        tempoPreparacao: 45,
-        destacado: false,
-        pesoAproximado: 300,
-        dataCriacao: new Date(),
-        estoque: 8,
-        temEstoque: true,
-        tagsEspeciais: ['Com Nozes'],
-      },
-    ];
+  async getProductsByCategory(categoria: string, limite: number = 20): Promise<Product[]> {
+    return this.listarProdutos({ categoria, disponivel: true, limite });
   }
 }
+
+export const productService = new ProductService();
