@@ -1,0 +1,1 @@
+﻿â€¢ CorreÃ§Ã£o de bugs e melhorias de desempenho\nâ€¢ Interface renovada para melhor experiÃªncia do usuÃ¡rio\nâ€¢ Novas funcionalidades de relatÃ³rios e estatÃ­sticas\nâ€¢ Suporte a mÃºltiplos perfis de usuÃ¡rio

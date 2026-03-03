@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template para Imagem de Destaque - Google Play Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #d81b60;
+            border-bottom: 2px solid #d81b60;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #d81b60;
+            margin-top: 30px;
+        }
+        .preview-wrapper {
+            position: relative;
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        #preview-container {
+            width: 1024px;
+            height: 500px;
+            background-color: #e0e0e0;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #preview-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #safe-area {
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            right: 50px;
+            bottom: 50px;
+            border: 2px dashed rgba(255, 0, 0, 0.5);
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: rgba(255, 0, 0, 0.7);
+            font-weight: bold;
+        }
+        .upload-area {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 1024px;
+        }
+        .upload-button {
+            background-color: #d81b60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .control-button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Template para Imagem de Destaque - Google Play Store</h1>
+        
+        <div class="upload-area">
+            <h2>Carregar Imagem de Destaque</h2>
+            <p>Selecione uma imagem com 1024x500 pixels</p>
+            <input type="file" id="feature-graphic-upload" accept="image/*">
+        </div>
+        
+        <div class="preview-wrapper">
+            <h2>Visualizacao da Imagem de Destaque</h2>
+            <div id="preview-container">
+                <p>Sua imagem aparecera aqui</p>
+                <div id="safe-area">Area segura para conteudo importante</div>
+            </div>
+            <div class="controls">
+                <button id="toggle-safe-area" class="control-button">Alternar Area Segura</button>
+            </div>
+        </div>
+        
+        <h2>Requisitos da Imagem de Destaque</h2>
+        <ul>
+            <li><strong>Formato:</strong> JPG ou PNG (sem transparencia)</li>
+            <li><strong>Tamanho:</strong> 1024x500 pixels</li>
+            <li><strong>Area segura:</strong> Mantenha elementos importantes dentro da area central</li>
+            <li><strong>Qualidade:</strong> Alta resolucao, sem compressao excessiva</li>
+        </ul>
+        
+        <h2>Dicas para uma Boa Imagem de Destaque</h2>
+        <ul>
+            <li><strong>Simplicidade:</strong> Use design limpo e facil de entender</li>
+            <li><strong>Legibilidade:</strong> Texto grande e claro (se houver)</li>
+            <li><strong>Identidade:</strong> Inclua o logo e elementos da marca</li>
+            <li><strong>Cores:</strong> Use cores que representem sua marca e sejam consistentes com o aplicativo</li>
+            <li><strong>Contraste:</strong> Garanta bom contraste para visibilidade</li>
+        </ul>
+        
+        <h2>O que Evitar</h2>
+        <ul>
+            <li>Texto pequeno ou excessivo</li>
+            <li>Bordas ou cantos arredondados (a imagem ocupara todo o espaco retangular)</li>
+            <li>Incluir informacoes de classificacao, premios ou promocoes</li>
+            <li>Usar a palavra "app" ou "aplicativo"</li>
+            <li>Incluir screenshots de dispositivos</li>
+        </ul>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const uploadInput = document.getElementById("feature-graphic-upload");
+            const previewContainer = document.getElementById("preview-container");
+            const safeArea = document.getElementById("safe-area");
+            const toggleSafeAreaButton = document.getElementById("toggle-safe-area");
+            
+            // Alternar visibilidade da area segura
+            toggleSafeAreaButton.addEventListener("click", function() {
+                if (safeArea.style.display === "none") {
+                    safeArea.style.display = "flex";
+                } else {
+                    safeArea.style.display = "none";
+                }
+            });
+            
+            // Carregar imagem
+            uploadInput.addEventListener("change", function(event) {
+                const file = event.target.files[0];
+                
+                // Verificar se e uma imagem
+                if (!file || !file.type.match("image.*")) return;
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // Limpar container
+                    previewContainer.innerHTML = "";
+                    
+                    // Criar imagem
+                    const img = document.createElement("img");
+                    img.src = e.target.result;
+                    img.alt = "Imagem de Destaque";
+                    
+                    // Adicionar imagem ao container
+                    previewContainer.appendChild(img);
+                    previewContainer.appendChild(safeArea);
+                    
+                    // Verificar dimensoes da imagem
+                    img.onload = function() {
+                        if (img.naturalWidth !== 1024 || img.naturalHeight !== 500) {
+                            alert("Atencao: A imagem tem " + img.naturalWidth + "x" + img.naturalHeight + "px. O tamanho recomendado e 1024x500px.");
+                        }
+                    };
+                };
+                
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+</body>
+</html>

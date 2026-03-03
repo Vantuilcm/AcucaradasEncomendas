@@ -1,0 +1,63 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Funções auxiliares para verificação de autenticação
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Usuários
+    match /users/{userId} {
+      // Usuários podem ler seus próprios dados e admins podem ler todos
+      allow read: if isOwner(userId) || isAdmin();
+      // Apenas admins podem criar novos usuários
+      allow create: if isAdmin();
+      // Usuários podem atualizar seus próprios dados e admins podem atualizar todos
+      allow update: if isOwner(userId) || isAdmin();
+      // Apenas admins podem excluir usuários
+      allow delete: if isAdmin();
+    }
+    
+    // Produtos
+    match /products/{productId} {
+      // Todos podem ler produtos
+      allow read: if true;
+      // Apenas admins podem criar, atualizar ou excluir produtos
+      allow write: if isAdmin();
+    }
+    
+    // Pedidos
+    match /orders/{orderId} {
+      // Usuários podem ler seus próprios pedidos e admins podem ler todos
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      // Usuários autenticados podem criar pedidos
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Apenas admins podem atualizar pedidos
+      allow update: if isAdmin();
+      // Apenas admins podem excluir pedidos
+      allow delete: if isAdmin();
+    }
+    
+    // Configurações
+    match /settings/{settingId} {
+      // Todos podem ler configurações
+      allow read: if true;
+      // Apenas admins podem modificar configurações
+      allow write: if isAdmin();
+    }
+    
+    // Regra padrão - negar todos os acessos não explicitamente permitidos
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
