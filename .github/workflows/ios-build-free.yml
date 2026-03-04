@@ -147,7 +147,7 @@ jobs:
       - name: Build IPA
         run: |
           set -o pipefail
-          npx eas build --platform ios --profile production_local --local --non-interactive --output="./Acucaradas.ipa" | xcbeautify
+          eas build --platform ios --profile production_local --local --non-interactive --output="./Acucaradas.ipa" | xcbeautify
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           NODE_ENV: production
