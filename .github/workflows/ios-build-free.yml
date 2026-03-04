@@ -16,7 +16,7 @@ on:
       ref:
         description: 'Git ref (branch or tag)'
         required: true
-        default: 'upgrade/sdk-52-rn-076'
+        default: 'master'
         type: string
       profile:
         description: 'EAS Build Profile'
@@ -156,6 +156,11 @@ jobs:
       - name: Build IPA
         run: |
           set -o pipefail
+          echo "🚀 Iniciando Build IPA"
+          echo "📌 Commit Hash: $(git rev-parse --short HEAD)"
+          echo "📂 Listando diretório credentials/ios/:"
+          ls -R credentials/ios/ || echo "⚠️ Diretório credentials/ios/ não encontrado!"
+
           # Validar se o P12 gerado é legível (sem mostrar a senha)
           if [ -f "credentials/ios/AcucaradasEncomendas-dist-cert.p12" ]; then
             echo "🔍 Verificando integridade do certificado P12..."
@@ -172,6 +177,9 @@ jobs:
               echo "------------------------------------------------------"
               exit 1
             fi
+          else
+            echo "❌ ERRO: Arquivo P12 não encontrado em credentials/ios/AcucaradasEncomendas-dist-cert.p12"
+            exit 1
           fi
           
           eas build --platform ios --profile production_local --local --non-interactive --output="./Acucaradas.ipa"
