@@ -74,6 +74,8 @@ web-build/
 google-service-account*.json
 .runtimeconfig.json
 firebase-adminsdk-*.json
+credentials/
+credentials.json
 
 # Certificados e chaves
 *.pem

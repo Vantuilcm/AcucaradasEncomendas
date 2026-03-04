@@ -7,6 +7,7 @@ declare module 'firebase/auth' {
     phoneNumber: string | null;
     photoURL: string | null;
     providerId: string;
+    getIdToken(forceRefresh?: boolean): Promise<string>;
     metadata: {
       // Removido acesso a APIs privadas para conformidade com a App Store
       // creationTime?: string;
@@ -24,11 +25,24 @@ declare module 'firebase/auth' {
     user: User;
     providerId: string | null;
     operationType?: string;
+    additionalUserInfo?: AdditionalUserInfo | null;
   }
 
   export interface AuthCredential {
     providerId: string;
     signInMethod: string;
+  }
+
+  export interface AdditionalUserInfo {
+    isNewUser: boolean;
+    providerId?: string | null;
+    username?: string | null;
+    profile?: Record<string, unknown> | null;
+  }
+
+  export class OAuthProvider {
+    constructor(providerId: string);
+    credential(params: { idToken?: string | null; rawNonce?: string | null }): AuthCredential;
   }
 
   export class EmailAuthProvider {
@@ -52,7 +66,14 @@ declare module 'firebase/auth' {
     email: string,
     password: string
   ): Promise<UserCredential>;
+  export function signInWithCredential(
+    auth: Auth,
+    credential: AuthCredential
+  ): Promise<UserCredential>;
   export function signOut(auth: Auth): Promise<void>;
+  export function getAdditionalUserInfo(
+    userCredential: UserCredential
+  ): AdditionalUserInfo | null;
   export function sendEmailVerification(user: User): Promise<void>;
   export function updateProfile(
     user: User,

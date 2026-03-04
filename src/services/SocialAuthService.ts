@@ -1,16 +1,18 @@
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { secureLoggingService } from './SecureLoggingService';
-// Importação modificada para resolver problema de compatibilidade
-import { SecurityService } from './SecurityService.js';
-import { firestore, auth } from '../config/firebase';
+// Importação corrigida para usar o arquivo TypeScript
+import { SecurityService } from './SecurityService';
+import { db as firestore, auth } from '../config/firebase';
 import { User } from '../models/User';
 import {
   signInWithCredential,
   OAuthProvider,
   updateProfile,
   AuthCredential,
+  signOut,
 } from 'firebase/auth';
+import { collection, query, where, limit, getDocs, addDoc, doc, updateDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Importação condicional para evitar erros em plataformas não suportadas
 let AppleAuthentication: any = null;
@@ -79,13 +81,9 @@ export class SocialAuthService {
         providerId: credential.user,
       });
     } catch (error) {
-      if (error.code === 'ERR_CANCELED') {
-        // Usuário cancelou o login
-        return null;
-      }
-
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       secureLoggingService.security('Erro na autenticação com Apple', { 
-        errorMessage: error.message || 'Erro desconhecido',
+        errorMessage,
         timestamp: new Date().toISOString()
       });
       throw new Error('Falha na autenticação com Apple');
@@ -102,11 +100,13 @@ export class SocialAuthService {
   }): Promise<{ user: User; token: string }> {
     try {
       // Verificar se já existe um usuário com este email
-      const userQuery = await firestore
-        .collection('users')
-        .where('email', '==', userData.email)
-        .limit(1)
-        .get();
+      const userQuery = await getDocs(
+        query(
+          collection(firestore, 'users'),
+          where('email', '==', userData.email),
+          limit(1)
+        )
+      );
 
       let userId: string;
       let user: User;
@@ -116,19 +116,15 @@ export class SocialAuthService {
         const newUser: Omit<User, 'id'> = {
           email: userData.email,
           nome: userData.name,
-          dataCriacao: new Date().toISOString(),
-          socialAuth: {
-            provider: userData.provider,
-            providerId: userData.providerId,
+          dataCriacao: new Date(),
+          ultimoLogin: new Date(),
+          isAdmin: false,
+          perfil: {
+            fotoPerfil: userData.profilePicture || undefined,
           },
-          emailVerified: true, // Autenticação social já verifica o email
-          foto: userData.profilePicture || null,
-          // Outros campos padrão
-          role: 'customer',
-          dataUltimoLogin: new Date().toISOString(),
         };
 
-        const docRef = await firestore.collection('users').add(newUser);
+        const docRef = await addDoc(collection(firestore, 'users'), newUser as any);
         userId = docRef.id;
         user = { id: userId, ...newUser } as User;
       } else {
@@ -138,21 +134,16 @@ export class SocialAuthService {
         user = { id: userId, ...userDoc.data() } as User;
 
         // Atualizar dados de autenticação social
-        await userDoc.ref.update({
-          socialAuth: {
-            provider: userData.provider,
-            providerId: userData.providerId,
-          },
-          emailVerified: true,
-          dataUltimoLogin: new Date().toISOString(),
-        });
+        await updateDoc(doc(firestore, 'users', userId), {
+          ultimoLogin: new Date(),
+        } as any);
       }
 
       // Gerar token JWT
       const token = SecurityService.generateToken({
         id: userId,
         email: userData.email,
-        role: user.role || 'customer',
+        isAdmin: user.isAdmin || false,
       });
 
       // Armazenar token de forma segura
@@ -160,10 +151,11 @@ export class SocialAuthService {
 
       return { user, token };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       secureLoggingService.security('Erro ao processar autenticação social', { 
         email: userData.email,
         provider: userData.provider,
-        errorMessage: error.message || 'Erro desconhecido',
+        errorMessage,
         timestamp: new Date().toISOString()
       });
       throw new Error('Falha ao processar autenticação social');
@@ -198,19 +190,22 @@ export class SocialAuthService {
 
       return await this.signInWithCredential(authCredential);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      const errorCode = (error as any).code || 'unknown';
+
       // Verifica se o erro foi porque o usuário cancelou
-      if (error.code === 'ERR_CANCELED') {
+      if (errorCode === 'ERR_CANCELED') {
         return { success: false, error: 'Login com Apple cancelado pelo usuário.' };
       }
 
       secureLoggingService.security('Erro ao fazer login com Apple', { 
-        errorMessage: error.message || 'Erro desconhecido',
-        errorCode: error.code || 'unknown',
+        errorMessage,
+        errorCode,
         timestamp: new Date().toISOString()
       });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido no login com Apple',
+        error: errorMessage,
       };
     }
   }
@@ -222,11 +217,10 @@ export class SocialAuthService {
     try {
       const result = await signInWithCredential(auth, credential);
       const { user, additionalUserInfo } = result;
+      const accessToken = await user.getIdToken();
 
       // Salvar o token para uso posterior
-      if (user.stsTokenManager) {
-        await AsyncStorage.setItem('userToken', user.stsTokenManager.accessToken);
-      }
+      await AsyncStorage.setItem('userToken', accessToken);
 
       // Se for a primeira vez que o usuário acessa, salvar dados adicionais
       if (additionalUserInfo?.isNewUser) {
@@ -247,14 +241,17 @@ export class SocialAuthService {
         additionalUserInfo,
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      const errorCode = (error as any).code || 'unknown';
+
       secureLoggingService.security('Erro ao autenticar no Firebase', { 
-        errorMessage: error.message || 'Erro desconhecido',
-        errorCode: error.code || 'unknown',
+        errorMessage,
+        errorCode,
         timestamp: new Date().toISOString()
       });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erro de autenticação no Firebase',
+        error: errorMessage,
       };
     }
   }
@@ -273,10 +270,11 @@ export class SocialAuthService {
       // Criação do perfil de usuário com dados padrão
       // Você deve implementar isso baseado nas necessidades do seu app
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       secureLoggingService.security('Erro ao configurar novo usuário', { 
         userId: user.uid,
         email: user.email,
-        errorMessage: error.message || 'Erro desconhecido',
+        errorMessage,
         timestamp: new Date().toISOString()
       });
       // Não lançamos exceção aqui para não interromper o fluxo de login
@@ -288,12 +286,13 @@ export class SocialAuthService {
    */
   async signOut(): Promise<boolean> {
     try {
-      await auth.signOut();
+      await signOut(auth);
       await AsyncStorage.removeItem('userToken');
       return true;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       secureLoggingService.security('Erro ao desconectar', { 
-        errorMessage: error.message || 'Erro desconhecido',
+        errorMessage,
         timestamp: new Date().toISOString()
       });
       return false;

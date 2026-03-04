@@ -86,6 +86,15 @@ jobs:
           NODE_ENV: development
           NO_SENTRY_VALIDATE: 1
 
+      - name: Run Validations
+        run: |
+          echo "🔍 Executando Lint..."
+          npm run lint
+          echo "🔍 Executando Type Check..."
+          npm run type-check
+          echo "🔍 Executando Pre-build Check..."
+          npm run pre-build-check
+
       - name: Prepare environment
         run: npm run prepare:ios
         env:
@@ -150,13 +159,16 @@ jobs:
           # Validar se o P12 gerado é legível (sem mostrar a senha)
           if [ -f "credentials/ios/AcucaradasEncomendas-dist-cert.p12" ]; then
             echo "🔍 Verificando integridade do certificado P12..."
+            FILE_SIZE=$(wc -c < "credentials/ios/AcucaradasEncomendas-dist-cert.p12")
+            echo "📊 Tamanho do arquivo P12: $FILE_SIZE bytes"
+
             if openssl pkcs12 -info -in credentials/ios/AcucaradasEncomendas-dist-cert.p12 -passin pass:"${APPLE_CERT_PASSWORD}" -nokeys -nodes > /dev/null 2>&1; then
               echo "✅ Certificado P12 e senha validados com sucesso."
             else
               echo "------------------------------------------------------"
               echo "❌ ERRO CRÍTICO: SENHA DO CERTIFICADO INVÁLIDA"
               echo "A senha configurada no segredo 'IOS_CERT_PASSWORD' não funciona para este certificado P12."
-              echo "Verifique se você digitou a senha correta ao exportar o arquivo .p12."
+              echo "DICA: Verifique se o Base64 foi gerado corretamente e se a senha não contém aspas ou espaços."
               echo "------------------------------------------------------"
               exit 1
             fi

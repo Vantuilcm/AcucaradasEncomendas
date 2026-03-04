@@ -1,12 +1,13 @@
-import { SecurityService } from '../../services/securityService';
+import { SecurityService } from '../../services/SecurityService';
 import { PerformanceService } from '../../services/PerformanceService';
 import CacheService from '../../services/cacheService';
+import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 
 // Mock para o PerformanceService
 jest.mock('../../services/PerformanceService', () => ({
   PerformanceService: {
     getInstance: jest.fn().mockReturnValue({
-      trackOperation: jest.fn().mockImplementation((name, callback) => callback()),
+      trackOperation: jest.fn().mockImplementation((name: any, callback: any) => callback()),
     }),
   },
 }));
@@ -30,7 +31,7 @@ jest.mock('crypto-js', () => ({
       toString: jest.fn().mockReturnValue('encrypted-data'),
     }),
     decrypt: jest.fn().mockReturnValue({
-      toString: jest.fn(decoder => {
+      toString: jest.fn((decoder: any) => {
         if (decoder) {
           return '{"data":"test-data"}';
         }
@@ -44,13 +45,13 @@ jest.mock('crypto-js', () => ({
 }));
 
 describe('SecurityService Integration Tests', () => {
-  let securityService: SecurityService;
+  let securityService: any;
   let performanceService: any;
   let cacheService: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    securityService = SecurityService.getInstance();
+    securityService = (SecurityService as any).getInstance();
     performanceService = PerformanceService.getInstance();
     cacheService = CacheService.getInstance();
   });
@@ -131,7 +132,7 @@ describe('SecurityService Integration Tests', () => {
     });
 
     // Espionar console.error
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
 
     // Tentar decriptar dados inválidos
     const invalidData = 'invalid-encrypted-data';
@@ -176,7 +177,7 @@ describe('SecurityService Integration Tests', () => {
     cacheService.setItem.mockRejectedValueOnce(new Error('Storage error'));
 
     // Espionar console.error
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
 
     // Tentar armazenar dados
     const key = 'user-payment-info';
@@ -202,7 +203,7 @@ describe('SecurityService Integration Tests', () => {
     cacheService.getItem.mockRejectedValueOnce(new Error('Storage error'));
 
     // Espionar console.error
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
 
     // Tentar recuperar dados
     const key = 'user-payment-info';

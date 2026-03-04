@@ -1,10 +1,8 @@
 import dotenv from 'dotenv';
-import { PaymentService } from '@/services/PaymentService';
-import { NotificationService } from '@/services/NotificationService';
-import { OrderService } from '@/services/OrderService';
-import { ValidationService } from '@/services/validationService';
-import { AuthService } from '@/services/AuthService';
-import { ProductService } from '@/services/ProductService';
+declare const jest: any;
+declare const beforeAll: any;
+declare const afterAll: any;
+declare const afterEach: any;
 
 // Carrega variáveis de ambiente do arquivo .env.test
 dotenv.config({ path: '.env.test' });
@@ -62,16 +60,18 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 global.fetch = jest.fn();
 global.File = jest.fn();
 global.Blob = jest.fn();
-global.URL = {
-  createObjectURL: jest.fn(),
-  revokeObjectURL: jest.fn(),
-};
+Object.assign(global, {
+  URL: {
+    createObjectURL: jest.fn(),
+    revokeObjectURL: jest.fn(),
+  },
+});
 
 // Configuração de mocks para validação
 jest.mock('@/services/ValidationService', () => ({
   ValidationService: {
     getInstance: jest.fn().mockReturnValue({
-      validarDadosPedido: jest.fn().mockImplementation(pedido => {
+      validarDadosPedido: jest.fn().mockImplementation((pedido: any) => {
         if (
           !pedido ||
           !pedido.clienteId ||
@@ -83,14 +83,14 @@ jest.mock('@/services/ValidationService', () => ({
         }
         // Validação básica dos itens
         const itensValidos = pedido.itens.every(
-          item => item.produtoId && item.quantidade > 0 && item.precoUnitario >= 0
+          (item: any) => item.produtoId && item.quantidade > 0 && item.precoUnitario >= 0
         );
         if (!itensValidos) {
           return false;
         }
         return true;
       }),
-      validarDadosPagamento: jest.fn().mockImplementation(pagamento => {
+      validarDadosPagamento: jest.fn().mockImplementation((pagamento: any) => {
         if (
           !pagamento ||
           !pagamento.pedidoId ||
@@ -102,7 +102,7 @@ jest.mock('@/services/ValidationService', () => ({
         }
         return true;
       }),
-      validarCartao: jest.fn().mockImplementation(cartao => {
+      validarCartao: jest.fn().mockImplementation((cartao: any) => {
         if (
           !cartao ||
           !cartao.numero ||
@@ -120,7 +120,7 @@ jest.mock('@/services/ValidationService', () => ({
         }
         return true;
       }),
-      validarCliente: jest.fn().mockImplementation(cliente => {
+      validarCliente: jest.fn().mockImplementation((cliente: any) => {
         if (!cliente || !cliente.nome || !cliente.email || !cliente.telefone) {
           return false;
         }
@@ -129,28 +129,28 @@ jest.mock('@/services/ValidationService', () => ({
         const telefoneValido = telefoneLimpo.length >= 10 && telefoneLimpo.length <= 11;
         return emailValido && telefoneValido;
       }),
-      validatePasswordStrength: jest.fn().mockImplementation(password => {
+      validatePasswordStrength: jest.fn().mockImplementation((password: any) => {
         // Forte: 8+ caracteres, letra maiúscula, minúscula, número
         const strongRegex = new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.{8,})');
         return !!password && strongRegex.test(password);
       }),
-      validateCPF: jest.fn().mockImplementation(cpf => {
+      validateCPF: jest.fn().mockImplementation((cpf: any) => {
         // Simulação mais realista (verifica apenas 11 dígitos)
         const cleaned = cpf ? cpf.replace(/\D/g, '') : '';
         return cleaned.length === 11;
         // Uma validação real de CPF seria muito mais complexa
       }),
-      validateEmail: jest.fn().mockImplementation(email => {
+      validateEmail: jest.fn().mockImplementation((email: any) => {
         // Regex padrão para email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return !!email && emailRegex.test(email);
       }),
-      validatePhone: jest.fn().mockImplementation(phone => {
+      validatePhone: jest.fn().mockImplementation((phone: any) => {
         // Verifica 10 ou 11 dígitos numéricos
         const cleaned = phone ? phone.replace(/\D/g, '') : '';
         return cleaned.length === 10 || cleaned.length === 11;
       }),
-      validateAddress: jest.fn().mockImplementation(address => {
+      validateAddress: jest.fn().mockImplementation((address: any) => {
         // Verifica se campos obrigatórios existem E não estão vazios
         // Adiciona validação de formato para CEP
         const cepRegex = /^\d{5}-?\d{3}$/;
@@ -170,13 +170,13 @@ jest.mock('@/services/ValidationService', () => ({
       }),
     }),
   },
-  validateFaceImage: jest.fn().mockImplementation(async image => {
+  validateFaceImage: jest.fn().mockImplementation(async (image: any) => {
     if (!image || !(typeof image === 'string') || !image.startsWith('data:image/')) {
       throw new Error('Imagem inválida');
     }
     return true;
   }),
-  validateDocument: jest.fn().mockImplementation(async (type, document) => {
+  validateDocument: jest.fn().mockImplementation(async (type: any, document: any) => {
     if (!document || !document.buffer) {
       throw new Error('Documento inválido');
     }
@@ -188,7 +188,7 @@ jest.mock('@/services/ValidationService', () => ({
 jest.mock('@/services/AuthService', () => ({
   AuthService: {
     getInstance: jest.fn().mockReturnValue({
-      registrarUsuario: jest.fn().mockImplementation(dados => {
+      registrarUsuario: jest.fn().mockImplementation((dados: any) => {
         if (!dados.email || !dados.senha) {
           throw new Error('Email e senha são obrigatórios');
         }
@@ -200,7 +200,7 @@ jest.mock('@/services/AuthService', () => ({
           status: 'ativo',
         };
       }),
-      autenticarUsuario: jest.fn().mockImplementation((email, senha) => {
+      autenticarUsuario: jest.fn().mockImplementation((email: any, senha: any) => {
         if (email === 'teste@email.com' && senha === 'senha123') {
           return {
             token: 'token_123',
@@ -215,13 +215,15 @@ jest.mock('@/services/AuthService', () => ({
         }
         throw new Error('Credenciais inválidas');
       }),
-      atualizarSenha: jest.fn().mockImplementation((userId, senhaAtual, novaSenha) => {
+      atualizarSenha: jest
+        .fn()
+        .mockImplementation((userId: any, senhaAtual: any, novaSenha: any) => {
         if (userId === 'user_123' && senhaAtual === 'senha123') {
           return true;
         }
         throw new Error('Usuário não encontrado ou senha atual incorreta');
       }),
-      recuperarSenha: jest.fn().mockImplementation(email => {
+      recuperarSenha: jest.fn().mockImplementation((email: any) => {
         if (email === 'teste@email.com') {
           return {
             token: 'reset_token_123',
@@ -230,13 +232,13 @@ jest.mock('@/services/AuthService', () => ({
         }
         throw new Error('Usuário não encontrado');
       }),
-      redefinirSenha: jest.fn().mockImplementation((token, novaSenha) => {
+      redefinirSenha: jest.fn().mockImplementation((token: any, novaSenha: any) => {
         if (token === 'reset_token_123') {
           return true;
         }
         throw new Error('Token inválido ou expirado');
       }),
-      validarToken: jest.fn().mockImplementation(token => {
+      validarToken: jest.fn().mockImplementation((token: any) => {
         if (token === 'token_123') {
           return {
             id: 'user_123',
@@ -248,7 +250,7 @@ jest.mock('@/services/AuthService', () => ({
         }
         throw new Error('Token inválido');
       }),
-      deslogarUsuario: jest.fn().mockImplementation(userId => {
+      deslogarUsuario: jest.fn().mockImplementation((userId: any) => {
         if (userId === 'user_123') {
           return true;
         }
@@ -262,7 +264,7 @@ jest.mock('@/services/AuthService', () => ({
 jest.mock('@/services/PaymentService', () => ({
   PaymentService: {
     getInstance: jest.fn().mockReturnValue({
-      criarPagamento: jest.fn().mockImplementation(async dados => {
+      criarPagamento: jest.fn().mockImplementation(async (dados: any) => {
         if (!dados.valor || dados.valor <= 0) {
           return Promise.reject(new Error('Valor inválido'));
         }
@@ -277,7 +279,7 @@ jest.mock('@/services/PaymentService', () => ({
           status: 'sucesso',
         });
       }),
-      consultarPagamento: jest.fn().mockImplementation(id => {
+      consultarPagamento: jest.fn().mockImplementation((id: any) => {
         if (id === 'pag_123') {
           return {
             id: 'pag_123',
@@ -289,7 +291,7 @@ jest.mock('@/services/PaymentService', () => ({
         }
         throw new Error('Pagamento não encontrado');
       }),
-      cancelarPagamento: jest.fn().mockImplementation(id => {
+      cancelarPagamento: jest.fn().mockImplementation((id: any) => {
         if (id === 'pag_123') {
           // Simular que não pode cancelar pagamento já cancelado
           // (Assumindo que o mock de consultarPagamento retornaria status cancelado)
@@ -308,7 +310,7 @@ jest.mock('@/services/PaymentService', () => ({
         }
         throw new Error('Pagamento não encontrado');
       }),
-      reembolsarPagamento: jest.fn().mockImplementation(id => {
+      reembolsarPagamento: jest.fn().mockImplementation((id: any) => {
         if (id === 'pag_123') {
           // Simular que não pode reembolsar pagamento já reembolsado
           // (Assumindo que o mock de consultarPagamento retornaria status reembolsado)
@@ -326,11 +328,11 @@ jest.mock('@/services/PaymentService', () => ({
         }
         throw new Error('Pagamento não encontrado');
       }),
-      listarPagamentos: jest.fn().mockImplementation(filtros => {
+      listarPagamentos: jest.fn().mockImplementation((filtros: any) => {
         // Revertendo para retornar array vazio por padrão
         return [];
       }),
-      savePayment: jest.fn().mockImplementation(dados => {
+      savePayment: jest.fn().mockImplementation((dados: any) => {
         return {
           id: 'pag_123',
           data: new Date(),
@@ -339,7 +341,7 @@ jest.mock('@/services/PaymentService', () => ({
           status: 'pendente',
         };
       }),
-      getPaymentByPaymentId: jest.fn().mockImplementation(id => {
+      getPaymentByPaymentId: jest.fn().mockImplementation((id: any) => {
         if (id === 'pag_123') {
           return {
             id: 'pag_123',
@@ -351,7 +353,7 @@ jest.mock('@/services/PaymentService', () => ({
         }
         return null;
       }),
-      updatePaymentStatus: jest.fn().mockImplementation((id, status) => {
+      updatePaymentStatus: jest.fn().mockImplementation((id: any, status: any) => {
         if (id === 'pag_123') {
           return {
             id: 'pag_123',
@@ -363,10 +365,12 @@ jest.mock('@/services/PaymentService', () => ({
         }
         return null;
       }),
-      getUserPayments: jest.fn().mockImplementation(userId => {
+      getUserPayments: jest.fn().mockImplementation((userId: any) => {
         return [];
       }),
-      processCreditCardPayment: jest.fn().mockImplementation(async (orderId, cardDetails) => {
+      processCreditCardPayment: jest
+        .fn()
+        .mockImplementation(async (orderId: any, cardDetails: any) => {
         // Simular sucesso por padrão
         // Aqui, idealmente, chamaríamos a simulação de sendPaymentConfirmation
         // que está no mock do NotificationService. Para simplificar, retornamos true.
@@ -384,7 +388,7 @@ jest.mock('@/services/PaymentService', () => ({
 jest.mock('@/services/NotificationService', () => ({
   NotificationService: {
     getInstance: jest.fn().mockReturnValue({
-      enviarNotificacao: jest.fn().mockImplementation(dados => {
+      enviarNotificacao: jest.fn().mockImplementation((dados: any) => {
         if (!dados.destinatario || !dados.destinatario.includes('@')) {
           throw new Error('Destinatário inválido');
         }
@@ -404,7 +408,7 @@ jest.mock('@/services/NotificationService', () => ({
           lida: false,
         };
       }),
-      consultarNotificacao: jest.fn().mockImplementation(id => {
+      consultarNotificacao: jest.fn().mockImplementation((id: any) => {
         if (id === 'not_123') {
           return {
             id: 'not_123',
@@ -418,7 +422,7 @@ jest.mock('@/services/NotificationService', () => ({
         }
         throw new Error('Notificação não encontrada');
       }),
-      marcarComoLida: jest.fn().mockImplementation(idNotificacao => {
+      marcarComoLida: jest.fn().mockImplementation((idNotificacao: any) => {
         if (idNotificacao === 'not_123') {
           return {
             id: 'not_123',
@@ -435,26 +439,28 @@ jest.mock('@/services/NotificationService', () => ({
         }
         throw new Error('Notificação não encontrada');
       }),
-      listarNotificacoes: jest.fn().mockImplementation(filtros => {
+      listarNotificacoes: jest.fn().mockImplementation((filtros: any) => {
         // Revertendo para retornar array vazio por padrão
         return [];
       }),
-      excluirNotificacao: jest.fn().mockImplementation(id => {
+      excluirNotificacao: jest.fn().mockImplementation((id: any) => {
         if (id === 'not_123') {
           return true;
         }
         throw new Error('Notificação não encontrada');
       }),
-      getUserNotifications: jest.fn().mockImplementation(userId => {
+      getUserNotifications: jest.fn().mockImplementation((userId: any) => {
         return [];
       }),
-      sendNotification: jest.fn().mockImplementation((userId, type, data) => {
+      sendNotification: jest.fn().mockImplementation((userId: any, type: any, data: any) => {
         return true;
       }),
-      sendPushNotification: jest.fn().mockImplementation((token, title, body, data) => {
+      sendPushNotification: jest
+        .fn()
+        .mockImplementation((token: any, title: any, body: any, data: any) => {
         return true;
       }),
-      sendPaymentConfirmation: jest.fn().mockImplementation((userId, paymentData) => {
+      sendPaymentConfirmation: jest.fn().mockImplementation((userId: any, paymentData: any) => {
         return true;
       }),
     }),
@@ -465,7 +471,7 @@ jest.mock('@/services/NotificationService', () => ({
 jest.mock('@/services/OrderService', () => ({
   OrderService: {
     getInstance: jest.fn().mockReturnValue({
-      criarPedido: jest.fn().mockImplementation(async dados => {
+      criarPedido: jest.fn().mockImplementation(async (dados: any) => {
         if (!dados.itens || dados.itens.length === 0) {
           return Promise.reject(new Error('Pedido deve conter pelo menos um item'));
         }
@@ -480,7 +486,7 @@ jest.mock('@/services/OrderService', () => ({
           valorTotal: dados.valorTotal,
         });
       }),
-      consultarPedido: jest.fn().mockImplementation(id => {
+      consultarPedido: jest.fn().mockImplementation((id: any) => {
         if (id === 'ped_123') {
           return {
             id: 'ped_123',
@@ -498,7 +504,7 @@ jest.mock('@/services/OrderService', () => ({
         }
         throw new Error('Pedido não encontrado');
       }),
-      atualizarStatusPedido: jest.fn().mockImplementation((id, status) => {
+      atualizarStatusPedido: jest.fn().mockImplementation((id: any, status: any) => {
         if (id === 'ped_123') {
           if (
             !['pendente', 'aprovado', 'em_preparo', 'pronto', 'entregue', 'cancelado'].includes(
@@ -523,7 +529,7 @@ jest.mock('@/services/OrderService', () => ({
         }
         throw new Error('Pedido não encontrado');
       }),
-      cancelarPedido: jest.fn().mockImplementation(id => {
+      cancelarPedido: jest.fn().mockImplementation((id: any) => {
         if (id === 'ped_123') {
           return {
             id: 'ped_123',
@@ -541,14 +547,14 @@ jest.mock('@/services/OrderService', () => ({
         }
         throw new Error('Pedido não encontrado');
       }),
-      listarPedidos: jest.fn().mockImplementation(filtros => {
+      listarPedidos: jest.fn().mockImplementation((filtros: any) => {
         // Revertendo para retornar array vazio por padrão
         return [];
       }),
-      calcularValorTotal: jest.fn().mockImplementation(itens => {
+      calcularValorTotal: jest.fn().mockImplementation((itens: any) => {
         if (!itens || itens.length === 0) return 0;
         // Simulação básica: assume que item tem preco e quantidade
-        return itens.reduce((total, item) => total + item.preco * item.quantidade, 0);
+        return itens.reduce((total: any, item: any) => total + item.preco * item.quantidade, 0);
       }),
     }),
   },
@@ -558,7 +564,7 @@ jest.mock('@/services/OrderService', () => ({
 jest.mock('@/services/ProductService', () => ({
   ProductService: {
     getInstance: jest.fn().mockReturnValue({
-      criarProduto: jest.fn().mockImplementation(dados => {
+      criarProduto: jest.fn().mockImplementation((dados: any) => {
         if (!dados.nome) {
           throw new Error('Nome é obrigatório');
         }
@@ -579,7 +585,7 @@ jest.mock('@/services/ProductService', () => ({
           imagem: dados.imagem || 'default.jpg',
         };
       }),
-      consultarProduto: jest.fn().mockImplementation(id => {
+      consultarProduto: jest.fn().mockImplementation((id: any) => {
         if (id === 'prod_123') {
           return {
             id: 'prod_123',
@@ -594,7 +600,7 @@ jest.mock('@/services/ProductService', () => ({
         }
         throw new Error('Produto não encontrado');
       }),
-      atualizarProduto: jest.fn().mockImplementation((id, dados) => {
+      atualizarProduto: jest.fn().mockImplementation((id: any, dados: any) => {
         if (id === 'prod_123') {
           if (dados.preco && dados.preco <= 0) {
             throw new Error('Preço deve ser maior que zero');
@@ -612,17 +618,17 @@ jest.mock('@/services/ProductService', () => ({
         }
         throw new Error('Produto não encontrado');
       }),
-      excluirProduto: jest.fn().mockImplementation(id => {
+      excluirProduto: jest.fn().mockImplementation((id: any) => {
         if (id === 'prod_123') {
           return true;
         }
         throw new Error('Produto não encontrado');
       }),
-      listarProdutos: jest.fn().mockImplementation(filtros => {
+      listarProdutos: jest.fn().mockImplementation((filtros: any) => {
         // Revertendo para retornar array vazio por padrão
         return [];
       }),
-      atualizarDisponibilidade: jest.fn().mockImplementation((id, disponivel) => {
+      atualizarDisponibilidade: jest.fn().mockImplementation((id: any, disponivel: any) => {
         if (id === 'prod_123') {
           return {
             id: 'prod_123',
@@ -636,7 +642,7 @@ jest.mock('@/services/ProductService', () => ({
         }
         throw new Error('Produto não encontrado');
       }),
-      atualizarPreco: jest.fn().mockImplementation((id, preco) => {
+      atualizarPreco: jest.fn().mockImplementation((id: any, preco: any) => {
         if (id === 'prod_123') {
           if (preco <= 0) {
             throw new Error('Preço deve ser maior que zero');
@@ -701,7 +707,7 @@ jest.mock('@/services/StripeService', () => {
     createSetupIntent: jest
       .fn()
       .mockResolvedValue({ clientSecret: 'setup_secret', id: 'seti_mock_123' }),
-    handleWebhook: jest.fn().mockImplementation((eventBody, signature) => {
+    handleWebhook: jest.fn().mockImplementation((eventBody: any, signature: any) => {
       try {
         const event = JSON.parse(eventBody);
         // ... (lógica do webhook - sem alterações aqui)
@@ -785,12 +791,12 @@ jest.mock('firebase/firestore', () => {
   const mockQuerySnapshot = (docsData = []) => ({
     empty: docsData.length === 0,
     docs: docsData.map(mockDocData),
-    forEach: callback => docsData.map(mockDocData).forEach(callback),
+    forEach: (callback: any) => docsData.map(mockDocData).forEach(callback),
   });
 
   return {
     getFirestore: jest.fn(() => ({})), // Mock simples para getFirestore
-    doc: jest.fn((db, path, id) => ({
+    doc: jest.fn((db: any, path: any, id: any) => ({
       // Mock para doc
       id: id || 'mock-doc-id',
       path: path,
@@ -805,10 +811,10 @@ jest.mock('firebase/firestore', () => {
     setDoc: jest.fn().mockResolvedValue(undefined),
     deleteDoc: jest.fn().mockResolvedValue(undefined),
     addDoc: jest.fn().mockResolvedValue({ id: 'mock-added-doc-id' }), // Mock para addDoc
-    collection: jest.fn((db, path) => ({
+    collection: jest.fn((db: any, path: any) => ({
       // Mock para collection
       path: path,
-      doc: jest.fn(id => ({ id: id || 'mock-doc-id', path: `${path}/${id || 'mock-doc-id'}` })),
+      doc: jest.fn((id: any) => ({ id: id || 'mock-doc-id', path: `${path}/${id || 'mock-doc-id'}` })),
       add: jest.fn().mockResolvedValue({ id: 'mock-added-doc-id' }),
       where: jest.fn(() => ({
         // Mock para where
@@ -818,18 +824,31 @@ jest.mock('firebase/firestore', () => {
       get: jest.fn().mockResolvedValue(mockQuerySnapshot([])), // get direto na collection retorna snapshot vazio
       // Adicionar onSnapshot se necessário
     })),
-    query: jest.fn((collectionRef, ...queryConstraints) => ({
+    query: jest.fn((collectionRef: any, ...queryConstraints: any[]) => ({
       // Mock para query
       // Simular a aplicação de constraints seria complexo, retornar snapshot vazio por padrão
       get: jest.fn().mockResolvedValue(mockQuerySnapshot([])),
     })),
-    where: jest.fn((fieldPath, opStr, value) => ({ type: 'where', fieldPath, opStr, value })), // Mock constraint
-    orderBy: jest.fn((fieldPath, directionStr) => ({ type: 'orderBy', fieldPath, directionStr })), // Mock constraint
-    limit: jest.fn(num => ({ type: 'limit', num })), // Mock constraint
+    where: jest
+      .fn()
+      .mockImplementation((fieldPath: any, opStr: any, value: any) => ({
+        type: 'where',
+        fieldPath,
+        opStr,
+        value,
+      })),
+    orderBy: jest
+      .fn()
+      .mockImplementation((fieldPath: any, directionStr: any) => ({
+        type: 'orderBy',
+        fieldPath,
+        directionStr,
+      })),
+    limit: jest.fn().mockImplementation((num: any) => ({ type: 'limit', num })),
     // Adicionar Timestamp, FieldValue, etc., se necessário
     Timestamp: {
       now: jest.fn(() => ({ toDate: () => new Date() })),
-      fromDate: jest.fn(date => ({ toDate: () => date })),
+      fromDate: jest.fn((date: any) => ({ toDate: () => date })),
     },
     FieldValue: {
       serverTimestamp: jest.fn(() => 'mock-server-timestamp'), // Placeholder
@@ -870,34 +889,34 @@ jest.mock('@/services/CacheService', () => {
     CacheService: {
       getInstance: jest.fn().mockReturnValue({
         // Delega chamadas para o AsyncStorage mockado
-        setItem: jest.fn().mockImplementation(async (key, value, options) => {
+        setItem: jest.fn().mockImplementation(async (key: any, value: any, options: any) => {
           // Simulamos a stringificação que o serviço real faria
           const stringValue = JSON.stringify(value);
           // Chama o AsyncStorage mockado, passando 3 argumentos
           // O terceiro argumento (options) é passado adiante
           return AsyncStorage.setItem(key, stringValue, options || {});
         }),
-        getItem: jest.fn().mockImplementation(async key => {
+        getItem: jest.fn().mockImplementation(async (key: any) => {
           // Chama o AsyncStorage mockado
           const stringValue = await AsyncStorage.getItem(key);
           // Simulamos a desserialização
           return stringValue ? JSON.parse(stringValue) : null;
         }),
-        removeItem: jest.fn().mockImplementation(async key => {
+        removeItem: jest.fn().mockImplementation(async (key: any) => {
           return AsyncStorage.removeItem(key);
         }),
         clear: jest.fn().mockImplementation(async () => {
           return AsyncStorage.clear();
         }),
-        multiGet: jest.fn().mockImplementation(async keys => {
+        multiGet: jest.fn().mockImplementation(async (keys: any) => {
           // Chama o AsyncStorage mockado
           const results = await AsyncStorage.multiGet(keys);
           // Ajusta o retorno para ser um array apenas com os valores (ou null)
           // correspondendo à ordem das chaves solicitadas.
-          const valueMap = new Map(results);
-          return keys.map(key => {
+          const valueMap = new Map<any, any>(results as any);
+          return keys.map((key: any) => {
             const stringValue = valueMap.get(key);
-            return stringValue ? JSON.parse(stringValue) : null;
+            return stringValue ? JSON.parse(String(stringValue)) : null;
           });
         }),
         // Adicionar outros métodos se CacheService tiver mais...
@@ -907,21 +926,21 @@ jest.mock('@/services/CacheService', () => {
 });
 
 // Mock para SecurityService
-jest.mock('@/services/securityService', () => {
+jest.mock('@/services/SecurityService', () => {
   // Importar mocks necessários para chamadas internas
   const CacheService = require('@/services/CacheService').CacheService;
   const PerformanceService = require('@/services/PerformanceService').PerformanceService;
 
   const mockInstance = {
     // Retorna string vazia para entrada nula/indefinida
-    encryptData: jest.fn().mockImplementation(async data => (data ? `encrypted:${data}` : '')),
-    decryptData: jest.fn().mockImplementation(async data => {
+    encryptData: jest.fn().mockImplementation(async (data: any) => (data ? `encrypted:${data}` : '')),
+    decryptData: jest.fn().mockImplementation(async (data: any) => {
       if (typeof data === 'string' && data.startsWith('encrypted:')) {
         return data.substring(10);
       }
       return null;
     }),
-    secureStore: jest.fn().mockImplementation(async (key, data) => {
+    secureStore: jest.fn().mockImplementation(async (key: any, data: any) => {
       const performanceServiceInstance = PerformanceService.getInstance();
       const cacheServiceInstance = CacheService.getInstance();
       const operation = async () => {
@@ -936,7 +955,7 @@ jest.mock('@/services/securityService', () => {
       };
       return performanceServiceInstance.trackOperation('security_store', operation);
     }),
-    secureRetrieve: jest.fn().mockImplementation(async key => {
+    secureRetrieve: jest.fn().mockImplementation(async (key: any) => {
       const performanceServiceInstance = PerformanceService.getInstance();
       const cacheServiceInstance = CacheService.getInstance();
       const operation = async () => {
@@ -954,10 +973,12 @@ jest.mock('@/services/securityService', () => {
     storeSecureData: jest.fn().mockResolvedValue(undefined),
     retrieveSecureData: jest
       .fn()
-      .mockImplementation(async key => `encrypted:mock-value-for-${key}`),
+      .mockImplementation(async (key: any) => `encrypted:mock-value-for-${key}`),
     generateKey: jest.fn().mockResolvedValue('mock-key'),
-    hashData: jest.fn().mockImplementation(async data => (data ? `hashed:${data}` : null)),
-    compareHash: jest.fn().mockImplementation(async (data, hash) => hash === `hashed:${data}`),
+    hashData: jest.fn().mockImplementation(async (data: any) => (data ? `hashed:${data}` : null)),
+    compareHash: jest
+      .fn()
+      .mockImplementation(async (data: any, hash: any) => hash === `hashed:${data}`),
   };
   return {
     SecurityService: {
@@ -1041,7 +1062,7 @@ jest.mock('stripe', () => {
         }),
     },
     webhooks: {
-      constructEvent: jest.fn().mockImplementation((payload, sig, secret) => {
+      constructEvent: jest.fn().mockImplementation((payload: any, sig: any, secret: any) => {
         try {
           return JSON.parse(payload);
         } catch (e) {

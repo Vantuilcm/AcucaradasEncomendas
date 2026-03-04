@@ -30,7 +30,7 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "forceConsistentCasingInFileNames": true,
+    "forceConsistentCasingInFileNames": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
