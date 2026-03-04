@@ -158,6 +158,11 @@ jobs:
           set -o pipefail
           echo "🚀 Iniciando Build IPA"
           echo "📌 Commit Hash: $(git rev-parse --short HEAD)"
+          
+          echo "🔐 Verificando presença de segredos..."
+          if [ -n "${{ secrets.IOS_DIST_CERT_BASE64 }}" ]; then echo "✅ IOS_DIST_CERT_BASE64 está configurado (Tamanho: ${#APPLE_CERT_BASE64} chars)"; else echo "❌ IOS_DIST_CERT_BASE64 está VAZIO"; fi
+          if [ -n "${{ secrets.IOS_CERT_PASSWORD }}" ]; then echo "✅ IOS_CERT_PASSWORD está configurado"; else echo "❌ IOS_CERT_PASSWORD está VAZIO"; fi
+
           echo "📂 Listando diretório credentials/ios/:"
           ls -R credentials/ios/ || echo "⚠️ Diretório credentials/ios/ não encontrado!"
 
