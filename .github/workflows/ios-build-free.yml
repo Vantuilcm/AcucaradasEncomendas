@@ -103,7 +103,7 @@ jobs:
     name: Build iOS IPA
     runs-on: macos-14
     needs: preflight
-    if: ${{ env.INPUT_MODE == 'github_macos' && env.INPUT_PROFILE == 'production_local' }}
+    if: ${{ (inputs.mode || github.event.client_payload.mode || 'github_macos') == 'github_macos' && (inputs.profile || github.event.client_payload.profile || 'production_local') == 'production_local' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
