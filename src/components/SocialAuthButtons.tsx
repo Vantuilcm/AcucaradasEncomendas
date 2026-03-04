@@ -95,22 +95,16 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess }) => {
           )}
         </TouchableOpacity>
 
+        {/* Botão do Facebook ocultado por segurança - ID não reconhecido */}
+        {/* 
         <TouchableOpacity
           style={styles.socialButton}
           onPress={() => handleSocialAuth('facebook')}
           disabled={!!loadingProvider}
         >
-          {loadingProvider === 'facebook' ? (
-            <ActivityIndicator size="small" color="#FF6B6B" />
-          ) : (
-            <>
-              <View style={styles.socialIconContainer}>
-                <Ionicons name="logo-facebook" size={20} color="#4267B2" />
-              </View>
-              <Text style={styles.socialButtonText}>Facebook</Text>
-            </>
-          )}
+          ...
         </TouchableOpacity>
+        */}
 
         {showAppleButton && (
           <TouchableOpacity

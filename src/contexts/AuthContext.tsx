@@ -14,6 +14,7 @@ interface AuthContextData {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
+  is2FAEnabled: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: User, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -21,6 +22,9 @@ interface AuthContextData {
   updateUser: (userData: Partial<User>) => Promise<void>;
   validateSession: () => Promise<boolean>;
   refreshUserActivity: () => void;
+  signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  signInWithFacebook: () => Promise<{ success: boolean; error?: string }>;
+  signInWithApple: () => Promise<{ success: boolean; error?: string }>;
 }
 
 // Criar o contexto
@@ -416,6 +420,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     SecurityService.updateLastActivity();
   };
 
+  // Métodos de login social (stubs para implementação futura)
+  const signInWithGoogle = async () => {
+    return { success: false, error: 'Autenticação com Google não configurada.' };
+  };
+
+  const signInWithFacebook = async () => {
+    return { success: false, error: 'Autenticação com Facebook desativada por segurança.' };
+  };
+
+  const signInWithApple = async () => {
+    return { success: false, error: 'Autenticação com Apple não configurada.' };
+  };
+
   return (
     <TouchableWithoutFeedback onPress={refreshUserActivity}>
       <AuthContext.Provider
@@ -423,6 +440,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user,
           isAuthenticated: !!user,
           loading,
+          is2FAEnabled: false,
           login,
           register,
           logout,
@@ -430,6 +448,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updateUser,
           validateSession,
           refreshUserActivity,
+          signInWithGoogle,
+          signInWithFacebook,
+          signInWithApple,
         }}
       >
         {children}
