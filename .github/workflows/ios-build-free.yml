@@ -147,9 +147,23 @@ jobs:
       - name: Build IPA
         run: |
           set -o pipefail
-          eas build --platform ios --profile production_local --local --non-interactive --output="./Acucaradas.ipa" | xcbeautify
+          # Validar se o P12 gerado é legível (sem mostrar a senha)
+          if [ -f "credentials/ios/AcucaradasEncomendas-dist-cert.p12" ]; then
+            echo "🔍 Verificando integridade do certificado P12..."
+            openssl pkcs12 -info -in credentials/ios/AcucaradasEncomendas-dist-cert.p12 -passin pass:"${APPLE_CERT_PASSWORD}" -nokeys -nodes > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+              echo "✅ Certificado P12 e senha validados com sucesso."
+            else
+              echo "❌ Erro: A senha do certificado APPLE_CERT_PASSWORD está incorreta ou o P12 está corrompido."
+              # Não falhar aqui para ver o erro detalhado no EAS se preferir, 
+              # mas vamos avisar claramente.
+            fi
+          fi
+          
+          eas build --platform ios --profile production_local --local --non-interactive --output="./Acucaradas.ipa"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
           NODE_ENV: production
           NO_SENTRY_VALIDATE: 1
 
