@@ -110,9 +110,12 @@ function prepare() {
       const targetPath = path.join(iosCredsDir, item.file);
       console.log(`🔓 Decodificando ${item.env} -> credentials/ios/${item.file}`);
       try {
-        const buffer = Buffer.from(process.env[item.env].trim(), 'base64');
+        const rawValue = process.env[item.env].trim();
+        // Remove espaços, quebras de linha ou caracteres invisíveis que podem quebrar o base64
+        const sanitizedValue = rawValue.replace(/[\s\n\r\t]/g, '');
+        const buffer = Buffer.from(sanitizedValue, 'base64');
         fs.writeFileSync(targetPath, buffer);
-        console.log(`✅ ${item.file} gerado com sucesso.`);
+        console.log(`✅ ${item.file} gerado com sucesso (Tamanho: ${buffer.length} bytes).`);
       } catch (e) {
         console.error(`❌ Erro ao decodificar ${item.env}:`, e.message);
       }
