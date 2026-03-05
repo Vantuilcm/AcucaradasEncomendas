@@ -1,2 +1,3 @@
-Pinte aqui os erros do build para que eu possa analisar:
-
+BUILD ERRORS LOG:
+=================
+(Log limpo por segurança. Aguardando novos erros de compilação.)

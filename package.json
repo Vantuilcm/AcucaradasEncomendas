@@ -55,13 +55,13 @@
     "@react-navigation/bottom-tabs": "6.5.11",
     "@react-navigation/native": "6.1.9",
     "@react-navigation/stack": "6.3.20",
-    "@sentry/react-native": "5.10.0",
+    "@sentry/react-native": "^5.34.0",
     "@types/react": "~18.2.14",
     "axios": "1.13.5",
     "bcryptjs": "^2.4.3",
     "cors": "2.8.5",
     "crypto-js": "^4.1.1",
-    "dompurify": "^3.0.5",
+    "dompurify": "^3.3.2",
     "expo": "~49.0.23",
     "expo-application": "~5.3.0",
     "expo-device": "~5.4.0",
@@ -127,6 +127,9 @@
   "private": true,
   "pnpm": {
     "overrides": {
+      "fast-xml-parser": "^4.5.4",
+      "tar": "^7.5.10",
+      "minimatch": "^3.1.4",
       "metro-runtime": "0.76.8",
       "expo-router": "2.0.0",
       "react": "18.2.0",
@@ -159,6 +162,9 @@
     }
   },
   "overrides": {
+    "fast-xml-parser": "^4.5.4",
+    "tar": "^7.5.10",
+    "minimatch": "^3.1.4",
     "react": "18.2.0",
     "react-native": "0.72.10",
     "@expo/config-plugins": "~7.2.2",
@@ -184,6 +190,9 @@
     "undici": "^6.22.1"
   },
   "resolutions": {
+    "fast-xml-parser": "^4.5.4",
+    "tar": "^7.5.10",
+    "minimatch": "^3.1.4",
     "react": "18.2.0",
     "react-native": "0.72.10",
     "@expo/config-plugins": "~7.2.2",
