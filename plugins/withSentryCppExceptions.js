@@ -63,25 +63,18 @@ function addOrUpdatePostInstall(contents) {
   let newContents = contents;
   
   if (contents.includes('CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES')) {
-    // Se já existe um bloco nosso, vamos tentar substituí-lo ou apenas deixar o prebuild continuar
-    // Para simplificar, se já existe a flag, assumimos que o Podfile está ok ou será corrigido no próximo prebuild limpo
-    console.log('[withSentryCppExceptions] Flags do Xcode 15 já detectadas no Podfile.');
     return contents;
   }
 
   const postInstallMatch = contents.match(/post_install do \|installer\|/);
   if (postInstallMatch) {
-    console.log('[withSentryCppExceptions] Injetando snippet no post_install existente');
     return contents.replace(/post_install do \|installer\|/, match => `${match}${SNIPPET}`);
   }
 
-  console.log('[withSentryCppExceptions] Criando novo bloco post_install no Podfile');
   return `${contents}\npost_install do |installer|\n${SNIPPET}end\n`;
 }
 
 module.exports = function withSentryCppExceptions(config) {
-  console.log('[withSentryCppExceptions] Iniciando aplicação do plugin...');
-  
   let updatedConfig = config;
   if (withPodfile) {
     updatedConfig = withPodfile(updatedConfig, configMod => {
@@ -102,7 +95,6 @@ module.exports = function withSentryCppExceptions(config) {
     'ios',
     async configMod => {
       const projectRoot = configMod.modRequest.projectRoot;
-      console.log(`[withSentryCppExceptions] Project Root: ${projectRoot}`);
 
       // Lista de arquivos e seus patches com regex ultra-simplificado
       const patches = [
@@ -133,28 +125,21 @@ module.exports = function withSentryCppExceptions(config) {
         if (fs.existsSync(fullPath)) {
           let content = fs.readFileSync(fullPath, 'utf8');
           if (content.match(patch.find)) {
-            console.log(`[withSentryCppExceptions] Aplicando patch em: ${patch.file}`);
             content = content.replace(patch.find, patch.replace);
             fs.writeFileSync(fullPath, content);
           } else {
             // Se não encontrou o regex, pode ser que já esteja aplicado ou o arquivo mudou
-            if (content.includes('YGNodeConstRef')) {
-              console.log(`[withSentryCppExceptions] Patch já parece estar aplicado em: ${patch.file}`);
-            } else {
-              console.warn(`[withSentryCppExceptions] Regex não casou em: ${patch.file}`);
+            if (!content.includes('YGNodeConstRef')) {
               // Tentativa de fallback radical: substituir YGNodeRef por YGNodeConstRef em assinaturas de Measure
               if (patch.file.endsWith('.m')) {
                  const fallbackRegex = /Measure\(\s*YGNodeRef\s+node/g;
                  if (content.match(fallbackRegex)) {
-                    console.log(`[withSentryCppExceptions] Aplicando fallback radical em: ${patch.file}`);
                     content = content.replace(fallbackRegex, 'Measure(YGNodeConstRef node');
                     fs.writeFileSync(fullPath, content);
                  }
               }
             }
           }
-        } else {
-          console.warn(`[withSentryCppExceptions] Arquivo não encontrado: ${patch.file}`);
         }
       });
 
