@@ -13,13 +13,21 @@ const patches = [
   },
   {
     file: 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m',
-    find: /RCTBaseTextInputShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
-    replace: 'RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node'
+    find: /@implementation\s+RCTBaseTextInputShadowView\s+\{/g,
+    replace: `static YGSize RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode);
+static float RCTTextInputShadowViewBaseline(YGNodeConstRef node, const float width, const float height);
+
+@implementation RCTBaseTextInputShadowView {`
   },
   {
     file: 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m',
-    find: /RCTTextInputShadowViewBaseline\s*\(\s*YGNodeRef\s+node/g,
-    replace: 'RCTTextInputShadowViewBaseline(YGNodeConstRef node'
+    find: /static\s+YGSize\s+RCTBaseTextInputShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
+    replace: 'static YGSize RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node'
+  },
+  {
+    file: 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m',
+    find: /static\s+float\s+RCTTextInputShadowViewBaseline\s*\(\s*YGNodeRef\s+node/g,
+    replace: 'static float RCTTextInputShadowViewBaseline(YGNodeConstRef node'
   },
   {
     file: 'node_modules/react-native/React/Views/RCTShadowView.m',

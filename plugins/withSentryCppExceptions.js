@@ -34,6 +34,7 @@ const SNIPPET = `
       target.build_configurations.each do |config|
         config.build_settings['CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES'] = 'NO'
         config.build_settings['GCC_WARN_INCOMPATIBLE_POINTER_TYPES'] = 'NO'
+        config.build_settings['CLANG_WARN_STRICT_PROTOTYPES'] = 'NO'
         
         cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
         unless cflags.include?('-Wno-incompatible-function-pointer-types')
@@ -43,6 +44,14 @@ const SNIPPET = `
         cxxflags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
         unless cxxflags.include?('-Wno-incompatible-function-pointer-types')
           config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{cxxflags} -Wno-incompatible-function-pointer-types -Wno-error=incompatible-function-pointer-types"
+        end
+      end
+
+      # Forçar especificamente para React-RCTText se ele existir
+      if target.name == 'React-RCTText' || target.name == 'Yoga'
+        target.build_configurations.each do |config|
+          config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+          config.build_settings['SWIFT_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         end
       end
 
@@ -59,10 +68,13 @@ const SNIPPET = `
 
 function addOrUpdatePostInstall(contents) {
   // Sempre tenta atualizar o snippet para garantir que as flags mais recentes sejam aplicadas
-  // Removemos a versão antiga se existir para evitar duplicação ou conflito
-  let newContents = contents;
-  
+  // Se já existe uma versão nossa, vamos substituí-la
   if (contents.includes('CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES')) {
+    // Tenta encontrar o bloco antigo e substituir
+    const oldSnippetRegex = /# Forçar flags de compatibilidade para TODOS os targets[\s\S]*?end\s+end\s+end/g;
+    if (contents.match(oldSnippetRegex)) {
+       return contents.replace(oldSnippetRegex, SNIPPET.trim());
+    }
     return contents;
   }
 
