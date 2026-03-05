@@ -45,6 +45,10 @@ export interface WatermarkConfig {
   includeUserInfo: boolean;
   /** Telas onde a marca d'água está ativada */
   protectedScreens: string[];
+  /** Intervalo de atualização em ms */
+  updateInterval?: number;
+  /** Habilitar logs de depuração */
+  enableLogging?: boolean;
 }
 
 /**
@@ -92,7 +96,9 @@ export const watermarkConfig: WatermarkConfig = {
     'CheckoutScreen',
     'CardInfoScreen',
     'SecuritySettingsScreen'
-  ]
+  ],
+  updateInterval: 30000,
+  enableLogging: false
 };
 
 /**

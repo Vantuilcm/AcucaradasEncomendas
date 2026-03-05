@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { loggingService } from '../services/LoggingService';
-import securityConfig from '../config/securityConfig';
+import { securityConfig } from '../config/securityConfig';
 
 interface DynamicWatermarkProps {
   /** Texto a ser exibido na marca d'água */
@@ -44,10 +44,9 @@ export const DynamicWatermark: React.FC<DynamicWatermarkProps> = ({
   enableLogging = securityConfig.watermark?.enableLogging || false,
 }) => {
   const [watermarkText, setWatermarkText] = useState<string>('');
-  const [timestamp, setTimestamp] = useState<string>('');
 
   // Gerar texto da marca d'água
-  const generateWatermarkText = () => {
+  const generateWatermarkText = useCallback(() => {
     try {
       // Usar gerador personalizado se fornecido
       if (customTextGenerator && typeof customTextGenerator === 'function') {
@@ -57,7 +56,6 @@ export const DynamicWatermark: React.FC<DynamicWatermarkProps> = ({
       // Texto padrão com informações do usuário e timestamp
       const currentDate = new Date();
       const formattedDate = `${currentDate.toLocaleDateString()} ${currentDate.toLocaleTimeString()}`;
-      setTimestamp(formattedDate);
 
       // Texto personalizado ou padrão
       const baseText = text || securityConfig.watermark?.defaultText || 'CONFIDENCIAL';
@@ -88,17 +86,12 @@ export const DynamicWatermark: React.FC<DynamicWatermarkProps> = ({
       }
       return 'CONFIDENCIAL';
     }
-  };
+  }, [customTextGenerator, enableLogging, text, userInfo]);
 
   // Atualizar marca d'água periodicamente
   useEffect(() => {
     // Gerar texto inicial
     setWatermarkText(generateWatermarkText());
-
-    // Configurar intervalo para atualização
-    const intervalId = setInterval(() => {
-      setWatermarkText(generateWatermarkText());
-    }, updateInterval);
 
     if (enableLogging) {
       loggingService.info('Marca d\'água dinâmica ativada', {
@@ -107,11 +100,13 @@ export const DynamicWatermark: React.FC<DynamicWatermarkProps> = ({
       });
     }
 
-    // Limpar intervalo ao desmontar
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [updateInterval, text, userInfo]);
+    // Configurar intervalo para atualização
+    const intervalId = setInterval(() => {
+      setWatermarkText(generateWatermarkText());
+    }, updateInterval);
+
+    return () => clearInterval(intervalId);
+  }, [generateWatermarkText, updateInterval, enableLogging]);
 
   // Calcular dimensões da tela para posicionar a marca d'água
   const { width, height } = Dimensions.get('window');

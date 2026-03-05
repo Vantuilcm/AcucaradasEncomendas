@@ -76,7 +76,8 @@ export function AdvancedProductSearch({
     };
 
     executeSearch();
-  }, [selectedCategory, selectedTag, priceRange, sortOption, page]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, selectedTag, priceRange, sortOption, page, searchQuery, searchProducts]);
 
   // Executar busca quando o termo de busca mudar
   const handleSearch = useCallback(async () => {

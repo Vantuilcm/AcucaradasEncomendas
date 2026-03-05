@@ -13,13 +13,13 @@ export async function getCurrentPositionAsync(): Promise<{
 }
 
 export async function reverseGeocodeAsync(): Promise<
-  Array<{
+  {
     street?: string;
     streetNumber?: string;
     district?: string;
     city?: string;
     region?: string;
-  }>
+  }[]
 > {
   return [{}];
 }

@@ -49,7 +49,7 @@ export const DeliveryTracker = ({
   });
 
   // Simular obtenção de localização atual do entregador
-  const fetchCurrentLocation = async () => {
+  const fetchCurrentLocation = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -80,11 +80,11 @@ export const DeliveryTracker = ({
       setEstimatedTime(timeInMinutes);
 
       setLoading(false);
-    } catch (err) {
+    } catch (_) {
       setError('Não foi possível obter a localização do entregador.');
       setLoading(false);
     }
-  };
+  }, [storeAddress, deliveryAddress]);
 
   // Calcular distância entre dois pontos utilizando a fórmula de Haversine
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -111,7 +111,7 @@ export const DeliveryTracker = ({
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchCurrentLocation]);
 
   return (
     <View style={styles.container}>

@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import * as FileSystem from 'expo-file-system';
+// @ts-ignore
 import { SHA1 } from 'crypto-js';
-import { BlurView } from '../compat/expoBlur';
 
 // Tipos de placeholder
 export enum PlaceholderType {
@@ -26,7 +26,7 @@ export enum PlaceholderType {
 // Props do componente
 interface EnhancedImageProps extends Omit<ImageProps, 'source'> {
   source: { uri: string } | number;
-  style: ImageStyle | ViewStyle;
+  style?: any;
   placeholderType?: PlaceholderType;
   placeholderColor?: string;
   thumbnailSource?: { uri: string } | number;
@@ -54,9 +54,7 @@ export const EnhancedImage = memo((props: EnhancedImageProps) => {
     cacheTimeout = DEFAULT_CACHE_TIMEOUT,
     onLoad,
     onError,
-    lowResFirst = false,
     containerStyle,
-    priority = 'normal',
     lazy = true,
     ...otherProps
   } = props;
@@ -65,7 +63,6 @@ export const EnhancedImage = memo((props: EnhancedImageProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const mainImageOpacity = useRef(new Animated.Value(0)).current;
   const thumbnailOpacity = useRef(new Animated.Value(0)).current;
   const [isInView, setIsInView] = useState(!lazy); // se não for lazy, já está em view
@@ -145,7 +142,7 @@ export const EnhancedImage = memo((props: EnhancedImageProps) => {
           remoteUri,
           cacheFilePath,
           {},
-          downloadProgress => {
+          () => {
             // Opcionalmente, acompanhar o progresso do download
             // const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
           }
