@@ -8,7 +8,11 @@ type CameraPicture = {
   base64?: string;
 };
 
-export const Camera = forwardRef<any, any>((props, ref) => {
+interface CameraComponent extends React.ForwardRefExoticComponent<any> {
+  requestCameraPermissionsAsync?: () => Promise<{ status: CameraPermissionStatus }>;
+}
+
+export const Camera: CameraComponent = forwardRef<any, any>((props, ref) => {
   useImperativeHandle(ref, () => ({
     takePictureAsync: async (): Promise<CameraPicture> => ({
       uri: '',

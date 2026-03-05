@@ -13,25 +13,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Chip, Searchbar, Button, Badge } from 'react-native-paper';
 import { useCart } from '../contexts/CartContext';
-import { ProductCategories } from '../types/Product';
+import { Product, ProductCategories } from '../types/Product';
 import { Ionicons } from '@expo/vector-icons';
-
-interface Product {
-  id: string;
-  nome: string;
-  descricao: string;
-  preco: number;
-  categoria: string;
-  disponivel: boolean;
-  imagens: string[];
-  destacado?: boolean;
-  tagsEspeciais?: string[];
-}
 
 interface ProductGridProps {
   products: Product[];
   loading?: boolean;
-  error?: string;
+  error?: any;
   onRefresh?: () => void;
   onFilterChange?: (filter: { categoria?: string; busca?: string }) => void;
   initialFilter?: { categoria?: string; busca?: string };
