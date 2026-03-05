@@ -28,30 +28,33 @@ if (!withDangerousMod) {
 const fs = require('fs');
 const path = require('path');
 
-const SNIPPET = `  installer.pods_project.targets.each do |target|
-    if ['Sentry', 'SentryCrash'].include?(target.name)
+const SNIPPET = `
+    installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
-        config.build_settings['GCC_ENABLE_CPP_EXCEPTIONS'] = 'YES'
-        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-        config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        # Fix for Xcode 15 incompatible function pointer types
+        config.build_settings['CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES'] = 'NO'
+        config.build_settings['OTHER_CFLAGS'] = '$(inherited) -Wno-incompatible-function-pointer-types'
+        config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -Wno-incompatible-function-pointer-types'
+      end
+
+      if ['Sentry', 'SentryCrash'].include?(target.name)
+        target.build_configurations.each do |config|
+          config.build_settings['GCC_ENABLE_CPP_EXCEPTIONS'] = 'YES'
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+          config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        end
       end
     end
-    target.build_configurations.each do |config|
-      config.build_settings['CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES'] = 'NO'
-      config.build_settings['OTHER_CFLAGS'] = '$(inherited) -Wno-incompatible-function-pointer-types'
-      config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -Wno-incompatible-function-pointer-types'
-    end
-  end
 `;
 
 function addOrUpdatePostInstall(contents) {
-  if (contents.includes('GCC_ENABLE_CPP_EXCEPTIONS')) {
+  if (contents.includes('CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES')) {
     return contents;
   }
 
-  const postInstallMatch = contents.match(/post_install do \|installer\|\n/);
+  const postInstallMatch = contents.match(/post_install do \|installer\|/);
   if (postInstallMatch) {
-    return contents.replace(/post_install do \|installer\|\n/, match => `${match}${SNIPPET}`);
+    return contents.replace(/post_install do \|installer\|/, match => `${match}${SNIPPET}`);
   }
 
   return `${contents}\npost_install do |installer|\n${SNIPPET}end\n`;
