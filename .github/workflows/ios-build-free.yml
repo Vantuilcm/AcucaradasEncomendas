@@ -119,7 +119,8 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --legacy-peer-deps --no-audit --fund=false
-        env:          NODE_ENV: development
+        env:
+          NODE_ENV: development
 
       - name: Prepare iOS Build
         run: npm run prepare:ios
