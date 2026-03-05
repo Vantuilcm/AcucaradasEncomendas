@@ -83,6 +83,7 @@ jobs:
         run: |
           npm install --legacy-peer-deps --no-audit --fund=false
         env:
+          # Fix indentation for env variables
           NODE_ENV: development
           NO_SENTRY_VALIDATE: 1
 
@@ -192,3 +193,5 @@ jobs:
           path: ./Acucaradas.ipa
           if-no-files-found: error
           retention-days: 7
+
+# Force rebuild for syntax fix verification
