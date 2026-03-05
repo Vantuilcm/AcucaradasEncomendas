@@ -105,17 +105,17 @@ module.exports = function withSentryCppExceptions(config) {
         },
         {
           file: 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m',
-          find: /RCTBaseTextInputShadowViewMeasure\(\s*YGNodeRef\s+node/g,
+          find: /RCTBaseTextInputShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
           replace: 'RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node'
         },
         {
           file: 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m',
-          find: /RCTTextInputShadowViewBaseline\(\s*YGNodeRef\s+node/g,
+          find: /RCTTextInputShadowViewBaseline\s*\(\s*YGNodeRef\s+node/g,
           replace: 'RCTTextInputShadowViewBaseline(YGNodeConstRef node'
         },
         {
           file: 'node_modules/react-native/React/Views/RCTShadowView.m',
-          find: /RCTShadowViewMeasure\(\s*YGNodeRef\s+node/g,
+          find: /RCTShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
           replace: 'RCTShadowViewMeasure(YGNodeConstRef node'
         }
       ];
