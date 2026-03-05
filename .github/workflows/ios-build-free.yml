@@ -2,7 +2,7 @@
 name: iOS Production Build (GitHub Free)
 
 concurrency:
-  group: ios-build-${{ github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 on:
@@ -13,11 +13,6 @@ on:
       - upgrade/sdk-52-rn-076
   workflow_dispatch:
     inputs:
-      ref:
-        description: 'Git ref (branch or tag)'
-        required: true
-        default: 'master'
-        type: string
       profile:
         description: 'EAS Build Profile'
         required: true
@@ -46,10 +41,9 @@ on:
 
 env:
   # Using safe access to inputs
-  INPUT_REF: ${{ inputs.ref || github.event.client_payload.ref || github.ref_name }}
-  INPUT_PROFILE: ${{ inputs.profile || github.event.client_payload.profile || 'production_local' }}
-  INPUT_MODE: ${{ inputs.mode || github.event.client_payload.mode || 'github_macos' }}
-  INPUT_PUBLISH_UPDATE: ${{ inputs.publish_update || github.event.client_payload.publish_update || false }}
+  INPUT_PROFILE: ${{ github.event.inputs.profile || github.event.client_payload.profile || 'production_local' }}
+  INPUT_MODE: ${{ github.event.inputs.mode || github.event.client_payload.mode || 'github_macos' }}
+  INPUT_PUBLISH_UPDATE: ${{ github.event.inputs.publish_update || github.event.client_payload.publish_update || false }}
 
 jobs:
   preflight:
@@ -63,8 +57,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ env.INPUT_REF }}
 
       - name: Validate profile
         run: |
@@ -113,12 +105,10 @@ jobs:
     name: Build iOS IPA
     runs-on: macos-14
     needs: preflight
-    if: ${{ (inputs.mode || github.event.client_payload.mode || 'github_macos') == 'github_macos' && (inputs.profile || github.event.client_payload.profile || 'production_local') == 'production_local' }}
+    if: ${{ (github.event.inputs.mode || github.event.client_payload.mode || 'github_macos') == 'github_macos' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ env.INPUT_REF }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -129,8 +119,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --legacy-peer-deps --no-audit --fund=false
-        env:
-          NODE_ENV: development
+        env:          NODE_ENV: development
 
       - name: Prepare iOS Build
         run: npm run prepare:ios
@@ -161,7 +150,7 @@ jobs:
           echo "📌 Commit Hash: $(git rev-parse --short HEAD)"
           
           echo "🔐 Verificando presença de segredos..."
-          if [ -n "${{ secrets.IOS_DIST_CERT_BASE64 }}" ]; then echo "✅ IOS_DIST_CERT_BASE64 está configurado (Tamanho: ${#APPLE_CERT_BASE64} chars)"; else echo "❌ IOS_DIST_CERT_BASE64 está VAZIO"; fi
+          if [ -n "${{ secrets.IOS_DIST_CERT_BASE64 }}" ]; then echo "✅ IOS_DIST_CERT_BASE64 está configurado"; else echo "❌ IOS_DIST_CERT_BASE64 está VAZIO"; fi
           if [ -n "${{ secrets.IOS_CERT_PASSWORD }}" ]; then echo "✅ IOS_CERT_PASSWORD está configurado"; else echo "❌ IOS_CERT_PASSWORD está VAZIO"; fi
 
           echo "📂 Listando diretório credentials/ios/:"
@@ -198,7 +187,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Acucaradas-iOS-IPA
-          path: Acucaradas.ipa
+          name: Acucaradas-IPA
+          path: ./Acucaradas.ipa
           if-no-files-found: error
           retention-days: 7
