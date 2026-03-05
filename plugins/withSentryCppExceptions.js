@@ -119,42 +119,34 @@ module.exports = function withSentryCppExceptions(config) {
 
       applyStringPatch(yogaHeader, [
         {
-          from:
-            'typedef YGSize (*YGMeasureFunc)(\n    YGNodeRef node,\n    float width,\n    YGMeasureMode widthMode,\n    float height,\n    YGMeasureMode heightMode);',
-          to:
-            'typedef YGSize (*YGMeasureFunc)(\n    YGNodeConstRef node,\n    float width,\n    YGMeasureMode widthMode,\n    float height,\n    YGMeasureMode heightMode);'
+          // Flexível com espaços e quebras de linha
+          from: /typedef\s+YGSize\s+\(\*YGMeasureFunc\)\(\s*YGNodeRef\s+node,/g,
+          to: 'typedef YGSize (*YGMeasureFunc)(\n    YGNodeConstRef node,'
         }
       ]);
 
       applyStringPatch(textShadowView, [
         {
-          from:
-            'RCTTextShadowViewMeasure(YGNodeRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)',
-          to:
-            'RCTTextShadowViewMeasure(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)'
+          from: /RCTTextShadowViewMeasure\(\s*YGNodeRef\s+node,/g,
+          to: 'RCTTextShadowViewMeasure(YGNodeConstRef node,'
         }
       ]);
 
       applyStringPatch(shadowView, [
         {
-          from:
-            'RCTShadowViewMeasure(YGNodeRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)',
-          to:
-            'RCTShadowViewMeasure(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)'
+          from: /RCTShadowViewMeasure\(\s*YGNodeRef\s+node,/g,
+          to: 'RCTShadowViewMeasure(YGNodeConstRef node,'
         }
       ]);
+
       applyStringPatch(baseTextInputShadowView, [
         {
-          from:
-            'RCTBaseTextInputShadowViewMeasure(YGNodeRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)',
-          to:
-            'RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)'
+          from: /RCTBaseTextInputShadowViewMeasure\(\s*YGNodeRef\s+node,/g,
+          to: 'RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node,'
         },
         {
-          from:
-            'RCTBaseTextInputShadowViewMeasure(YGNodeRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode);',
-          to:
-            'static YGSize RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode);'
+          from: /static\s+YGSize\s+RCTBaseTextInputShadowViewMeasure\(\s*YGNodeRef\s+node,/g,
+          to: 'static YGSize RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node,'
         }
       ]);
 
@@ -170,10 +162,16 @@ function applyStringPatch(filePath, replacements) {
   const contents = fs.readFileSync(filePath, 'utf8');
   let updated = contents;
   replacements.forEach(({ from, to }) => {
+    // Se 'to' já existe no conteúdo, não aplica o patch
     if (updated.includes(to)) {
       return;
     }
-    if (updated.includes(from)) {
+
+    if (from instanceof RegExp) {
+      if (from.test(updated)) {
+        updated = updated.replace(from, to);
+      }
+    } else if (updated.includes(from)) {
       updated = updated.replace(from, to);
     }
   });
