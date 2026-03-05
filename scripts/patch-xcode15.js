@@ -33,6 +33,11 @@ static float RCTTextInputShadowViewBaseline(YGNodeConstRef node, const float wid
     file: 'node_modules/react-native/React/Views/RCTShadowView.m',
     find: /RCTShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
     replace: 'RCTShadowViewMeasure(YGNodeConstRef node'
+  },
+  {
+    file: 'node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m',
+    find: /RCTTextShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
+    replace: 'RCTTextShadowViewMeasure(YGNodeConstRef node'
   }
 ];
 
