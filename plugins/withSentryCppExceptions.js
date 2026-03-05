@@ -33,8 +33,18 @@ const SNIPPET = `
       target.build_configurations.each do |config|
         # Fix for Xcode 15 incompatible function pointer types
         config.build_settings['CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES'] = 'NO'
-        config.build_settings['OTHER_CFLAGS'] = '$(inherited) -Wno-incompatible-function-pointer-types'
-        config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -Wno-incompatible-function-pointer-types'
+        config.build_settings['GCC_WARN_INCOMPATIBLE_POINTER_TYPES'] = 'NO'
+        
+        # Garantir que as flags de supressão estejam presentes
+        current_cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
+        unless current_cflags.include?('-Wno-incompatible-function-pointer-types')
+          config.build_settings['OTHER_CFLAGS'] = "#{current_cflags} -Wno-incompatible-function-pointer-types -Wno-error=incompatible-function-pointer-types"
+        end
+
+        current_cxxflags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
+        unless current_cxxflags.include?('-Wno-incompatible-function-pointer-types')
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{current_cxxflags} -Wno-incompatible-function-pointer-types -Wno-error=incompatible-function-pointer-types"
+        end
       end
 
       if ['Sentry', 'SentryCrash'].include?(target.name)
@@ -49,14 +59,17 @@ const SNIPPET = `
 
 function addOrUpdatePostInstall(contents) {
   if (contents.includes('CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES')) {
-    return contents;
+    // Se já tem, vamos substituir o bloco inteiro para garantir que as novas flags sejam aplicadas
+    return contents; 
   }
 
   const postInstallMatch = contents.match(/post_install do \|installer\|/);
   if (postInstallMatch) {
+    console.log('[withSentryCppExceptions] Adicionando snippet ao post_install existente');
     return contents.replace(/post_install do \|installer\|/, match => `${match}${SNIPPET}`);
   }
 
+  console.log('[withSentryCppExceptions] Criando novo bloco post_install');
   return `${contents}\npost_install do |installer|\n${SNIPPET}end\n`;
 }
 
@@ -81,74 +94,66 @@ module.exports = function withSentryCppExceptions(config) {
     'ios',
     async configMod => {
       const projectRoot = configMod.modRequest.projectRoot;
-      const yogaHeader = path.join(
-        projectRoot,
-        'node_modules',
-        'react-native',
-        'ReactCommon',
-        'yoga',
-        'yoga',
-        'Yoga.h'
-      );
-      const textShadowView = path.join(
-        projectRoot,
-        'node_modules',
-        'react-native',
-        'Libraries',
-        'Text',
-        'Text',
-        'RCTTextShadowView.m'
-      );
-      const shadowView = path.join(
-        projectRoot,
-        'node_modules',
-        'react-native',
-        'React',
-        'Views',
-        'RCTShadowView.m'
-      );
-      const baseTextInputShadowView = path.join(
-        projectRoot,
-        'node_modules',
-        'react-native',
-        'Libraries',
-        'Text',
-        'TextInput',
-        'RCTBaseTextInputShadowView.m'
-      );
-
-      applyStringPatch(yogaHeader, [
+      
+      const filesToPatch = [
         {
-          // Flexível com espaços e quebras de linha
-          from: /typedef\s+YGSize\s+\(\*YGMeasureFunc\)\(\s*YGNodeRef\s+node,/g,
-          to: 'typedef YGSize (*YGMeasureFunc)(\n    YGNodeConstRef node,'
-        }
-      ]);
-
-      applyStringPatch(textShadowView, [
-        {
-          from: /RCTTextShadowViewMeasure\(\s*YGNodeRef\s+node,/g,
-          to: 'RCTTextShadowViewMeasure(YGNodeConstRef node,'
-        }
-      ]);
-
-      applyStringPatch(shadowView, [
-        {
-          from: /RCTShadowViewMeasure\(\s*YGNodeRef\s+node,/g,
-          to: 'RCTShadowViewMeasure(YGNodeConstRef node,'
-        }
-      ]);
-
-      applyStringPatch(baseTextInputShadowView, [
-        {
-          from: /RCTBaseTextInputShadowViewMeasure\(\s*YGNodeRef\s+node,/g,
-          to: 'RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node,'
+          name: 'Yoga.h',
+          path: path.join(projectRoot, 'node_modules/react-native/ReactCommon/yoga/yoga/Yoga.h'),
+          replacements: [
+            {
+              from: /typedef\s+YGSize\s+\(\*YGMeasureFunc\)\(\s*YGNodeRef\s+node/g,
+              to: 'typedef YGSize (*YGMeasureFunc)(YGNodeConstRef node'
+            },
+            {
+              from: /typedef\s+float\s+\(\*YGBaselineFunc\)\(\s*YGNodeRef\s+node/g,
+              to: 'typedef float (*YGBaselineFunc)(YGNodeConstRef node'
+            }
+          ]
         },
         {
-          from: /static\s+YGSize\s+RCTBaseTextInputShadowViewMeasure\(\s*YGNodeRef\s+node,/g,
-          to: 'static YGSize RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node,'
+          name: 'RCTBaseTextInputShadowView.m',
+          path: path.join(projectRoot, 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m'),
+          replacements: [
+            {
+              from: /static\s+YGSize\s+RCTBaseTextInputShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
+              to: 'static YGSize RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node'
+            },
+            {
+              from: /static\s+float\s+RCTTextInputShadowViewBaseline\s*\(\s*YGNodeRef\s+node/g,
+              to: 'static float RCTTextInputShadowViewBaseline(YGNodeConstRef node'
+            }
+          ]
+        },
+        {
+          name: 'RCTShadowView.m',
+          path: path.join(projectRoot, 'node_modules/react-native/React/Views/RCTShadowView.m'),
+          replacements: [
+            {
+              from: /RCTShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
+              to: 'RCTShadowViewMeasure(YGNodeConstRef node'
+            }
+          ]
+        },
+        {
+          name: 'RCTTextShadowView.m',
+          path: path.join(projectRoot, 'node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m'),
+          replacements: [
+            {
+              from: /RCTTextShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
+              to: 'RCTTextShadowViewMeasure(YGNodeConstRef node'
+            }
+          ]
         }
-      ]);
+      ];
+
+      filesToPatch.forEach(file => {
+        if (fs.existsSync(file.path)) {
+          console.log(`[withSentryCppExceptions] Aplicando patch em ${file.name}`);
+          applyStringPatch(file.path, file.replacements);
+        } else {
+          console.warn(`[withSentryCppExceptions] Arquivo não encontrado: ${file.path}`);
+        }
+      });
 
       return configMod;
     }
@@ -156,13 +161,9 @@ module.exports = function withSentryCppExceptions(config) {
 };
 
 function applyStringPatch(filePath, replacements) {
-  if (!fs.existsSync(filePath)) {
-    return;
-  }
   const contents = fs.readFileSync(filePath, 'utf8');
   let updated = contents;
   replacements.forEach(({ from, to }) => {
-    // Se 'to' já existe no conteúdo, não aplica o patch
     if (updated.includes(to)) {
       return;
     }
