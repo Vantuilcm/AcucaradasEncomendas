@@ -20,7 +20,7 @@ export class SecurityService {
   private static readonly MAX_LOGIN_ATTEMPTS = 5;
   private static readonly BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos
   private static loginAttempts: Map<string, { count: number; lastAttempt: number }> = new Map();
-  private static activityMonitorInterval: NodeJS.Timeout | null = null;
+  private static activityMonitorInterval: any = null;
   private static lastActivityTimestamp: number = Date.now();
 
   /**
