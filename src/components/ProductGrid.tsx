@@ -13,7 +13,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Chip, Searchbar, Button, Badge } from 'react-native-paper';
 import { useCart } from '../contexts/CartContext';
-import { Product, ProductCategories } from '../types/Product';
+import { Product } from '../types/Product';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ProductGridProps {
@@ -48,7 +48,7 @@ export function ProductGrid({
   onProductPress,
   emptyMessage = 'Nenhum produto encontrado',
 }: ProductGridProps) {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { addItem } = useCart();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialFilter.busca || '');
