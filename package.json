@@ -10,7 +10,7 @@
   "scripts": {
     "prepare:ios": "node ./scripts/prepare-ios-build.js",
     "build:ios": "node -e \"require('fs').mkdirSync('build-artifacts',{recursive:true})\" && eas build --platform ios --profile production_local --local --non-interactive --output ./build-artifacts/Acucaradas.ipa",
-    "postinstall": "patch-package",
+    "postinstall": "node scripts/patch-xcode15.js && patch-package",
     "start": "expo start",
     "web": "expo start --web",
     "android": "expo run:android",

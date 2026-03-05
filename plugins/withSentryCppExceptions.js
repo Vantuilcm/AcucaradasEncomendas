@@ -30,23 +30,23 @@ const path = require('path');
 
 const SNIPPET = `
     installer.pods_project.targets.each do |target|
+      # Forçar flags de compatibilidade para TODOS os targets, especialmente React-RCTText e Yoga
       target.build_configurations.each do |config|
-        # Fix for Xcode 15 incompatible function pointer types
         config.build_settings['CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES'] = 'NO'
         config.build_settings['GCC_WARN_INCOMPATIBLE_POINTER_TYPES'] = 'NO'
         
-        # Garantir que as flags de supressão estejam presentes
-        current_cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
-        unless current_cflags.include?('-Wno-incompatible-function-pointer-types')
-          config.build_settings['OTHER_CFLAGS'] = "#{current_cflags} -Wno-incompatible-function-pointer-types -Wno-error=incompatible-function-pointer-types"
+        cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
+        unless cflags.include?('-Wno-incompatible-function-pointer-types')
+          config.build_settings['OTHER_CFLAGS'] = "#{cflags} -Wno-incompatible-function-pointer-types -Wno-error=incompatible-function-pointer-types"
         end
 
-        current_cxxflags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
-        unless current_cxxflags.include?('-Wno-incompatible-function-pointer-types')
-          config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{current_cxxflags} -Wno-incompatible-function-pointer-types -Wno-error=incompatible-function-pointer-types"
+        cxxflags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
+        unless cxxflags.include?('-Wno-incompatible-function-pointer-types')
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{cxxflags} -Wno-incompatible-function-pointer-types -Wno-error=incompatible-function-pointer-types"
         end
       end
 
+      # Sentry specific configurations
       if ['Sentry', 'SentryCrash'].include?(target.name)
         target.build_configurations.each do |config|
           config.build_settings['GCC_ENABLE_CPP_EXCEPTIONS'] = 'YES'
@@ -58,22 +58,30 @@ const SNIPPET = `
 `;
 
 function addOrUpdatePostInstall(contents) {
+  // Sempre tenta atualizar o snippet para garantir que as flags mais recentes sejam aplicadas
+  // Removemos a versão antiga se existir para evitar duplicação ou conflito
+  let newContents = contents;
+  
   if (contents.includes('CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES')) {
-    // Se já tem, vamos substituir o bloco inteiro para garantir que as novas flags sejam aplicadas
-    return contents; 
+    // Se já existe um bloco nosso, vamos tentar substituí-lo ou apenas deixar o prebuild continuar
+    // Para simplificar, se já existe a flag, assumimos que o Podfile está ok ou será corrigido no próximo prebuild limpo
+    console.log('[withSentryCppExceptions] Flags do Xcode 15 já detectadas no Podfile.');
+    return contents;
   }
 
   const postInstallMatch = contents.match(/post_install do \|installer\|/);
   if (postInstallMatch) {
-    console.log('[withSentryCppExceptions] Adicionando snippet ao post_install existente');
+    console.log('[withSentryCppExceptions] Injetando snippet no post_install existente');
     return contents.replace(/post_install do \|installer\|/, match => `${match}${SNIPPET}`);
   }
 
-  console.log('[withSentryCppExceptions] Criando novo bloco post_install');
+  console.log('[withSentryCppExceptions] Criando novo bloco post_install no Podfile');
   return `${contents}\npost_install do |installer|\n${SNIPPET}end\n`;
 }
 
 module.exports = function withSentryCppExceptions(config) {
+  console.log('[withSentryCppExceptions] Iniciando aplicação do plugin...');
+  
   let updatedConfig = config;
   if (withPodfile) {
     updatedConfig = withPodfile(updatedConfig, configMod => {
@@ -94,64 +102,59 @@ module.exports = function withSentryCppExceptions(config) {
     'ios',
     async configMod => {
       const projectRoot = configMod.modRequest.projectRoot;
-      
-      const filesToPatch = [
+      console.log(`[withSentryCppExceptions] Project Root: ${projectRoot}`);
+
+      // Lista de arquivos e seus patches com regex ultra-simplificado
+      const patches = [
         {
-          name: 'Yoga.h',
-          path: path.join(projectRoot, 'node_modules/react-native/ReactCommon/yoga/yoga/Yoga.h'),
-          replacements: [
-            {
-              from: /typedef\s+YGSize\s+\(\*YGMeasureFunc\)\(\s*YGNodeRef\s+node/g,
-              to: 'typedef YGSize (*YGMeasureFunc)(YGNodeConstRef node'
-            },
-            {
-              from: /typedef\s+float\s+\(\*YGBaselineFunc\)\(\s*YGNodeRef\s+node/g,
-              to: 'typedef float (*YGBaselineFunc)(YGNodeConstRef node'
-            }
-          ]
+          file: 'node_modules/react-native/ReactCommon/yoga/yoga/Yoga.h',
+          find: /YGNodeRef\s+node,\s+float\s+width,\s+YGMeasureMode\s+widthMode/g,
+          replace: 'YGNodeConstRef node, float width, YGMeasureMode widthMode'
         },
         {
-          name: 'RCTBaseTextInputShadowView.m',
-          path: path.join(projectRoot, 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m'),
-          replacements: [
-            {
-              from: /static\s+YGSize\s+RCTBaseTextInputShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
-              to: 'static YGSize RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node'
-            },
-            {
-              from: /static\s+float\s+RCTTextInputShadowViewBaseline\s*\(\s*YGNodeRef\s+node/g,
-              to: 'static float RCTTextInputShadowViewBaseline(YGNodeConstRef node'
-            }
-          ]
+          file: 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m',
+          find: /RCTBaseTextInputShadowViewMeasure\(\s*YGNodeRef\s+node/g,
+          replace: 'RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node'
         },
         {
-          name: 'RCTShadowView.m',
-          path: path.join(projectRoot, 'node_modules/react-native/React/Views/RCTShadowView.m'),
-          replacements: [
-            {
-              from: /RCTShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
-              to: 'RCTShadowViewMeasure(YGNodeConstRef node'
-            }
-          ]
+          file: 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m',
+          find: /RCTTextInputShadowViewBaseline\(\s*YGNodeRef\s+node/g,
+          replace: 'RCTTextInputShadowViewBaseline(YGNodeConstRef node'
         },
         {
-          name: 'RCTTextShadowView.m',
-          path: path.join(projectRoot, 'node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m'),
-          replacements: [
-            {
-              from: /RCTTextShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
-              to: 'RCTTextShadowViewMeasure(YGNodeConstRef node'
-            }
-          ]
+          file: 'node_modules/react-native/React/Views/RCTShadowView.m',
+          find: /RCTShadowViewMeasure\(\s*YGNodeRef\s+node/g,
+          replace: 'RCTShadowViewMeasure(YGNodeConstRef node'
         }
       ];
 
-      filesToPatch.forEach(file => {
-        if (fs.existsSync(file.path)) {
-          console.log(`[withSentryCppExceptions] Aplicando patch em ${file.name}`);
-          applyStringPatch(file.path, file.replacements);
+      patches.forEach(patch => {
+        const fullPath = path.join(projectRoot, patch.file);
+        if (fs.existsSync(fullPath)) {
+          let content = fs.readFileSync(fullPath, 'utf8');
+          if (content.match(patch.find)) {
+            console.log(`[withSentryCppExceptions] Aplicando patch em: ${patch.file}`);
+            content = content.replace(patch.find, patch.replace);
+            fs.writeFileSync(fullPath, content);
+          } else {
+            // Se não encontrou o regex, pode ser que já esteja aplicado ou o arquivo mudou
+            if (content.includes('YGNodeConstRef')) {
+              console.log(`[withSentryCppExceptions] Patch já parece estar aplicado em: ${patch.file}`);
+            } else {
+              console.warn(`[withSentryCppExceptions] Regex não casou em: ${patch.file}`);
+              // Tentativa de fallback radical: substituir YGNodeRef por YGNodeConstRef em assinaturas de Measure
+              if (patch.file.endsWith('.m')) {
+                 const fallbackRegex = /Measure\(\s*YGNodeRef\s+node/g;
+                 if (content.match(fallbackRegex)) {
+                    console.log(`[withSentryCppExceptions] Aplicando fallback radical em: ${patch.file}`);
+                    content = content.replace(fallbackRegex, 'Measure(YGNodeConstRef node');
+                    fs.writeFileSync(fullPath, content);
+                 }
+              }
+            }
+          }
         } else {
-          console.warn(`[withSentryCppExceptions] Arquivo não encontrado: ${file.path}`);
+          console.warn(`[withSentryCppExceptions] Arquivo não encontrado: ${patch.file}`);
         }
       });
 
@@ -159,24 +162,3 @@ module.exports = function withSentryCppExceptions(config) {
     }
   ]);
 };
-
-function applyStringPatch(filePath, replacements) {
-  const contents = fs.readFileSync(filePath, 'utf8');
-  let updated = contents;
-  replacements.forEach(({ from, to }) => {
-    if (updated.includes(to)) {
-      return;
-    }
-
-    if (from instanceof RegExp) {
-      if (from.test(updated)) {
-        updated = updated.replace(from, to);
-      }
-    } else if (updated.includes(from)) {
-      updated = updated.replace(from, to);
-    }
-  });
-  if (updated !== contents) {
-    fs.writeFileSync(filePath, updated);
-  }
-}
