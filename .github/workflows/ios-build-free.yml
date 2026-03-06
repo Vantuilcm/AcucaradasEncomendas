@@ -145,6 +145,13 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify || true
 
+      - name: Install CocoaPods
+        run: |
+          echo "📦 Instalando CocoaPods..."
+          sudo gem install cocoapods -v 1.14.3
+          pod --version
+
+
       - name: Build IPA
         run: |
           set -o pipefail
