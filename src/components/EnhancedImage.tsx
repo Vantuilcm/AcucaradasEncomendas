@@ -9,11 +9,11 @@ import {
   ViewStyle,
   ImageStyle,
   ImageProps,
+  StyleProp,
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import * as FileSystem from 'expo-file-system';
 import { SHA1 } from 'crypto-js';
-import { BlurView } from '../compat/expoBlur';
 
 // Tipos de placeholder
 export enum PlaceholderType {
@@ -26,7 +26,7 @@ export enum PlaceholderType {
 // Props do componente
 interface EnhancedImageProps extends Omit<ImageProps, 'source'> {
   source: { uri: string } | number;
-  style: ImageStyle | ViewStyle;
+  style?: StyleProp<ImageStyle>;
   placeholderType?: PlaceholderType;
   placeholderColor?: string;
   thumbnailSource?: { uri: string } | number;
@@ -65,7 +65,6 @@ export const EnhancedImage = memo((props: EnhancedImageProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const mainImageOpacity = useRef(new Animated.Value(0)).current;
   const thumbnailOpacity = useRef(new Animated.Value(0)).current;
   const [isInView, setIsInView] = useState(!lazy); // se não for lazy, já está em view
@@ -145,17 +144,21 @@ export const EnhancedImage = memo((props: EnhancedImageProps) => {
           remoteUri,
           cacheFilePath,
           {},
-          downloadProgress => {
+          _downloadProgress => {
             // Opcionalmente, acompanhar o progresso do download
             // const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
           }
         );
 
-        const { uri } = await downloadResumable.downloadAsync();
-        setImageUri(`file://${uri}`);
-        setLoading(false);
-        if (onLoad) onLoad();
-        fadeIn(mainImageOpacity);
+        const result = await downloadResumable.downloadAsync();
+        if (result && result.uri) {
+          setImageUri(`file://${result.uri}`);
+          setLoading(false);
+          if (onLoad) onLoad();
+          fadeIn(mainImageOpacity);
+        } else {
+          throw new Error('Falha ao baixar imagem');
+        }
       } catch (e) {
         console.error('Erro ao processar o cache da imagem:', e);
         setImageUri(remoteUri); // Fallback para URL remota em caso de erro
@@ -212,7 +215,6 @@ export const EnhancedImage = memo((props: EnhancedImageProps) => {
             style={[StyleSheet.absoluteFill, style]}
             blurRadius={Platform.OS === 'ios' ? 10 : 5}
             onLoad={() => {
-              setThumbnailLoaded(true);
               fadeIn(thumbnailOpacity);
             }}
           />

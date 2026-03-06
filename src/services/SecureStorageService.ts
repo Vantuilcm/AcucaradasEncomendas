@@ -1,19 +1,16 @@
 import * as SecureStore from 'expo-secure-store';
-import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loggingService } from './LoggingService';
+import { EncryptionService } from './EncryptionService';
 
 /**
  * Serviço responsável pelo armazenamento seguro de dados sensíveis
  * Implementa criptografia e proteção adicional para dados críticos
  */
 export class SecureStorageService {
-  // Chave de criptografia adicional (em produção, seria gerada e armazenada de forma segura)
-  private static readonly ENCRYPTION_KEY = 'acucaradas-secure-storage-key-2024';
-  
   // Prefixo para identificar dados criptografados
-  private static readonly ENCRYPTED_PREFIX = 'ENCRYPTED_V1:';
+  private static readonly ENCRYPTED_PREFIX = 'ENCRYPTED_V2:';
 
   // Tipos de dados sensíveis que requerem proteção adicional
   private static readonly SENSITIVE_DATA_TYPES = [
@@ -71,10 +68,10 @@ export class SecureStorageService {
         await SecureStore.setItemAsync(key, valueToStore);
       }
       
-      loggingService.debug('Dados armazenados com segurança', { key, sensitive: isSensitive });
+      loggingService.info('Dados armazenados com segurança', { key, sensitive: isSensitive });
     } catch (error) {
-      loggingService.error('Erro ao armazenar dados com segurança', { error, key });
-      throw new Error(`Falha ao armazenar dados: ${error.message}`);
+      loggingService.error('Erro ao armazenar dados com segurança', { error: (error as Error).message, key });
+      throw new Error(`Falha ao armazenar dados: ${(error as Error).message}`);
     }
   }
 
@@ -106,7 +103,7 @@ export class SecureStorageService {
         if (parsedValue.expiresAt) {
           // Verificar se o valor expirou
           if (Date.now() > parsedValue.expiresAt) {
-            loggingService.debug('Dados expirados', { key });
+            loggingService.info('Dados expirados', { key });
             await this.removeData(key);
             return null;
           }
@@ -123,7 +120,7 @@ export class SecureStorageService {
       
       return storedValue;
     } catch (error) {
-      loggingService.error('Erro ao recuperar dados seguros', { error, key });
+      loggingService.error('Erro ao recuperar dados seguros', { error: (error as Error).message, key });
       return null;
     }
   }
@@ -143,9 +140,9 @@ export class SecureStorageService {
         await SecureStore.deleteItemAsync(key);
       }
       
-      loggingService.debug('Dados removidos com segurança', { key });
+      loggingService.info('Dados removidos com segurança', { key });
     } catch (error) {
-      loggingService.error('Erro ao remover dados seguros', { error, key });
+      loggingService.error('Erro ao remover dados seguros', { error: (error as Error).message, key });
     }
   }
 
@@ -156,24 +153,11 @@ export class SecureStorageService {
    */
   private static async encryptValue(value: string): Promise<string> {
     try {
-      // Gerar uma chave de criptografia baseada na chave mestra
-      const encryptionKey = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        this.ENCRYPTION_KEY
-      );
-      
-      // Em uma implementação real, usaríamos algoritmos de criptografia mais robustos
-      // como AES-GCM com IV único para cada valor
-      
-      // Implementação simplificada para demonstração
-      const encryptedValue = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        value + encryptionKey
-      );
-      
-      return `${this.ENCRYPTED_PREFIX}${encryptedValue}`;
+      await EncryptionService.getInstance().initialize();
+      const encrypted = EncryptionService.getInstance().encrypt(value);
+      return `${this.ENCRYPTED_PREFIX}${encrypted}`;
     } catch (error) {
-      loggingService.error('Erro ao criptografar valor', { error });
+      loggingService.error('Erro ao criptografar valor', { error: (error as Error).message });
       throw error;
     }
   }
@@ -185,17 +169,20 @@ export class SecureStorageService {
    */
   private static async decryptValue(encryptedValue: string): Promise<string> {
     try {
+      await EncryptionService.getInstance().initialize();
+      
+      // Suporte legado para V1 (se necessário) ou apenas V2
+      if (encryptedValue.startsWith('ENCRYPTED_V1:')) {
+        // Logica de migração ou erro
+        loggingService.warn('Tentativa de descriptografar formato legado V1');
+        return ''; 
+      }
+
       // Remover o prefixo
       const actualValue = encryptedValue.substring(this.ENCRYPTED_PREFIX.length);
-      
-      // Em uma implementação real, aqui descriptografaríamos o valor
-      // usando a chave de criptografia e o algoritmo correspondente
-      
-      // Como esta é uma implementação simplificada, retornamos o valor sem o prefixo
-      // Em produção, isso seria substituído por uma implementação real de descriptografia
-      return actualValue;
+      return EncryptionService.getInstance().decrypt(actualValue);
     } catch (error) {
-      loggingService.error('Erro ao descriptografar valor', { error });
+      loggingService.error('Erro ao descriptografar valor', { error: (error as Error).message });
       throw error;
     }
   }
@@ -229,7 +216,7 @@ export class SecureStorageService {
       
       loggingService.info('Todos os dados seguros foram limpos');
     } catch (error) {
-      loggingService.error('Erro ao limpar todos os dados seguros', { error });
+      loggingService.error('Erro ao limpar todos os dados seguros', { error: (error as Error).message });
     }
   }
 
@@ -245,7 +232,7 @@ export class SecureStorageService {
       // Implementação simplificada para demonstração
       return true;
     } catch (error) {
-      loggingService.error('Erro ao verificar integridade dos dados', { error });
+      loggingService.error('Erro ao verificar integridade dos dados', { error: (error as Error).message });
       return false;
     }
   }

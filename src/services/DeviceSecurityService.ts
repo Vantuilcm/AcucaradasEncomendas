@@ -1,29 +1,13 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as Application from 'expo-application';
-import { loggingService } from './LoggingService';
+import { secureLoggingService } from './SecureLoggingService';
 
 /**
  * Serviço responsável por verificar a segurança do dispositivo
  * Detecta se o dispositivo está com root (Android) ou jailbreak (iOS)
  */
 export class DeviceSecurityService {
-  // Lista de aplicativos comuns de root no Android
-  private static readonly ANDROID_ROOT_APPS = [
-    'com.noshufou.android.su',
-    'com.noshufou.android.su.elite',
-    'eu.chainfire.supersu',
-    'com.koushikdutta.superuser',
-    'com.thirdparty.superuser',
-    'com.yellowes.su',
-    'com.topjohnwu.magisk',
-    'com.kingroot.kinguser',
-    'com.kingo.root',
-    'com.smedialink.oneclickroot',
-    'com.zhiqupk.root.global',
-    'com.alephzain.framaroot',
-  ];
-
   // Lista de caminhos comuns de binários de root no Android
   private static readonly ANDROID_ROOT_PATHS = [
     '/system/app/Superuser.apk',
@@ -76,7 +60,7 @@ export class DeviceSecurityService {
       }
       return false;
     } catch (error) {
-      loggingService.error('Erro ao verificar segurança do dispositivo', { error });
+      secureLoggingService.error('Erro ao verificar segurança do dispositivo', { error });
       // Em caso de erro, assumimos que o dispositivo pode estar comprometido
       return true;
     }
@@ -93,7 +77,7 @@ export class DeviceSecurityService {
         try {
           const fileInfo = await FileSystem.getInfoAsync(path);
           if (fileInfo.exists) {
-            loggingService.warn('Dispositivo Android com root detectado', { path });
+            secureLoggingService.warn('Dispositivo Android com root detectado', { path });
             return true;
           }
         } catch (error) {
@@ -107,7 +91,7 @@ export class DeviceSecurityService {
 
       return false;
     } catch (error) {
-      loggingService.error('Erro ao verificar root no Android', { error });
+      secureLoggingService.error('Erro ao verificar root no Android', { error });
       return true; // Em caso de erro, assumir que pode estar com root
     }
   }
@@ -123,7 +107,7 @@ export class DeviceSecurityService {
         try {
           const fileInfo = await FileSystem.getInfoAsync(path);
           if (fileInfo.exists) {
-            loggingService.warn('Dispositivo iOS com jailbreak detectado', { path });
+            secureLoggingService.warn('Dispositivo iOS com jailbreak detectado', { path });
             return true;
           }
         } catch (error) {
@@ -137,7 +121,7 @@ export class DeviceSecurityService {
 
       return false;
     } catch (error) {
-      loggingService.error('Erro ao verificar jailbreak no iOS', { error });
+      secureLoggingService.error('Erro ao verificar jailbreak no iOS', { error });
       return true; // Em caso de erro, assumir que pode estar com jailbreak
     }
   }
@@ -161,7 +145,7 @@ export class DeviceSecurityService {
         ].some(term => deviceName.toLowerCase().includes(term));
 
         if (isEmulator) {
-          loggingService.info('Emulador Android detectado', { deviceName });
+          secureLoggingService.info('Emulador Android detectado', { deviceName });
         }
 
         return isEmulator;
@@ -174,7 +158,7 @@ export class DeviceSecurityService {
 
       return false;
     } catch (error) {
-      loggingService.error('Erro ao verificar emulador', { error });
+      secureLoggingService.error('Erro ao verificar emulador', { error });
       return false;
     }
   }
@@ -189,7 +173,7 @@ export class DeviceSecurityService {
       // Em uma implementação completa, seria necessário usar código nativo
       return __DEV__ === true;
     } catch (error) {
-      loggingService.error('Erro ao verificar modo de depuração', { error });
+      secureLoggingService.error('Erro ao verificar modo de depuração', { error });
       return false;
     }
   }
@@ -208,7 +192,7 @@ export class DeviceSecurityService {
     const debugging = await this.isDebuggingEnabled();
 
     if (compromised) {
-      loggingService.warn('Dispositivo comprometido detectado', {
+      secureLoggingService.warn('Dispositivo comprometido detectado', {
         compromised,
         emulator,
         debugging,

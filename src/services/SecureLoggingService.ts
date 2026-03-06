@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react-native';
 import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 import * as FileSystem from 'expo-file-system';
 import { DeviceSecurityService } from './DeviceSecurityService';
 
@@ -35,11 +34,9 @@ class SecureLoggingService {
   private readonly LOCAL_LOG_PATH = `${FileSystem.documentDirectory}secure_logs/`;
   private userId: string | null = null;
   private sessionId: string = this.generateSessionId();
-  private deviceSecurityService: DeviceSecurityService;
   private isInitialized: boolean = false;
 
   private constructor() {
-    this.deviceSecurityService = new DeviceSecurityService();
     this.initialize();
   }
 
@@ -272,7 +269,7 @@ class SecureLoggingService {
 
       // Verificar tamanho do arquivo
       const updatedFileInfo = await FileSystem.getInfoAsync(logFileName);
-      if (updatedFileInfo.size > this.MAX_LOG_SIZE) {
+      if (updatedFileInfo.exists && updatedFileInfo.size > this.MAX_LOG_SIZE) {
         // Arquivo muito grande, rotacionar logs
         await this.rotateLogFile(logFileName, logs);
       }
@@ -341,7 +338,7 @@ class SecureLoggingService {
     // Aqui usamos o Sentry como exemplo, mas poderia ser qualquer serviço
     try {
       // Verificar se o dispositivo está comprometido antes de enviar dados sensíveis
-      const isCompromised = await this.deviceSecurityService.isDeviceCompromised();
+      const isCompromised = await DeviceSecurityService.isDeviceCompromised();
       if (isCompromised) {
         // Em dispositivo comprometido, limitar informações enviadas
         logEntry.data = { warning: 'Dados limitados devido a dispositivo comprometido' };
@@ -355,39 +352,68 @@ class SecureLoggingService {
   }
 
   /**
-   * Sanitiza dados para remover informações sensíveis
+   * Sanitiza dados para remover informações sensíveis (PII Scrubbing)
    */
   private sanitizeData(data: any): any {
     if (!data) return undefined;
 
-    // Clone para não modificar o original
-    const sanitized = JSON.parse(JSON.stringify(data));
+    // Se for string, tenta mascarar padrões conhecidos
+    if (typeof data === 'string') {
+      // Mascarar CPFs (ex: 123.456.789-00 -> ***.***.***-**)
+      let scrubbed = data.replace(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, '***.***.***-**');
+      // Mascarar cartões de crédito (simplificado: sequências de 13 a 16 dígitos)
+      scrubbed = scrubbed.replace(/\b(?:\d[ -]*?){13,16}\b/g, '****-****-****-****');
+      return scrubbed;
+    }
 
-    // Lista de campos sensíveis a serem mascarados
-    const sensitiveFields = [
-      'password', 'senha', 'token', 'secret', 'apiKey', 'api_key',
-      'credit_card', 'creditCard', 'cvv', 'cvc', 'ssn', 'cpf', 'cnpj'
-    ];
+    // Se for array, processa cada item
+    if (Array.isArray(data)) {
+      return data.map(item => this.sanitizeData(item));
+    }
 
-    // Função recursiva para sanitizar objetos
-    const sanitizeObject = (obj: any) => {
-      if (!obj || typeof obj !== 'object') return;
-
-      Object.keys(obj).forEach(key => {
-        const lowerKey = key.toLowerCase();
+    // Se for objeto, processa chaves sensíveis
+    if (typeof data === 'object') {
+      try {
+        const scrubbed: any = {};
+        const sensitiveKeys = [
+          'password', 'senha', 'token', 'auth', 'secret', 'apikey', 'api_key',
+          'creditcard', 'cartao', 'cvv', 'cvc', 
+          'cpf', 'rg', 'passport', 'passaporte'
+        ];
         
-        // Verificar se é um campo sensível
-        if (sensitiveFields.some(field => lowerKey.includes(field))) {
-          obj[key] = '[REDACTED]';
-        } else if (typeof obj[key] === 'object') {
-          // Recursivamente sanitizar objetos aninhados
-          sanitizeObject(obj[key]);
-        }
-      });
-    };
+        const piiKeys = ['email', 'phone', 'telefone', 'address', 'endereco'];
 
-    sanitizeObject(sanitized);
-    return sanitized;
+        for (const key in data) {
+          if (Object.prototype.hasOwnProperty.call(data, key)) {
+            const lowerKey = key.toLowerCase();
+            
+            if (sensitiveKeys.some(k => lowerKey.includes(k))) {
+              scrubbed[key] = '[REDACTED]';
+            } else if (piiKeys.some(k => lowerKey.includes(k))) {
+              // Mascarar PII parcialmente
+              const val = data[key];
+              if (typeof val === 'string') {
+                 if (lowerKey.includes('email')) {
+                   scrubbed[key] = val.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+                 } else {
+                   scrubbed[key] = '[PII HIDDEN]';
+                 }
+              } else {
+                 scrubbed[key] = '[PII HIDDEN]';
+              }
+            } else {
+              scrubbed[key] = this.sanitizeData(data[key]);
+            }
+          }
+        }
+        return scrubbed;
+      } catch (e) {
+        // Fallback em caso de erro de recursão ou objeto circular
+        return '[COMPLEX DATA REDACTED]';
+      }
+    }
+
+    return data;
   }
 
   /**
@@ -396,7 +422,7 @@ class SecureLoggingService {
   public async exportLogs(): Promise<string | null> {
     try {
       // Verificar se o dispositivo está comprometido
-      const isCompromised = await this.deviceSecurityService.isDeviceCompromised();
+      const isCompromised = await DeviceSecurityService.isDeviceCompromised();
       if (isCompromised) {
         this.security('Tentativa de exportar logs em dispositivo comprometido');
         return null;

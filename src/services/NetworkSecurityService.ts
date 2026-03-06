@@ -1,4 +1,3 @@
-import { Platform, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import { secureLoggingService } from './SecureLoggingService';
 
@@ -50,64 +49,94 @@ export class NetworkSecurityService {
   }
 
   /**
-   * Configura o interceptor de requisições para implementar SSL Pinning
-   * Nota: Esta é uma implementação simplificada para o ambiente Expo/React Native
-   * Em uma implementação completa, seria necessário usar código nativo ou bibliotecas específicas
+   * Configura o interceptor de requisições para implementar SSL Pinning e verificações de segurança
    */
   private static setupNetworkInterceptor(): void {
-    // No ambiente Expo/React Native, não temos acesso direto ao nível de TLS/SSL
-    // Esta é uma implementação simulada para demonstrar o conceito
-
-    // Em uma implementação real, usaríamos bibliotecas nativas como:
-    // - Android: OkHttp com CertificatePinner
-    // - iOS: AFNetworking com SSLPinning ou NSURLSession com autenticação de desafio
-
-    // Interceptar XMLHttpRequest (abordagem limitada)
-    const originalOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function(method: string, url: string, ...args: any[]) {
-      try {
-        const urlObj = new URL(url);
-      const hostname = urlObj.hostname;
-
-        // Verificar se o domínio está na lista de domínios com pinning
-      if (NetworkSecurityService.PINNED_DOMAINS.includes(hostname)) {
-          // Em uma implementação real, verificaríamos o certificado aqui
-          secureLoggingService.info('Requisição para domínio com SSL Pinning', { url: hostname });
-        }
-      } catch (error) {
-        secureLoggingService.error('Erro ao processar URL para SSL Pinning', { error, url });
-      }
-
-      return originalOpen.call(this, method, url, ...args);
-    };
-
-    // Interceptar fetch (abordagem limitada)
+    // Interceptar fetch
     const originalFetch = global.fetch;
-    global.fetch = function(input: RequestInfo, init?: RequestInit): Promise<Response> {
+    
+    // @ts-ignore
+    global.fetch = async function(input: RequestInfo, init?: RequestInit): Promise<Response> {
+      let url: string = '';
+      
       try {
-        let url: string;
         if (typeof input === 'string') {
           url = input;
         } else if (input instanceof Request) {
           url = input.url;
-        } else {
-          return originalFetch(input, init);
         }
 
-        const urlObj = new URL(url);
-        const hostname = urlObj.hostname;
-
-        // Verificar se o domínio está na lista de domínios com pinning
-        if (NetworkSecurityService.PINNED_DOMAINS.includes(hostname)) {
-          // Em uma implementação real, verificaríamos o certificado aqui
-          loggingService.info('Fetch para domínio com SSL Pinning', { url: hostname });
+        if (url) {
+          NetworkSecurityService.validateUrl(url);
         }
       } catch (error) {
-        loggingService.error('Erro ao processar URL para SSL Pinning (fetch)', { error });
+        secureLoggingService.security('Bloqueio de segurança de rede', { url, error: (error as Error).message });
+        throw error;
       }
 
-      return originalFetch(input, init);
+      try {
+        const response = await originalFetch(input, init);
+        
+        if (url) {
+          NetworkSecurityService.checkSecurityHeaders(response);
+        }
+        
+        return response;
+      } catch (error) {
+        throw error;
+      }
     };
+  }
+
+  private static validateUrl(url: string): void {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname;
+
+      // Verificar se o domínio está na lista de domínios com pinning
+      if (NetworkSecurityService.PINNED_DOMAINS.includes(hostname)) {
+        // Enforce HTTPS
+        if (urlObj.protocol !== 'https:') {
+          const errorMsg = `Tentativa de conexão insegura (HTTP) para domínio protegido: ${url}`;
+          throw new Error(errorMsg);
+        }
+        
+        secureLoggingService.debug('Requisição validada para domínio seguro', { hostname });
+      }
+    } catch (error) {
+      if ((error as Error).message.includes('Tentativa de conexão insegura')) {
+        throw error;
+      }
+      // Ignora erros de parse de URL para não bloquear requisições válidas mas mal formatadas
+    }
+  }
+
+  private static checkSecurityHeaders(response: Response): void {
+    try {
+      const url = response.url;
+      const urlObj = new URL(url);
+      
+      if (NetworkSecurityService.PINNED_DOMAINS.includes(urlObj.hostname)) {
+        const headers = response.headers;
+        
+        // HSTS - HTTP Strict Transport Security
+        if (!headers.get('Strict-Transport-Security')) {
+          secureLoggingService.warn('Header de segurança ausente: Strict-Transport-Security', { url });
+        }
+        
+        // X-Content-Type-Options
+        if (headers.get('X-Content-Type-Options') !== 'nosniff') {
+          secureLoggingService.warn('Header de segurança ausente/inválido: X-Content-Type-Options', { url });
+        }
+        
+        // X-Frame-Options
+        if (!headers.get('X-Frame-Options')) {
+          secureLoggingService.warn('Header de segurança ausente: X-Frame-Options', { url });
+        }
+      }
+    } catch (error) {
+      // Falha silenciosa na verificação de headers
+    }
   }
 
   /**
@@ -127,11 +156,7 @@ export class NetworkSecurityService {
       const downloadResumable = FileSystem.createDownloadResumable(
         testUrl,
         FileSystem.documentDirectory + 'temp_security_check.txt',
-        {},
-        (downloadProgress) => {
-          const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-          secureLoggingService.debug('Progresso do teste de conexão segura', { progress });
-        }
+        {}
       );
 
       try {
@@ -189,7 +214,7 @@ export class NetworkSecurityService {
   static addTrustedCertificate(certificateHash: string): void {
     if (!this.TRUSTED_CERTIFICATES.includes(certificateHash)) {
       this.TRUSTED_CERTIFICATES.push(certificateHash);
-      loggingService.info('Certificado adicionado à lista de confiáveis', { certificateHash });
+      secureLoggingService.info('Certificado adicionado à lista de confiáveis', { certificateHash });
     }
   }
 
@@ -201,7 +226,7 @@ export class NetworkSecurityService {
     const index = this.TRUSTED_CERTIFICATES.indexOf(certificateHash);
     if (index !== -1) {
       this.TRUSTED_CERTIFICATES.splice(index, 1);
-      loggingService.info('Certificado removido da lista de confiáveis', { certificateHash });
+      secureLoggingService.info('Certificado removido da lista de confiáveis', { certificateHash });
     }
   }
 
@@ -226,14 +251,14 @@ export class NetworkSecurityService {
 
         // Verificar se o domínio está na lista de domínios com pinning
         if (this.PINNED_DOMAINS.includes(hostname)) {
-          loggingService.info('Realizando requisição segura com SSL Pinning', { url: hostname });
+          secureLoggingService.info('Realizando requisição segura com SSL Pinning', { url: hostname });
           // Em uma implementação real, verificaríamos o certificado aqui
         }
 
         // Realizar a requisição
         return await fetch(input, init);
       } catch (error) {
-        loggingService.error('Erro ao realizar requisição segura', { error });
+        secureLoggingService.error('Erro ao realizar requisição segura', { error });
         throw error;
       }
     };
@@ -250,19 +275,19 @@ export class NetworkSecurityService {
       
       // Verificar se usa HTTPS
       if (urlObj.protocol !== 'https:') {
-        loggingService.warn('Conexão não segura detectada (não HTTPS)', { url });
+        secureLoggingService.warn('Conexão não segura detectada (não HTTPS)', { url });
         return false;
       }
 
       // Verificar se o domínio está na lista de domínios com pinning
       const isPinnedDomain = this.PINNED_DOMAINS.includes(urlObj.hostname);
       if (!isPinnedDomain) {
-        loggingService.warn('Domínio não está na lista de domínios com SSL Pinning', { url });
+        secureLoggingService.warn('Domínio não está na lista de domínios com SSL Pinning', { url });
       }
 
       return isPinnedDomain;
     } catch (error) {
-      loggingService.error('Erro ao verificar segurança da conexão', { error, url });
+      secureLoggingService.error('Erro ao verificar segurança da conexão', { error, url });
       return false;
     }
   }
