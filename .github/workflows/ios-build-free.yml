@@ -147,15 +147,31 @@ jobs:
 
       - name: Install CocoaPods
         run: |
+          echo "📦 Configurando Homebrew..."
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+          
           echo "📦 Instalando CocoaPods via Homebrew..."
           brew install cocoapods
+          
+          echo "🔧 Configurando PATH para CocoaPods..."
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          echo "/usr/local/bin" >> $GITHUB_PATH
+          
           echo "Verificando instalação..."
           which pod
           pod --version
 
       - name: Build IPA
         run: |
+          # Carregar ambiente do Homebrew para garantir acesso ao pod
+          eval "$(/opt/homebrew/bin/brew shellenv)"
           export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          
+          echo "🔍 Verificando ambiente antes do build..."
+          echo "PATH: $PATH"
+          which pod || echo "❌ pod não encontrado no which"
+          pod --version || echo "❌ pod --version falhou"
+          
           set -o pipefail
           echo "🚀 Iniciando Build IPA"
           echo "📌 Commit Hash: $(git rev-parse --short HEAD)"
@@ -192,7 +208,6 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
-          NODE_ENV: production
           NO_SENTRY_VALIDATE: 1
 
       - name: Upload Artifact
