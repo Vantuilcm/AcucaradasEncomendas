@@ -69,7 +69,7 @@ export class TwoFactorAuthService {
     } catch (error) {
       secureLoggingService.security('Erro ao verificar status do 2FA', { 
         userId: this.authService.currentUser?.uid,
-        errorMessage: error.message || 'Erro desconhecido',
+        errorMessage: (error as Error).message || 'Erro desconhecido',
         timestamp: new Date().toISOString()
       });
       return false;
@@ -121,7 +121,7 @@ export class TwoFactorAuthService {
           twoFactorEnabled: true,
           email: currentUser.email,
           backupCodes: backupCodesHashes,
-          updatedAt: Timestamp.now(),
+          updatedAt: serverTimestamp(),
         },
         { merge: true }
       );
@@ -188,7 +188,7 @@ export class TwoFactorAuthService {
       secureLoggingService.security('Erro ao desabilitar 2FA', { 
         userId: this.authService.currentUser?.uid,
         email: this.authService.currentUser?.email,
-        errorMessage: error.message || 'Erro desconhecido',
+        errorMessage: (error as Error).message || 'Erro desconhecido',
         timestamp: new Date().toISOString()
       });
       return {
