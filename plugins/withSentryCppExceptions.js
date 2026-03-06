@@ -1,4 +1,33 @@
-const { withPodfile, withDangerousMod } = require('@expo/config-plugins');
+let withPodfile;
+let withDangerousMod;
+
+try {
+  const configPlugins = require('@expo/config-plugins');
+  withPodfile = configPlugins.withPodfile;
+  withDangerousMod = configPlugins.withDangerousMod;
+} catch (error) {
+  // Silent catch
+}
+
+if (!withPodfile) {
+  try {
+    const iosPlugins = require('@expo/config-plugins/ios');
+    withPodfile = iosPlugins.withPodfile;
+  } catch (error) {
+    // Silent catch
+  }
+}
+
+// Fallback for withDangerousMod if not found in main package
+if (!withDangerousMod) {
+  try {
+    const configPlugins = require('@expo/config-plugins');
+    withDangerousMod = configPlugins.withDangerousMod;
+  } catch (error) {
+    // Silent catch
+  }
+}
+
 const fs = require('fs');
 const path = require('path');
 
@@ -82,57 +111,67 @@ function applyStringPatch(filePath, replacements) {
 }
 
 const withSentryCppExceptions = (config) => {
-  // 1. Modificar Podfile
-  config = withPodfile(config, (configMod) => {
-    configMod.modResults.contents = addPostInstallBlock(configMod.modResults.contents);
-    return configMod;
-  });
-
-  // 2. Modificar arquivos nativos (Yoga/React Native)
-  config = withDangerousMod(config, [
-    'ios',
-    async (configMod) => {
-      const projectRoot = configMod.modRequest.projectRoot;
-      
-      // Paths para os arquivos que precisam de patch
-      const filesToPatch = [
-        {
-          path: path.join(projectRoot, 'node_modules', 'react-native', 'ReactCommon', 'yoga', 'yoga', 'Yoga.h'),
-          replacements: [{
-            from: 'typedef YGSize (*YGMeasureFunc)(\n    YGNodeRef node,',
-            to: 'typedef YGSize (*YGMeasureFunc)(\n    YGNodeConstRef node,'
-          }]
-        },
-        {
-          path: path.join(projectRoot, 'node_modules', 'react-native', 'Libraries', 'Text', 'Text', 'RCTTextShadowView.m'),
-          replacements: [{
-            from: 'RCTTextShadowViewMeasure(YGNodeRef node,',
-            to: 'RCTTextShadowViewMeasure(YGNodeConstRef node,'
-          }]
-        },
-        {
-          path: path.join(projectRoot, 'node_modules', 'react-native', 'React', 'Views', 'RCTShadowView.m'),
-          replacements: [{
-            from: 'RCTShadowViewMeasure(YGNodeRef node,',
-            to: 'RCTShadowViewMeasure(YGNodeConstRef node,'
-          }]
-        },
-        {
-          path: path.join(projectRoot, 'node_modules', 'react-native', 'Libraries', 'Text', 'TextInput', 'RCTBaseTextInputShadowView.m'),
-          replacements: [{
-            from: 'RCTBaseTextInputShadowViewMeasure(YGNodeRef node,',
-            to: 'RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node,'
-          }]
-        }
-      ];
-
-      filesToPatch.forEach(file => {
-        applyStringPatch(file.path, file.replacements);
+  // Ensure withPodfile is available
+  if (!withPodfile) {
+      console.warn('[withSentryCppExceptions] withPodfile not found, skipping Podfile modifications');
+  } else {
+      // 1. Modificar Podfile
+      config = withPodfile(config, (configMod) => {
+        configMod.modResults.contents = addPostInstallBlock(configMod.modResults.contents);
+        return configMod;
       });
+  }
 
-      return configMod;
-    },
-  ]);
+  // Ensure withDangerousMod is available
+  if (!withDangerousMod) {
+      console.warn('[withSentryCppExceptions] withDangerousMod not found, skipping native file modifications');
+  } else {
+      // 2. Modificar arquivos nativos (Yoga/React Native)
+      config = withDangerousMod(config, [
+        'ios',
+        async (configMod) => {
+          const projectRoot = configMod.modRequest.projectRoot;
+          
+          // Paths para os arquivos que precisam de patch
+          const filesToPatch = [
+            {
+              path: path.join(projectRoot, 'node_modules', 'react-native', 'ReactCommon', 'yoga', 'yoga', 'Yoga.h'),
+              replacements: [{
+                from: 'typedef YGSize (*YGMeasureFunc)(\n    YGNodeRef node,',
+                to: 'typedef YGSize (*YGMeasureFunc)(\n    YGNodeConstRef node,'
+              }]
+            },
+            {
+              path: path.join(projectRoot, 'node_modules', 'react-native', 'Libraries', 'Text', 'Text', 'RCTTextShadowView.m'),
+              replacements: [{
+                from: 'RCTTextShadowViewMeasure(YGNodeRef node,',
+                to: 'RCTTextShadowViewMeasure(YGNodeConstRef node,'
+              }]
+            },
+            {
+              path: path.join(projectRoot, 'node_modules', 'react-native', 'React', 'Views', 'RCTShadowView.m'),
+              replacements: [{
+                from: 'RCTShadowViewMeasure(YGNodeRef node,',
+                to: 'RCTShadowViewMeasure(YGNodeConstRef node,'
+              }]
+            },
+            {
+              path: path.join(projectRoot, 'node_modules', 'react-native', 'Libraries', 'Text', 'TextInput', 'RCTBaseTextInputShadowView.m'),
+              replacements: [{
+                from: 'RCTBaseTextInputShadowViewMeasure(YGNodeRef node,',
+                to: 'RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node,'
+              }]
+            }
+          ];
+
+          filesToPatch.forEach(file => {
+            applyStringPatch(file.path, file.replacements);
+          });
+
+          return configMod;
+        },
+      ]);
+  }
 
   return config;
 };
