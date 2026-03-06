@@ -21,13 +21,13 @@ static float RCTTextInputShadowViewBaseline(YGNodeConstRef node, const float wid
   },
   {
     file: 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m',
-    find: /static\s+YGSize\s+RCTBaseTextInputShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
-    replace: 'static YGSize RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node'
+    find: /YGSize\s+RCTBaseTextInputShadowViewMeasure\s*\(\s*YGNodeRef\s+node/g,
+    replace: 'YGSize RCTBaseTextInputShadowViewMeasure(YGNodeConstRef node'
   },
   {
     file: 'node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m',
-    find: /static\s+float\s+RCTTextInputShadowViewBaseline\s*\(\s*YGNodeRef\s+node/g,
-    replace: 'static float RCTTextInputShadowViewBaseline(YGNodeConstRef node'
+    find: /float\s+RCTTextInputShadowViewBaseline\s*\(\s*YGNodeRef\s+node/g,
+    replace: 'float RCTTextInputShadowViewBaseline(YGNodeConstRef node'
   },
   {
     file: 'node_modules/react-native/React/Views/RCTShadowView.m',
@@ -45,23 +45,41 @@ patches.forEach(patch => {
   const fullPath = path.join(projectRoot, patch.file);
   if (fs.existsSync(fullPath)) {
     let content = fs.readFileSync(fullPath, 'utf8');
+    
+    // Verifica se o patch específico já parece estar aplicado
+    const isAlreadyApplied = typeof patch.replace === 'string' 
+      ? content.includes(patch.replace) 
+      : false; // Se for complexo, assume que precisa tentar
+
     if (content.match(patch.find)) {
       console.log(`✅ Aplicando patch em: ${patch.file}`);
       content = content.replace(patch.find, patch.replace);
       fs.writeFileSync(fullPath, content);
-    } else if (content.includes('YGNodeConstRef')) {
-      console.log(`ℹ️ Patch já aplicado em: ${patch.file}`);
+    } else if (isAlreadyApplied) {
+      console.log(`ℹ️ Patch já verificado em: ${patch.file}`);
     } else {
-      console.warn(`⚠️ Regex não casou em: ${patch.file}`);
-      // Fallback para Measure
-      if (patch.file.endsWith('.m')) {
-        const fallback = /Measure\(\s*YGNodeRef\s+node/g;
-        if (content.match(fallback)) {
-          console.log(`✅ Aplicando fallback em: ${patch.file}`);
-          content = content.replace(fallback, 'Measure(YGNodeConstRef node');
-          fs.writeFileSync(fullPath, content);
-        }
+      // Tenta regex menos estrita se falhar
+      if (patch.file.endsWith('.m') && patch.replace.includes('YGNodeConstRef')) {
+          console.warn(`⚠️ Regex estrita falhou em ${patch.file}, tentando fallback genérico...`);
+          const genericFind = /YGNodeRef\s+node/g;
+          if (content.match(genericFind)) {
+             // Só aplica se estivermos num contexto de função Measure/Baseline
+             // Mas como é difícil saber o contexto com regex simples, vamos confiar que esses arquivos precisam disso.
+             // Melhor: Tentar regex sem 'static' ou espaços extras
+             
+             // Fallback específico para RCTBaseTextInputShadowViewMeasure
+             if (patch.file.includes('RCTBaseTextInputShadowView.m')) {
+                 const fallbackMeasure = /RCTBaseTextInputShadowViewMeasure\s*\([^)]*YGNodeRef\s+node/g;
+                 if (content.match(fallbackMeasure)) {
+                     console.log(`✅ Aplicando fallback (Measure) em: ${patch.file}`);
+                     content = content.replace(/RCTBaseTextInputShadowViewMeasure\s*\(([^)]*)YGNodeRef\s+node/g, 'RCTBaseTextInputShadowViewMeasure($1YGNodeConstRef node');
+                     fs.writeFileSync(fullPath, content);
+                     return;
+                 }
+             }
+          }
       }
+      console.warn(`⚠️ Patch ignorado (não casou nem parece aplicado): ${patch.file}`);
     }
   } else {
     console.warn(`❌ Arquivo não encontrado: ${patch.file}`);
