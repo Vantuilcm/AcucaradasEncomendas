@@ -147,13 +147,15 @@ jobs:
 
       - name: Install CocoaPods
         run: |
-          echo "📦 Instalando CocoaPods..."
-          sudo gem install cocoapods -v 1.14.3
+          echo "📦 Instalando CocoaPods via Homebrew..."
+          brew install cocoapods
+          echo "Verificando instalação..."
+          which pod
           pod --version
-
 
       - name: Build IPA
         run: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
           set -o pipefail
           echo "🚀 Iniciando Build IPA"
           echo "📌 Commit Hash: $(git rev-parse --short HEAD)"
