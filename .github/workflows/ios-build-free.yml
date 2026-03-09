@@ -102,7 +102,7 @@ jobs:
 
   build:
     name: Build iOS IPA
-    runs-on: macos-14
+    runs-on: macos-15
     needs: preflight
     if: ${{ (inputs.mode || github.event.client_payload.mode || 'github_macos') == 'github_macos' && (inputs.profile || github.event.client_payload.profile || 'production_local') == 'production_local' }}
     steps:
