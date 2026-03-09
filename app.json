@@ -22,7 +22,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.acucaradas.encomendas",
-      "buildNumber": "369",
+      "buildNumber": "370",
       "infoPlist": {
         "NSCameraUsageDescription": "Este aplicativo usa a câmera para escanear códigos QR e tirar fotos dos produtos.",
         "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar sua galeria para selecionar imagens para os produtos.",
@@ -72,8 +72,7 @@
           "icon": "./assets/notification-icon.png",
           "color": "#ffffff"
         }
-      ],
-      "sentry-expo"
+      ]
     ],
     "updates": {
       "url": "https://u.expo.dev/acucaradas-encomendas",

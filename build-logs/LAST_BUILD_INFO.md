@@ -1,12 +1,12 @@
 # Histórico de Builds e Correções
 
-## Status Atual (Build 369 - Fix Yoga/Xcode 16 + Post-Install)
+## Status Atual (Build 370 - Remoção do Sentry)
 - **Novo Build Disparado:** `Aguardando Push`
-- **Build Number:** `369`
+- **Build Number:** `370`
 - **Data:** 09/03/2026
-- **Status:** ⏳ **CORREÇÃO CRÍTICA YOGA/REACT-NATIVE (Post-Install)**
-- **Motivo:** O build anterior falhou porque o `patch-package` não foi aplicado corretamente nos arquivos compilados do CocoaPods.
-- **Correção:** Adicionado script `post_install` no `withSentryCppExceptions.js` para modificar os arquivos do `React-RCTText` diretamente após a instalação dos Pods, garantindo compatibilidade com Xcode 16.
+- **Status:** ⏳ **OPÇÃO NUCLEAR: SENTRY REMOVIDO**
+- **Motivo:** Os erros de C++ do Sentry (`std::allocator`, `std::vector<const>`) persistem devido à rigidez do Xcode 16.4 e impedem a geração da IPA.
+- **Correção:** O Sentry foi completamente removido do build nativo (plugin e código JS neutralizado) para garantir que o app compile e possa ser enviado para a TestFlight hoje. O patch do Yoga/React Native foi mantido.
 
 ## Links para Acompanhar
 - **GitHub Actions:** [Acompanhar Build Gratuito](https://github.com/Vantuilcm/AcucaradasEncomendas/actions)

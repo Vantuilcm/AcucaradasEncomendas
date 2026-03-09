@@ -37,52 +37,11 @@ if (!withDangerousMod) {
 }
 
 const PODFILE_SNIPPET = `
-    # Sentry C++ Exceptions & Yoga Fixes
+    # Sentry Removed - Cleaning up flags
     installer.pods_project.targets.each do |target|
-      if ['Sentry', 'SentryCrash'].include?(target.name)
-        target.build_configurations.each do |config|
-          config.build_settings['GCC_ENABLE_CPP_EXCEPTIONS'] = 'YES'
-          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-          config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
-          
-          # Force header inclusion and suppress warnings
-          cppflags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
-          unless cppflags.include?('-include exception')
-            config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{cppflags} -Wno-incompatible-function-pointer-types -include exception"
-          end
-          
-          cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
-          unless cflags.include?('-Wno-incompatible-function-pointer-types')
-            config.build_settings['OTHER_CFLAGS'] = "#{cflags} -Wno-incompatible-function-pointer-types"
-          end
-        end
-      end
+      # Clean up any leftover flags if needed
     end
     
-    # Patch Sentry files directly if needed
-    sentry_crash_file = 'Pods/Sentry/Sources/SentryCrash/Recording/Monitors/SentryCrashMonitor_CPPException.cpp'
-    if File.exist?(sentry_crash_file)
-      content = File.read(sentry_crash_file)
-      unless content.include?('#include <exception>')
-        puts "Patching SentryCrashMonitor_CPPException.cpp with #include <exception>"
-        File.write(sentry_crash_file, "#include <exception>\n" + content)
-      end
-    end
-
-    # Patch std::vector<const T> issues in Sentry (Xcode 16.4/iOS 18.5)
-    # This addresses: static_assert(!is_const<_Tp>::value, "std::allocator does not support const types")
-    Dir.glob('Pods/Sentry/**/*.{cpp,h,mm,hpp}').each do |file|
-      if File.exist?(file)
-        content = File.read(file)
-        # Regex flexível para remover 'const' de dentro de std::vector
-        if content.match(/std::vector\s*<\s*const\s+/)
-          puts "Patching std::vector<const> in #{file}"
-          new_content = content.gsub(/std::vector\s*<\s*const\s+/, 'std::vector<')
-          File.write(file, new_content)
-        end
-      end
-    end
-
     # Patch Yoga incompatible function pointer types in React Native (Xcode 16)
     Dir.glob('Pods/React-RCTText/**/*.{m,mm}').each do |file|
       if File.exist?(file)
@@ -130,7 +89,7 @@ const PODFILE_SNIPPET = `
 `;
 
 function addPostInstallBlock(contents) {
-  if (contents.includes('Sentry C++ Exceptions & Yoga Fixes')) {
+  if (contents.includes('Sentry Removed - Cleaning up flags')) {
     return contents;
   }
   if (contents.match(/post_install do \|installer\|/)) {
