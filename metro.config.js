@@ -10,16 +10,25 @@ const config = getDefaultConfig(__dirname);
 const localBuildPath = path.join(__dirname, 'build');
 const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-config.resolver.blockList = exclusionList([
+const additionalExclusions = [
   /node_modules_old\/.*/,
   /node_modules\/firebase\/app-check\/dist\/esm\/functions\/.*/,
   /\.git\/.*/,
   /android\/.*/,
   /ios\/.*/,
-  // Exclui apenas a pasta build DENTRO do projeto, usando caminho absoluto
   new RegExp(`^${escapeRegExp(localBuildPath)}\/.*`),
   /\.expo\/.*/
-]);
+];
+
+// Mescla as exclusões padrão do Expo com as nossas personalizadas
+if (config.resolver.blockList) {
+  config.resolver.blockList = exclusionList([
+    config.resolver.blockList,
+    ...additionalExclusions
+  ]);
+} else {
+  config.resolver.blockList = exclusionList(additionalExclusions);
+}
 
 config.maxWorkers = 2;
 
