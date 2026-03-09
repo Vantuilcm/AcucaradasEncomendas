@@ -82,6 +82,51 @@ const PODFILE_SNIPPET = `
         end
       end
     end
+
+    # Patch Yoga incompatible function pointer types in React Native (Xcode 16)
+    Dir.glob('Pods/React-RCTText/**/*.{m,mm}').each do |file|
+      if File.exist?(file)
+        content = File.read(file)
+        changed = false
+        
+        # Patch 1: Add explicit casts to YGNodeSetMeasureFunc/BaselineFunc
+        if content.include?('YGNodeSetMeasureFunc(self.yogaNode, RCTBaseTextInputShadowViewMeasure)')
+          content = content.gsub('YGNodeSetMeasureFunc(self.yogaNode, RCTBaseTextInputShadowViewMeasure)', 'YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTBaseTextInputShadowViewMeasure)')
+          changed = true
+        end
+        if content.include?('YGNodeSetBaselineFunc(self.yogaNode, RCTTextInputShadowViewBaseline)')
+          content = content.gsub('YGNodeSetBaselineFunc(self.yogaNode, RCTTextInputShadowViewBaseline)', 'YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextInputShadowViewBaseline)')
+          changed = true
+        end
+        if content.include?('YGNodeSetMeasureFunc(self.yogaNode, RCTTextShadowViewMeasure)')
+          content = content.gsub('YGNodeSetMeasureFunc(self.yogaNode, RCTTextShadowViewMeasure)', 'YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTTextShadowViewMeasure)')
+          changed = true
+        end
+        if content.include?('YGNodeSetBaselineFunc(self.yogaNode, RCTTextShadowViewBaseline)')
+          content = content.gsub('YGNodeSetBaselineFunc(self.yogaNode, RCTTextShadowViewBaseline)', 'YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextShadowViewBaseline)')
+          changed = true
+        end
+
+        # Patch 2: Update function signatures to use const struct YGNode *
+        if content.include?('static YGSize RCTBaseTextInputShadowViewMeasure(YGNodeRef node,')
+          content = content.gsub('static YGSize RCTBaseTextInputShadowViewMeasure(YGNodeRef node,', 'static YGSize RCTBaseTextInputShadowViewMeasure(const struct YGNode *node,')
+          changed = true
+        end
+        if content.include?('static float RCTTextInputShadowViewBaseline(YGNodeRef node,')
+          content = content.gsub('static float RCTTextInputShadowViewBaseline(YGNodeRef node,', 'static float RCTTextInputShadowViewBaseline(const struct YGNode *node,')
+          changed = true
+        end
+        if content.include?('static YGSize RCTTextShadowViewMeasure(YGNodeRef node,')
+          content = content.gsub('static YGSize RCTTextShadowViewMeasure(YGNodeRef node,', 'static YGSize RCTTextShadowViewMeasure(const struct YGNode *node,')
+          changed = true
+        end
+        
+        if changed
+          puts "Patching Yoga function pointers in #{file}"
+          File.write(file, content)
+        end
+      end
+    end
 `;
 
 function addPostInstallBlock(contents) {

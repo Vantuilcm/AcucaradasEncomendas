@@ -1,12 +1,12 @@
 # Histórico de Builds e Correções
 
-## Status Atual (Build 368 - Fix Yoga/Xcode 16)
+## Status Atual (Build 369 - Fix Yoga/Xcode 16 + Post-Install)
 - **Novo Build Disparado:** `Aguardando Push`
-- **Build Number:** `368`
+- **Build Number:** `369`
 - **Data:** 09/03/2026
-- **Status:** ⏳ **CORREÇÃO CRÍTICA YOGA/REACT-NATIVE**
-- **Motivo:** O build anterior falhou devido a erros de compilação no `react-native` (RCTBaseTextInputShadowView) causados pela incompatibilidade do motor Yoga com o novo Xcode.
-- **Correção:** Aplicado patch no `react-native` via `patch-package` para corrigir as assinaturas de função do Yoga.
+- **Status:** ⏳ **CORREÇÃO CRÍTICA YOGA/REACT-NATIVE (Post-Install)**
+- **Motivo:** O build anterior falhou porque o `patch-package` não foi aplicado corretamente nos arquivos compilados do CocoaPods.
+- **Correção:** Adicionado script `post_install` no `withSentryCppExceptions.js` para modificar os arquivos do `React-RCTText` diretamente após a instalação dos Pods, garantindo compatibilidade com Xcode 16.
 
 ## Links para Acompanhar
 - **GitHub Actions:** [Acompanhar Build Gratuito](https://github.com/Vantuilcm/AcucaradasEncomendas/actions)
