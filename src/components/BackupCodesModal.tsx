@@ -86,8 +86,10 @@ const BackupCodesModal: React.FC<BackupCodesModalProps> = ({ visible, onClose, b
       const { uri } = await Print.printToFileAsync({ html });
 
       if (Platform.OS === 'ios') {
+        // @ts-ignore
         await Sharing.shareAsync(uri);
       } else {
+        // @ts-ignore
         await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       }
     } catch (error) {

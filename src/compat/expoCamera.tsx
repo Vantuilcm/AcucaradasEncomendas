@@ -21,6 +21,6 @@ export const Camera = forwardRef<any, any>((props, ref) => {
 
 Camera.displayName = 'Camera';
 
-Camera.requestCameraPermissionsAsync = async (): Promise<{ status: CameraPermissionStatus }> => ({
+(Camera as any).requestCameraPermissionsAsync = async (): Promise<{ status: CameraPermissionStatus }> => ({
   status: 'granted',
 });

@@ -1,59 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-
-// Tentar importar de @expo/config-plugins
-let withPodfile, withDangerousMod;
-
-try {
-  const configPlugins = require('@expo/config-plugins');
-  withPodfile = configPlugins.withPodfile;
-  withDangerousMod = configPlugins.withDangerousMod;
-} catch (error) {
-  // Ignorar erro inicial
-}
-
-// Fallback para @expo/config-plugins/ios se necessário
-if (!withPodfile) {
-  try {
-    // Tenta importar diretamente do subcaminho ios (comum em algumas versões)
-    // ou tenta encontrar via require.resolve para garantir
-    try {
-      const iosPlugins = require('@expo/config-plugins/build/ios');
-      withPodfile = iosPlugins.withPodfile;
-    } catch (e) {
-      const iosPlugins = require('@expo/config-plugins/ios');
-      withPodfile = iosPlugins.withPodfile;
-    }
-  } catch (error) {
-    console.warn('[withSentryCppExceptions] Aviso: Não foi possível carregar withPodfile de @expo/config-plugins/ios');
-  }
-}
-
-// Fallback para withDangerousMod
-if (!withDangerousMod) {
-  try {
-    const configPlugins = require('@expo/config-plugins');
-    withDangerousMod = configPlugins.withDangerousMod;
-  } catch (error) {
-     // Tenta carregar do base se falhar
-     try {
-       const basePlugins = require('@expo/config-plugins/build/plugins/withDangerousMod');
-       withDangerousMod = basePlugins.withDangerousMod;
-     } catch (e) {
-       console.warn('[withSentryCppExceptions] Aviso: Não foi possível carregar withDangerousMod');
-     }
-  }
-}
-
-// Se ainda falhar, define mocks para não quebrar a config (mas o build vai falhar depois)
-if (!withPodfile) {
-  withPodfile = (config) => config;
-  console.error('[withSentryCppExceptions] ERRO CRÍTICO: withPodfile não encontrado!');
-}
-if (!withDangerousMod) {
-  withDangerousMod = (config) => config;
-  console.error('[withSentryCppExceptions] ERRO CRÍTICO: withDangerousMod não encontrado!');
-}
+const { withPodfile, withDangerousMod } = require('@expo/config-plugins');
 
 const PODFILE_SNIPPET = `
     # Sentry C++ Exceptions & Yoga Fixes
