@@ -1,19 +1,20 @@
 # Histórico de Builds e Correções
 
-## Status Atual (NOVO Build - Fix Sentry C++ & SDK 18)
-- **Novo Build Disparado:** `Em processamento`
-- **Build Number:** `365`
+## Status Atual (NOVO Build - Fix std::allocator Sentry)
+- **Novo Build Disparado:** `Aguardando Push`
+- **Build Number:** `366`
 - **Data:** 09/03/2026
-- **Status:** ⏳ **NA FILA (Xcode 16 / iOS 18 SDK / Sentry Fix)**
-- **Motivo:** O build 364 falhou com erros de C++ no SDK do Sentry ao usar o Xcode 16. Implementado patch robusto no plugin para injetar `#include <exception>` nos arquivos problemáticos.
-- **Submissão Automática:** ✅ Agendada
+- **Status:** ⏳ **CORREÇÃO CRÍTICA (Xcode 16.4 / iOS 18.5 SDK)**
+- **Motivo:** O build 365 falhou devido a incompatibilidades de C++ no Sentry (`std::allocator` não suporta `const` tipos no novo SDK).
+- **Correção:** Atualizado o plugin `withSentryCppExceptions.js` para remover automaticamente `const` de `std::vector` nos arquivos do Sentry durante o build.
 
 ## Links para Acompanhar
+- **GitHub Actions:** [Acompanhar Build Gratuito](https://github.com/Vantuilcm/AcucaradasEncomendas/actions)
 - **Dashboard Expo:** [Ver Builds Atuais](https://expo.dev/accounts/acucaradaencomendas/projects/acucaradas-encomendas/builds)
 
-## Correções Recentes (Build 364 -> 365)
-- **Plugin de Build:** Atualizado `withSentryCppExceptions.js` para aplicar patch direto nos arquivos do Pods Sentry durante o `post_install`.
-- **SDK Compatibility:** Mantido Xcode 16 (exigência Apple) com correções de C++ para Sentry.
+## Correções Recentes (Build 365 -> 366)
+- **Sentry Allocator Fix:** Adicionado patch dinâmico no `Podfile` para substituir `std::vector<const T>` por `std::vector<T>` em todos os arquivos C++ do Sentry. Isso resolve o erro `static_assert failed: std::allocator does not support const types`.
+- **Build Number:** Incrementado para `366`.
 
 ## Correções Recentes (Build 363)
 - **Build Number:** Atualizado para `363` para evitar rejeição da Apple por duplicidade.

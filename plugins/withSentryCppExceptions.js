@@ -68,6 +68,18 @@ const PODFILE_SNIPPET = `
         File.write(sentry_crash_file, "#include <exception>\n" + content)
       end
     end
+
+    # Patch std::vector<const T> issues in Sentry (Xcode 16.4/iOS 18.5)
+    Dir.glob('Pods/Sentry/**/*.{cpp,h,mm}').each do |file|
+      if File.exist?(file)
+        content = File.read(file)
+        if content.include?('std::vector<const ')
+          puts "Patching std::vector<const> in #{file}"
+          new_content = content.gsub('std::vector<const ', 'std::vector<')
+          File.write(file, new_content)
+        end
+      end
+    end
 `;
 
 function addPostInstallBlock(contents) {
