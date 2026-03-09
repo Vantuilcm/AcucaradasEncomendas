@@ -17,7 +17,6 @@ const additionalExclusions = [
   /android\/.*/,
   /ios\/.*/,
   new RegExp(`^${escapeRegExp(localBuildPath)}\/.*`),
-  /\.expo\/.*/
 ];
 
 // Mescla as exclusões padrão do Expo com as nossas personalizadas
