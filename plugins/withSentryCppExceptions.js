@@ -1,6 +1,40 @@
 const fs = require('fs');
 const path = require('path');
-const { withPodfile, withDangerousMod } = require('@expo/config-plugins');
+
+// Função auxiliar para importação robusta de plugins
+function importPlugin(moduleName, property) {
+  try {
+    const module = require(moduleName);
+    if (module && typeof module[property] === 'function') {
+      return module[property];
+    }
+    // Tenta exportação default se existir
+    if (module && module.default && typeof module.default[property] === 'function') {
+      return module.default[property];
+    }
+  } catch (e) {
+    // Ignorar erro de importação
+  }
+  return null;
+}
+
+// Tentar importar de várias fontes possíveis
+let withPodfile = importPlugin('@expo/config-plugins', 'withPodfile') ||
+                  importPlugin('@expo/config-plugins/build/plugins/ios-plugins', 'withPodfile');
+
+let withDangerousMod = importPlugin('@expo/config-plugins', 'withDangerousMod') ||
+                       importPlugin('@expo/config-plugins/build/plugins/withDangerousMod', 'withDangerousMod');
+
+// Fallback crítico para evitar crash no require, mas logar erro
+if (!withPodfile) {
+  console.error('[withSentryCppExceptions] ERRO CRÍTICO: withPodfile não encontrado! O fix do Sentry não será aplicado.');
+  withPodfile = (config) => config;
+}
+
+if (!withDangerousMod) {
+  console.error('[withSentryCppExceptions] ERRO CRÍTICO: withDangerousMod não encontrado!');
+  withDangerousMod = (config) => config;
+}
 
 const PODFILE_SNIPPET = `
     # Sentry C++ Exceptions & Yoga Fixes
