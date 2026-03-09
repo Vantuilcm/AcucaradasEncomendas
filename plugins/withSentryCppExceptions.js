@@ -44,22 +44,28 @@ const PODFILE_SNIPPET = `
           config.build_settings['GCC_ENABLE_CPP_EXCEPTIONS'] = 'YES'
           config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
           config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+          
+          # Force header inclusion and suppress warnings
+          cppflags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
+          unless cppflags.include?('-include exception')
+            config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{cppflags} -Wno-incompatible-function-pointer-types -include exception"
+          end
+          
+          cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
+          unless cflags.include?('-Wno-incompatible-function-pointer-types')
+            config.build_settings['OTHER_CFLAGS'] = "#{cflags} -Wno-incompatible-function-pointer-types"
+          end
         end
       end
-      
-      # Apply global C++ flags to fix 'terminate_handler' issues
-      target.build_configurations.each do |config|
-        config.build_settings['CLANG_WARN_INCOMPATIBLE_FUNCTION_POINTER_TYPES'] = 'NO'
-        
-        cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
-        unless cflags.include?('-Wno-incompatible-function-pointer-types')
-          config.build_settings['OTHER_CFLAGS'] = "#{cflags} -Wno-incompatible-function-pointer-types"
-        end
-        
-        cppflags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
-        unless cppflags.include?('-include exception')
-          config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{cppflags} -Wno-incompatible-function-pointer-types -include exception"
-        end
+    end
+    
+    # Patch Sentry files directly if needed
+    sentry_crash_file = 'Pods/Sentry/Sources/SentryCrash/Recording/Monitors/SentryCrashMonitor_CPPException.cpp'
+    if File.exist?(sentry_crash_file)
+      content = File.read(sentry_crash_file)
+      unless content.include?('#include <exception>')
+        puts "Patching SentryCrashMonitor_CPPException.cpp with #include <exception>"
+        File.write(sentry_crash_file, "#include <exception>\n" + content)
       end
     end
 `;
