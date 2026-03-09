@@ -11,6 +11,7 @@ on:
       - master
       - main
       - upgrade/sdk-52-rn-076
+      - fix-build-sdk-52
   workflow_dispatch:
     inputs:
       ref:
