@@ -1,12 +1,12 @@
 # Histórico de Builds e Correções
 
-## Status Atual (NOVO Build - Fix std::allocator Sentry)
+## Status Atual (NOVO Build - Fix FINAL Sentry)
 - **Novo Build Disparado:** `Aguardando Push`
-- **Build Number:** `366`
+- **Build Number:** `367`
 - **Data:** 09/03/2026
-- **Status:** ⏳ **CORREÇÃO CRÍTICA (Xcode 16.4 / iOS 18.5 SDK)**
-- **Motivo:** O build 365 falhou devido a incompatibilidades de C++ no Sentry (`std::allocator` não suporta `const` tipos no novo SDK).
-- **Correção:** Atualizado o plugin `withSentryCppExceptions.js` para remover automaticamente `const` de `std::vector` nos arquivos do Sentry durante o build.
+- **Status:** ⏳ **CORREÇÃO FINAL (Xcode 16.4 / iOS 18.5 SDK)**
+- **Motivo:** O build anterior ainda falhou devido a variações de espaços e extensões nos arquivos do Sentry que o primeiro patch não pegou.
+- **Correção:** Refinado o regex no `withSentryCppExceptions.js` para capturar `std::vector<const T>` em todos os arquivos `.cpp, .h, .mm, .hpp`.
 
 ## Links para Acompanhar
 - **GitHub Actions:** [Acompanhar Build Gratuito](https://github.com/Vantuilcm/AcucaradasEncomendas/actions)

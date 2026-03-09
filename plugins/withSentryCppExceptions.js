@@ -70,12 +70,14 @@ const PODFILE_SNIPPET = `
     end
 
     # Patch std::vector<const T> issues in Sentry (Xcode 16.4/iOS 18.5)
-    Dir.glob('Pods/Sentry/**/*.{cpp,h,mm}').each do |file|
+    # This addresses: static_assert(!is_const<_Tp>::value, "std::allocator does not support const types")
+    Dir.glob('Pods/Sentry/**/*.{cpp,h,mm,hpp}').each do |file|
       if File.exist?(file)
         content = File.read(file)
-        if content.include?('std::vector<const ')
+        # Regex flexível para remover 'const' de dentro de std::vector
+        if content.match(/std::vector\s*<\s*const\s+/)
           puts "Patching std::vector<const> in #{file}"
-          new_content = content.gsub('std::vector<const ', 'std::vector<')
+          new_content = content.gsub(/std::vector\s*<\s*const\s+/, 'std::vector<')
           File.write(file, new_content)
         end
       end
