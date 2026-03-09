@@ -1,12 +1,12 @@
 # Histórico de Builds e Correções
 
-## Status Atual (NOVO Build - Fix FINAL Sentry)
+## Status Atual (Build 368 - Fix Yoga/Xcode 16)
 - **Novo Build Disparado:** `Aguardando Push`
-- **Build Number:** `367`
+- **Build Number:** `368`
 - **Data:** 09/03/2026
-- **Status:** ⏳ **CORREÇÃO FINAL (Xcode 16.4 / iOS 18.5 SDK)**
-- **Motivo:** O build anterior ainda falhou devido a variações de espaços e extensões nos arquivos do Sentry que o primeiro patch não pegou.
-- **Correção:** Refinado o regex no `withSentryCppExceptions.js` para capturar `std::vector<const T>` em todos os arquivos `.cpp, .h, .mm, .hpp`.
+- **Status:** ⏳ **CORREÇÃO CRÍTICA YOGA/REACT-NATIVE**
+- **Motivo:** O build anterior falhou devido a erros de compilação no `react-native` (RCTBaseTextInputShadowView) causados pela incompatibilidade do motor Yoga com o novo Xcode.
+- **Correção:** Aplicado patch no `react-native` via `patch-package` para corrigir as assinaturas de função do Yoga.
 
 ## Links para Acompanhar
 - **GitHub Actions:** [Acompanhar Build Gratuito](https://github.com/Vantuilcm/AcucaradasEncomendas/actions)
