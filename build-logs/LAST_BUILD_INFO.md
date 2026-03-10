@@ -1,12 +1,12 @@
 # Histórico de Builds e Correções
 
-## Status Atual (Build 371 - Remoção Total do Sentry)
-- **Novo Build Disparado:** `Aguardando Push`
+## Status Atual (Build 371 - Correção expo-dev-menu)
 - **Build Number:** `371`
 - **Data:** 09/03/2026
-- **Status:** ⏳ **OPÇÃO NUCLEAR V2: SENTRY PURGE**
-- **Motivo:** O build anterior falhou porque as dependências do Sentry ainda estavam no `package.json`, causando autolinking do código nativo mesmo sem o plugin.
-- **Correção:** Removidos `@sentry/react-native` e `sentry-expo` do `package.json` para garantir que NENHUM código do Sentry seja compilado. O patch do Yoga continua ativo.
+- **Status:** 🛠️ **CORREÇÃO FINAL: SWIFT COMPILER**
+- **Erro:** `cannot find 'TARGET_IPHONE_SIMULATOR' in scope` no `expo-dev-menu`.
+- **Correção:** Criado patch para `expo-dev-menu` substituindo `TARGET_IPHONE_SIMULATOR` por `#if targetEnvironment(simulator)`.
+- **Anterior:** Removidos `@sentry/react-native` e `sentry-expo` do `package.json` para garantir que NENHUM código do Sentry seja compilado. O patch do Yoga continua ativo.
 
 ## Links para Acompanhar
 - **GitHub Actions:** [Acompanhar Build Gratuito](https://github.com/Vantuilcm/AcucaradasEncomendas/actions)
