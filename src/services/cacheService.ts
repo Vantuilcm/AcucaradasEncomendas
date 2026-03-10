@@ -278,6 +278,28 @@ class CacheService {
     const cacheKey = `product_${product.id}`;
     await this.set(cacheKey, product, expirationTime);
   }
+
+  /**
+   * Alias para compatibilidade com outros serviços (getItem)
+   */
+  public async getItem<T>(key: string): Promise<T | null> {
+    return this.get<T>(key);
+  }
+
+  /**
+   * Alias para compatibilidade com outros serviços (setItem)
+   */
+  public async setItem<T>(key: string, value: T, expirationTime?: number): Promise<void> {
+    return this.set<T>(key, value, expirationTime);
+  }
+
+  /**
+   * Alias para compatibilidade com outros serviços (removeItem)
+   */
+  public async removeItem(key: string): Promise<void> {
+    this.memoryCache.delete(key);
+    await AsyncStorage.removeItem(`${this.config.storageKey}${key}`);
+  }
 }
 
 export default CacheService;

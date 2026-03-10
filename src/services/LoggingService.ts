@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Níveis de log disponíveis
@@ -19,7 +18,7 @@ interface LogEntry {
   stackTrace?: string;
 }
 
-class LoggingService {
+export class LoggingService {
   private static instance: LoggingService;
   private isInitialized: boolean = false;
   private readonly STORAGE_KEY = '@acucaradas:logs';
@@ -92,7 +91,7 @@ class LoggingService {
     this.storeLog(LogLevel.FATAL, message, errorContext, error?.stack);
   }
 
-  setUser(userId: string, userData?: Record<string, any>): void {
+  setUser(_userId: string, _userData?: Record<string, any>): void {
     // Sentry removido
   }
 

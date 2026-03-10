@@ -93,7 +93,7 @@ export class PerformanceService {
    * Processa entradas de performance do observer
    */
   private processPerformanceEntry(entry: any): void {
-    const { name, entryType, startTime, duration } = entry;
+    const { name, entryType, duration } = entry;
 
     // Registrar no log para análise em desenvolvimento
     if (__DEV__) {
@@ -220,7 +220,7 @@ export class PerformanceService {
    * @param operation Tipo de operação
    * @returns ID da transação para finalização posterior
    */
-  startOperation(name: string, operation: string): string {
+  startOperation(name: string, _operation: string): string {
     const operationId = `${name}_${Date.now()}`;
     
     // Iniciar marca de performance
@@ -237,7 +237,7 @@ export class PerformanceService {
    * @param success Indica se a operação foi bem-sucedida
    * @param additionalData Dados adicionais para registrar
    */
-  endOperation(operationId: string, success: boolean = true, additionalData?: Record<string, any>): void {
+  endOperation(operationId: string, _success: boolean = true, _additionalData?: Record<string, any>): void {
     if (typeof performance !== 'undefined') {
       // Marcar fim da operação
       performance.mark(`${operationId}_end`);
@@ -254,15 +254,9 @@ export class PerformanceService {
       if (entries.length > 0) {
         const duration = entries[0].duration;
         
-        // Registrar no Sentry
-        const transaction = (Sentry as any).Native?.getCurrentHub()?.getScope()?.getTransaction();
-        if (transaction) {
-          transaction.setData('duration', duration);
-          transaction.setData('success', success);
-          if (additionalData) {
-            transaction.setData('additionalData', additionalData);
-          }
-          transaction.finish();
+        // Registrar em log de desenvolvimento
+        if (__DEV__) {
+          console.log(`[Performance] Operation ${operationId} duration: ${duration}ms`);
         }
         
         // Limpar marcas e medidas para economizar memória
@@ -319,20 +313,10 @@ export class PerformanceService {
         }
       });
       
-      // Registrar no Sentry
-      const transaction = startTransaction(
-        `interaction_${interaction.componentName}`,
-        'user-interaction'
-      );
-      
-      transaction.setData('duration', duration);
-      transaction.setData('success', success);
-      transaction.setData('componentName', interaction.componentName);
-      if (additionalData) {
-        transaction.setData('additionalData', additionalData);
+      // Registrar no log de desenvolvimento
+      if (__DEV__) {
+        console.log(`[Performance] Interaction ${interaction.componentName} duration: ${duration}ms`);
       }
-      
-      transaction.finish();
       
       // Verificar se a duração excede o limite aceitável
       if (duration > performanceConfig.performanceThresholds.renderTime * 10) {
@@ -354,9 +338,6 @@ export class PerformanceService {
   trackScreenLoad(screenName: string, startTime?: number): string {
     const start = startTime || Date.now();
     const screenLoadId = `screen_load_${screenName}_${start}`;
-    
-    // Iniciar transação no Sentry
-    startTransaction(`screen_load_${screenName}`, 'navigation');
     
     // Armazenar tempo de início para cálculo posterior
     this.userInteractions.set(screenLoadId, {
@@ -391,12 +372,9 @@ export class PerformanceService {
         success: true
       });
       
-      // Finalizar transação no Sentry
-      const transaction = (Sentry as any).Native?.getCurrentHub()?.getScope()?.getTransaction();
-      if (transaction) {
-        transaction.setData('duration', duration);
-        transaction.setData('screenName', screenLoad.componentName);
-        transaction.finish();
+      // Registrar no log de desenvolvimento
+      if (__DEV__) {
+        console.log(`[Performance] Screen ${screenLoad.componentName} load duration: ${duration}ms`);
       }
       
       // Verificar se o tempo de carregamento excede o limite
@@ -419,14 +397,14 @@ export class PerformanceService {
     if (__DEV__) {
       console.warn(`Performance Issue [${issueType}]:`, data);
     }
-    
-    // Reportar para Sentry
-    (Sentry as any).Native?.addBreadcrumb({
-      category: 'performance',
-      message: `Performance issue: ${issueType}`,
-      level: 'warning',
-      data
-    });
+  }
+
+  /**
+   * Obtém as métricas atuais de performance
+   * @returns Métricas de performance
+   */
+  public getMetrics(): PerformanceMetrics {
+    return { ...this.metrics };
   }
 
   private saveMetricsToCache(): void {

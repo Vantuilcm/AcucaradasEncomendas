@@ -1,6 +1,6 @@
 import React, { Component, ReactNode, ErrorInfo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { LoggingService } from '../services/LoggingService';
+import { loggingService } from '../services/LoggingService';
 
 interface Props {
   children: ReactNode;
@@ -85,7 +85,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   private logError = (error: Error, errorInfo: ErrorInfo, errorId: string) => {
     try {
-      LoggingService.error(
+      loggingService.error(
         'ErrorBoundary: Component error caught',
         {
           errorId,
@@ -99,10 +99,8 @@ class ErrorBoundary extends Component<Props, State> {
         },
         error
       );
-    } catch (loggingError) {
-      // Fallback se o logging falhar
-      console.error('Failed to log error:', loggingError);
-      console.error('Original error:', error);
+    } catch (logError) {
+      console.error('Failed to log error to LoggingService:', logError);
     }
   };
 
