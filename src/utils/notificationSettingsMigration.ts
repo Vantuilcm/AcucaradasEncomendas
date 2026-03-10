@@ -1,7 +1,8 @@
-import { firestore } from '../firebase/config';
+import { db as firestore } from '../config/firebase';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { NotificationSettingsServiceWithCache } from '../services/NotificationSettingsServiceWithCache';
 import { NotificationSettingsServiceWithCacheV2 } from '../services/NotificationSettingsServiceWithCacheV2';
-import { loggingService } from '../services/loggingService';
+import { loggingService } from '../services/LoggingService';
 import { EnhancedCacheManager } from './EnhancedCacheManager';
 
 /**
@@ -56,22 +57,24 @@ export class NotificationSettingsMigration {
       // Mapear configurações antigas para o formato novo
       const newSettings = {
         userId,
-        allNotificationsEnabled: oldSettings.allNotificationsEnabled,
-        notificationTypes: {
-          news: oldSettings.notificationTypes?.news ?? true,
-          delivery: oldSettings.notificationTypes?.delivery ?? true,
-          payment: oldSettings.notificationTypes?.payment ?? true,
+        enabled: oldSettings.enabled,
+        types: {
+          orderStatus: oldSettings.types?.orderStatus ?? true,
+          promotions: oldSettings.types?.promotions ?? true,
+          news: oldSettings.types?.news ?? true,
+          deliveryUpdates: oldSettings.types?.deliveryUpdates ?? true,
+          paymentUpdates: oldSettings.types?.paymentUpdates ?? true,
         },
         quietHours: {
           enabled: oldSettings.quietHours?.enabled ?? false,
-          startTime: oldSettings.quietHours?.startTime ?? '22:00',
-          endTime: oldSettings.quietHours?.endTime ?? '06:00',
+          start: oldSettings.quietHours?.start ?? '22:00',
+          end: oldSettings.quietHours?.end ?? '06:00',
         },
         frequency: oldSettings.frequency || 'immediate',
       };
 
       // Atualizar configurações na versão 2
-      await this.newService.updateSettings(userId, newSettings);
+      await this.newService.updateSettings(userId, newSettings as any);
 
       loggingService.logInfo(`Migração concluída com sucesso para o usuário ${userId}`);
       return true;
@@ -92,7 +95,8 @@ export class NotificationSettingsMigration {
       );
 
       // Obter todos os documentos da coleção antiga
-      const snapshot = await firestore.collection('notificationSettings').get();
+      const collectionRef = collection(firestore, 'notificationSettings');
+      const snapshot = await getDocs(collectionRef);
 
       let successCount = 0;
       let failedCount = 0;
@@ -127,10 +131,10 @@ export class NotificationSettingsMigration {
   public async checkIfMigrated(userId: string): Promise<boolean> {
     try {
       // Verificar se existe um documento na coleção nova para o usuário
-      const docRef = firestore.collection('notificationSettingsV2').doc(userId);
-      const doc = await docRef.get();
+      const docRef = doc(firestore, 'notificationSettingsV2', userId);
+      const docSnap = await getDoc(docRef);
 
-      return doc.exists;
+      return docSnap.exists();
     } catch (error) {
       loggingService.error('Erro ao verificar migração de configurações', error);
       return false;
