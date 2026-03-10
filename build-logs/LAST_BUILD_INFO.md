@@ -1,9 +1,24 @@
 # Histórico de Builds e Correções
 
-## Status Atual (Build 374 - Correção de Assets Inexistentes)
+## Status Atual (Build 375 - Remoção Completa do Sentry)
+- **Build Number:** `375`
+- **Data:** 10/03/2026
+- **Status:** 🛠️ **REMOÇÃO DE REFERÊNCIAS AO SENTRY**
+- **Erro:** `Unable to resolve module @sentry/react-native from .../SecureLoggingService.ts` (Metro Bundler).
+- **Correção:** 
+    - Removidas todas as importações e chamadas ao `@sentry/react-native` nos arquivos:
+        - `src/services/SecureLoggingService.ts`
+        - `src/services/LoggingService.ts`
+        - `src/services/ErrorHandlingService.ts`
+        - `src/components/ErrorBoundary.tsx`
+        - `src/__tests__/integration/PerformanceMonitoring.test.ts`
+    - O Sentry foi completamente desativado do código-fonte para eliminar erros de compilação C++ e resolução de módulos.
+- **Objetivo:** Garantir que o Metro Bundler consiga gerar o bundle sem depender de um pacote que foi removido do `package.json`.
+
+## Status Anterior (Build 374 - Correção de Assets Inexistentes)
 - **Build Number:** `374`
 - **Data:** 10/03/2026
-- **Status:** 🛠️ **CORREÇÃO DE ASSETS FALTANTES**
+- **Status:** ✅ **ASSETS CORRIGIDOS**
 - **Erro:** `Unable to resolve module ../assets/default-avatar.png` e outros assets inexistentes (fontes, animações Lottie).
 - **Correção:** 
     - Removidas as referências a `default-avatar.png` no `ProfileScreen.tsx` (substituído por ícone).

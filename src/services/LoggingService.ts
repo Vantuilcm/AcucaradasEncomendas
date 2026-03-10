@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -40,42 +39,15 @@ class LoggingService {
   private initialize(): void {
     if (this.isInitialized) return;
 
-    const dsn = Constants.expoConfig?.extra?.sentryDsn;
-    const environment = Constants.expoConfig?.extra?.environment || 'development';
-
-    if (dsn) {
-      Sentry.init({
-        dsn,
-        environment,
-        tracesSampleRate: environment === 'production' ? 0.2 : 1.0,
-        enableNative: true,
-        enableNativeCrashHandling: true,
-        enableAutoSessionTracking: true,
-        sessionTrackingIntervalMillis: 30000,
-      });
-    }
-
     this.isInitialized = true;
   }
 
   info(message: string, context?: Record<string, any>): void {
     console.log(`[INFO] ${message}`, context || '');
-    Sentry.addBreadcrumb({
-      category: 'info',
-      message,
-      data: context,
-      level: 'info',
-    });
   }
 
   warn(message: string, context?: Record<string, any>): void {
     console.warn(`[WARN] ${message}`, context || '');
-    Sentry.addBreadcrumb({
-      category: 'warning',
-      message,
-      data: context,
-      level: 'warning',
-    });
   }
 
   error(

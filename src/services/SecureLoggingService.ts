@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import { DeviceSecurityService } from './DeviceSecurityService';
@@ -78,8 +77,6 @@ class SecureLoggingService {
    */
   public setUserId(userId: string): void {
     this.userId = userId;
-    // Atualizar também no Sentry para rastreamento de erros
-    Sentry.setUser({ id: userId });
   }
 
   /**
@@ -115,11 +112,6 @@ class SecureLoggingService {
    */
   public error(message: string, data?: any): void {
     this.log(LogLevel.ERROR, message, data);
-    
-    // Enviar erro para o Sentry
-    Sentry.captureException(new Error(message), {
-      extra: this.sanitizeData(data),
-    });
   }
 
   /**
@@ -127,12 +119,6 @@ class SecureLoggingService {
    */
   public security(message: string, data?: any): void {
     this.log(LogLevel.SECURITY, message, data);
-    
-    // Eventos de segurança são importantes, enviar para o Sentry também
-    Sentry.captureMessage(`[SECURITY] ${message}`, {
-      level: 'warning',
-      extra: this.sanitizeData(data),
-    });
   }
 
   /**

@@ -1,7 +1,6 @@
 import { PerformanceService } from '../../services/PerformanceService';
 import CacheService from '../../services/cacheService';
 import { performanceConfig } from '../../config/performance';
-import * as Sentry from '@sentry/react-native';
 
 // Mock dependencies
 jest.mock('@sentry/react-native', () => ({

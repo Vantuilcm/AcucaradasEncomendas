@@ -1,5 +1,4 @@
 import { Alert } from 'react-native';
-import * as Sentry from '@sentry/react-native';
 
 export class ErrorHandlingService {
   private static instance: ErrorHandlingService;
@@ -27,15 +26,6 @@ export class ErrorHandlingService {
         `${error.message}\n\nContexto: ${context || 'App'}\n\nStack: ${error.stack}`
       );
     }
-
-    // Envia para o Sentry em produção
-    if (!this.isDevelopment) {
-      Sentry.captureException(error, {
-        tags: {
-          context: context || 'App',
-        },
-      });
-    }
   }
 
   public handleApiError(error: any, context?: string): void {
@@ -48,16 +38,6 @@ export class ErrorHandlingService {
     // Em desenvolvimento, mostra o erro em um Alert
     if (this.isDevelopment) {
       Alert.alert(`Erro ${errorCode}`, `${errorMessage}\n\nContexto: ${context || 'API'}`);
-    }
-
-    // Envia para o Sentry em produção
-    if (!this.isDevelopment) {
-      Sentry.captureException(error, {
-        tags: {
-          context: context || 'API',
-          errorCode: errorCode.toString(),
-        },
-      });
     }
   }
 
@@ -72,16 +52,6 @@ export class ErrorHandlingService {
         `${errors.join('\n')}\n\nContexto: ${context || 'Validation'}`
       );
     }
-
-    // Envia para o Sentry em produção
-    if (!this.isDevelopment) {
-      Sentry.captureException(new Error(errors.join(', ')), {
-        tags: {
-          context: context || 'Validation',
-          type: 'validation',
-        },
-      });
-    }
   }
 
   public handleNetworkError(error: any, context?: string): void {
@@ -92,15 +62,5 @@ export class ErrorHandlingService {
 
     // Mostra o erro em um Alert
     Alert.alert('Erro de Conexão', errorMessage);
-
-    // Envia para o Sentry em produção
-    if (!this.isDevelopment) {
-      Sentry.captureException(error, {
-        tags: {
-          context: context || 'Network',
-          type: 'network',
-        },
-      });
-    }
   }
 }

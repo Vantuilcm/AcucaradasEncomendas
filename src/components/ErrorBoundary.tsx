@@ -1,6 +1,5 @@
 import React, { Component, ReactNode, ErrorInfo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import * as Sentry from '@sentry/react-native';
 import { LoggingService } from '../services/LoggingService';
 
 interface Props {
@@ -59,28 +58,6 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
-
-    // Enviar para Sentry com contexto adicional
-    Sentry.withScope(scope => {
-      scope.setTag('errorBoundary', true);
-      scope.setTag('errorId', errorId);
-      scope.setContext('errorInfo', {
-        componentStack: errorInfo.componentStack,
-        errorBoundary: this.constructor.name,
-      });
-
-      // Adicionar breadcrumbs
-      scope.addBreadcrumb({
-        message: 'Error caught by ErrorBoundary',
-        level: 'error',
-        data: {
-          errorId,
-          component: this.constructor.name,
-        },
-      });
-
-      Sentry.captureException(error);
-    });
   }
 
   componentDidUpdate(prevProps: Props) {
