@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { loggingService } from '../services/LoggingService';
@@ -158,11 +158,12 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f9f9f9',
   },
-  icon: {
+  iconContainer: {
     width: 100,
     height: 100,
     marginBottom: 30,
-    tintColor: '#FF6B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,

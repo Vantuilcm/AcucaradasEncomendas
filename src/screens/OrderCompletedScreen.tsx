@@ -1,13 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Button, Divider, useTheme, Card } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
-import LottieView from '../compat/LottieView';
 import { formatCurrency } from '../utils/formatters';
-import { Order } from '../types/Order';
 import { Ionicons } from '@expo/vector-icons';
 import { PrintOrderButton } from '../components/PrintOrderButton';
 
@@ -16,13 +14,6 @@ export default function OrderCompletedScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'OrderCompleted'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'OrderCompleted'>>();
   const { order } = route.params;
-  const animationRef = React.useRef<LottieView>(null);
-
-  useEffect(() => {
-    if (animationRef.current) {
-      animationRef.current.play(0, 120);
-    }
-  }, []);
 
   const handleTrackOrder = () => {
     navigation.navigate('OrderDetails', { orderId: order.id });

@@ -26,7 +26,7 @@ const NON_CRITICAL_FONTS = {
   // 'Roboto-Italic': require('../../assets/fonts/Roboto-Italic.ttf'),
 };
 
-const NON_CRITICAL_IMAGES = [
+const NON_CRITICAL_IMAGES: any[] = [
   // require('../../assets/background.png'),
   // outras imagens não críticas
 ];
