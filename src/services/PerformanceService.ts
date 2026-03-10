@@ -1,7 +1,5 @@
-import * as Sentry from 'sentry-expo';
 import { Platform } from 'react-native';
 import { performanceConfig } from '../config/performance';
-import { startTransaction } from '../config/sentry';
 import CacheService from './cacheService';
 
 const performance = typeof window !== 'undefined' ? window.performance : undefined;
@@ -97,11 +95,10 @@ export class PerformanceService {
   private processPerformanceEntry(entry: any): void {
     const { name, entryType, startTime, duration } = entry;
 
-    // Registrar no Sentry para análise
-    const transaction = startTransaction(name, entryType);
-    transaction.setData('duration', duration);
-    transaction.setData('startTime', startTime);
-    transaction.finish();
+    // Registrar no log para análise em desenvolvimento
+    if (__DEV__) {
+      console.log(`[Performance] ${name} (${entryType}): ${duration}ms`);
+    }
 
     // Armazenar métricas relevantes
     switch (entryType) {
@@ -230,9 +227,6 @@ export class PerformanceService {
     if (typeof performance !== 'undefined') {
       performance.mark(`${operationId}_start`);
     }
-    
-    // Iniciar transação no Sentry
-    startTransaction(name, operation);
     
     return operationId;
   }

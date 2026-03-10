@@ -2,33 +2,6 @@ import { PerformanceService } from '../../services/PerformanceService';
 import CacheService from '../../services/cacheService';
 import { performanceConfig } from '../../config/performance';
 
-// Mock dependencies
-jest.mock('@sentry/react-native', () => ({
-  startTransaction: jest.fn().mockReturnValue({
-    setData: jest.fn(),
-    finish: jest.fn(),
-  }),
-  getCurrentHub: jest.fn().mockReturnValue({
-    getScope: jest.fn().mockReturnValue({
-      getTransaction: jest.fn().mockReturnValue({
-        setData: jest.fn(),
-        finish: jest.fn(),
-      }),
-    }),
-  }),
-}));
-
-jest.mock('../../services/cacheService', () => ({
-  __esModule: true,
-  default: {
-    getInstance: jest.fn().mockReturnValue({
-      setItem: jest.fn(),
-      getItem: jest.fn().mockReturnValue(Promise.resolve(null)),
-      removeItem: jest.fn(),
-    }),
-  },
-}));
-
 // Mock performance API
 global.performance = {
   mark: jest.fn(),
@@ -97,7 +70,7 @@ describe('Performance Monitoring Integration', () => {
       });
 
       // Verificar se as métricas foram registradas corretamente
-      const { startPerformanceTransaction } = require('@/config/sentry');
+      expect(performanceService.getMetrics()).toBeDefined();
 
       // Verificar se as transações foram criadas
       expect(startPerformanceTransaction).toHaveBeenCalledWith(

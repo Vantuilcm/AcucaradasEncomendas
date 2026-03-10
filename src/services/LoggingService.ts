@@ -70,16 +70,6 @@ class LoggingService {
 
     console.error(`[ERROR] ${message}`, enrichedContext || '', error?.stack || '');
 
-    if (error) {
-      Sentry.captureException(error, {
-        extra: enrichedContext,
-      });
-    } else {
-      Sentry.captureException(new Error(message), {
-        extra: enrichedContext,
-      });
-    }
-
     // Armazenar log localmente
     this.storeLog(LogLevel.ERROR, message, enrichedContext, error?.stack);
   }
@@ -98,31 +88,16 @@ class LoggingService {
 
     console.error(`[FATAL] ${message}`, errorContext || '', error?.stack || '');
 
-    if (error) {
-      Sentry.captureException(error, {
-        level: 'fatal',
-        extra: errorContext,
-      });
-    } else {
-      Sentry.captureException(new Error(message), {
-        level: 'fatal',
-        extra: errorContext,
-      });
-    }
-
     // Armazenar log localmente
     this.storeLog(LogLevel.FATAL, message, errorContext, error?.stack);
   }
 
   setUser(userId: string, userData?: Record<string, any>): void {
-    Sentry.setUser({
-      id: userId,
-      ...userData,
-    });
+    // Sentry removido
   }
 
   clearUser(): void {
-    Sentry.setUser(null);
+    // Sentry removido
   }
 
   /**

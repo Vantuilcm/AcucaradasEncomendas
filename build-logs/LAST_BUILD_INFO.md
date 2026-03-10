@@ -1,19 +1,27 @@
 # Histórico de Builds e Correções
 
-## Status Atual (Build 375 - Remoção Completa do Sentry)
+## Status Atual (Build 376 - Remoção Total de Dependências Sentry)
+- **Build Number:** `376`
+- **Data:** 10/03/2026
+- **Status:** 🛠️ **LIMPEZA PROFUNDA DE SENTRY**
+- **Erro:** Referências residuais ao Sentry e `sentry-expo` em serviços de log e performance.
+- **Correção:** 
+    - Removidas todas as importações e chamadas ao `@sentry/react-native` e `sentry-expo` nos arquivos:
+        - `src/services/SecureLoggingService.ts`
+        - `src/services/LoggingService.ts` (Métodos `error`, `fatal`, `setUser`, `clearUser`)
+        - `src/services/ErrorHandlingService.ts`
+        - `src/services/PerformanceService.ts` (Removido `startTransaction`)
+        - `src/components/ErrorBoundary.tsx`
+        - `src/__tests__/integration/PerformanceMonitoring.test.ts` (Removidos mocks de Sentry)
+    - O Sentry foi completamente desativado do código-fonte para eliminar erros de compilação C++ e resolução de módulos.
+- **Objetivo:** Garantir um build 100% limpo sem qualquer vestígio de bibliotecas nativas de monitoramento que causem falhas no Xcode.
+
+## Status Anterior (Build 375 - Remoção de Módulos Sentry)
 - **Build Number:** `375`
 - **Data:** 10/03/2026
-- **Status:** 🛠️ **REMOÇÃO DE REFERÊNCIAS AO SENTRY**
-- **Erro:** `Unable to resolve module @sentry/react-native from .../SecureLoggingService.ts` (Metro Bundler).
-- **Correção:** 
-    - Removidas todas as importações e chamadas ao `@sentry/react-native` nos arquivos:
-        - `src/services/SecureLoggingService.ts`
-        - `src/services/LoggingService.ts`
-        - `src/services/ErrorHandlingService.ts`
-        - `src/components/ErrorBoundary.tsx`
-        - `src/__tests__/integration/PerformanceMonitoring.test.ts`
-    - O Sentry foi completamente desativado do código-fonte para eliminar erros de compilação C++ e resolução de módulos.
-- **Objetivo:** Garantir que o Metro Bundler consiga gerar o bundle sem depender de um pacote que foi removido do `package.json`.
+- **Status:** ✅ **MÓDULOS REMOVIDOS**
+- **Erro:** `Unable to resolve module @sentry/react-native` (Metro Bundler).
+- **Correção:** Primeira fase de remoção de referências ao Sentry para destravar o bundle.
 
 ## Status Anterior (Build 374 - Correção de Assets Inexistentes)
 - **Build Number:** `374`
