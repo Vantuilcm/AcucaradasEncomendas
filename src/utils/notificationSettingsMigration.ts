@@ -12,12 +12,10 @@ export class NotificationSettingsMigration {
   private static instance: NotificationSettingsMigration;
   private oldService: NotificationSettingsServiceWithCache;
   private newService: NotificationSettingsServiceWithCacheV2;
-  private cacheManager: EnhancedCacheManager;
 
   private constructor() {
     this.oldService = NotificationSettingsServiceWithCache.getInstance();
     this.newService = NotificationSettingsServiceWithCacheV2.getInstance();
-    this.cacheManager = EnhancedCacheManager.getInstance();
   }
 
   /**
@@ -37,7 +35,7 @@ export class NotificationSettingsMigration {
    */
   public async migrateUserSettings(userId: string): Promise<boolean> {
     try {
-      loggingService.logInfo(
+      loggingService.info(
         `Iniciando migração das configurações de notificação para o usuário ${userId}`
       );
 
@@ -45,7 +43,7 @@ export class NotificationSettingsMigration {
       const oldSettings = await this.oldService.getUserSettings(userId);
 
       if (!oldSettings) {
-        loggingService.logWarning(
+        loggingService.warn(
           `Nenhuma configuração antiga encontrada para o usuário ${userId}`
         );
         return false;
@@ -76,10 +74,10 @@ export class NotificationSettingsMigration {
       // Atualizar configurações na versão 2
       await this.newService.updateSettings(userId, newSettings as any);
 
-      loggingService.logInfo(`Migração concluída com sucesso para o usuário ${userId}`);
+      loggingService.info(`Migração concluída com sucesso para o usuário ${userId}`);
       return true;
     } catch (error) {
-      loggingService.error('Erro ao migrar configurações de notificação', error);
+      loggingService.error('Erro ao migrar configurações de notificação', error as Error);
       return false;
     }
   }
@@ -90,7 +88,7 @@ export class NotificationSettingsMigration {
    */
   public async migrateAllUsers(): Promise<{ success: number; failed: number }> {
     try {
-      loggingService.logInfo(
+      loggingService.info(
         'Iniciando migração de configurações de notificação para todos os usuários'
       );
 
@@ -113,12 +111,12 @@ export class NotificationSettingsMigration {
         }
       }
 
-      loggingService.logInfo(
+      loggingService.info(
         `Migração concluída. Sucesso: ${successCount}, Falhas: ${failedCount}`
       );
       return { success: successCount, failed: failedCount };
     } catch (error) {
-      loggingService.error('Erro ao migrar configurações de todos os usuários', error);
+      loggingService.error('Erro ao migrar configurações de todos os usuários', error as Error);
       return { success: 0, failed: 0 };
     }
   }
@@ -136,7 +134,7 @@ export class NotificationSettingsMigration {
 
       return docSnap.exists();
     } catch (error) {
-      loggingService.error('Erro ao verificar migração de configurações', error);
+      loggingService.error('Erro ao verificar migração de configurações', error as Error);
       return false;
     }
   }
@@ -153,11 +151,11 @@ export class NotificationSettingsMigration {
       // Limpar cache da versão nova
       await this.newService.clearCache(userId);
 
-      loggingService.logInfo(
+      loggingService.info(
         `Cache de configurações de notificação limpo para o usuário ${userId}`
       );
     } catch (error) {
-      loggingService.error('Erro ao limpar cache de configurações', error);
+      loggingService.error('Erro ao limpar cache de configurações', error as Error);
     }
   }
 }
