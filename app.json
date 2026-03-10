@@ -22,11 +22,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.acucaradas.encomendas",
-      "buildNumber": "371",
+      "buildNumber": "372",
       "infoPlist": {
         "NSCameraUsageDescription": "Este aplicativo usa a câmera para escanear códigos QR e tirar fotos dos produtos.",
         "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar sua galeria para selecionar imagens para os produtos.",
         "NSMicrophoneUsageDescription": "Este aplicativo usa o microfone para gravar notas de voz para os pedidos.",
+        "NSSpeechRecognitionUsageDescription": "Este aplicativo pode usar reconhecimento de fala para facilitar a busca de produtos por voz.",
         "NSLocationWhenInUseUsageDescription": "Este aplicativo usa sua localização para encontrar confeitarias próximas e calcular o tempo de entrega.",
         "UIBackgroundModes": [
           "remote-notification"

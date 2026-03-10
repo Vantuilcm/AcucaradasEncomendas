@@ -1,12 +1,31 @@
 # Histórico de Builds e Correções
 
-## Status Atual (Build 371 - Correção expo-dev-menu)
-- **Build Number:** `371`
-- **Data:** 09/03/2026
-- **Status:** 🛠️ **CORREÇÃO FINAL: SWIFT COMPILER**
-- **Erro:** `cannot find 'TARGET_IPHONE_SIMULATOR' in scope` no `expo-dev-menu`.
-- **Correção:** Criado patch para `expo-dev-menu` substituindo `TARGET_IPHONE_SIMULATOR` por `#if targetEnvironment(simulator)`.
-- **Anterior:** Removidos `@sentry/react-native` e `sentry-expo` do `package.json` para garantir que NENHUM código do Sentry seja compilado. O patch do Yoga continua ativo.
+## Status Atual (Build 372 - Correção NSSpeechRecognitionUsageDescription)
+- **Build Number:** `372`
+- **Data:** 10/03/2026
+- **Status:** 🛠️ **CORREÇÃO DE PRIVACIDADE APPLE**
+- **Erro:** `Missing purpose string in Info.plist (NSSpeechRecognitionUsageDescription)`
+- **Correção:** Adicionada a chave `NSSpeechRecognitionUsageDescription` ao `app.json` e incrementado o build para `372`.
+
+## 🚀 Como Submeter para o TestFlight (Manual)
+
+O GitHub Actions (Plano Free) gera o arquivo `.ipa`, mas **não faz o upload automático** porque requer autenticação de dois fatores da Apple.
+
+**Passo a Passo para Submeter:**
+
+1. **Baixe o IPA:**
+   - Vá no [GitHub Actions](https://github.com/Vantuilcm/AcucaradasEncomendas/actions).
+   - Clique no build mais recente (ex: `Build iOS IPA`).
+   - Role até o final e baixe o artefato `Acucaradas-iOS-IPA`.
+   - Extraia o arquivo zip para obter o `Acucaradas.ipa`.
+
+2. **Execute o Script de Submissão:**
+   - Coloque o `Acucaradas.ipa` na pasta do projeto.
+   - Abra o terminal e rode:
+     ```powershell
+     .\submeter_testflight.ps1
+     ```
+   - Digite suas credenciais da Apple quando solicitado.
 
 ## Links para Acompanhar
 - **GitHub Actions:** [Acompanhar Build Gratuito](https://github.com/Vantuilcm/AcucaradasEncomendas/actions)
