@@ -1,11 +1,11 @@
 # Histórico de Builds e Correções
 
-## Status Atual (Build 372 - Correção NSSpeechRecognitionUsageDescription)
-- **Build Number:** `372`
+## Status Atual (Build 373 - Restauração da Navegação Completa)
+- **Build Number:** `373`
 - **Data:** 10/03/2026
-- **Status:** 🛠️ **CORREÇÃO DE PRIVACIDADE APPLE**
-- **Erro:** `Missing purpose string in Info.plist (NSSpeechRecognitionUsageDescription)`
-- **Correção:** Adicionada a chave `NSSpeechRecognitionUsageDescription` ao `app.json` e incrementado o build para `372`.
+- **Status:** 🚀 **APLICAÇÃO COMPLETA RESTAURADA**
+- **Correção:** O arquivo `src/App.tsx` estava configurado apenas com uma tela de "Status Online" estática. Restaurei a navegação completa integrando o `AppNavigator` e todos os `Providers` (Auth, Cart, Location, Theme).
+- **Privacidade:** Mantida a correção do build 372 (`NSSpeechRecognitionUsageDescription`).
 
 ## 🚀 Como Submeter para o TestFlight (Manual)
 
