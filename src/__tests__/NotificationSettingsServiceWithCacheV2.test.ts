@@ -1,11 +1,11 @@
 import { NotificationSettingsServiceWithCacheV2 } from '../services/NotificationSettingsServiceWithCacheV2';
 import { EnhancedCacheManager } from '../utils/EnhancedCacheManager';
-import { firestore } from '../firebase/config';
-import { loggingService } from '../services/loggingService';
+import { db as firestore } from '../config/firebase';
+import { loggingService } from '../services/LoggingService';
 
 // Mock do Firestore
-jest.mock('../firebase/config', () => ({
-  firestore: {
+jest.mock('../config/firebase', () => ({
+  db: {
     collection: jest.fn().mockReturnThis(),
     doc: jest.fn().mockReturnThis(),
     set: jest.fn().mockResolvedValue({}),
@@ -25,10 +25,15 @@ jest.mock('../utils/EnhancedCacheManager', () => ({
 }));
 
 // Mock do loggingService
-jest.mock('../services/loggingService', () => ({
-  logInfo: jest.fn(),
-  logError: jest.fn(),
-  logWarning: jest.fn(),
+jest.mock('../services/LoggingService', () => ({
+  loggingService: {
+    logInfo: jest.fn(),
+    logError: jest.fn(),
+    logWarning: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+  }
 }));
 
 describe('NotificationSettingsServiceWithCacheV2', () => {
