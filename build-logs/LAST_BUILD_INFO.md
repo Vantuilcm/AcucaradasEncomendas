@@ -1,11 +1,16 @@
 # Histórico de Builds e Correções
 
-## Status Atual (Build 373 - Restauração da Navegação Completa)
-- **Build Number:** `373`
+## Status Atual (Build 374 - Correção de Assets Inexistentes)
+- **Build Number:** `374`
 - **Data:** 10/03/2026
-- **Status:** 🚀 **APLICAÇÃO COMPLETA RESTAURADA**
-- **Correção:** O arquivo `src/App.tsx` estava configurado apenas com uma tela de "Status Online" estática. Restaurei a navegação completa integrando o `AppNavigator` e todos os `Providers` (Auth, Cart, Location, Theme).
-- **Privacidade:** Mantida a correção do build 372 (`NSSpeechRecognitionUsageDescription`).
+- **Status:** 🛠️ **CORREÇÃO DE ASSETS FALTANTES**
+- **Erro:** `Unable to resolve module ../assets/default-avatar.png` e outros assets inexistentes (fontes, animações Lottie).
+- **Correção:** 
+    - Removidas as referências a `default-avatar.png` no `ProfileScreen.tsx` (substituído por ícone).
+    - Removida animação Lottie inexistente no `OrderCompletedScreen.tsx` (substituído por ícone).
+    - Removidas referências a ícones inexistentes no `AuthErrorScreen.tsx` (substituído por ícones do MaterialCommunityIcons).
+    - Comentadas fontes e imagens de fundo inexistentes no `AppStartupService.ts`.
+- **Objetivo:** Destravar o build do Metro Bundler que estava falhando por não encontrar esses arquivos físicos.
 
 ## 🚀 Como Submeter para o TestFlight (Manual)
 

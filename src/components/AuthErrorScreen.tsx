@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { loggingService } from '../services/LoggingService';
 
@@ -39,38 +40,38 @@ const AuthErrorScreen: React.FC<AuthErrorScreenProps> = ({
         return {
           title: 'Acesso Não Autorizado',
           defaultMessage: 'Você não tem permissão para acessar esta área.',
-          icon: require('../assets/images/icons/lock.png'),
+          icon: 'lock' as const,
         };
       case 'email_not_verified':
         return {
           title: 'E-mail Não Verificado',
           defaultMessage: 'Verifique seu e-mail para confirmar sua conta.',
-          icon: require('../assets/images/icons/mail.png'),
+          icon: 'email' as const,
         };
       case 'session_expired':
         return {
           title: 'Sessão Expirada',
           defaultMessage: 'Sua sessão expirou. Por favor, faça login novamente.',
-          icon: require('../assets/images/icons/timer.png'),
+          icon: 'timer-off' as const,
         };
       case 'account_disabled':
         return {
           title: 'Conta Desativada',
           defaultMessage: 'Sua conta foi desativada. Entre em contato com o suporte.',
-          icon: require('../assets/images/icons/user-x.png'),
+          icon: 'account-off' as const,
         };
       case 'network_error':
         return {
           title: 'Erro de Conexão',
           defaultMessage: 'Não foi possível conectar ao servidor. Verifique sua conexão.',
-          icon: require('../assets/images/icons/wifi-off.png'),
+          icon: 'wifi-off' as const,
         };
       case 'unknown':
       default:
         return {
           title: 'Erro Inesperado',
           defaultMessage: 'Ocorreu um erro inesperado. Tente novamente mais tarde.',
-          icon: require('../assets/images/icons/alert-triangle.png'),
+          icon: 'alert-circle' as const,
         };
     }
   };
@@ -105,7 +106,9 @@ const AuthErrorScreen: React.FC<AuthErrorScreenProps> = ({
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        <Image source={icon} style={styles.icon} />
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcons name={icon} size={80} color="#FF6B6B" />
+        </View>
 
         <Text style={styles.title}>{title}</Text>
 

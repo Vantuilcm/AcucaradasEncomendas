@@ -11,8 +11,9 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 // Recursos críticos que precisam ser carregados antes da abertura do app
 const CRITICAL_FONTS = {
-  'Roboto-Regular': require('../../assets/fonts/Roboto-Regular.ttf'),
-  'Roboto-Bold': require('../../assets/fonts/Roboto-Bold.ttf'),
+  // Removendo fontes inexistentes para evitar erro de build
+  // 'Roboto-Regular': require('../../assets/fonts/Roboto-Regular.ttf'),
+  // 'Roboto-Bold': require('../../assets/fonts/Roboto-Bold.ttf'),
 };
 
 // Imagens críticas que devem ser carregadas antes da exibição da primeira tela
@@ -20,13 +21,13 @@ const CRITICAL_IMAGES = [require('../../assets/splash.png'), require('../../asse
 
 // Recursos não críticos que podem ser carregados após a exibição do app
 const NON_CRITICAL_FONTS = {
-  'Roboto-Light': require('../../assets/fonts/Roboto-Light.ttf'),
-  'Roboto-Medium': require('../../assets/fonts/Roboto-Medium.ttf'),
-  'Roboto-Italic': require('../../assets/fonts/Roboto-Italic.ttf'),
+  // 'Roboto-Light': require('../../assets/fonts/Roboto-Light.ttf'),
+  // 'Roboto-Medium': require('../../assets/fonts/Roboto-Medium.ttf'),
+  // 'Roboto-Italic': require('../../assets/fonts/Roboto-Italic.ttf'),
 };
 
 const NON_CRITICAL_IMAGES = [
-  require('../../assets/background.png'),
+  // require('../../assets/background.png'),
   // outras imagens não críticas
 ];
 

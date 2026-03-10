@@ -57,12 +57,11 @@ export const ProfileScreen = () => {
       <ScrollView style={styles.container}>
       <View style={styles.userInfoSection}>
         <View style={styles.userRow}>
-          <Avatar.Image
-            source={
-              user?.perfil?.fotoPerfil ? { uri: user.perfil.fotoPerfil } : require('../assets/default-avatar.png')
-            }
-            size={80}
-          />
+          {user?.perfil?.fotoPerfil ? (
+            <Avatar.Image source={{ uri: user.perfil.fotoPerfil }} size={80} />
+          ) : (
+            <Avatar.Icon icon="account" size={80} style={{ backgroundColor: theme.colors.primary }} />
+          )}
           <View style={styles.userInfo}>
             <Title style={styles.title}>{user?.nome || 'Usuário'}</Title>
             <Caption style={styles.caption}>{user?.email || ''}</Caption>

@@ -39,13 +39,7 @@ export default function OrderCompletedScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         <View style={styles.animationContainer}>
-          <LottieView
-            ref={animationRef}
-            style={styles.animation}
-            source={require('../assets/animations/order-success.json')}
-            autoPlay={false}
-            loop={false}
-          />
+          <Ionicons name="checkmark-circle" size={120} color={theme.colors.primary} />
         </View>
 
         <Text variant="headlineMedium" style={styles.title}>
