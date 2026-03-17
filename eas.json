@@ -52,7 +52,7 @@
       }
     },
     "production_local": {
-      "credentialsSource": "local",
+      "credentialsSource": "remote",
       "env": {
         "APP_ENV": "production",
         "EXPO_PUBLIC_APP_ENV": "production",
