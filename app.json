@@ -23,6 +23,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.acucaradas.encomendas",
       "buildNumber": "376",
+      "entitlements": {
+        "com.apple.developer.applesignin": ["Default"]
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "Este aplicativo usa a câmera para escanear códigos QR e tirar fotos dos produtos.",
         "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar sua galeria para selecionar imagens para os produtos.",
