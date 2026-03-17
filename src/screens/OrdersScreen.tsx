@@ -52,7 +52,7 @@ export function OrdersScreen() {
         throw new Error('Usuário não autenticado');
       }
 
-      const orderService = new OrderService();
+      const orderService = OrderService.getInstance();
       const [ordersData, summaryData] = await Promise.all([
         orderService.getUserOrders(user.id, filters),
         orderService.getOrderSummary(user.id),

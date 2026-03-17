@@ -19,7 +19,7 @@ export type ImageFilter = {
   value: number;
 };
 
-const DEFAULT_FILTERS: Record<ImageFilter['type'], number> = {
+export const DEFAULT_FILTERS: Record<ImageFilter['type'], number> = {
   brightness: 1,
   contrast: 1,
   saturation: 1,

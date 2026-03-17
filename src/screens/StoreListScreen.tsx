@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, StatusBar } from 'react-native';
-import { Appbar, Button } from 'react-native-paper';
+import { Appbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StoreLocator } from '../components/StoreLocator';
-import { useLocation } from '../contexts/LocationContext';
+// import { useLocation } from '../contexts/LocationContext';
 import { Store } from '../services/LocationService';
 import { loggingService } from '../services/LoggingService';
 
@@ -17,7 +17,7 @@ export function StoreListScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { productId, title } = (route.params as RouteParams) || {};
-  const { setProximityEnabled } = useLocation();
+  const [proximityEnabled, setProximityEnabled] = useState(false);
 
   // Lidar com a seleção de uma loja
   const handleStoreSelect = (store: Store) => {
@@ -26,22 +26,22 @@ export function StoreListScreen() {
     // Navegar para a tela de detalhes da loja ou produtos da loja
     if (productId) {
       // Se tiver um productId, navegar para a tela de detalhes do produto na loja específica
-      navigation.navigate(
-        'ProductDetails' as never,
+      (navigation as any).navigate(
+        'ProductDetails',
         {
           productId,
           storeId: store.id,
           storeName: store.name,
-        } as never
+        }
       );
     } else {
       // Navegar para a lista de produtos da loja
-      navigation.navigate(
-        'StoreDetails' as never,
+      (navigation as any).navigate(
+        'StoreDetails',
         {
           storeId: store.id,
           storeName: store.name,
-        } as never
+        }
       );
     }
   };
@@ -53,7 +53,7 @@ export function StoreListScreen() {
       <Appbar.Header style={styles.header} statusBarHeight={0}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={title || 'Lojas próximas'} />
-        <Appbar.Action icon="filter-variant" onPress={() => setProximityEnabled(prev => !prev)} />
+        <Appbar.Action icon="filter-variant" onPress={() => setProximityEnabled(!proximityEnabled)} />
       </Appbar.Header>
 
       <View style={styles.content}>

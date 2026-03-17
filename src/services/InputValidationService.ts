@@ -14,7 +14,7 @@ export class InputValidationService {
   private static readonly STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
   // Lista de caracteres perigosos para sanitização
-  private static readonly DANGEROUS_CHARS = ['<', '>', '"', "'", '`', ';', '=', '(', ')', '{', '}'];
+  // private static readonly DANGEROUS_CHARS = ['<', '>', '"', "'", '`', ';', '=', '(', ')', '{', '}'];
 
   // Lista de padrões de ataque comuns
   private static readonly ATTACK_PATTERNS = [
@@ -191,7 +191,7 @@ export class InputValidationService {
       if (schema.properties) {
         for (const [field, fieldSchema] of Object.entries(schema.properties)) {
           if (json[field] !== undefined) {
-            const fieldType = fieldSchema.type;
+            const fieldType = (fieldSchema as any).type;
             const actualType = typeof json[field];
 
             if (fieldType === 'array' && !Array.isArray(json[field])) {
@@ -201,8 +201,14 @@ export class InputValidationService {
             }
 
             // Validar comprimento máximo para strings
-            if (fieldType === 'string' && fieldSchema.maxLength && json[field].length > fieldSchema.maxLength) {
-              throw new Error(`Campo ${field} excede o comprimento máximo de ${fieldSchema.maxLength}`);
+            if (
+              fieldType === 'string' &&
+              (fieldSchema as any).maxLength &&
+              json[field].length > (fieldSchema as any).maxLength
+            ) {
+              throw new Error(
+                `Campo ${field} excede o comprimento máximo de ${(fieldSchema as any).maxLength}`
+              );
             }
           }
         }

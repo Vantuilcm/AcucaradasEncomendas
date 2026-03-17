@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform, FlatList } from 'react-native';
 import { Button, Text, Card, Divider, ActivityIndicator, List } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
-import { NotificationService } from '../services/NotificationService';
 import { PushNotificationService } from '../services/PushNotificationService';
 import * as Notifications from 'expo-notifications';
 import {
@@ -44,21 +43,93 @@ interface NotificationLog {
   };
 }
 
-export function TestNotificationsScreen({ navigation }) {
+export default function TestNotificationsScreen({ navigation }: { navigation: any }) {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [oneSignalId, setOneSignalId] = useState<string | null>(null);
   const [lastNotification, setLastNotification] = useState<any>(null);
   const [tokenUpdateDate, setTokenUpdateDate] = useState<string | null>(null);
   const [notificationLogs, setNotificationLogs] = useState<NotificationLog[]>([]);
-  const [logsLoading, setLogsLoading] = useState(false);
   const [filterType, setFilterType] = useState<string | null>(null);
+  const [logsLoading, setLogsLoading] = useState<boolean>(false);
   const pushNotificationService = new PushNotificationService();
-  const notificationService = new NotificationService();
 
   // Coleção do Firestore para os logs de notificações
   const notificationLogsCollection = 'notification_logs';
+
+  // Função para registrar um novo log de notificação no Firestore
+  const logNotification = async (log: NotificationLog) => {
+    try {
+      // Criar um ID único para o log
+      const logId = `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Salvar no Firestore
+      const logRef = doc(db, notificationLogsCollection, logId);
+      await setDoc(logRef, {
+        ...log,
+        id: logId,
+        createdAt: new Date().toISOString(),
+      });
+
+      // Adicionar ao estado local para atualização imediata da UI
+      const newLog = {
+        ...log,
+        id: logId,
+      };
+
+      setNotificationLogs((prevLogs: NotificationLog[]) => [newLog, ...prevLogs]);
+      return newLog;
+    } catch (error) {
+      console.error('Erro ao registrar log de notificação:', error);
+      return null;
+    }
+  };
+
+  // Função para carregar logs de notificações do Firestore
+  const loadNotificationLogs = async () => {
+    try {
+      setLogsLoading(true);
+      if (!user) return;
+
+      // Buscar logs do Firestore
+      const logsRef = collection(db, notificationLogsCollection);
+      let q = query(logsRef, where('userId', '==', (user as any).uid), orderBy('timestamp', 'desc'));
+
+      // Aplicar filtro por tipo se estiver selecionado
+      if (filterType) {
+        // Verificar se o filtro é para um status ou um tipo de notificação
+        if (['sent', 'received', 'clicked', 'failed'].includes(filterType)) {
+          q = query(
+            logsRef,
+            where('userId', '==', (user as any).uid),
+            where('status', '==', filterType),
+            orderBy('timestamp', 'desc')
+          );
+        } else {
+          q = query(
+            logsRef,
+            where('userId', '==', (user as any).uid),
+            where('type', '==', filterType),
+            orderBy('timestamp', 'desc')
+          );
+        }
+      }
+
+      const querySnapshot = await getDocs(q);
+      const logs = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as NotificationLog[];
+
+      setNotificationLogs(logs);
+    } catch (error) {
+      console.error('Erro ao carregar logs de notificações:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os logs de notificações');
+    } finally {
+      setLogsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -68,19 +139,19 @@ export function TestNotificationsScreen({ navigation }) {
     }
   }, [user]);
 
-  const loadUserData = async () => {
+  const loadUserData = async (): Promise<void> => {
     try {
       setLoading(true);
-      if (!user) return;
+      if (!(user as any)?.uid) return;
 
       // Buscar dados do usuário no Firestore
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', (user as any).uid);
       const userDoc = await getDoc(userRef);
       const userData = userDoc.data();
 
       if (userData) {
-        setFcmToken(userData.fcmToken || null);
-        setTokenUpdateDate(userData.tokenUpdatedAt || null);
+        setFcmToken(userData.fcmToken ? String(userData.fcmToken) : 'Não encontrado');
+        setTokenUpdateDate(userData.tokenUpdatedAt ? String(userData.tokenUpdatedAt) : null);
       }
     } catch (error) {
       console.error('Erro ao carregar dados do usuário:', error);
@@ -90,16 +161,16 @@ export function TestNotificationsScreen({ navigation }) {
     }
   };
 
-  const checkOneSignalId = async () => {
+  const checkOneSignalId = async (): Promise<void> => {
     try {
       const id = await getOneSignalUserId();
-      setOneSignalId(id);
+      setOneSignalId(id || 'Não encontrado');
     } catch (error) {
       console.error('Erro ao obter ID do OneSignal:', error);
     }
   };
 
-  const updateFcmToken = async () => {
+  const updateFcmToken = async (): Promise<void> => {
     try {
       setLoading(true);
       if (!user) return;
@@ -120,14 +191,14 @@ export function TestNotificationsScreen({ navigation }) {
       const token = tokenData.data;
 
       // Atualizar no Firestore
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', (user as any).uid);
       await updateDoc(userRef, {
         fcmToken: token,
         tokenUpdatedAt: new Date().toISOString(),
         platform: Platform.OS,
       });
 
-      setFcmToken(token);
+      setFcmToken(token || 'Não encontrado');
       setTokenUpdateDate(new Date().toISOString());
 
       Alert.alert('Sucesso', 'Token FCM atualizado com sucesso!');
@@ -139,7 +210,7 @@ export function TestNotificationsScreen({ navigation }) {
     }
   };
 
-  const sendTestNotification = async () => {
+  const sendTestNotification = async (): Promise<void> => {
     try {
       setLoading(true);
       if (!user) return;
@@ -152,7 +223,7 @@ export function TestNotificationsScreen({ navigation }) {
 
       // Enviar notificação de teste
       await pushNotificationService.sendPushNotification(
-        user.uid,
+        (user as any).uid,
         'Notificação de Teste',
         'Esta é uma notificação de teste do Açucaradas Encomendas',
         {
@@ -164,7 +235,7 @@ export function TestNotificationsScreen({ navigation }) {
 
       // Registrar log da notificação enviada
       await logNotification({
-        userId: user.uid,
+        userId: (user as any).uid,
         type: 'TEST_NOTIFICATION',
         title: 'Notificação de Teste',
         message: 'Esta é uma notificação de teste do Açucaradas Encomendas',
@@ -218,7 +289,7 @@ export function TestNotificationsScreen({ navigation }) {
       );
 
       await pushNotificationService.sendPushNotification(
-        user.uid,
+        (user as any).uid,
         formattedNotification.title,
         formattedNotification.message,
         formattedNotification.data
@@ -226,7 +297,7 @@ export function TestNotificationsScreen({ navigation }) {
 
       // Registrar log da notificação de pedido
       await logNotification({
-        userId: user.uid,
+        userId: (user as any).uid,
         type: 'NEW_ORDER',
         title: formattedNotification.title,
         message: formattedNotification.message,
@@ -256,8 +327,8 @@ export function TestNotificationsScreen({ navigation }) {
 
       // Definir tags do OneSignal
       await setOneSignalTags({
-        user_id: user.uid,
-        user_type: user.role || 'customer',
+        user_id: (user as any).uid,
+        user_type: (user as any).role || 'customer',
         email: user.email || '',
         last_login: new Date().toISOString(),
         app_version: Constants.expoConfig?.version || '1.0.0',
@@ -267,13 +338,13 @@ export function TestNotificationsScreen({ navigation }) {
 
       // Registrar log da atualização de tags
       await logNotification({
-        userId: user.uid,
+        userId: (user as any).uid,
         type: 'ONESIGNAL_TAGS_UPDATE',
         title: 'Atualização de Tags OneSignal',
         message: 'Tags do OneSignal foram atualizadas',
         data: {
-          user_id: user.uid,
-          user_type: user.role || 'customer',
+          user_id: (user as any).uid,
+          user_type: (user as any).role || 'customer',
           timestamp: new Date().toISOString(),
         },
         status: 'sent',
@@ -344,7 +415,7 @@ export function TestNotificationsScreen({ navigation }) {
       // Registrar log da notificação recebida
       if (user) {
         logNotification({
-          userId: user.uid,
+          userId: (user as any).uid,
           type: notification.request.content.data?.type || 'UNKNOWN',
           title: notification.request.content.title || '',
           message: notification.request.content.body || '',
@@ -366,7 +437,7 @@ export function TestNotificationsScreen({ navigation }) {
       // Registrar log da notificação clicada
       if (user) {
         logNotification({
-          userId: user.uid,
+          userId: (user as any).uid,
           type: data?.type || 'UNKNOWN',
           title: response.notification.request.content.title || '',
           message: response.notification.request.content.body || '',
@@ -410,7 +481,7 @@ export function TestNotificationsScreen({ navigation }) {
   }, [navigation, user]);
 
   // Função para limpar logs de notificações do Firestore
-  const clearNotificationLogs = async () => {
+  const clearNotificationLogs = async (): Promise<void> => {
     try {
       setLoading(true);
       if (!user) return;
@@ -426,13 +497,13 @@ export function TestNotificationsScreen({ navigation }) {
             try {
               // Buscar todos os logs do usuário
               const logsRef = collection(db, notificationLogsCollection);
-              const q = query(logsRef, where('userId', '==', user.uid));
+              const q = query(logsRef, where('userId', '==', (user as any).uid));
               const querySnapshot = await getDocs(q);
 
               // Excluir cada documento em lote
               const batch = writeBatch(db);
               querySnapshot.docs.forEach(doc => {
-                batch.delete(doc.ref);
+                (batch as any).delete((doc as any).ref);
               });
 
               await batch.commit();
@@ -492,15 +563,14 @@ export function TestNotificationsScreen({ navigation }) {
             )}
           </View>
         }
-        left={props => <List.Icon {...props} icon={icon} />}
-        right={props => (
+        left={_props => <List.Icon {..._props} icon={icon} />}
+        right={() => (
           <Text style={{ fontSize: 12 }}>{formatDate(new Date(item.timestamp))}</Text>
         )}
       />
     );
   };
 
-  // Função para enviar uma notificação segmentada por tipo de usuário
   const sendSegmentedNotification = async () => {
     try {
       setLoading(true);
@@ -528,7 +598,7 @@ export function TestNotificationsScreen({ navigation }) {
       );
 
       await pushNotificationService.sendPushNotification(
-        user.uid,
+        (user as any).uid,
         formattedNotification.title,
         formattedNotification.message,
         formattedNotification.data
@@ -536,7 +606,7 @@ export function TestNotificationsScreen({ navigation }) {
 
       // Registrar log da notificação promocional
       await logNotification({
-        userId: user.uid,
+        userId: (user as any).uid,
         type: 'PROMOTION',
         title: formattedNotification.title,
         message: formattedNotification.message,
@@ -559,117 +629,8 @@ export function TestNotificationsScreen({ navigation }) {
     }
   };
 
-  // Função para enviar notificação para um segmento específico de usuários
-  const sendUserSegmentNotification = async (segment: string) => {
-    try {
-      setLoading(true);
-      if (!user) return;
+  // Função removida por falta de uso
 
-      // Verificar se o token existe
-      if (!fcmToken) {
-        Alert.alert('Token não encontrado', 'Atualize o token FCM primeiro');
-        return;
-      }
-
-      // Definir mensagem com base no segmento selecionado
-      let title = '';
-      let message = '';
-      let type = '';
-      let data: any = {};
-
-      switch (segment) {
-        case 'vip_customers':
-          title = 'Oferta Exclusiva VIP';
-          message = 'Temos uma oferta exclusiva para nossos clientes VIP! Confira agora.';
-          type = 'VIP_PROMOTION';
-          data = {
-            type: 'VIP_PROMOTION',
-            promoId: 'vip_' + Math.floor(Math.random() * 1000),
-            discount: '15%',
-            screen: 'PromotionDetails',
-            timestamp: new Date().toISOString(),
-          };
-          break;
-        case 'inactive_users':
-          title = 'Sentimos sua Falta!';
-          message = 'Faz tempo que não te vemos por aqui. Que tal voltar com um desconto especial?';
-          type = 'REACTIVATION';
-          data = {
-            type: 'REACTIVATION',
-            promoId: 'react_' + Math.floor(Math.random() * 1000),
-            discount: '10%',
-            screen: 'Home',
-            timestamp: new Date().toISOString(),
-          };
-          break;
-        case 'new_users':
-          title = 'Bem-vindo ao Açucaradas!';
-          message = 'Obrigado por se juntar a nós! Aqui está um presente de boas-vindas.';
-          type = 'WELCOME';
-          data = {
-            type: 'WELCOME',
-            promoId: 'welcome_' + Math.floor(Math.random() * 1000),
-            discount: '5%',
-            screen: 'Home',
-            timestamp: new Date().toISOString(),
-          };
-          break;
-        case 'local_users':
-          title = 'Promoção na sua Região';
-          message = 'Temos ofertas especiais disponíveis na sua região! Confira agora.';
-          type = 'LOCAL_PROMOTION';
-          data = {
-            type: 'LOCAL_PROMOTION',
-            promoId: 'local_' + Math.floor(Math.random() * 1000),
-            region: 'Sua Cidade',
-            screen: 'PromotionDetails',
-            timestamp: new Date().toISOString(),
-          };
-          break;
-        default:
-          title = 'Notificação Personalizada';
-          message = 'Temos uma mensagem especial para você!';
-          type = 'CUSTOM';
-          data = {
-            type: 'CUSTOM',
-            screen: 'Home',
-            timestamp: new Date().toISOString(),
-          };
-      }
-
-      // Enviar notificação
-      await pushNotificationService.sendPushNotification(user.uid, title, message, data);
-
-      // Registrar log da notificação segmentada
-      await logNotification({
-        userId: user.uid,
-        type,
-        title,
-        message,
-        data,
-        status: 'sent',
-        timestamp: new Date().toISOString(),
-        deviceInfo: {
-          platform: Platform.OS,
-          deviceModel: Constants.deviceName,
-          osVersion: Platform.Version.toString(),
-        },
-      });
-
-      // Atualizar tags do OneSignal para simular segmentação
-      await setOneSignalTags({
-        last_segment_notification: segment,
-        last_notification_date: new Date().toISOString(),
-      });
-
-      Alert.alert('Sucesso', `Notificação enviada para o segmento: ${segment}`);
-    } catch (error) {
-      console.error('Erro ao enviar notificação segmentada:', error);
-      Alert.alert('Erro', 'Não foi possível enviar a notificação segmentada');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <ScrollView style={styles.container}>
@@ -898,75 +859,4 @@ const styles = StyleSheet.create({
   },
 });
 
-// Função para carregar logs de notificações do Firestore
-const loadNotificationLogs = async () => {
-  try {
-    setLogsLoading(true);
-    if (!user) return;
-
-    // Buscar logs do Firestore
-    const logsRef = collection(db, notificationLogsCollection);
-    let q = query(logsRef, where('userId', '==', user.uid), orderBy('timestamp', 'desc'));
-
-    // Aplicar filtro por tipo se estiver selecionado
-    if (filterType) {
-      // Verificar se o filtro é para um status ou um tipo de notificação
-      if (['sent', 'received', 'clicked', 'failed'].includes(filterType)) {
-        q = query(
-          logsRef,
-          where('userId', '==', user.uid),
-          where('status', '==', filterType),
-          orderBy('timestamp', 'desc')
-        );
-      } else {
-        q = query(
-          logsRef,
-          where('userId', '==', user.uid),
-          where('type', '==', filterType),
-          orderBy('timestamp', 'desc')
-        );
-      }
-    }
-
-    const querySnapshot = await getDocs(q);
-    const logs = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as NotificationLog[];
-
-    setNotificationLogs(logs);
-  } catch (error) {
-    console.error('Erro ao carregar logs de notificações:', error);
-    Alert.alert('Erro', 'Não foi possível carregar os logs de notificações');
-  } finally {
-    setLogsLoading(false);
-  }
-};
-
-// Função para registrar um novo log de notificação no Firestore
-const logNotification = async (log: NotificationLog) => {
-  try {
-    // Criar um ID único para o log
-    const logId = `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // Salvar no Firestore
-    const logRef = doc(db, notificationLogsCollection, logId);
-    await setDoc(logRef, {
-      ...log,
-      id: logId,
-      createdAt: new Date().toISOString(),
-    });
-
-    // Adicionar ao estado local para atualização imediata da UI
-    const newLog = {
-      ...log,
-      id: logId,
-    };
-
-    setNotificationLogs(prevLogs => [newLog, ...prevLogs]);
-    return newLog;
-  } catch (error) {
-    console.error('Erro ao registrar log de notificação:', error);
-    return null;
-  }
-};
+// Função para carregar logs de notificações do Firestore (removed duplicate)

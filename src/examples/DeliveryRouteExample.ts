@@ -231,7 +231,7 @@ export function runDeliveryRouteOptimization() {
       routesCount: optimizedRoutes.length,
       totalDeliveries: optimizedRoutes.reduce((sum, route) => sum + route.deliveryPoints.length, 0),
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro durante o processo de otimização de rotas:', error);
     return {
       success: false,

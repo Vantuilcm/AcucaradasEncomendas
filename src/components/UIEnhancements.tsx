@@ -1,6 +1,15 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet, Animated } from 'react-native';
-import { useFonts } from 'expo-font';
+
+const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+});
 
 export const LoadingOverlay = () => (
   <View style={styles.overlay}>
@@ -8,7 +17,7 @@ export const LoadingOverlay = () => (
   </View>
 );
 
-export const FadeInView = ({ children }) => {
+export const FadeInView = ({ children }: { children: React.ReactNode }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {

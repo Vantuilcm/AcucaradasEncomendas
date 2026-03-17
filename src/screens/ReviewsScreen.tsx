@@ -6,14 +6,12 @@ import {
   Button,
   Chip,
   useTheme,
-  Divider,
   Searchbar,
   SegmentedButtons,
   Portal,
   Modal,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { Review, ReviewFilters, ReviewSummary } from '../types/Review';
@@ -22,7 +20,6 @@ import { StarRating } from '../components/StarRating';
 
 export function ReviewsScreen() {
   const theme = useTheme();
-  const navigation = useNavigation();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +42,7 @@ export function ReviewsScreen() {
       setLoading(true);
       setError(null);
 
-      const reviewService = new ReviewService();
+      const reviewService = ReviewService.getInstance();
       const [reviewsData, summaryData] = await Promise.all([
         reviewService.getReviews(filters),
         reviewService.getReviewSummary(),
@@ -84,7 +81,7 @@ export function ReviewsScreen() {
 
   const handleLikeReview = async (reviewId: string) => {
     try {
-      const reviewService = new ReviewService();
+      const reviewService = ReviewService.getInstance();
       await reviewService.likeReview(reviewId);
       await loadData();
     } catch (err) {
@@ -185,7 +182,7 @@ export function ReviewsScreen() {
 
                 {review.images && review.images.length > 0 && (
                   <View style={styles.imageContainer}>
-                    {review.images.map((image, index) => (
+                    {review.images.map((_image, index) => (
                       <View key={index} style={styles.imagePlaceholder}>
                         <Text variant="bodySmall">Imagem {index + 1}</Text>
                       </View>
@@ -234,7 +231,7 @@ export function ReviewsScreen() {
             Ordenar por
           </Text>
           <SegmentedButtons
-            value={sortBy}
+            value={sortBy || 'newest'}
             onValueChange={value => setSortBy(value as ReviewFilters['sortBy'])}
             buttons={[
               { value: 'newest', label: 'Mais recentes' },

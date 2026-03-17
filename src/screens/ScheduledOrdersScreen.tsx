@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert , Platform, Share } from 'react-native';
-import { Text, Card, Chip, useTheme, Button, SegmentedButtons, FAB } from 'react-native-paper';
+import { Text, Card, Chip, useTheme, Button, SegmentedButtons } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -90,7 +90,7 @@ export function ScheduledOrdersScreen() {
         throw new Error('Usuário não autenticado');
       }
 
-      const orderService = new OrderService();
+      const orderService = OrderService.getInstance();
       const filters = { isScheduled: true };
       const userId = (user as any)?.id || (user as any)?.uid;
       if (!userId) {
@@ -124,8 +124,8 @@ export function ScheduledOrdersScreen() {
   };
 
   const updateMarkedDates = () => {
-    const dates = {};
-    const scheduledDates = {};
+    const dates: Record<string, any> = {};
+    const scheduledDates: Record<string, Order[]> = {};
 
     // Agrupar pedidos por data
     orders.forEach(order => {
@@ -140,7 +140,6 @@ export function ScheduledOrdersScreen() {
 
     // Marcar as datas no calendário
     Object.keys(scheduledDates).forEach(date => {
-      const count = scheduledDates[date].length;
       dates[date] = {
         marked: true,
         dotColor: '#FF69B4',
@@ -152,7 +151,7 @@ export function ScheduledOrdersScreen() {
     setMarkedDates(dates);
   };
 
-  const filterOrdersByDate = date => {
+  const filterOrdersByDate = (date: string) => {
     const filtered = orders.filter(
       order =>
         order.isScheduledOrder && order.scheduledDelivery && order.scheduledDelivery.date === date
@@ -160,7 +159,7 @@ export function ScheduledOrdersScreen() {
     setFilteredOrders(filtered);
   };
 
-  const handleDayPress = day => {
+  const handleDayPress = (day: any) => {
     setSelectedDate(day.dateString);
     setView('list');
   };
@@ -171,30 +170,30 @@ export function ScheduledOrdersScreen() {
     setRefreshing(false);
   };
 
-  const handleOrderPress = orderId => {
-    navigation.navigate('OrderDetails', { orderId });
+  const handleOrderPress = (orderId: string) => {
+    (navigation as any).navigate('OrderDetails', { orderId });
   };
 
-  const getStatusColor = status => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return theme.colors.warning;
+        return theme.colors.primary;
       case 'confirmed':
       case 'preparing':
       case 'ready':
-        return theme.colors.info;
+        return theme.colors.tertiary;
       case 'delivering':
         return theme.colors.primary;
       case 'delivered':
-        return theme.colors.success;
+        return theme.colors.secondary;
       case 'cancelled':
         return theme.colors.error;
       default:
-        return theme.colors.disabled;
+        return theme.colors.outline;
     }
   };
 
-  const getStatusLabel = status => {
+  const getStatusLabel = (status: string) => {
     switch (status) {
       case 'pending':
         return 'Pendente';
@@ -215,7 +214,7 @@ export function ScheduledOrdersScreen() {
     }
   };
 
-  const formatDate = dateString => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -242,16 +241,16 @@ export function ScheduledOrdersScreen() {
     );
 
     // Gerar tabelas para cada tipo
-    const generateOrdersTable = orders => {
+    const generateOrdersTable = (orders: Order[]) => {
       return orders
         .map(
           order => `
         <tr>
           <td>#${order.id.substring(0, 6)}</td>
           <td>${
-            order.scheduledDelivery.type === 'scheduled'
-              ? `Entre ${order.scheduledDelivery.timeSlot?.replace(' - ', ' e ')}`
-              : `${order.scheduledDelivery.customTime}`
+            order.scheduledDelivery?.type === 'scheduled'
+              ? `Entre ${order.scheduledDelivery?.timeSlot?.replace(' - ', ' e ')}`
+              : `${order.scheduledDelivery?.customTime || 'N/A'}`
           }</td>
           <td>${order.items.map(item => `${item.quantity}x ${item.name}`).join('<br>')}</td>
           <td>${formatCurrency(order.totalAmount)}</td>
@@ -263,7 +262,7 @@ export function ScheduledOrdersScreen() {
     };
 
     // Gerar listagem de todos os produtos necessários para o dia
-    const productsNeeded = {};
+    const productsNeeded: Record<string, number> = {};
     filteredOrders.forEach(order => {
       order.items.forEach(item => {
         if (!productsNeeded[item.name]) {
@@ -599,21 +598,21 @@ export function ScheduledOrdersScreen() {
                       <View style={styles.timeSlot}>
                         <Ionicons name="time-outline" size={18} color="#FF69B4" />
                         <Text style={styles.timeText}>
-                          {order.scheduledDelivery.type === 'scheduled'
-                            ? `Entre ${order.scheduledDelivery.timeSlot?.replace(' - ', ' e ')}`
-                            : `Horário específico: ${order.scheduledDelivery.customTime}`}
-                        </Text>
+                        {order.scheduledDelivery?.type === 'scheduled'
+                          ? `Entre ${order.scheduledDelivery?.timeSlot?.replace(' - ', ' e ')}`
+                          : `Horário: ${order.scheduledDelivery?.customTime || 'N/A'}`}
+                      </Text>
                       </View>
 
                       <View style={styles.prepTime}>
                         <Ionicons name="hourglass-outline" size={18} color="#FF69B4" />
                         <Text style={styles.prepTimeText}>
                           Preparo:{' '}
-                          {order.scheduledDelivery.preparationTimeType === 'normal'
+                          {order.scheduledDelivery?.preparationTimeType === 'normal'
                             ? 'Normal (2-3h)'
-                            : order.scheduledDelivery.preparationTimeType === 'extended'
+                            : order.scheduledDelivery?.preparationTimeType === 'extended'
                               ? 'Estendido (4-5h)'
-                              : `Personalizado (${order.scheduledDelivery.preparationHours}h)`}
+                              : `Personalizado (${order.scheduledDelivery?.preparationHours || 0}h)`}
                         </Text>
                       </View>
 

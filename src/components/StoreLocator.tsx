@@ -24,7 +24,7 @@ export const StoreLocator: React.FC<StoreLocatorProps> = ({ onSelectStore, produ
   const {
     currentLocation,
     currentAddress,
-    isLoadingLocation,
+    isLoadingLocation: _isLoadingLocation,
     locationError,
     nearbyStores,
     isLoadingStores,

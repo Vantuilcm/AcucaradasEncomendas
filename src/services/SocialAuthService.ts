@@ -2,15 +2,19 @@ import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { secureLoggingService } from './SecureLoggingService';
 // Importação modificada para resolver problema de compatibilidade
-import { SecurityService } from './SecurityService.js';
-import { firestore, auth } from '../config/firebase';
+import { SecurityService } from './SecurityService';
+import { db, auth } from '../config/firebase';
 import { User } from '../models/User';
 import {
-  signInWithCredential,
-  OAuthProvider,
   updateProfile,
   AuthCredential,
+  signOut,
 } from 'firebase/auth';
+import * as FirebaseAuth from 'firebase/auth';
+
+const signInWithCredential = (FirebaseAuth as any).signInWithCredential;
+const OAuthProvider = (FirebaseAuth as any).OAuthProvider;
+import { collection, query, where, limit, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Importação condicional para evitar erros em plataformas não suportadas
 let AppleAuthentication: any = null;
@@ -78,7 +82,7 @@ export class SocialAuthService {
         provider: 'apple',
         providerId: credential.user,
       });
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 'ERR_CANCELED') {
         // Usuário cancelou o login
         return null;
@@ -102,11 +106,9 @@ export class SocialAuthService {
   }): Promise<{ user: User; token: string }> {
     try {
       // Verificar se já existe um usuário com este email
-      const userQuery = await firestore
-        .collection('users')
-        .where('email', '==', userData.email)
-        .limit(1)
-        .get();
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', userData.email), limit(1));
+      const userQuery = await getDocs(q);
 
       let userId: string;
       let user: User;
@@ -116,35 +118,25 @@ export class SocialAuthService {
         const newUser: Omit<User, 'id'> = {
           email: userData.email,
           nome: userData.name,
-          dataCriacao: new Date().toISOString(),
-          socialAuth: {
-            provider: userData.provider,
-            providerId: userData.providerId,
+          dataCriacao: new Date(),
+          ultimoLogin: new Date(),
+          perfil: {
+            fotoPerfil: userData.profilePicture || undefined,
           },
-          emailVerified: true, // Autenticação social já verifica o email
-          foto: userData.profilePicture || null,
-          // Outros campos padrão
-          role: 'customer',
-          dataUltimoLogin: new Date().toISOString(),
         };
 
-        const docRef = await firestore.collection('users').add(newUser);
+        const docRef = await addDoc(collection(db, 'users'), newUser as any);
         userId = docRef.id;
         user = { id: userId, ...newUser } as User;
       } else {
         // Atualizar informações do usuário existente
-        const userDoc = userQuery.docs[0];
-        userId = userDoc.id;
-        user = { id: userId, ...userDoc.data() } as User;
+        const userDocSnapshot = userQuery.docs[0];
+        userId = userDocSnapshot.id;
+        user = { id: userId, ...userDocSnapshot.data() } as User;
 
         // Atualizar dados de autenticação social
-        await userDoc.ref.update({
-          socialAuth: {
-            provider: userData.provider,
-            providerId: userData.providerId,
-          },
-          emailVerified: true,
-          dataUltimoLogin: new Date().toISOString(),
+        await updateDoc(doc(db, 'users', userId), {
+          ultimoLogin: new Date(),
         });
       }
 
@@ -152,14 +144,14 @@ export class SocialAuthService {
       const token = SecurityService.generateToken({
         id: userId,
         email: userData.email,
-        role: user.role || 'customer',
+        isAdmin: user.isAdmin || false,
       });
 
       // Armazenar token de forma segura
       await SecurityService.storeSecureData('authToken', token);
 
       return { user, token };
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao processar autenticação social', { 
         email: userData.email,
         provider: userData.provider,
@@ -197,7 +189,7 @@ export class SocialAuthService {
       });
 
       return await this.signInWithCredential(authCredential);
-    } catch (error) {
+    } catch (error: any) {
       // Verifica se o erro foi porque o usuário cancelou
       if (error.code === 'ERR_CANCELED') {
         return { success: false, error: 'Login com Apple cancelado pelo usuário.' };
@@ -246,7 +238,7 @@ export class SocialAuthService {
         user,
         additionalUserInfo,
       };
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao autenticar no Firebase', { 
         errorMessage: error.message || 'Erro desconhecido',
         errorCode: error.code || 'unknown',
@@ -272,7 +264,7 @@ export class SocialAuthService {
 
       // Criação do perfil de usuário com dados padrão
       // Você deve implementar isso baseado nas necessidades do seu app
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao configurar novo usuário', { 
         userId: user.uid,
         email: user.email,
@@ -288,10 +280,10 @@ export class SocialAuthService {
    */
   async signOut(): Promise<boolean> {
     try {
-      await auth.signOut();
+      await signOut(auth);
       await AsyncStorage.removeItem('userToken');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao desconectar', { 
         errorMessage: error.message || 'Erro desconhecido',
         timestamp: new Date().toISOString()

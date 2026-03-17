@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert, Share } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import {
   Text,
   Card,
@@ -7,7 +7,6 @@ import {
   Divider,
   Chip,
   Menu,
-  Searchbar,
   SegmentedButtons,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -151,7 +150,7 @@ export function ReportsScreen() {
   }
 
   // Verificar se o usuário é administrador ou produtor
-  if (user?.role !== 'admin' && user?.role !== 'producer') {
+  if (!(user as any)?.isAdmin && (user as any)?.role !== 'producer') {
     return (
       <ErrorMessage
         message="Você não tem permissão para acessar esta área"

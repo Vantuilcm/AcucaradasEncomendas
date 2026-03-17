@@ -2,18 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../config/firebase';
-import NotificationService from '../services/NotificationService';
+import { NotificationService } from '../services/NotificationService';
+import { Notification } from '../types/Notification';
 import * as ExpoNotifications from 'expo-notifications';
-
-type Notification = {
-  id: string;
-  title: string;
-  body: string;
-  timestamp: string;
-  read: boolean;
-  type: string;
-  data: any;
-};
 
 const NotificationBell: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -25,7 +16,7 @@ const NotificationBell: React.FC = () => {
     loadNotifications();
 
     // Configurar listener para notificações em tempo real
-    const notificationListener = ExpoNotifications.addNotificationReceivedListener(notification => {
+    const notificationListener = ExpoNotifications.addNotificationReceivedListener(() => {
       loadNotifications();
     });
 
@@ -40,7 +31,7 @@ const NotificationBell: React.FC = () => {
     if (!auth.currentUser) return;
 
     const userId = auth.currentUser.uid;
-    const userNotifications = await NotificationService.getUserNotifications(userId);
+    const userNotifications = await NotificationService.getInstance().getUserNotifications(userId);
 
     setNotifications(userNotifications);
 
@@ -55,8 +46,7 @@ const NotificationBell: React.FC = () => {
   const markAsRead = async (notificationId: string) => {
     if (!auth.currentUser) return;
 
-    const userId = auth.currentUser.uid;
-    await NotificationService.markNotificationAsRead(userId, notificationId);
+    await NotificationService.getInstance().markAsRead(notificationId);
 
     // Atualizar estado local
     setNotifications(
@@ -91,8 +81,8 @@ const NotificationBell: React.FC = () => {
     >
       <View style={styles.notificationContent}>
         <Text style={styles.notificationTitle}>{item.title}</Text>
-        <Text style={styles.notificationBody}>{item.body}</Text>
-        <Text style={styles.notificationTime}>{formatDate(item.timestamp)}</Text>
+        <Text style={styles.notificationBody}>{item.message}</Text>
+        <Text style={styles.notificationTime}>{formatDate(item.createdAt)}</Text>
       </View>
       {!item.read && <View style={styles.unreadDot} />}
     </TouchableOpacity>

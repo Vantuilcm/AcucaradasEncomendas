@@ -6,19 +6,17 @@ import {
   updateDoc,
   Timestamp,
   deleteField,
-  DocumentReference,
   Firestore,
+  serverTimestamp,
 } from 'firebase/firestore';
 import {
   sendEmailVerification,
-  updateProfile,
   EmailAuthProvider,
   reauthenticateWithCredential,
   updateEmail,
   User,
   Auth,
 } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { loggingService } from './LoggingService';
@@ -66,7 +64,7 @@ export class TwoFactorAuthService {
 
       const userDoc = await getDoc(doc(this.firestore, this.collection, currentUser.uid));
       return userDoc.exists() && userDoc.data()?.twoFactorEnabled === true;
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao verificar status do 2FA', { 
         userId: this.authService.currentUser?.uid,
         errorMessage: error.message || 'Erro desconhecido',
@@ -121,8 +119,8 @@ export class TwoFactorAuthService {
           twoFactorEnabled: true,
           email: currentUser.email,
           backupCodes: backupCodesHashes,
-          updatedAt: Timestamp.now(),
-        },
+          updatedAt: serverTimestamp(),
+        } as any,
         { merge: true }
       );
 
@@ -137,7 +135,7 @@ export class TwoFactorAuthService {
         message: 'Autenticação de dois fatores habilitada com sucesso.',
         backupCodes: backupCodes,
       };
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao habilitar 2FA', { 
         userId: this.authService.currentUser?.uid,
         email: this.authService.currentUser?.email,
@@ -171,8 +169,8 @@ export class TwoFactorAuthService {
       await updateDoc(doc(this.firestore, this.collection, currentUser.uid), {
         twoFactorEnabled: false,
         backupCodes: deleteField(),
-        updatedAt: Timestamp.now(),
-      });
+        updatedAt: serverTimestamp(),
+      } as any);
 
       secureLoggingService.security('2FA desabilitado com sucesso', { 
         userId: currentUser.uid,
@@ -184,7 +182,7 @@ export class TwoFactorAuthService {
         success: true,
         message: 'Autenticação de dois fatores desabilitada com sucesso.',
       };
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao desabilitar 2FA', { 
         userId: this.authService.currentUser?.uid,
         email: this.authService.currentUser?.email,
@@ -233,8 +231,8 @@ export class TwoFactorAuthService {
       // Atualizar o documento do usuário
       await updateDoc(doc(this.firestore, this.collection, currentUser.uid), {
         backupCodes: backupCodesHashes,
-        updatedAt: Timestamp.now(),
-      });
+        updatedAt: serverTimestamp(),
+      } as any);
 
       secureLoggingService.security('Códigos de backup regenerados com sucesso', { 
         userId: currentUser.uid,
@@ -247,7 +245,7 @@ export class TwoFactorAuthService {
         message: 'Novos códigos de backup gerados com sucesso.',
         backupCodes: backupCodes,
       };
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao regenerar códigos de backup', { 
         userId: this.authService.currentUser?.uid,
         email: this.authService.currentUser?.email,
@@ -283,16 +281,17 @@ export class TwoFactorAuthService {
         .padStart(6, '0');
 
       // Salvar o código junto com o timestamp de expiração
-      const expirationTime = Timestamp.now();
-      expirationTime.seconds += CODE_EXPIRATION_TIME;
+      const now = Timestamp.now();
+      // @ts-ignore
+      const expirationTime = Timestamp.fromMillis((now.seconds + CODE_EXPIRATION_TIME) * 1000);
 
       await setDoc(
         doc(this.firestore, this.collection, currentUser.uid),
         {
           verificationCode: code,
           codeExpiration: expirationTime,
-          updatedAt: Timestamp.now(),
-        },
+          updatedAt: serverTimestamp(),
+        } as any,
         { merge: true }
       );
 
@@ -329,7 +328,7 @@ export class TwoFactorAuthService {
             success: true,
             message: 'Código de verificação enviado para seu email.',
           };
-        } catch (emailError) {
+        } catch (emailError: any) {
           secureLoggingService.security('Erro ao enviar email de verificação', { 
             userId: currentUser.uid,
             email: currentUser.email,
@@ -345,7 +344,7 @@ export class TwoFactorAuthService {
           };
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao gerar código de verificação', { 
         userId: this.authService.currentUser?.uid,
         email: this.authService.currentUser?.email,
@@ -389,7 +388,7 @@ export class TwoFactorAuthService {
       }
 
       const storedCode = userData.verificationCode;
-      const codeExpiration = userData.codeExpiration?.toDate();
+      const codeExpiration = (userData.codeExpiration as unknown as Timestamp)?.toDate();
 
       // Verificar se o código existe e não expirou
       if (storedCode && codeExpiration && codeExpiration >= new Date()) {
@@ -399,8 +398,8 @@ export class TwoFactorAuthService {
           await updateDoc(doc(this.firestore, this.collection, currentUser.uid), {
             verificationCode: deleteField(),
             codeExpiration: deleteField(),
-            lastVerifiedAt: Timestamp.now(),
-          });
+            lastVerifiedAt: serverTimestamp(),
+          } as any);
 
           // Gerar token de sessão para evitar verificações repetidas
           const sessionToken = await this.generateSessionToken();
@@ -426,7 +425,7 @@ export class TwoFactorAuthService {
 
       // Se chegou aqui, talvez seja um código de backup
       return await this.verifyBackupCode(inputCode);
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao verificar código 2FA', { 
         userId: this.authService.currentUser?.uid,
         email: this.authService.currentUser?.email,
@@ -469,7 +468,7 @@ export class TwoFactorAuthService {
         };
       }
 
-      const storedBackupCodes = userData.backupCodes || [];
+      const storedBackupCodes = (userData.backupCodes || []) as string[];
 
       // Hash do código informado
       const inputCodeHash = await this.hashBackupCode(backupCode);
@@ -482,8 +481,8 @@ export class TwoFactorAuthService {
 
         await updateDoc(doc(this.firestore, this.collection, currentUser.uid), {
           backupCodes: storedBackupCodes,
-          lastVerifiedAt: Timestamp.now(),
-        });
+          lastVerifiedAt: serverTimestamp(),
+        } as any);
 
         // Gerar token de sessão para evitar verificações repetidas
         const sessionToken = await this.generateSessionToken();
@@ -506,7 +505,7 @@ export class TwoFactorAuthService {
         success: false,
         error: 'Código de backup inválido.',
       };
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao verificar código de backup', { 
         userId: this.authService.currentUser?.uid,
         email: this.authService.currentUser?.email,
@@ -542,7 +541,7 @@ export class TwoFactorAuthService {
         success: true,
         message: 'Email de verificação enviado. Verifique sua caixa de entrada.',
       };
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao enviar email de verificação', { error });
       return {
         success: false,
@@ -575,8 +574,8 @@ export class TwoFactorAuthService {
       // Atualizar dados no Firestore
       await updateDoc(doc(this.firestore, this.collection, currentUser.uid), {
         email: newEmail,
-        updatedAt: Timestamp.now(),
-      });
+        updatedAt: serverTimestamp(),
+      } as any);
 
       loggingService.info('Solicitação de atualização de email enviada', {
         userId: currentUser.uid,
@@ -587,7 +586,7 @@ export class TwoFactorAuthService {
         message:
           'Enviamos um email de verificação para o novo endereço. Por favor, verifique sua caixa de entrada.',
       };
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao atualizar email', { error });
       return {
         success: false,
@@ -651,10 +650,10 @@ export class TwoFactorAuthService {
     try {
       const sessionToken = await SecureStore.getItemAsync('2fa_session_token');
       return !!sessionToken;
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao verificar sessão 2FA', { 
         userId: this.authService.currentUser?.uid,
-        errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+        errorMessage: error.message || 'Erro desconhecido',
         timestamp: new Date().toISOString(),
         severity: 'low'
       });
@@ -668,10 +667,10 @@ export class TwoFactorAuthService {
   async clearSession(): Promise<void> {
     try {
       await SecureStore.deleteItemAsync('2fa_session_token');
-    } catch (error) {
+    } catch (error: any) {
       secureLoggingService.security('Erro ao limpar sessão 2FA', { 
         userId: this.authService.currentUser?.uid,
-        errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+        errorMessage: error.message || 'Erro desconhecido',
         timestamp: new Date().toISOString(),
         severity: 'low'
       });

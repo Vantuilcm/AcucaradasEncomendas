@@ -8,6 +8,18 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const socketIo = require('socket.io');
+const admin = require('firebase-admin');
+
+// Inicializa Firebase Admin se necessário
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+  } catch (error) {
+    console.error('Erro ao inicializar Firebase Admin no dashboard:', error);
+  }
+}
 
 // Utilitários de segurança
 const securityMonitor = require('../../scripts/security-monitor');
@@ -171,11 +183,17 @@ function defaultAuthMiddleware(req, res, next) {
 
 /**
  * Verificar se um token é válido
- * Substitua esta função com sua própria implementação de verificação de token
+ * Usa Firebase Admin para verificar o token
  */
-function isValidToken(token) {
-  // Implementação simplificada - substitua com sua lógica de verificação de token
-  return token && token.length > 20;
+async function isValidToken(token) {
+  if (!token) return false;
+  try {
+    await admin.auth().verifyIdToken(token);
+    return true;
+  } catch (error) {
+    // console.error('Token inválido:', error.message);
+    return false;
+  }
 }
 
 /**

@@ -6,13 +6,13 @@ export async function requestForegroundPermissionsAsync(): Promise<{ status: 'gr
   return { status: 'granted' };
 }
 
-export async function getCurrentPositionAsync(): Promise<{
+export async function getCurrentPositionAsync(_options?: any): Promise<{
   coords: { latitude: number; longitude: number };
 }> {
   return { coords: { latitude: 0, longitude: 0 } };
 }
 
-export async function reverseGeocodeAsync(): Promise<
+export async function reverseGeocodeAsync(_options?: any): Promise<
   Array<{
     street?: string;
     streetNumber?: string;

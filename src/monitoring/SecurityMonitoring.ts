@@ -4,7 +4,6 @@
  */
 
 import { loggingService } from '../services/LoggingService';
-import securityConfig from '../config/securityConfig';
 
 // Tipos de eventos de segurança monitorados
 export enum SecurityEventType {

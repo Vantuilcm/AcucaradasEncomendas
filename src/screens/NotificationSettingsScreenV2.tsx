@@ -37,7 +37,7 @@ export const NotificationSettingsScreenV2 = () => {
   const hideEndTimePicker = () => setEndTimeVisible(false);
 
   // Função para atualizar o horário de início do modo silencioso
-  const handleStartTimeConfirm = ({ hours, minutes }) => {
+  const handleStartTimeConfirm = ({ hours, minutes }: { hours: number; minutes: number }) => {
     try {
       const formattedHours = hours.toString().padStart(2, '0');
       const formattedMinutes = minutes.toString().padStart(2, '0');
@@ -48,12 +48,12 @@ export const NotificationSettingsScreenV2 = () => {
       }
       hideStartTimePicker();
     } catch (error) {
-      loggingService.error('Erro ao atualizar horário de início do modo silencioso', error);
+      loggingService.error('Erro ao atualizar horário de início do modo silencioso', error as Error);
     }
   };
 
   // Função para atualizar o horário de término do modo silencioso
-  const handleEndTimeConfirm = ({ hours, minutes }) => {
+  const handleEndTimeConfirm = ({ hours, minutes }: { hours: number; minutes: number }) => {
     try {
       const formattedHours = hours.toString().padStart(2, '0');
       const formattedMinutes = minutes.toString().padStart(2, '0');
@@ -64,12 +64,12 @@ export const NotificationSettingsScreenV2 = () => {
       }
       hideEndTimePicker();
     } catch (error) {
-      loggingService.error('Erro ao atualizar horário de término do modo silencioso', error);
+      loggingService.error('Erro ao atualizar horário de término do modo silencioso', error as Error);
     }
   };
 
   // Função para atualizar a frequência de notificações
-  const handleFrequencyChange = newFrequency => {
+  const handleFrequencyChange = (newFrequency: any) => {
     updateFrequency(newFrequency);
   };
 
@@ -85,7 +85,7 @@ export const NotificationSettingsScreenV2 = () => {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 16, color: colors.text }}>Carregando configurações...</Text>
+        <Text style={{ marginTop: 16, color: colors.text as any }}>Carregando configurações...</Text>
       </SafeAreaView>
     );
   }
@@ -290,11 +290,6 @@ export const NotificationSettingsScreenV2 = () => {
         visible={startTimeVisible}
         onDismiss={hideStartTimePicker}
         onConfirm={handleStartTimeConfirm}
-        hours={parseInt(settings?.quietHours?.start?.split(':')[0] || '22')}
-        minutes={parseInt(settings?.quietHours?.start?.split(':')[1] || '00')}
-        label="Selecione o horário de início"
-        cancelLabel="Cancelar"
-        confirmLabel="Confirmar"
       />
 
       {/* Modal de seleção de horário de término */}
@@ -302,11 +297,6 @@ export const NotificationSettingsScreenV2 = () => {
         visible={endTimeVisible}
         onDismiss={hideEndTimePicker}
         onConfirm={handleEndTimeConfirm}
-        hours={parseInt(settings?.quietHours?.end?.split(':')[0] || '06')}
-        minutes={parseInt(settings?.quietHours?.end?.split(':')[1] || '00')}
-        label="Selecione o horário de término"
-        cancelLabel="Cancelar"
-        confirmLabel="Confirmar"
       />
     </SafeAreaView>
   );

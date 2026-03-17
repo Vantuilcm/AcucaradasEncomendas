@@ -28,7 +28,7 @@ export function usePermissions(): UsePermissionsReturn {
   // Carregar papel e permissões do usuário
   useEffect(() => {
     const loadPermissions = async () => {
-      if (!user || !user.id) {
+      if (!user || !(user as any).id) {
         setUserRole(null);
         setUserPermissions([]);
         setLoading(false);
@@ -37,14 +37,14 @@ export function usePermissions(): UsePermissionsReturn {
 
       try {
         setLoading(true);
-        const role = await permissionsService.getUserRole(user.id);
+        const role = await permissionsService.getUserRole((user as any).id);
         setUserRole(role);
 
         // Obter documento de permissões
-        const permissionsDoc = await getDoc(doc(db, 'permissoes', user.id));
+        const permissionsDoc = await getDoc(doc(db, 'permissoes', (user as any).id));
 
         if (permissionsDoc.exists()) {
-          const permissions = permissionsDoc.data().permissions as Permission[];
+          const permissions = permissionsDoc.data()?.permissions as Permission[] || [];
           setUserPermissions(permissions);
         } else {
           // Se não existir, usar permissões padrão do papel
@@ -66,7 +66,7 @@ export function usePermissions(): UsePermissionsReturn {
   // Verificar se o usuário tem uma permissão específica
   const hasPermission = useCallback(
     (permission: Permission): boolean => {
-      if (!user || !user.id) return false;
+      if (!user || !(user as any).id) return false;
       return userPermissions.includes(permission);
     },
     [user, userPermissions]
@@ -75,7 +75,7 @@ export function usePermissions(): UsePermissionsReturn {
   // Verificar se o usuário tem múltiplas permissões
   const hasPermissions = useCallback(
     (permissions: Permission[], requireAll: boolean = true): boolean => {
-      if (!user || !user.id) return false;
+      if (!user || !(user as any).id) return false;
 
       if (requireAll) {
         // Verificar se tem todas as permissões (AND)
@@ -90,18 +90,18 @@ export function usePermissions(): UsePermissionsReturn {
 
   // Atualizar permissões (útil após mudanças no papel ou permissões)
   const updatePermissions = useCallback(async () => {
-    if (!user || !user.id) return;
+    if (!user || !(user as any).id) return;
 
     try {
       setLoading(true);
-      const role = await permissionsService.getUserRole(user.id);
+      const role = await permissionsService.getUserRole((user as any).id);
       setUserRole(role);
 
       // Obter documento de permissões
-      const permissionsDoc = await getDoc(doc(db, 'permissoes', user.id));
+      const permissionsDoc = await getDoc(doc(db, 'permissoes', (user as any).id));
 
       if (permissionsDoc.exists()) {
-        const permissions = permissionsDoc.data().permissions as Permission[];
+        const permissions = permissionsDoc.data()?.permissions as Permission[] || [];
         setUserPermissions(permissions);
       } else {
         // Se não existir, usar permissões padrão do papel

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import HomeScreen from './HomeScreen';
+import { HomeScreen } from './HomeScreen';
 import LegalDocumentLinks from '../components/LegalDocumentLinks';
 
 /**

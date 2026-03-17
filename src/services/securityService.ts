@@ -1,9 +1,8 @@
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
-import jwt_decode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import { Alert , Platform } from 'react-native';
 
-import { auth } from '../config/firebase';
 import { secureLoggingService } from './SecureLoggingService';
 
 // Interface para o payload do JWT
@@ -35,7 +34,8 @@ interface TrustedDevice {
 
 export class SecurityService {
   private static readonly LOGIN_ATTEMPTS_KEY = 'login_attempts';
-  private static readonly SESSION_TIMEOUT_KEY = 'session_timeout';
+  // @ts-ignore
+  private static readonly _SESSION_TIMEOUT_KEY = 'session_timeout';
   private static readonly TRUSTED_DEVICES_KEY = 'trusted_devices';
   private static readonly MAX_LOGIN_ATTEMPTS = 5;
   private static readonly BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos
@@ -98,6 +98,14 @@ export class SecurityService {
     }
   }
 
+  // Gera um token simulado (normalmente seria no backend)
+  static generateToken(payload: any): string {
+    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const data = btoa(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) }));
+    const signature = 'mock_signature';
+    return `${header}.${data}.${signature}`;
+  }
+
   static async deleteSecureData(key: string) {
     if (Platform.OS === 'web') {
       localStorage.removeItem(key);
@@ -111,7 +119,7 @@ export class SecurityService {
     try {
       if (!token) return false;
 
-      const decoded = jwt_decode<JwtPayload>(token);
+      const decoded = jwtDecode<JwtPayload>(token);
       const currentTime = Date.now() / 1000;
 
       // Verifica se o token expirou
@@ -137,7 +145,7 @@ export class SecurityService {
   static getTokenPayload(token: string): JwtPayload | null {
     try {
       if (!token) return null;
-      return jwt_decode<JwtPayload>(token);
+      return jwtDecode<JwtPayload>(token);
     } catch (error) {
       secureLoggingService.security('Erro ao decodificar token JWT', { 
         error: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -158,6 +166,8 @@ export class SecurityService {
           : { count: 0, lastAttempt: Date.now(), blocked: false, blockExpires: 0 };
       }
 
+      const attempts = this.loginAttempts!;
+
       // Se login for bem-sucedido, resetar tentativas
       if (success) {
         this.loginAttempts = { count: 0, lastAttempt: Date.now(), blocked: false, blockExpires: 0 };
@@ -166,9 +176,9 @@ export class SecurityService {
       }
 
       // Verificar se está bloqueado
-      if (this.loginAttempts.blocked) {
-        if (Date.now() < this.loginAttempts.blockExpires) {
-          const minutesLeft = Math.ceil((this.loginAttempts.blockExpires - Date.now()) / 60000);
+      if (attempts.blocked) {
+        if (Date.now() < attempts.blockExpires) {
+          const minutesLeft = Math.ceil((attempts.blockExpires - Date.now()) / 60000);
           secureLoggingService.security('Tentativa de login bloqueada', { 
             email, 
             minutesLeft, 
@@ -182,27 +192,27 @@ export class SecurityService {
           return false;
         } else {
           // Desbloquear se o tempo expirou
-          this.loginAttempts.blocked = false;
-          this.loginAttempts.count = 1;
+          attempts.blocked = false;
+          attempts.count = 1;
         }
       } else {
         // Incrementar contador de tentativas
-        this.loginAttempts.count += 1;
+        attempts.count += 1;
       }
 
-      this.loginAttempts.lastAttempt = Date.now();
+      attempts.lastAttempt = Date.now();
 
       // Verificar se excedeu o número máximo de tentativas
-      if (this.loginAttempts.count >= this.MAX_LOGIN_ATTEMPTS) {
-        this.loginAttempts.blocked = true;
-        this.loginAttempts.blockExpires = Date.now() + this.BLOCK_DURATION_MS;
+      if (attempts.count >= this.MAX_LOGIN_ATTEMPTS) {
+        attempts.blocked = true;
+        attempts.blockExpires = Date.now() + this.BLOCK_DURATION_MS;
 
         const minutesLeft = Math.ceil(this.BLOCK_DURATION_MS / 60000);
         secureLoggingService.security('Conta bloqueada após múltiplas tentativas', { 
           email, 
           timestamp: new Date().toISOString(),
           severity: 'high',
-          attemptCount: this.loginAttempts.count
+          attemptCount: attempts.count
         });
         Alert.alert(
           'Conta temporariamente bloqueada',
@@ -211,8 +221,8 @@ export class SecurityService {
       }
 
       // Salvar estado atualizado
-      await this.storeSecureData(this.LOGIN_ATTEMPTS_KEY, JSON.stringify(this.loginAttempts));
-      return !this.loginAttempts.blocked;
+      await this.storeSecureData(this.LOGIN_ATTEMPTS_KEY, JSON.stringify(attempts));
+      return !attempts.blocked;
     } catch (error) {
       secureLoggingService.security('Erro ao registrar tentativa de login', { 
         error: error instanceof Error ? error.message : 'Erro desconhecido',

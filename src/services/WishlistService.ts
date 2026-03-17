@@ -51,12 +51,12 @@ export class WishlistService {
           dateUpdated: new Date(),
         };
 
-        const wishlistRef = await addDoc(wishlistsRef, newWishlist);
+        const wishlistRef = await addDoc(wishlistsRef, newWishlist as any);
         return { id: wishlistRef.id, ...newWishlist };
       }
 
       const wishlistDoc = querySnapshot.docs[0];
-      return { id: wishlistDoc.id, ...(wishlistDoc.data() as Omit<Wishlist, 'id'>) };
+      return { id: wishlistDoc.id, ...(wishlistDoc.data() as any as Omit<Wishlist, 'id'>) };
     } catch (error) {
       console.error('Erro ao buscar lista de desejos:', error);
       return null;
@@ -91,7 +91,7 @@ export class WishlistService {
       ];
 
       await updateDoc(doc(db, 'wishlists', wishlist.id), {
-        items: updatedItems,
+        items: updatedItems as any,
         dateUpdated: new Date(),
       });
 
@@ -117,7 +117,7 @@ export class WishlistService {
       const updatedItems = wishlist.items.filter(item => item.productId !== productId);
 
       await updateDoc(doc(db, 'wishlists', wishlist.id), {
-        items: updatedItems,
+        items: updatedItems as any,
         dateUpdated: new Date(),
       });
 
@@ -185,7 +185,7 @@ export class WishlistService {
         wishlist.items.map(async item => {
           const productRef = await getDoc(doc(db, 'produtos', item.productId));
           return productRef.exists()
-            ? ({ id: productRef.id, ...(productRef.data() as Omit<Product, 'id'>) } as Product)
+            ? ({ id: productRef.id, ...(productRef.data() as any as Omit<Product, 'id'>) } as Product)
             : null;
         })
       );

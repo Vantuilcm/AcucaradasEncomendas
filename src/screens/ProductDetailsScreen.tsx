@@ -4,16 +4,12 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   Dimensions,
   Animated,
-  Share,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
-import { Button } from 'react-native-paper';
 import { EnhancedImage, PlaceholderType } from '../components/EnhancedImage';
 import { ProductRecommendations } from '../components/ProductRecommendations';
 import { ProductSocialActions } from '../components/ProductSocialActions';
@@ -26,11 +22,10 @@ const { width } = Dimensions.get('window');
 export default function ProductDetailsScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { addToCart } = useCart();
+  const { addToCart } = useCart() as any;
   const { user } = useAuth();
-  const { product } = route.params;
+  const { product } = route.params as any;
 
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [cartAnimation, setCartAnimation] = useState({
     visible: false,
     startPosition: { x: 0, y: 0 },
@@ -44,7 +39,6 @@ export default function ProductDetailsScreen() {
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const addToCartButtonRef = useRef(null);
-  const cartButtonRef = useRef({ x: 0, y: 0 });
 
   const recommendationService = RecommendationService.getInstance();
 
@@ -61,7 +55,7 @@ export default function ProductDetailsScreen() {
         }
       } else {
         try {
-          await recommendationService.trackAnonymousProductView(product.id);
+          await (recommendationService as any).trackAnonymousProductView(product.id);
         } catch (error) {
           console.error('Erro ao registrar visualização anônima:', error);
         }
@@ -86,7 +80,7 @@ export default function ProductDetailsScreen() {
 
     // Calcular posição para animação
     if (addToCartButtonRef.current) {
-      addToCartButtonRef.current.measure((fx, fy, width, height, px, py) => {
+      (addToCartButtonRef.current as any)?.measure((_fx: any, _fy: any, width: any, _height: any, px: any, py: any) => {
         const startPosition = {
           x: px + width / 2,
           y: py,
@@ -109,7 +103,7 @@ export default function ProductDetailsScreen() {
   };
 
   // Função para exibir toast
-  const showToast = (message, type = FeedbackType.SUCCESS) => {
+  const showToast = (message: any, type = FeedbackType.SUCCESS) => {
     setToast({
       visible: true,
       message,
@@ -127,11 +121,6 @@ export default function ProductDetailsScreen() {
     setCartAnimation(prev => ({ ...prev, visible: false }));
   };
 
-  // Função para navegar entre imagens
-  const handleImageChange = index => {
-    setCurrentImageIndex(index);
-  };
-
   // Gerenciar notificação após compartilhamento
   const handleAfterShare = () => {
     showToast('Produto compartilhado!', FeedbackType.SUCCESS);
@@ -147,8 +136,8 @@ export default function ProductDetailsScreen() {
   }, [navigation, product]);
 
   // Navegar para detalhes de outro produto
-  const handleProductPress = selectedProduct => {
-    navigation.replace('ProductDetails', { product: selectedProduct });
+  const handleProductPress = (selectedProduct: any) => {
+    (navigation as any).replace('ProductDetails', { product: selectedProduct });
   };
 
   if (!product) {
@@ -175,7 +164,7 @@ export default function ProductDetailsScreen() {
                 })}
                 scrollEventThrottle={16}
               >
-                {product.imagens.map((image, index) => (
+                {product.imagens.map((image: any, index: number) => (
                   <View key={index} style={styles.imageContainer}>
                     <EnhancedImage
                       source={{ uri: image }}
@@ -190,7 +179,7 @@ export default function ProductDetailsScreen() {
               {/* Indicadores do carrossel */}
               {product.imagens.length > 1 && (
                 <View style={styles.paginationContainer}>
-                  {product.imagens.map((_, index) => {
+                  {product.imagens.map((_: any, index: number) => {
                     const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
                     const dotWidth = scrollX.interpolate({
@@ -246,7 +235,7 @@ export default function ProductDetailsScreen() {
               {Object.entries(product.detalhes).map(([key, value]) => (
                 <View key={key} style={styles.detailItem}>
                   <Text style={styles.detailLabel}>{key}:</Text>
-                  <Text style={styles.detailValue}>{value}</Text>
+                  <Text style={styles.detailValue}>{String(value)}</Text>
                 </View>
               ))}
             </View>

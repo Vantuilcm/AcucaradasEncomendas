@@ -18,10 +18,8 @@ export const Card: React.FC<CardProps> = ({
   onPress,
   onPressIn,
   onPressOut,
-  animationDelay,
-  variant = 'default',
 }) => {
-  const CardContainer = onPress ? TouchableOpacity : View;
+  const CardContainer = (onPress ? TouchableOpacity : View) as React.ElementType;
 
   return (
     <CardContainer

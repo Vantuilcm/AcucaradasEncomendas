@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Button, TextInput, Chip, IconButton, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Button, TextInput, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,7 +11,6 @@ import { Toast, FeedbackType } from '../components/FeedbackEffects';
 import { isValidEmail } from '../utils/validationUtils';
 
 export function InviteFriendsScreen() {
-  const theme = useTheme();
   const navigation = useNavigation();
   const { user } = useAuth();
   const [email, setEmail] = useState('');
@@ -125,7 +124,7 @@ export function InviteFriendsScreen() {
         <Button
           mode="contained"
           style={{ marginTop: 16 }}
-          onPress={() => navigation.navigate('Login')}
+          onPress={() => (navigation as any).navigate('Login')}
         >
           Fazer Login
         </Button>

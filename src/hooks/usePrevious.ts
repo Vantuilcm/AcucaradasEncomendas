@@ -6,7 +6,7 @@ export function usePrevious<T>(value: T): T | undefined {
 
   useEffect(() => {
     ref.current = value;
-    loggingService.debug('Valor anterior atualizado', {
+    loggingService.info('Valor anterior atualizado', {
       previous: ref.current,
       current: value,
     });

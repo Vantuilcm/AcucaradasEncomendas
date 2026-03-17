@@ -74,7 +74,7 @@ export function useShare(): [ShareState, ShareHandlers] {
 
         // Implementa a lógica de compartilhamento específica da plataforma
         // Por exemplo, usando o Share API do React Native
-        const result = await Sharing.shareAsync(options.message, {
+        await Sharing.shareAsync(options.message, {
           dialogTitle: options.title,
           mimeType: 'text/plain',
         });
@@ -112,7 +112,7 @@ export function useShare(): [ShareState, ShareHandlers] {
           throw new Error('Compartilhamento não disponível neste dispositivo');
         }
 
-        const result = await Sharing.shareAsync(url, {
+        await Sharing.shareAsync(url, {
           dialogTitle: 'Compartilhar URL',
           mimeType: 'text/plain',
         });
@@ -146,7 +146,7 @@ export function useShare(): [ShareState, ShareHandlers] {
           throw new Error('Compartilhamento não disponível neste dispositivo');
         }
 
-        const result = await Sharing.shareAsync(fileUri, {
+        await Sharing.shareAsync(fileUri, {
           dialogTitle: options.dialogTitle || 'Compartilhar arquivo',
           mimeType: options.mimeType,
           UTI: options.UTI,
@@ -175,13 +175,12 @@ export function useShare(): [ShareState, ShareHandlers] {
     try {
       setState(prev => ({ ...prev, isSharing: true, error: null }));
 
-      const result = await WebBrowser.openBrowserAsync(url, {
-        showTitleRecipient: options.showTitleRecipient,
+      await WebBrowser.openBrowserAsync(url, {
+        showTitle: options.showTitleRecipient,
         enableBarCollapsing: options.enableBarCollapsing,
-        enableDefaultShare: options.enableDefaultShare,
         readerMode: options.readerMode,
         controlsColor: options.controlsColor,
-        backgroundColor: options.backgroundColor,
+        toolbarColor: options.backgroundColor,
       });
 
       setState(prev => ({ ...prev, isSharing: false }));

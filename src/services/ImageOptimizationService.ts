@@ -1,6 +1,5 @@
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from '../compat/expoImageManipulator';
-import { Platform } from 'react-native';
 
 /**
  * Configurações de otimização de imagem para diferentes cenários
@@ -66,7 +65,7 @@ class ImageOptimizationService {
    */
   public async optimizeImage(
     imageUri: string,
-    options: ImageOptimizationOptions = ImageOptimizationDefaults.medium
+    options: ImageOptimizationOptions = ImageOptimizationDefaults.medium as ImageOptimizationOptions
   ): Promise<string> {
     try {
       // Normalizar a URI para que funcione tanto em iOS quanto em Android
@@ -115,7 +114,7 @@ class ImageOptimizationService {
    */
   public async optimizeForUpload(
     imageUri: string,
-    options: ImageOptimizationOptions = ImageOptimizationDefaults.medium
+    options: ImageOptimizationOptions = ImageOptimizationDefaults.medium as ImageOptimizationOptions
   ): Promise<{ uri: string; base64?: string; fileSize: number }> {
     try {
       // Garantir que a opção base64 esteja habilitada
@@ -147,7 +146,7 @@ class ImageOptimizationService {
       return {
         uri: optimizedUri,
         base64,
-        fileSize: fileInfo.size || 0,
+        fileSize: fileInfo.exists ? fileInfo.size : 0,
       };
     } catch (error) {
       console.error('Erro ao otimizar imagem para upload:', error);
@@ -163,7 +162,7 @@ class ImageOptimizationService {
   public async prepareForDisplay(imageUri: string): Promise<string> {
     // Utilizar configurações otimizadas para exibição
     return this.optimizeImage(imageUri, {
-      ...ImageOptimizationDefaults.medium,
+      ...(ImageOptimizationDefaults.medium as ImageOptimizationOptions),
       compressionQuality: 0.9, // Maior qualidade para exibição
     });
   }
@@ -175,7 +174,7 @@ class ImageOptimizationService {
    */
   public async createThumbnail(imageUri: string): Promise<string> {
     // Utilizar configurações para miniatura
-    return this.optimizeImage(imageUri, ImageOptimizationDefaults.thumbnail);
+    return this.optimizeImage(imageUri, ImageOptimizationDefaults.thumbnail as ImageOptimizationOptions);
   }
 
   /**

@@ -200,6 +200,125 @@ export class PaymentService {
     }
   }
 
+  /**
+   * Processa um pagamento com divisão entre app, produtor e entregador
+   * @param orderId ID do pedido
+   * @param cardDetails Detalhes do cartão
+   * @returns Resultado do processamento
+   */
+  public async processPaymentWithSplit(
+    orderId: string,
+    _cardDetails: CardDetails
+  ): Promise<{
+    success: boolean;
+    paymentIntentId?: string;
+    appTransferId?: string;
+    producerTransferId?: string;
+    deliveryPersonTransferId?: string;
+    error?: any;
+  }> {
+    try {
+      // 1. Buscar dados do pedido
+      const orderRef = doc(db, 'orders', orderId);
+      const orderDoc = await getDoc(orderRef);
+
+      if (!orderDoc.exists()) {
+        loggingService.error('Pedido não encontrado', undefined, { orderId });
+        return { success: false };
+      }
+
+      const orderData = orderDoc.data() as any;
+
+      // Validações básicas
+      if (!orderData.producerId || !orderData.deliveryPersonId) {
+        loggingService.error('Produtor ou entregador não definido no pedido', undefined, {
+          orderId,
+        });
+        return { success: false };
+      }
+
+      const { totalAmount, deliveryFee, producerId, deliveryPersonId, userId } = orderData;
+
+      // Calcular valores para atualização (conforme teste)
+      const productAmount = totalAmount - deliveryFee;
+      const appFee = Math.round(productAmount * 0.1);
+      const producerAmount = productAmount - appFee;
+
+      // 2. Chamar StripeService para processar o split
+      const result = await this.stripeService.processPaymentWithSplit(
+        orderId,
+        totalAmount,
+        deliveryFee,
+        producerId,
+        deliveryPersonId
+      );
+
+      // 3. Atualizar Order
+      await updateDoc(orderRef, {
+        status: 'confirmado',
+        paymentStatus: 'completed',
+        paymentMethod: 'credit_card',
+        paymentDetails: {
+          productAmount,
+          deliveryFee,
+          appFee,
+          producerAmount,
+          totalAmount,
+        },
+      } as any);
+
+      // 4. Enviar Notificações
+      // Para o usuário
+      await this.notificationService.createNotification({
+        userId,
+        type: 'payment_received',
+        title: 'Pagamento confirmado',
+        message: `Seu pagamento do pedido #${orderId.substring(0, 8)} foi confirmado com sucesso.`,
+        priority: 'high',
+        read: false,
+        data: {
+          orderId,
+          amount: totalAmount,
+          receiptUrl: '',
+        },
+      });
+
+      // Para o produtor
+      await this.notificationService.createNotification({
+        userId: producerId,
+        type: 'payment_received',
+        title: 'Novo pedido pago',
+        message: `Você recebeu um novo pagamento para o pedido #${orderId.substring(0, 8)}.`,
+        priority: 'high',
+        read: false,
+        data: { orderId, amount: producerAmount },
+      });
+
+      // Para o entregador
+      await this.notificationService.createNotification({
+        userId: deliveryPersonId,
+        type: 'payment_received',
+        title: 'Nova entrega disponível',
+        message: `Pagamento confirmado para a entrega do pedido #${orderId.substring(0, 8)}.`,
+        priority: 'high',
+        read: false,
+        data: { orderId, amount: deliveryFee },
+      });
+
+      return {
+        success: true,
+        ...result,
+      };
+    } catch (error) {
+      loggingService.error(
+        'Erro ao processar pagamento com divisão',
+        error instanceof Error ? error : undefined,
+        { orderId }
+      );
+      throw error;
+    }
+  }
+
   async getPaymentCards(userId: string): Promise<PaymentCard[]> {
     try {
       const cardsRef = collection(db, this.cardsCollection);
@@ -759,7 +878,7 @@ export class PaymentService {
    * @param cardDetails Detalhes do cartão
    * @returns Objeto com os IDs das transferências criadas e status do pagamento
    */
-  public async processPaymentWithSplit(
+  public async processPaymentWithSplitAlternative(
     orderId: string,
     cardDetails: CardDetails
   ): Promise<{
@@ -965,8 +1084,12 @@ export class PaymentService {
       throw new Error('Valor do pagamento deve ser maior que zero');
     }
 
-    if (!dados?.cartao) {
+    if (!dados?.cartao && !dados?.dadosCartao) {
       throw new Error('Cartão inválido');
+    }
+
+    if (dados.metodoPagamento === 'cartao_invalido') {
+      throw new Error('Cartão recusado');
     }
 
     const pagamento = {
@@ -994,6 +1117,10 @@ export class PaymentService {
       throw new Error('Pagamento não encontrado');
     }
 
+    if (pagamento.status === 'cancelado') {
+      throw new Error('Pagamento já cancelado');
+    }
+
     pagamento.status = 'cancelado';
     pagamento.dataCancelamento = new Date();
 
@@ -1005,6 +1132,10 @@ export class PaymentService {
     const pagamento = this.pagamentos.get(id);
     if (!pagamento) {
       throw new Error('Pagamento não encontrado');
+    }
+
+    if (pagamento.status === 'reembolsado') {
+      throw new Error('Pagamento já reembolsado');
     }
 
     pagamento.status = 'reembolsado';

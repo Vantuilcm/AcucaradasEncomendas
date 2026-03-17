@@ -1,6 +1,6 @@
 import { ValidationService } from './validationService';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcryptjs';
+import { jwtDecode } from 'jwt-decode';
 import { auth, db } from '../config/firebase';
 import {
   applyActionCode,
@@ -55,21 +55,6 @@ export class AuthService {
   private validatePassword(password: string): boolean {
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/;
     return regex.test(password);
-  }
-
-  /**
-   * Gera um token JWT para autenticação
-   * @param uid ID do usuário
-   * @param email Email do usuário
-   * @returns Token JWT
-   */
-  private generateAuthToken(uid: string, email: string): string {
-    const jwtSecret = process.env.JWT_SECRET || 'default_jwt_secret_for_development';
-    return jwt.sign(
-      { uid, email },
-      jwtSecret,
-      { expiresIn: '24h' }
-    );
   }
 
   /**
@@ -145,7 +130,7 @@ export class AuthService {
       await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
 
       // Gerar token JWT para autenticação na API
-      const token = this.generateAuthToken(firebaseUser.uid, userData.email);
+      const token = await (firebaseUser as any).getIdToken(true);
       await SecureStorageService.storeData('authToken', token);
 
       secureLoggingService.info('Usuário registrado com sucesso', {
@@ -212,7 +197,7 @@ export class AuthService {
         const userEmail = typeof userData.email === 'string' ? userData.email : email;
 
         // Gerar token JWT para autenticação na API
-        const token = this.generateAuthToken(firebaseUser.uid, email);
+        const token = await (firebaseUser as any).getIdToken(true);
         await SecureStorageService.storeData('authToken', token);
 
         secureLoggingService.info('Login realizado com sucesso', {
@@ -367,7 +352,9 @@ export class AuthService {
 
       this.usuarios.set(usuarioSimulado.id, usuarioSimulado);
 
-      const token = this.generateAuthToken(user.uid, dadosUsuario.email);
+      // Gerar token JWT para autenticação na API
+      const token = await (user as any).getIdToken(true);
+      await SecureStorageService.storeData('authToken', token);
 
       loggingService.info('Novo usuário registrado', { userId: user.uid });
 
@@ -462,17 +449,9 @@ export class AuthService {
         }
       }
 
-      // Verificar se JWT_SECRET está configurado
-      const jwtSecret = process.env.JWT_SECRET;
-      if (!jwtSecret) {
-        throw new Error('JWT_SECRET não configurado nas variáveis de ambiente');
-      }
-
-      const token = jwt.sign(
-        { id: user.uid, email: user.email },
-        jwtSecret,
-        { expiresIn: '24h' }
-      );
+      // Gerar token de autenticação
+      const token = await (user as any).getIdToken(true);
+      await SecureStorageService.storeData('authToken', token);
 
       loggingService.info('Usuário autenticado com sucesso', { userId: user.uid });
 
@@ -523,20 +502,23 @@ export class AuthService {
     valido: boolean;
   }> {
     try {
-      const jwtSecret = process.env.JWT_SECRET;
-      if (!jwtSecret) {
-        throw new Error('JWT_SECRET não configurado nas variáveis de ambiente');
+      const decoded: any = jwtDecode(token);
+      
+      // Validar expiração
+      if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+        throw new Error('Token expirado');
       }
-      const decoded = jwt.verify(token, jwtSecret) as any;
+
+      const userId = decoded.user_id || decoded.sub || decoded.uid || decoded.id;
 
       // Verificar no Firebase Auth
       const currentUser = auth.currentUser;
-      if (!currentUser || currentUser.uid !== decoded.id) {
+      if (!currentUser || currentUser.uid !== userId) {
         throw new Error('Usuário não autenticado');
       }
 
       // Obter dados adicionais do Firestore
-      const userDoc = await getDoc(doc(db, 'usuarios', decoded.id));
+      const userDoc = await getDoc(doc(db, 'usuarios', userId));
 
       if (!userDoc.exists()) {
         throw new Error('Usuário não encontrado');
@@ -569,10 +551,20 @@ export class AuthService {
       };
     } catch (error) {
       const errorInstance = error instanceof Error ? error : new Error('Erro desconhecido');
-      loggingService.error('Erro ao validar token', errorInstance, { originalError: error });
-      if (errorInstance instanceof jwt.TokenExpiredError) {
-        throw new Error('Token expirado');
+      // errorInstance instanceof jwt.TokenExpiredError ||
+      if (
+        (error as any).code === 'auth/id-token-expired' ||
+        (error as any).message === 'Token expirado'
+      ) {
+        return {
+          valido: false,
+          id: '',
+          email: '',
+          nome: '',
+          emailVerificado: false,
+        };
       }
+      secureLoggingService.error('Erro ao validar token', { error: errorInstance, originalError: error });
       throw new Error('Token inválido');
     }
   }
@@ -596,49 +588,67 @@ export class AuthService {
     try {
       // Versão Firebase - reautenticar e atualizar senha
       const currentUser = auth.currentUser;
-      if (!currentUser) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      // Reautenticar o usuário
-      if (!currentUser.email) {
-        throw new Error('Email do usuário não disponível');
-      }
-
-      const credential = EmailAuthProvider.credential(currentUser.email, dados.senhaAtual);
-      await reauthenticateWithCredential(currentUser, credential);
-
-      // Validar nova senha
-      if (!this.validatePassword(dados.novaSenha)) {
-        throw new Error(
-          'Nova senha deve conter pelo menos 8 caracteres, uma letra maiúscula, uma letra minúscula, um número e um caractere especial'
-        );
-      }
-
-      // Atualizar senha
-      await updatePassword(currentUser, dados.novaSenha);
-
-      // Versão simulada para compatibilidade
-      const usuario = this.usuarios.get(dados.idUsuario);
-      if (usuario) {
-        const senhaCorreta = await bcrypt.compare(dados.senhaAtual, usuario.senha);
-        if (!senhaCorreta) {
-          throw new Error('Senha atual incorreta');
+      if (currentUser) {
+        // Reautenticar o usuário
+        if (!currentUser.email) {
+          throw new Error('Email do usuário não disponível');
         }
 
-        usuario.senha = bcrypt.hashSync(dados.novaSenha, 10);
-        this.usuarios.set(usuario.id, usuario);
+        const credential = EmailAuthProvider.credential(currentUser.email, dados.senhaAtual);
+        await reauthenticateWithCredential(currentUser, credential);
+
+        // Validar nova senha
+        if (!this.validatePassword(dados.novaSenha)) {
+          throw new Error(
+            'Nova senha deve conter pelo menos 8 caracteres, uma letra maiúscula, uma letra minúscula, um número e um caractere especial'
+          );
+        }
+
+        // Atualizar senha
+        await updatePassword(currentUser, dados.novaSenha);
+      } else {
+        // Versão simulada para compatibilidade
+        const usuario = this.usuarios.get(dados.idUsuario);
+        if (usuario) {
+          const senhaCorreta = await bcrypt.compare(dados.senhaAtual, usuario.senha);
+          if (!senhaCorreta) {
+            throw new Error('Senha atual incorreta');
+          }
+          
+          // Validar nova senha se não foi validada via Firebase
+          if (!this.validatePassword(dados.novaSenha)) {
+            throw new Error(
+              'Nova senha deve conter pelo menos 8 caracteres, uma letra maiúscula, uma letra minúscula, um número e um caractere especial'
+            );
+          }
+
+          usuario.senha = bcrypt.hashSync(dados.novaSenha, 10);
+          this.usuarios.set(usuario.id, usuario);
+        } else {
+          throw new Error('Usuário não encontrado');
+        }
       }
 
-      loggingService.info('Senha atualizada com sucesso', { userId: currentUser.uid });
-
-      return {
-        id: currentUser.uid,
-        nome: currentUser.displayName || '',
-        email: currentUser.email || '',
-        telefone: usuario?.telefone,
-        emailVerificado: currentUser.emailVerified,
-      };
+      if (currentUser) {
+        loggingService.info('Senha atualizada com sucesso', { userId: currentUser.uid });
+        return {
+          id: currentUser.uid,
+          nome: currentUser.displayName || '',
+          email: currentUser.email || '',
+          telefone: undefined,
+          emailVerificado: currentUser.emailVerified,
+        };
+      } else {
+        const usuario = this.usuarios.get(dados.idUsuario);
+        loggingService.info('Senha atualizada com sucesso (simulado)', { userId: dados.idUsuario });
+        return {
+          id: dados.idUsuario,
+          nome: usuario?.nome || '',
+          email: usuario?.email || '',
+          telefone: usuario?.telefone,
+          emailVerificado: false,
+        };
+      }
     } catch (error) {
       const errorInstance = error instanceof Error ? error : new Error('Erro desconhecido');
       loggingService.error('Erro ao atualizar senha', errorInstance, { originalError: error });
@@ -672,9 +682,11 @@ export class AuthService {
         if (!jwtSecret) {
           throw new Error('JWT_SECRET não configurado nas variáveis de ambiente');
         }
-        const token = jwt.sign({ id: usuario.id, email: usuario.email }, jwtSecret, {
-          expiresIn: '1h',
-        });
+        // Gerar token simulado (mas sem usar crypto/jsonwebtoken no client)
+      const token = `simulated_token_${usuario.id}_${Date.now()}`;
+      // const token = jwt.sign({ id: usuario.id, email: usuario.email }, jwtSecret, {
+      //   expiresIn: '24h'
+      // });
 
         this.tokensRecuperacao.set(token, {
           idUsuario: usuario.id,
@@ -682,14 +694,25 @@ export class AuthService {
         });
       }
 
-      loggingService.info('Email de recuperação de senha enviado', { email });
+      if (!usuario) {
+        return {
+          mensagem:
+            'Se houver uma conta associada a este email, enviaremos instruções para redefinir sua senha.',
+        };
+      }
 
+      // Se encontrou o usuário (seja no Firebase ou simulado), retorna sucesso
       return {
         mensagem: 'Email de recuperação enviado com sucesso. Verifique sua caixa de entrada.',
       };
     } catch (error) {
       const errorInstance = error instanceof Error ? error : new Error('Erro desconhecido');
       loggingService.error('Erro ao recuperar senha', errorInstance, { originalError: error });
+      
+      if (errorInstance.message === 'Email inválido') {
+        throw errorInstance;
+      }
+
       // Não revelamos se o email existe ou não por segurança
       return {
         mensagem:
@@ -736,6 +759,14 @@ export class AuthService {
           throw new Error('Token inválido');
         }
 
+        // Verificar expiração (1 hora)
+        const agora = new Date();
+        const expiracao = new Date(tokenRecuperacao.dataCriacao.getTime() + 60 * 60 * 1000);
+        if (agora > expiracao) {
+          this.tokensRecuperacao.delete(dados.token);
+          throw new Error('Token expirado'); // Mensagem específica para o teste
+        }
+
         const usuario = this.usuarios.get(tokenRecuperacao.idUsuario);
         if (!usuario) {
           throw new Error('Usuário não encontrado');
@@ -760,12 +791,25 @@ export class AuthService {
     } catch (error) {
       const errorInstance = error instanceof Error ? error : new Error('Erro desconhecido');
       loggingService.error('Erro ao redefinir senha', errorInstance, { originalError: error });
+      
+      // errorInstance instanceof jwt.TokenExpiredError ||
       if (
-        errorInstance instanceof jwt.TokenExpiredError ||
         (error as any).code === 'auth/expired-action-code'
       ) {
         throw new Error('O link de redefinição de senha expirou. Por favor, solicite um novo.');
       }
+
+      // Se for erro de validação de senha ou token, relança o erro original
+      if (
+        errorInstance.message.includes('Nova senha deve conter') ||
+        errorInstance.message === 'Token inválido' ||
+        errorInstance.message === 'Token expirado' ||
+        errorInstance.message === 'Usuário não encontrado' ||
+        errorInstance.message === 'Token inválido ou expirado'
+      ) {
+        throw errorInstance;
+      }
+
       throw new Error(
         'Não foi possível redefinir sua senha. O link pode ser inválido ou já ter sido usado.'
       );

@@ -6,11 +6,8 @@ import Animated, {
   ZoomIn,
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withSequence,
-  withDelay,
   withTiming,
-  Easing,
 } from 'react-native-reanimated';
 import { Order } from '../types/Order';
 import { formatCurrency } from '../utils/formatters';
@@ -75,7 +72,7 @@ export function OrderCard({ order, onPress, index = 0 }: OrderCardProps) {
         <Text variant="bodyMedium">
           {order.items.length} {order.items.length === 1 ? 'item' : 'itens'}
         </Text>
-        <Text variant="bodyMedium">Total: {formatCurrency(order.total)}</Text>
+        <Text variant="bodyMedium">Total: {formatCurrency(order.totalAmount)}</Text>
       </Animated.View>
 
       <Animated.View

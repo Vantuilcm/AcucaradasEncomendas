@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import { View, StyleSheet, Animated, Easing, LayoutChangeEvent } from 'react-native';
 import { useTheme } from 'react-native-paper';
 
 interface SkeletonProps {
@@ -17,6 +17,7 @@ export const SkeletonItem = ({
 }: SkeletonProps) => {
   const theme = useTheme();
   const animatedValue = React.useRef(new Animated.Value(0)).current;
+  const [layoutWidth, setLayoutWidth] = React.useState(0);
 
   React.useEffect(() => {
     Animated.loop(
@@ -24,18 +25,23 @@ export const SkeletonItem = ({
         toValue: 1,
         duration: 1500,
         easing: Easing.linear,
-        useNativeDriver: false,
+        useNativeDriver: true,
       })
     ).start();
   }, [animatedValue]);
 
+  const onLayout = (event: LayoutChangeEvent) => {
+    setLayoutWidth(event.nativeEvent.layout.width);
+  };
+
   const translateX = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [-width, width],
+    outputRange: [-layoutWidth, layoutWidth],
   });
 
   return (
     <View
+      onLayout={onLayout}
       style={[
         {
           width,

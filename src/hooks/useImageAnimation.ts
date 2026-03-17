@@ -64,39 +64,39 @@ export function useImageAnimation(): [ImageAnimationState, ImageAnimationHandler
         // Cria as animações individuais
         const animations = [
           Animated.timing(state.scale, {
-            toValue: finalOptions.scale,
+            toValue: finalOptions.scale!,
             duration: finalOptions.duration,
             easing: finalOptions.easing,
             delay: finalOptions.delay,
-            useNativeDriver: finalOptions.useNativeDriver,
+            useNativeDriver: finalOptions.useNativeDriver!,
           }),
           Animated.timing(state.opacity, {
-            toValue: finalOptions.opacity,
+            toValue: finalOptions.opacity!,
             duration: finalOptions.duration,
             easing: finalOptions.easing,
             delay: finalOptions.delay,
-            useNativeDriver: finalOptions.useNativeDriver,
+            useNativeDriver: finalOptions.useNativeDriver!,
           }),
           Animated.timing(state.rotation, {
-            toValue: finalOptions.rotation,
+            toValue: finalOptions.rotation!,
             duration: finalOptions.duration,
             easing: finalOptions.easing,
             delay: finalOptions.delay,
-            useNativeDriver: finalOptions.useNativeDriver,
+            useNativeDriver: finalOptions.useNativeDriver!,
           }),
           Animated.timing(state.translateX, {
-            toValue: finalOptions.translateX,
+            toValue: finalOptions.translateX!,
             duration: finalOptions.duration,
             easing: finalOptions.easing,
             delay: finalOptions.delay,
-            useNativeDriver: finalOptions.useNativeDriver,
+            useNativeDriver: finalOptions.useNativeDriver!,
           }),
           Animated.timing(state.translateY, {
-            toValue: finalOptions.translateY,
+            toValue: finalOptions.translateY!,
             duration: finalOptions.duration,
             easing: finalOptions.easing,
             delay: finalOptions.delay,
-            useNativeDriver: finalOptions.useNativeDriver,
+            useNativeDriver: finalOptions.useNativeDriver!,
           }),
         ];
 

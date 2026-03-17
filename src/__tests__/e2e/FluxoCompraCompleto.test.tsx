@@ -158,8 +158,8 @@ jest.mock('../../services/PaymentService', () => ({
 }));
 
 // Mock da navegação
-jest.mock('../../navigation/AppRoutes', () => ({
-  AppRoutes: () => <div data-testid="app-routes">App Routes Mock</div>,
+jest.mock('../../navigation/AppNavigator', () => ({
+  AppNavigator: () => <div data-testid="app-routes">App Navigator Mock</div>,
 }));
 
 // Mock do componente ThemeProvider

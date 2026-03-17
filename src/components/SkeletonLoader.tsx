@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, ViewStyle, Easing } from 'react-native';
+import { View, StyleSheet, Animated, ViewStyle, Easing, DimensionValue } from 'react-native';
 import { useTheme } from 'react-native-paper';
 
 interface SkeletonProps {
-  width?: number | string;
-  height?: number | string;
+  width?: DimensionValue;
+  height?: DimensionValue;
   borderRadius?: number;
   style?: ViewStyle;
   backgroundColor?: string;
@@ -108,8 +108,8 @@ export const SkeletonLoader = ({
 
 // Componente composto para card de produto
 interface ProductCardSkeletonProps {
-  width?: number | string;
-  height?: number | string;
+  width?: DimensionValue;
+  height?: DimensionValue;
   style?: ViewStyle;
 }
 

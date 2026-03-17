@@ -1,4 +1,3 @@
-import { Product } from '../types/Product';
 import { ProductService } from './ProductService';
 
 interface SalesData {
@@ -29,10 +28,11 @@ type PeriodFilter = 'day' | 'week' | 'month' | 'year';
 
 export class ReportService {
   private static instance: ReportService;
-  private productService: ProductService;
+  // @ts-ignore
+  private _productService: ProductService;
 
   private constructor() {
-    this.productService = ProductService.getInstance();
+    this._productService = ProductService.getInstance();
   }
 
   public static getInstance(): ReportService {
@@ -77,7 +77,7 @@ export class ReportService {
     return summaryData[period];
   }
 
-  public async getTopProducts(period: PeriodFilter): Promise<TopProductData[]> {
+  public async getTopProducts(_period: PeriodFilter): Promise<TopProductData[]> {
     // Dados simulados - No futuro virão de uma API
     const topProductsData = [
       { name: 'Bolo de Chocolate', quantity: 48, totalRevenue: 2260.8 },
@@ -141,7 +141,7 @@ export class ReportService {
     return hourlySalesData[period];
   }
 
-  public async getSalesByCategory(period: PeriodFilter): Promise<SalesByCategoryData[]> {
+  public async getSalesByCategory(_period: PeriodFilter): Promise<SalesByCategoryData[]> {
     // Dados simulados - No futuro virão de uma API
     const categorySalesData = [
       { category: 'Bolos', sales: 12560.8, percentage: 38.2 },
@@ -157,7 +157,7 @@ export class ReportService {
     return categorySalesData;
   }
 
-  public async getSalesByPaymentMethod(period: PeriodFilter): Promise<SalesByCategoryData[]> {
+  public async getSalesByPaymentMethod(_period: PeriodFilter): Promise<SalesByCategoryData[]> {
     // Dados simulados - No futuro virão de uma API
     const paymentMethodData = [
       { category: 'Cartão de Crédito', sales: 18750.8, percentage: 57.2 },

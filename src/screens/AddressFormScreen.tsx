@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Switch, Text, useTheme } from 'react-native-paper';
+import { TextInput, Button, Switch, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { Address } from '../types/Address';
 import { AddressService } from '../services/AddressService';
@@ -15,7 +14,6 @@ interface RouteParams {
 }
 
 export function AddressFormScreen() {
-  const theme = useTheme();
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();

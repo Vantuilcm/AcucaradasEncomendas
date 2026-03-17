@@ -51,15 +51,6 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({
   // Validação do formulário
   const isFormValid = rating > 0 && comment.trim().length >= 5;
 
-  // Animação de feedback visual ao tocar no botão
-  const handlePressIn = () => {
-    buttonScale.value = withTiming(0.95, { duration: 100 });
-  };
-
-  const handlePressOut = () => {
-    buttonScale.value = withTiming(1, { duration: 100 });
-  };
-
   // Função para lidar com envio
   const handleSubmit = () => {
     if (!isFormValid) {
@@ -139,9 +130,7 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({
             onPress={handleSubmit}
             disabled={!isFormValid}
             variant={isFormValid ? 'primary' : 'outline'}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            style={styles.submitButton}
+            style={styles.submitButton as any}
           />
         </Animated.View>
       </Animated.View>

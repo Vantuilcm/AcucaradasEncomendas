@@ -68,6 +68,7 @@ type DisabledDates = Record<
 >;
 
 export default function ScheduleDeliveryScreen() {
+  console.log('ScheduleDeliveryScreen: Rendering...');
   const navigation = useNavigation<ScheduleDeliveryNavigationProp>();
   const { cart } = useCart();
 
@@ -219,7 +220,7 @@ export default function ScheduleDeliveryScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} testID="schedule-delivery-screen">
       <Text style={styles.title}>Agendar Entrega</Text>
 
       <Card style={styles.deliveryTypeCard}>
@@ -279,6 +280,7 @@ export default function ScheduleDeliveryScreen() {
                   availableTimeSlots.map((slot: TimeSlot) => (
                     <TouchableOpacity
                       key={slot.value}
+                      testID={`time-slot-${slot.value}`}
                       style={[
                         styles.timeSlot,
                         selectedTimeSlot === slot.value && styles.selectedTimeSlot,
@@ -450,6 +452,7 @@ export default function ScheduleDeliveryScreen() {
 
       <Button
         mode="contained"
+        testID="continue-button"
         style={styles.continueButton}
         contentStyle={styles.continueButtonContent}
         labelStyle={styles.continueButtonLabel}

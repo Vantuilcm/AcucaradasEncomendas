@@ -1,5 +1,8 @@
 import { ValidationService } from '../validationService';
 
+// Unmock ValidationService to test real logic
+jest.unmock('../validationService');
+
 describe('ValidationService', () => {
   let validationService: ValidationService;
 
@@ -88,7 +91,7 @@ describe('ValidationService', () => {
     it('should validate a valid card', () => {
       const cartao = {
         numero: '4242424242424242',
-        expiracao: '12/25',
+        expiracao: '12/30', // Ano futuro para não expirar
         cvv: '123',
         nome: 'Cliente Teste',
       };
@@ -192,7 +195,7 @@ describe('ValidationService', () => {
       };
       // O mock atual não valida 'neighborhood', então este teste pode precisar ser revisto
       // expect(validationService.validateAddress(endereco)).toBe(false);
-      expect(validationService.validateAddress(endereco)).toBe(true); // Mock atual não valida bairro
+      expect(validationService.validateAddress(endereco)).toBe(false); // Validates neighborhood correctly now
     });
 
     it('should reject an address without city', () => {
@@ -284,7 +287,7 @@ describe('ValidationService', () => {
 
   describe('validatePasswordStrength', () => {
     it('should validate a strong password', () => {
-      expect(validationService.validatePasswordStrength('senhaForte123')).toBe(true);
+      expect(validationService.validatePasswordStrength('SenhaForte123!')).toBe(true);
     });
 
     it('should reject a weak password', () => {
@@ -294,7 +297,8 @@ describe('ValidationService', () => {
 
   describe('validateCPF', () => {
     it('should validate a valid CPF', () => {
-      expect(validationService.validateCPF('12345678901')).toBe(true);
+      // Usando um CPF válido gerado para teste (evita problemas com validação de checksum)
+      expect(validationService.validateCPF('52998224725')).toBe(true);
     });
 
     it('should reject an invalid CPF', () => {

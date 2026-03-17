@@ -36,7 +36,7 @@ export function useAnimation(initialValue = 0): AnimationHandlers {
           useNativeDriver,
         }).start(({ finished }) => {
           if (finished) {
-            loggingService.debug('Animação concluída', { toValue, config });
+            loggingService.info('Animação concluída', { toValue, config });
             resolve();
           }
         });
@@ -49,7 +49,7 @@ export function useAnimation(initialValue = 0): AnimationHandlers {
     async (config?: AnimationConfig) => {
       try {
         await animate(1, config);
-        loggingService.debug('Animação fadeIn executada');
+        loggingService.info('Animação fadeIn executada');
       } catch (err) {
         loggingService.error('Erro ao executar fadeIn', { error: err });
       }
@@ -61,7 +61,7 @@ export function useAnimation(initialValue = 0): AnimationHandlers {
     async (config?: AnimationConfig) => {
       try {
         await animate(0, config);
-        loggingService.debug('Animação fadeOut executada');
+        loggingService.info('Animação fadeOut executada');
       } catch (err) {
         loggingService.error('Erro ao executar fadeOut', { error: err });
       }
@@ -76,7 +76,7 @@ export function useAnimation(initialValue = 0): AnimationHandlers {
           ...config,
           useNativeDriver: true,
         });
-        loggingService.debug('Animação slideIn executada');
+        loggingService.info('Animação slideIn executada');
       } catch (err) {
         loggingService.error('Erro ao executar slideIn', { error: err });
       }
@@ -91,7 +91,7 @@ export function useAnimation(initialValue = 0): AnimationHandlers {
           ...config,
           useNativeDriver: true,
         });
-        loggingService.debug('Animação slideOut executada');
+        loggingService.info('Animação slideOut executada');
       } catch (err) {
         loggingService.error('Erro ao executar slideOut', { error: err });
       }
@@ -106,7 +106,7 @@ export function useAnimation(initialValue = 0): AnimationHandlers {
           ...config,
           useNativeDriver: true,
         });
-        loggingService.debug('Animação scale executada', { toValue });
+        loggingService.info('Animação scale executada', { toValue });
       } catch (err) {
         loggingService.error('Erro ao executar scale', { error: err });
       }
@@ -121,7 +121,7 @@ export function useAnimation(initialValue = 0): AnimationHandlers {
           ...config,
           useNativeDriver: true,
         });
-        loggingService.debug('Animação rotate executada', { toValue });
+        loggingService.info('Animação rotate executada', { toValue });
       } catch (err) {
         loggingService.error('Erro ao executar rotate', { error: err });
       }
@@ -131,7 +131,7 @@ export function useAnimation(initialValue = 0): AnimationHandlers {
 
   const reset = useCallback(() => {
     animatedValue.setValue(initialValue);
-    loggingService.debug('Animação resetada', { initialValue });
+    loggingService.info('Animação resetada', { initialValue });
   }, [animatedValue, initialValue]);
 
   return {

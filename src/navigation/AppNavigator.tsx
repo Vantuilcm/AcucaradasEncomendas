@@ -6,11 +6,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
 import usePermissions from '../hooks/usePermissions';
+import { useNotifications } from '../hooks/useNotifications';
 
 // Telas de autenticação
 import LoginScreen from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
-import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 
 // Telas principais
 import { HomeScreen } from '../screens/HomeScreen';
@@ -165,6 +166,9 @@ const AppNavigator = () => {
   const { user, loading } = useAuth();
   const { isEntregador, loading: permissionsLoading } = usePermissions();
   const [isReady, setIsReady] = useState(false);
+  
+  // Inicializar notificações
+  useNotifications();
 
   useEffect(() => {
     // Simular um tempo de carregamento para garantir que o estado de autenticação esteja pronto
@@ -177,7 +181,7 @@ const AppNavigator = () => {
 
   if (loading || permissionsLoading || !isReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} testID="app-loading">
         <ActivityIndicator size="large" color="#FF6B6B" />
       </View>
     );

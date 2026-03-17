@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,10 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
-  Share,
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { Appbar, Button, Divider, FAB, Menu, Switch, IconButton } from 'react-native-paper';
+import { Button, Divider, Menu, Switch, IconButton } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { SocialSharingService, WishlistItem } from '../services/SocialSharingService';
 import { ProductService } from '../services/ProductService';
@@ -33,7 +32,7 @@ export default function WishlistScreen() {
   const [products, setProducts] = useState<WishlistProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [shareLoading, setShareLoading] = useState(false);
+// const [shareLoading, setShareLoading] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<WishlistProduct | null>(null);
   const [toast, setToast] = useState({
@@ -57,7 +56,7 @@ export default function WishlistScreen() {
       setLoading(true);
 
       // Obter itens da lista de desejos
-      const wishlistItems = await socialService.getWishlist(user.id);
+      const wishlistItems = await socialService.getWishlist((user as any).uid);
 
       if (wishlistItems.length === 0) {
         setProducts([]);
@@ -93,10 +92,10 @@ export default function WishlistScreen() {
       setProducts(sortedProducts);
 
       // Buscar configurações de privacidade da lista
-      const wishlistData = await socialService.getWishlistByUserId(user.id);
-      if (wishlistData) {
-        setIsPublic(wishlistData.isPublic);
-      }
+      // const wishlistData = await socialService.getWishlistByUserId((user as any).uid);
+      // if (wishlistData) {
+      //   setIsPublic(wishlistData.isPublic);
+      // }
     } catch (error) {
       loggingService.error('Erro ao carregar lista de desejos', { error });
       showToast('Não foi possível carregar sua lista de desejos', FeedbackType.ERROR);
@@ -124,7 +123,7 @@ export default function WishlistScreen() {
     if (!user) return;
 
     try {
-      await socialService.removeFromWishlist(user.id, product.id);
+      await socialService.removeFromWishlist((user as any).uid, product.id);
 
       // Atualizar estado local
       setProducts(prev => prev.filter(p => p.id !== product.id));
@@ -146,10 +145,10 @@ export default function WishlistScreen() {
     if (!user) return;
 
     try {
-      setShareLoading(true);
+      // setShareLoading(true);
 
       // Verificar se há itens públicos na lista
-      const wishlistItems = await socialService.getWishlist(user.id);
+      const wishlistItems = await socialService.getWishlist((user as any).uid);
       const publicItems = wishlistItems.filter(item => item.isPublic);
 
       if (publicItems.length === 0) {
@@ -165,7 +164,7 @@ export default function WishlistScreen() {
       }
 
       // Compartilhar a lista
-      const shared = await socialService.shareWishlist(user.id, user.nome);
+      const shared = await socialService.shareWishlist((user as any).uid, user.nome);
 
       if (shared) {
         // Feedback tátil e visual
@@ -176,7 +175,7 @@ export default function WishlistScreen() {
       loggingService.error('Erro ao compartilhar lista de desejos', { error });
       showToast('Não foi possível compartilhar sua lista', FeedbackType.ERROR);
     } finally {
-      setShareLoading(false);
+      // setShareLoading(false);
     }
   };
 
@@ -188,11 +187,11 @@ export default function WishlistScreen() {
       setLoading(true);
 
       // Obter itens da lista de desejos
-      const wishlistItems = await socialService.getWishlist(user.id);
+      const wishlistItems = await socialService.getWishlist((user as any).uid);
 
       // Atualizar cada item para público
       for (const item of wishlistItems) {
-        await socialService.setWishlistItemVisibility(user.id, item.productId, true);
+        await (socialService as any).setWishlistItemVisibility((user as any).uid, item.productId, true);
       }
 
       // Recarregar a lista
@@ -214,7 +213,7 @@ export default function WishlistScreen() {
     try {
       const newVisibility = !product.wishlistData.isPublic;
 
-      await socialService.setWishlistItemVisibility(user.id, product.id, newVisibility);
+      await (socialService as any).setWishlistItemVisibility((user as any).uid, product.id, newVisibility);
 
       // Atualizar estado local
       setProducts(prev =>
@@ -261,7 +260,7 @@ export default function WishlistScreen() {
 
   // Navegar para a tela de detalhes do produto
   const handleProductPress = (product: WishlistProduct) => {
-    navigation.navigate('ProductDetails', { product });
+    (navigation as any).navigate('ProductDetails', { product });
   };
 
   // Função para alternar entre lista pública e privada
@@ -270,7 +269,7 @@ export default function WishlistScreen() {
 
     try {
       const newIsPublic = !isPublic;
-      await socialService.updateWishlistPrivacy(user.id, newIsPublic);
+      await (socialService as any).updateWishlistPrivacy((user as any).uid, newIsPublic);
       setIsPublic(newIsPublic);
 
       // Feedback tátil e visual
@@ -295,7 +294,7 @@ export default function WishlistScreen() {
       >
         <View style={styles.productImageContainer}>
           <EnhancedImage
-            source={{ uri: item.imagens[0] || 'https://via.placeholder.com/150' }}
+            source={{ uri: item.imagens && item.imagens.length > 0 ? item.imagens[0] : 'https://via.placeholder.com/150' }}
             style={styles.productImage}
             placeholderType={PlaceholderType.SKELETON}
             lazy={true}
@@ -312,9 +311,7 @@ export default function WishlistScreen() {
         </View>
 
         <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={1}>
-            {item.nome}
-          </Text>
+          <Text style={{ flex: 1, fontWeight: 'bold', backgroundColor: 'transparent' }}>{item.nome}</Text>
           <Text style={styles.productPrice}>R$ {item.preco.toFixed(2)}</Text>
 
           <View style={styles.productActions}>
@@ -383,9 +380,7 @@ export default function WishlistScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Minha Lista de Desejos
-        </Text>
+        <Text style={styles.title}>Minha Lista de Desejos</Text>
 
         <TouchableOpacity
           style={styles.shareButton}
@@ -396,7 +391,7 @@ export default function WishlistScreen() {
             icon="share-variant"
             size={24}
             disabled={products.length === 0}
-            iconColor={products.length > 0 ? styles.shareButton.backgroundColor : '#999'}
+            iconColor={products.length > 0 ? '#fff' : '#999'}
           />
           <Text style={styles.shareButtonText}>Compartilhar</Text>
         </TouchableOpacity>
@@ -419,7 +414,7 @@ export default function WishlistScreen() {
       ) : (
         <>
           {products.length === 0 ? (
-            <View style={styles.emptyContainer}>
+            <View style={[styles.emptyContainer]}>
               <Ionicons name="heart-outline" size={64} color="#ddd" />
               <Text style={styles.emptyText}>Sua lista de desejos está vazia</Text>
               <Text style={styles.emptySubtext}>
@@ -428,7 +423,7 @@ export default function WishlistScreen() {
               <Button
                 mode="contained"
                 style={styles.browseButton}
-                onPress={() => navigation.navigate('ProductCatalog')}
+                onPress={() => (navigation as any).navigate('Home')}
               >
                 Explorar produtos
               </Button>

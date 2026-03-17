@@ -33,10 +33,10 @@ export default function ProductCatalogScreen() {
       setError(null);
 
       // Aqui seria uma chamada para a API ou serviço
-      const productService = new ProductService();
+      const productService = ProductService.getInstance();
       const data = await productService.getProducts();
 
-      setProducts(data);
+      setProducts(data as Product[]);
     } catch (error) {
       loggingService.error('Erro ao carregar produtos', { error });
       setError('Não foi possível carregar os produtos. Tente novamente.');
@@ -57,7 +57,7 @@ export default function ProductCatalogScreen() {
 
   // Navegar para a tela de detalhes do produto
   const handleProductPress = (product: Product) => {
-    navigation.navigate('ProductDetails', { product });
+    (navigation as any).navigate('ProductDetails', { product });
   };
 
   return (
@@ -67,7 +67,7 @@ export default function ProductCatalogScreen() {
         <Appbar.Content title="Catálogo de Produtos" />
         <Appbar.Action
           icon="cart"
-          onPress={() => navigation.navigate('Cart')}
+          onPress={() => (navigation as any).navigate('Cart')}
           style={styles.cartButton}
           size={24}
         />
@@ -79,7 +79,7 @@ export default function ProductCatalogScreen() {
       </Appbar.Header>
 
       <ProductGrid
-        products={products}
+        products={products as any}
         loading={loading}
         error={error ? error : undefined}
         onRefresh={loadProducts}
@@ -88,7 +88,7 @@ export default function ProductCatalogScreen() {
         showCategories={true}
         showAddToCart={true}
         numColumns={2}
-        onProductPress={handleProductPress}
+        onProductPress={handleProductPress as any}
         emptyMessage="Nenhum produto disponível no momento"
       />
 

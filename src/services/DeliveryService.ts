@@ -17,7 +17,7 @@ import {
   calculateEstimatedDeliveryTime,
   MAX_DELIVERY_DISTANCE,
 } from '../constants/delivery';
-import type { DeliveryDetails, DeliveryStatus } from '../types/Delivery';
+import { DeliveryDetails, DeliveryStatus } from '../models/Delivery';
 
 export class DeliveryService {
   private readonly collection = 'deliveries';
@@ -66,7 +66,7 @@ export class DeliveryService {
         updatedAt: new Date().toISOString(),
       };
 
-      await setDoc(newDeliveryRef, newDelivery);
+      await setDoc(newDeliveryRef, newDelivery as any);
 
       loggingService.info('Nova entrega criada', { deliveryId: newDeliveryRef.id });
       return newDelivery;
@@ -144,7 +144,7 @@ export class DeliveryService {
       const querySnapshot = await getDocs(q);
       const deliveries: DeliveryDetails[] = [];
 
-      querySnapshot.forEach(doc => {
+      querySnapshot.docs.forEach((doc: any) => {
         deliveries.push({
           id: doc.id,
           ...doc.data(),

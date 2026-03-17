@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { TextInput, Button, SegmentedButtons, useTheme, HelperText } from 'react-native-paper';
+import { TextInput, Button, SegmentedButtons, HelperText } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
-import { PaymentMethod, CreditCard, PixPayment } from '../types/PaymentMethod';
+import { CreditCard, PixPayment } from '../types/PaymentMethod';
 import { PaymentMethodService } from '../services/PaymentMethodService';
 
 type PaymentMethodType = 'credit_card' | 'debit_card' | 'pix';
 
 export function PaymentMethodFormScreen() {
-  const theme = useTheme();
   const navigation = useNavigation();
-  const route = useRoute();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

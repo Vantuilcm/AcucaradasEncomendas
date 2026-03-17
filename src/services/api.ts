@@ -52,13 +52,20 @@ const removeAuthToken = async (): Promise<void> => {
 api.interceptors.request.use(
   async (config) => {
     const token = await getAuthToken();
+    if (!config.headers) {
+      config.headers = {};
+    }
+
     if (token) {
+      // @ts-ignore
       config.headers.Authorization = `Bearer ${token}`;
     }
     
     // Adicionar headers específicos para mobile
     if (Platform.OS !== 'web') {
+      // @ts-ignore
       config.headers['X-Platform'] = Platform.OS;
+      // @ts-ignore
       config.headers['X-App-Version'] = Constants.expoConfig?.version || '1.0.0';
     }
     
@@ -178,7 +185,7 @@ export class ApiService {
     }
   }
 
-  static async placeOrder(orderData) {
+  static async placeOrder(_orderData: any) {
     try {
       // Implementar lógica de pedido
       return true;

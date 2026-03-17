@@ -29,19 +29,19 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess }) => {
 
       switch (provider) {
         case 'google':
-          result = await signInWithGoogle();
+          if (signInWithGoogle) result = await signInWithGoogle();
           break;
         case 'facebook':
-          result = await signInWithFacebook();
+          if (signInWithFacebook) result = await signInWithFacebook();
           break;
         case 'apple':
-          result = await signInWithApple();
+          if (signInWithApple) result = await signInWithApple();
           break;
         default:
           throw new Error('Provedor de autenticação não suportado');
       }
 
-      if (result.success) {
+      if (result && result.success) {
         if (is2FAEnabled) {
           // Se 2FA está habilitado, navegar para tela de verificação
           router.replace('/two-factor-auth');
@@ -56,7 +56,7 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess }) => {
       } else {
         Alert.alert(
           'Erro de autenticação',
-          result.error || 'Não foi possível realizar login. Tente novamente.'
+          (result && result.error) || 'Não foi possível realizar login. Tente novamente.'
         );
       }
     } catch (error) {

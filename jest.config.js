@@ -1,9 +1,15 @@
+const path = require('path');
+
 module.exports = {
   preset: 'jest-expo',
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  modulePathIgnorePatterns: ['<rootDir>/node_modules_old/'],
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|firebase|@firebase|react-native-calendars|@stripe/stripe-react-native)',
   ],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   testMatch: ['**/__tests__/**/*.test.[jt]s?(x)', '**/__tests__/**/*.spec.[jt]s?(x)'],
   collectCoverageFrom: [
@@ -21,23 +27,7 @@ module.exports = {
       statements: 80,
     },
   },
-  projects: [
-    {
-      displayName: 'unit',
-      testMatch: ['<rootDir>/src/__tests__/**/*.test.[jt]s?(x)'],
-      setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-    },
-    {
-      displayName: 'e2e',
-      testMatch: ['<rootDir>/src/__tests__/e2e/**/*.test.[jt]s?(x)'],
-      setupFilesAfterEnv: ['<rootDir>/jest.setup.e2e.js'],
-      transform: {
-        '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.config.test.js' }],
-      },
-      transformIgnorePatterns: [
-        'node_modules/react-native-reanimated/plugin',
-        'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)',
-      ],
-    },
-  ],
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
+  },
 };

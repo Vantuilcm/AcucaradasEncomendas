@@ -311,7 +311,7 @@ export function withErrorBoundary<P extends object>(
 
 // Hook para usar Error Boundary programaticamente
 export function useErrorHandler() {
-  return React.useCallback((error: Error, errorInfo?: ErrorInfo) => {
+  return React.useCallback((error: Error, _errorInfo?: ErrorInfo) => {
     // Simular erro para acionar Error Boundary
     throw error;
   }, []);

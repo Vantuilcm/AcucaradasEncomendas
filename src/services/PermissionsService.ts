@@ -139,7 +139,7 @@ export class PermissionsService {
       }
 
       const userData = userDoc.data();
-      return userData.role === role;
+      return userData?.role === role;
     } catch (error) {
       loggingService.error('Erro ao verificar papel do usuário', { error, role });
       return false;
@@ -165,7 +165,7 @@ export class PermissionsService {
       }
 
       const userData = userDoc.data();
-      const userRole = (userData.role as Role) || Role.CLIENTE;
+      const userRole = (userData?.role as Role) || Role.CLIENTE;
 
       // Verificar se há permissões personalizadas
       const permissionsDoc = await getDoc(doc(db, this.permissionsCollection, userId));
@@ -174,7 +174,8 @@ export class PermissionsService {
 
       if (permissionsDoc.exists()) {
         // Usar permissões personalizadas
-        permissions = permissionsDoc.data() as Permission[];
+        const docData = permissionsDoc.data();
+        permissions = docData ? (docData.permissions as Permission[] || docData as unknown as Permission[]) : ROLE_PERMISSIONS[userRole];
       } else {
         // Usar permissões padrão do papel
         permissions = ROLE_PERMISSIONS[userRole];
@@ -318,7 +319,7 @@ export class PermissionsService {
       }
 
       const userData = userDoc.data();
-      const userRole = (userData.role as Role) || Role.CLIENTE;
+      const userRole = (userData?.role as Role) || Role.CLIENTE;
 
       // Redefinir para o padrão do papel
       await setDoc(doc(db, this.permissionsCollection, userId), {
@@ -370,7 +371,7 @@ export class PermissionsService {
       }
 
       const permissionsData = permissionsDoc.data();
-      return permissionsData.role as Role;
+      return permissionsData?.role as Role;
     } catch (error) {
       loggingService.error('Erro ao obter papel do usuário', { error, userId });
       throw error;
@@ -438,7 +439,7 @@ export class PermissionsService {
       }
 
       const permissionsData = permissionsDoc.data();
-      const userPermissions = permissionsData.permissions as Permission[];
+      const userPermissions = permissionsData?.permissions as Permission[] || [];
 
       if (requireAll) {
         // Verificar se tem todas as permissões (AND)
@@ -487,9 +488,8 @@ export class PermissionsService {
       }
 
       // Obter permissões atuais
-      const currentPermissions = permissionsDoc.exists()
-        ? (permissionsDoc.data().permissions as Permission[])
-        : ROLE_PERMISSIONS[Role.CLIENTE];
+      const permissionsData = permissionsDoc.exists() ? permissionsDoc.data() : null;
+      const currentPermissions = permissionsData?.permissions as Permission[] || ROLE_PERMISSIONS[Role.CLIENTE];
 
       // Adicionar novas permissões (sem duplicatas)
       const updatedPermissions = [...new Set([...currentPermissions, ...permissions])];
@@ -533,7 +533,8 @@ export class PermissionsService {
       }
 
       // Obter permissões atuais
-      const currentPermissions = permissionsDoc.data().permissions as Permission[];
+      const permissionsData = permissionsDoc.data();
+      const currentPermissions = permissionsData?.permissions as Permission[] || [];
 
       // Remover permissões
       const updatedPermissions = currentPermissions.filter(p => !permissions.includes(p));
@@ -578,7 +579,8 @@ export class PermissionsService {
       }
 
       // Obter papel atual
-      const role = permissionsDoc.data().role as Role;
+      const permissionsData = permissionsDoc.data();
+      const role = permissionsData?.role as Role || Role.CLIENTE;
 
       // Obter permissões padrão para o papel
       const defaultPermissions = ROLE_PERMISSIONS[role];

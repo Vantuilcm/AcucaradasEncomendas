@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, useTheme } from 'react-native-paper';
+import { TextInput, Button, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,13 +10,12 @@ import { InputValidationService } from '../services/InputValidationService';
 import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
 
-export default function ForgotPasswordScreen() {
-  const theme = useTheme();
+export function ForgotPasswordScreen() {
   const navigation = useNavigation();
-  const { resetPassword, loading, error: authError } = useAuth();
+  const { resetPassword, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const validateEmail = () => {
     try {
@@ -25,7 +24,7 @@ export default function ForgotPasswordScreen() {
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Email inválido';
-      setError(errorMessage);
+      setAuthError(errorMessage);
       
       // Registrar falha na validação do email
       secureLoggingService.security('Falha na validação de email para recuperação de senha', {
@@ -40,7 +39,7 @@ export default function ForgotPasswordScreen() {
 
   const handleResetPassword = async () => {
     try {
-      setError(null);
+      setAuthError(null);
       setMessage(null);
       
       // Registrar tentativa de recuperação de senha
@@ -67,7 +66,7 @@ export default function ForgotPasswordScreen() {
       setMessage('Enviamos um e-mail com instruções para redefinir sua senha.');
     } catch (err) {
       const errorMessage = 'Não foi possível enviar o e-mail de redefinição. Verifique o endereço e tente novamente.';
-      setError(errorMessage);
+      setAuthError(errorMessage);
       
       // Registrar falha no envio de email de recuperação
       secureLoggingService.security('Falha no envio de email de recuperação de senha', {
@@ -84,7 +83,7 @@ export default function ForgotPasswordScreen() {
     <ScreenshotProtection
       enabled={true}
       blurContent={true}
-      onScreenshotDetected={() => setError('Captura de tela detectada! Por motivos de segurança, esta ação não é permitida.')}
+      onScreenshotDetected={() => setAuthError('Captura de tela detectada! Por motivos de segurança, esta ação não é permitida.')}
     >
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
@@ -106,7 +105,7 @@ export default function ForgotPasswordScreen() {
             </View>
           )}
 
-          {(error || authError) && <ErrorMessage message={error || authError} />}
+          {authError && <ErrorMessage message={authError} />}
 
           <TextInput
             label="E-mail"

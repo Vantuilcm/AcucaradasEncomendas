@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback, useRef } from 'react';
+import React, { memo, useCallback, useRef } from 'react';
 import { FlatList, ListRenderItemInfo, StyleSheet, View, RefreshControl } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 
@@ -39,7 +39,7 @@ function OptimizedListComponent<T extends { id: string | number }>({
   ListEmptyComponent,
   ListHeaderComponent,
   ListFooterComponent,
-  estimatedItemSize = 100,
+  estimatedItemSize: _estimatedItemSize = 100,
   onEndReached,
   onEndReachedThreshold = 0.5,
   itemHeight,
@@ -51,23 +51,24 @@ function OptimizedListComponent<T extends { id: string | number }>({
 }: OptimizedListProps<T>) {
   const theme = useTheme();
   const flatListRef = useRef<FlatList<T>>(null);
-  const [viewableItems, setViewableItems] = useState<string[]>([]);
+  // const [viewableItems, setViewableItems] = useState<string[]>([]);
 
   // Função que determina se o item é visível para fins de memoização
-  const isItemVisible = (itemId: string | number): boolean => {
-    return viewableItems.includes(itemId.toString());
-  };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const _isItemVisible = (itemId: string | number): boolean => {
+  //   return viewableItems.includes(itemId.toString());
+  // };
 
   // Gerencia quais itens estão visíveis no momento
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    const viewableIds = viewableItems.map((item: any) => item.key);
-    setViewableItems(viewableIds);
-  }, []);
+  // const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+  //   const viewableIds = viewableItems.map((item: any) => item.key);
+  //   setViewableItems(viewableIds);
+  // }, []);
 
   // Config para calcular quais items são visíveis
-  const viewabilityConfig = {
-    itemVisiblePercentThreshold: 10, // Porcentagem do item visível para ser considerado "viewable"
-  };
+  // const viewabilityConfig = {
+  //   itemVisiblePercentThreshold: 10, // Porcentagem do item visível para ser considerado "viewable"
+  // };
 
   // Memoriza o componente renderItem para evitar re-renderizações desnecessárias
   const memoizedRenderItem = useCallback(
@@ -79,13 +80,13 @@ function OptimizedListComponent<T extends { id: string | number }>({
 
   // Para listas com itens de altura fixa, isso aumenta muito a performance
   const getItemLayout = itemHeight
-    ? (data: T[] | null, index: number) => ({
+    ? (_data: ArrayLike<T> | null | undefined, index: number) => ({
         length: itemHeight + separatorHeight,
         offset: (itemHeight + separatorHeight) * index,
         index,
       })
     : getItemSizeByIndex
-      ? (data: T[] | null, index: number) => {
+      ? (_data: ArrayLike<T> | null | undefined, index: number) => {
           const size = getItemSizeByIndex(index);
           const offset = Array.from(
             { length: index },
@@ -150,8 +151,6 @@ function OptimizedListComponent<T extends { id: string | number }>({
       onEndReached={onEndReached}
       onEndReachedThreshold={onEndReachedThreshold}
       getItemLayout={getItemLayout}
-      onViewableItemsChanged={onViewableItemsChanged}
-      viewabilityConfig={viewabilityConfig}
       scrollEnabled={scrollEnabled}
       extraData={extraData}
       onScroll={onScroll}

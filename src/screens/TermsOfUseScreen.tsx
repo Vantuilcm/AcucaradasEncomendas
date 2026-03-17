@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, List, Divider, useTheme } from 'react-native-paper';
+import { Text, List, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function TermsOfUseScreen() {
-  const theme = useTheme();
 
   return (
     <SafeAreaView style={styles.container}>

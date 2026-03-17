@@ -7,16 +7,15 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   orderBy,
   limit,
-  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import {
   Notification,
   NotificationPreferences,
   NotificationStats,
-  NotificationType,
 } from '../types/Notification';
 import { loggingService } from './LoggingService';
 import { PushNotificationService } from './PushNotificationService';
@@ -122,7 +121,7 @@ export class NotificationService {
       });
 
       const newNotification: Notification = {
-        id: docRef.id,
+        id: (docRef as any).id,
         ...notification,
         createdAt: new Date().toISOString(),
       };
@@ -136,7 +135,7 @@ export class NotificationService {
           notification.title,
           notification.message,
           {
-            notificationId: docRef.id,
+            notificationId: (docRef as any).id,
             type: notification.type,
             ...notification.data,
           }
@@ -144,7 +143,7 @@ export class NotificationService {
       }
 
       loggingService.info('Notificação criada com sucesso', {
-        notificationId: docRef.id,
+        notificationId: (docRef as any).id,
       });
       return newNotification;
     } catch (error) {
@@ -178,9 +177,9 @@ export class NotificationService {
       const q = query(notificationsRef, where('userId', '==', userId), where('read', '==', false));
       const querySnapshot = await getDocs(q);
 
-      const batch = db.batch();
+      const batch = (db as any).batch();
       querySnapshot.docs.forEach(doc => {
-        batch.update(doc.ref, { read: true });
+        batch.update((doc as any).ref, { read: true });
       });
 
       await batch.commit();
@@ -200,7 +199,7 @@ export class NotificationService {
   async deleteNotification(notificationId: string): Promise<void> {
     try {
       const notificationRef = doc(db, this.collection, notificationId);
-      await notificationRef.delete();
+      await deleteDoc(notificationRef);
 
       loggingService.info('Notificação excluída com sucesso', {
         notificationId,
@@ -277,14 +276,13 @@ export class NotificationService {
         byType: {} as NotificationStats['byType'],
       };
 
-      // Inicializa contadores para cada tipo
-      Object.values(NotificationType).forEach(type => {
-        stats.byType[type] = 0;
-      });
-
       // Conta notificações por tipo
       notifications.forEach(notification => {
-        stats.byType[notification.type]++;
+        if (stats.byType[notification.type] !== undefined) {
+          stats.byType[notification.type]!++;
+        } else {
+          stats.byType[notification.type] = 1;
+        }
       });
 
       return stats;
@@ -346,6 +344,11 @@ export class NotificationService {
 
   public async marcarComoLida(id: string): Promise<Notificacao> {
     const notificacao = await this.consultarNotificacao(id);
+    
+    if (notificacao.status === 'lida') {
+      throw new Error('Notificação já está lida');
+    }
+
     const notificacaoAtualizada = {
       ...notificacao,
       status: 'lida' as const,
@@ -400,6 +403,15 @@ export class NotificationService {
     if (!dados.destinatario) {
       throw new Error('Destinatário é obrigatório');
     }
+    
+    const tipo = dados.tipo || 'email';
+    if (tipo === 'email') {
+       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+       if (!emailRegex.test(dados.destinatario)) {
+         throw new Error('Destinatário inválido');
+       }
+    }
+    
     if (dados.tipo && !['email', 'sms', 'push'].includes(dados.tipo)) {
       throw new Error('Tipo de notificação inválido');
     }

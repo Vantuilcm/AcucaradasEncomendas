@@ -25,7 +25,7 @@ const TwoFactorAuthScreen = () => {
   const [isResending, setIsResending] = useState<boolean>(false);
   const router = useRouter();
   const navigation = useNavigation();
-  const { verify2FACode, generate2FACode, signOut, loading, error } = useAuth();
+  const { verify2FACode, generate2FACode, signOut, loading } = useAuth();
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -37,7 +37,7 @@ const TwoFactorAuthScreen = () => {
     });
 
     // Configurar o listener de hardware back button
-    const unsubscribe = navigation.addListener('beforeRemove', e => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
       // Prevenir navegação de volta exceto para rotas específicas
       if (e.data.action.type !== 'GO_BACK') {
         return;

@@ -1,12 +1,17 @@
 import { useState, useCallback, useEffect } from 'react';
+// @ts-ignore
 import {
+  // @ts-ignore
   getAuth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  // @ts-ignore
   onAuthStateChanged,
   User,
+  // @ts-ignore
   GoogleAuthProvider,
+  // @ts-ignore
   FacebookAuthProvider,
 } from 'firebase/auth';
 import * as Google from 'expo-auth-session/providers/google';
@@ -63,7 +68,7 @@ export function useAuth(): AuthState {
   });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async user => {
+    const unsubscribe = onAuthStateChanged(auth, async (user: any) => {
       setUser(user);
       setLoading(false);
       if (user) {
@@ -122,7 +127,7 @@ export function useAuth(): AuthState {
           timestamp: new Date().toISOString(),
           method: 'email/password'
         });
-      } catch (err) {
+      } catch (err: any) {
         const errorMessage = 'Email ou senha inválidos';
         setError(errorMessage);
         secureLoggingService.security('Falha na autenticação', { 
@@ -152,7 +157,7 @@ export function useAuth(): AuthState {
           timestamp: new Date().toISOString(),
           method: 'email/password'
         });
-      } catch (err) {
+      } catch (err: any) {
         const errorMessage = 'Erro ao criar conta. Tente novamente.';
         setError(errorMessage);
         secureLoggingService.security('Falha ao criar conta', { 
@@ -181,7 +186,7 @@ export function useAuth(): AuthState {
         userId: user?.uid,
         timestamp: new Date().toISOString()
       });
-    } catch (err) {
+    } catch (err: any) {
         const errorMessage = 'Erro ao deslogar usuário';
         setError(errorMessage);
         secureLoggingService.security('Falha ao deslogar usuário', { 
@@ -234,7 +239,7 @@ export function useAuth(): AuthState {
         }
       }
       return result;
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = 'Erro ao autenticar com Google';
       setError(errorMessage);
       secureLoggingService.security('Falha na autenticação com Google', { 
@@ -281,7 +286,7 @@ export function useAuth(): AuthState {
         }
       }
       return result;
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = 'Erro ao autenticar com Facebook';
       setError(errorMessage);
       secureLoggingService.security('Falha na autenticação com Facebook', { 
@@ -319,7 +324,7 @@ export function useAuth(): AuthState {
         }
       }
       return result;
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = 'Erro ao autenticar com Apple';
       setError(errorMessage);
       secureLoggingService.security('Falha na autenticação com Apple', { 
@@ -347,7 +352,7 @@ export function useAuth(): AuthState {
         });
       }
       return result;
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = 'Erro ao ativar autenticação de dois fatores';
       setError(errorMessage);
       secureLoggingService.security('Falha ao ativar 2FA', { 
@@ -376,7 +381,7 @@ export function useAuth(): AuthState {
         });
       }
       return result;
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = 'Erro ao desativar autenticação de dois fatores';
       setError(errorMessage);
       secureLoggingService.security('Falha ao desativar 2FA', { 
@@ -409,7 +414,7 @@ export function useAuth(): AuthState {
         });
       }
       return result;
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = 'Erro ao verificar código';
       setError(errorMessage);
       secureLoggingService.security('Erro ao verificar código 2FA', { 
@@ -436,7 +441,7 @@ export function useAuth(): AuthState {
         });
       }
       return result;
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = 'Erro ao gerar código de verificação';
       setError(errorMessage);
       secureLoggingService.security('Erro ao gerar código 2FA', { 
@@ -464,7 +469,7 @@ export function useAuth(): AuthState {
         });
       }
       return result;
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = 'Erro ao gerar novos códigos de backup';
       setError(errorMessage);
       secureLoggingService.security('Erro ao regenerar códigos de backup 2FA', { 

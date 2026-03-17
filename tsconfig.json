@@ -9,7 +9,9 @@
       ]
     },
     "types": [
-      "node"
+      "node",
+      "jest",
+      "express"
     ],
     "allowJs": true,
     "esModuleInterop": true,
@@ -45,9 +47,10 @@
     "metro.config.js",
     "jest.config.js",
     "jest.setup.ts",
-    "test",
+    "src/__tests__",
     "**/*.test.ts",
     "**/*.test.tsx",
-    "**/__tests__/**"
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
   ]
 }

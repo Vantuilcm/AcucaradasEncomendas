@@ -6,10 +6,10 @@ import Constants from 'expo-constants';
  */
 export const LEGAL_DOCUMENTS = {
   PRIVACY_POLICY:
-    Constants.expoConfig?.privacyPolicyUrl ||
+    (Constants.expoConfig as any)?.privacyPolicyUrl ||
     'https://www.acucaradas.com.br/politica-privacidade.html',
   TERMS_OF_USE:
-    Constants.expoConfig?.termsOfServiceUrl || 'https://www.acucaradas.com.br/termos-uso.html',
+    (Constants.expoConfig as any)?.termsOfServiceUrl || 'https://www.acucaradas.com.br/termos-uso.html',
   ABOUT_US: 'https://www.acucaradas.com.br/sobre.html',
   WEBSITE: 'https://www.acucaradas.com.br',
 };

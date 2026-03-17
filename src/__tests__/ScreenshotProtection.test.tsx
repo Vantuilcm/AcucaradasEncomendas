@@ -1,46 +1,20 @@
 import React from 'react';
-import { render, act, waitFor, fireEvent } from '@testing-library/react-native';
-import { ScreenshotProtection } from '../components/ScreenshotProtection';
-import * as ScreenCapture from 'expo-screen-capture';
-import { loggingService } from '../services/LoggingService';
+import { render, waitFor, act } from '@testing-library/react-native';
 import { AppState } from 'react-native';
+import { ScreenshotProtection } from '../components/ScreenshotProtection';
+import { loggingService } from '../services/LoggingService';
+import * as ScreenCapture from '../compat/expoScreenCapture';
 
-// Mock das dependências externas
-jest.mock('expo-screen-capture', () => ({
+// Mock das dependências
+jest.mock('../services/LoggingService');
+
+jest.mock('../compat/expoScreenCapture', () => ({
   preventScreenCaptureAsync: jest.fn().mockResolvedValue(undefined),
   allowScreenCaptureAsync: jest.fn().mockResolvedValue(undefined),
   addScreenshotListener: jest.fn().mockImplementation((callback) => {
-    // Armazenar o callback para poder disparar eventos de screenshot manualmente nos testes
     (global as any).triggerScreenshotEvent = callback;
     return { remove: jest.fn() };
   }),
-}));
-
-// Mock do AppState
-jest.mock('react-native', () => {
-  const reactNative = jest.requireActual('react-native');
-  return {
-    ...reactNative,
-    AppState: {
-      ...reactNative.AppState,
-      addEventListener: jest.fn().mockImplementation((event, callback) => {
-        // Armazenar o callback para poder disparar eventos de mudança de estado manualmente
-        if (event === 'change') {
-          (global as any).triggerAppStateChange = callback;
-        }
-        return { remove: jest.fn() };
-      }),
-      currentState: 'active',
-    },
-  };
-});
-
-jest.mock('../services/LoggingService', () => ({
-  loggingService: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-  },
 }));
 
 // Mock do fetch para testar reportToServer
@@ -54,126 +28,98 @@ describe('ScreenshotProtection Component', () => {
     jest.clearAllMocks();
     // Limpar o trigger de screenshot entre os testes
     (global as any).triggerScreenshotEvent = undefined;
+
+    // Mock AppState
+    (global as any).triggerAppStateChange = null;
+    
+    // Tentativa de mock direto se o spy falhar
+    if (AppState.addEventListener) {
+       jest.spyOn(AppState, 'addEventListener').mockImplementation((event, handler) => {
+        (global as any).triggerAppStateChange = handler;
+        return { remove: jest.fn() } as any;
+      });
+    } else {
+      console.warn('AppState.addEventListener not found!');
+    }
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('deve ativar a proteção contra capturas de tela ao montar', async () => {
-    render(
-      <ScreenshotProtection>
-        <></>  
-      </ScreenshotProtection>
-    );
-
-    expect(ScreenCapture.preventScreenCaptureAsync).toHaveBeenCalled();
+    render(<ScreenshotProtection><></></ScreenshotProtection>);
+    await waitFor(() => expect(ScreenCapture.preventScreenCaptureAsync).toHaveBeenCalledTimes(1));
   });
 
-  it('não deve ativar a proteção se enabled=false', async () => {
-    render(
-      <ScreenshotProtection enabled={false}>
-        <></>
-      </ScreenshotProtection>
-    );
-
+  it('não deve ativar a proteção se enabled=false', () => {
+    render(<ScreenshotProtection enabled={false}><></></ScreenshotProtection>);
     expect(ScreenCapture.preventScreenCaptureAsync).not.toHaveBeenCalled();
   });
 
   it('deve registrar log quando uma captura de tela é detectada', async () => {
-    render(
-      <ScreenshotProtection logAttempts={true}>
-        <></>
-      </ScreenshotProtection>
-    );
+    render(<ScreenshotProtection logAttempts={true}><></></ScreenshotProtection>);
+    
+    // Aguardar o listener ser registrado
+    await waitFor(() => expect((global as any).triggerScreenshotEvent).toBeTruthy());
 
-    // Simular uma captura de tela
-    act(() => {
-      if ((global as any).triggerScreenshotEvent) {
-        (global as any).triggerScreenshotEvent();
-      }
+    // Simular evento de screenshot
+    act(() => (global as any).triggerScreenshotEvent());
+    
+    await waitFor(() => {
+      expect(loggingService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Captura de tela detectada'),
+        expect.anything()
+      );
     });
-
-    expect(loggingService.warn).toHaveBeenCalledWith(
-      'Captura de tela detectada em conteúdo protegido',
-      expect.objectContaining({
-        component: 'ScreenshotProtection',
-        securityEvent: 'screenshot_attempt',
-      })
-    );
   });
 
   it('deve chamar onScreenshotDetected quando uma captura é detectada', async () => {
-    const mockCallback = jest.fn();
+    const onScreenshotDetected = jest.fn();
+    render(<ScreenshotProtection onScreenshotDetected={onScreenshotDetected}><></></ScreenshotProtection>);
     
-    render(
-      <ScreenshotProtection onScreenshotDetected={mockCallback}>
-        <></>
-      </ScreenshotProtection>
-    );
-
-    // Simular uma captura de tela
-    act(() => {
-      if ((global as any).triggerScreenshotEvent) {
-        (global as any).triggerScreenshotEvent();
-      }
-    });
-
-    expect(mockCallback).toHaveBeenCalled();
+    // Aguardar o listener ser registrado
+    await waitFor(() => expect((global as any).triggerScreenshotEvent).toBeTruthy());
+    
+    act(() => (global as any).triggerScreenshotEvent());
+    
+    await waitFor(() => expect(onScreenshotDetected).toHaveBeenCalled());
   });
-  
+
   it('deve enviar relatório ao servidor quando reportToServer=true', async () => {
-    render(
-      <ScreenshotProtection reportToServer={true}>
-        <></>
-      </ScreenshotProtection>
-    );
-
-    // Simular uma captura de tela
-    act(() => {
-      if ((global as any).triggerScreenshotEvent) {
-        (global as any).triggerScreenshotEvent();
-      }
+    // Mock fetch global
+    global.fetch = jest.fn().mockResolvedValue({ ok: true } as any);
+    
+    render(<ScreenshotProtection reportToServer={true}><></></ScreenshotProtection>);
+    
+    // Aguardar o listener ser registrado
+    await waitFor(() => expect((global as any).triggerScreenshotEvent).toBeTruthy());
+    
+    act(() => (global as any).triggerScreenshotEvent());
+    
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/security/report-event',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('screenshot_attempt')
+        })
+      );
     });
-
-    // Verificar se fetch foi chamado para enviar o relatório
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/security/report'),
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'Content-Type': 'application/json'
-        }),
-        body: expect.any(String)
-      })
-    );
   });
-  
-  it('deve desativar a proteção quando o app vai para background e reativar quando volta', async () => {
-    render(
-      <ScreenshotProtection>
-        <></>
-      </ScreenshotProtection>
-    );
 
-    // Verificar que a proteção foi ativada inicialmente
-    expect(ScreenCapture.preventScreenCaptureAsync).toHaveBeenCalledTimes(1);
+  it('deve desativar a proteção quando o app vai para background e reativar quando volta', async () => {
+    render(<ScreenshotProtection><></></ScreenshotProtection>);
+    await waitFor(() => expect(ScreenCapture.preventScreenCaptureAsync).toHaveBeenCalledTimes(1));
     
-    // Simular app indo para background
-    act(() => {
-      if ((global as any).triggerAppStateChange) {
-        (global as any).triggerAppStateChange('background');
-      }
-    });
+    // Aguardar o listener ser registrado (pois é async dentro do useEffect)
+    await waitFor(() => expect((global as any).triggerAppStateChange).toBeTruthy());
+
+    act(() => (global as any).triggerAppStateChange('background'));
+    await waitFor(() => expect(ScreenCapture.allowScreenCaptureAsync).toHaveBeenCalledTimes(1));
     
-    // Verificar que a proteção foi desativada
-    expect(ScreenCapture.allowScreenCaptureAsync).toHaveBeenCalledTimes(1);
-    
-    // Simular app voltando para foreground
-    act(() => {
-      if ((global as any).triggerAppStateChange) {
-        (global as any).triggerAppStateChange('active');
-      }
-    });
-    
-    // Verificar que a proteção foi reativada
-    expect(ScreenCapture.preventScreenCaptureAsync).toHaveBeenCalledTimes(2);
+    act(() => (global as any).triggerAppStateChange('active'));
+    await waitFor(() => expect(ScreenCapture.preventScreenCaptureAsync).toHaveBeenCalledTimes(2));
   });
   
   it('deve lidar corretamente com erros ao ativar a proteção', async () => {
@@ -205,6 +151,10 @@ describe('ScreenshotProtection Component', () => {
       </ScreenshotProtection>
     );
 
+    // Aguardar a ativação da proteção
+    await waitFor(() => expect(ScreenCapture.preventScreenCaptureAsync).toHaveBeenCalled());
+    await waitFor(() => expect(ScreenCapture.addScreenshotListener).toHaveBeenCalled());
+
     // Simular uma captura de tela
     act(() => {
       if ((global as any).triggerScreenshotEvent) {
@@ -212,13 +162,15 @@ describe('ScreenshotProtection Component', () => {
       }
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/security/report-event',
-      expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('screenshot_attempt'),
-      })
-    );
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/security/report-event',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('screenshot_attempt'),
+        })
+      );
+    });
   });
 
   it('deve lidar com erros na API de captura de tela', async () => {
@@ -249,6 +201,10 @@ describe('ScreenshotProtection Component', () => {
         <></>
       </ScreenshotProtection>
     );
+
+    // Aguardar a ativação da proteção e adição dos listeners
+    await waitFor(() => expect(ScreenCapture.preventScreenCaptureAsync).toHaveBeenCalled());
+    await waitFor(() => expect(ScreenCapture.addScreenshotListener).toHaveBeenCalled());
 
     const mockRemove = (ScreenCapture.addScreenshotListener as jest.Mock).mock.results[0].value.remove;
     

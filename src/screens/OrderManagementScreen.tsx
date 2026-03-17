@@ -296,10 +296,10 @@ export function OrderManagementScreen() {
   // Verificar se o usuário é administrador ou produtor
   if (!user?.isAdmin) {
     return (
-      <ErrorMessage
-        message="Você não tem permissão para acessar esta área"
+      <ErrorMessage 
+        message="Você não tem permissão para acessar esta área" 
         onRetry={() => navigation.goBack()}
-        retryText="Voltar"
+        retryLabel="Voltar"
       />
     );
   }

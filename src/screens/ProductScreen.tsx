@@ -1,122 +1,27 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  StatusBar,
-  Dimensions,
   ScrollView,
-  Image,
   ActivityIndicator,
 } from 'react-native';
-import { useTheme, Button, IconButton, Divider } from 'react-native-paper';
+import { Button, IconButton, Divider } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { SkeletonList } from '../components/base/SkeletonLoading';
-import { ErrorMessage } from '../components/ErrorMessage';
-import { OptimizedList } from '../components/OptimizedList';
 import { OptimizedImage } from '../components/OptimizedImage';
-import CacheService from '../services/cacheService';
 import { Product } from '../types/Product';
 import { ProductService } from '../services/ProductService';
 import { StoreLocationButton } from '../components/StoreLocationButton';
 import { loggingService } from '../services/LoggingService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Configurações de dimensões para otimização
-const { width } = Dimensions.get('window');
-const PRODUCT_CARD_WIDTH = width - 32; // 16px de padding em cada lado
-const PRODUCT_IMAGE_HEIGHT = 180;
 
-// Função otimizada para buscar produtos com cache
-const fetchProducts = async (forceRefresh = false): Promise<Product[]> => {
-  const cacheService = CacheService.getInstance();
-
-  // Usar função de recuperação de produtos do cache
-  return cacheService.getProducts(
-    // Função que será executada caso não existam produtos em cache ou se forceRefresh=true
-    async () => {
-      // Simulação da API - em produção seria uma chamada real à API
-      return new Promise(resolve => {
-        setTimeout(() => {
-          const products = [
-            {
-              id: '1',
-              name: 'Bolo de Chocolate',
-              price: 45.0,
-              image: 'https://via.placeholder.com/400x300',
-            },
-            {
-              id: '2',
-              name: 'Cupcake de Morango',
-              price: 8.5,
-              image: 'https://via.placeholder.com/400x300',
-            },
-            {
-              id: '3',
-              name: 'Torta de Limão',
-              price: 35.0,
-              image: 'https://via.placeholder.com/400x300',
-            },
-            {
-              id: '4',
-              name: 'Brigadeiro Gourmet',
-              price: 3.5,
-              image: 'https://via.placeholder.com/400x300',
-            },
-            {
-              id: '5',
-              name: 'Doce de Leite',
-              price: 15.0,
-              image: 'https://via.placeholder.com/400x300',
-            },
-          ];
-          resolve(products);
-        }, 1000); // Reduzido o tempo de simulação para melhor UX
-      });
-    },
-    {
-      forceRefresh,
-      cacheKey: 'all_products',
-      category: 'products',
-    }
-  );
-};
-
-// Item do produto memoizado para evitar re-renderizações desnecessárias
-const ProductItem = memo(({ item, onPress, onAddToCart, themeColors }) => (
-  <TouchableOpacity style={styles.productCard} onPress={onPress} activeOpacity={0.7}>
-    <OptimizedImage
-      source={{ uri: item.image }}
-      style={styles.productImage}
-      resizeMode="cover"
-      placeholder={
-        <View style={[styles.imagePlaceholder, { backgroundColor: themeColors.surfaceVariant }]} />
-      }
-    />
-    <View style={styles.productDetails}>
-      <Text style={styles.productName}>{item.name}</Text>
-      <Text style={[styles.productPrice, { color: themeColors.primary }]}>
-        R$ {item.price.toFixed(2)}
-      </Text>
-      <TouchableOpacity
-        style={[styles.addButton, { backgroundColor: themeColors.primary }]}
-        onPress={onAddToCart}
-      >
-        <Text style={styles.addButtonText}>Adicionar</Text>
-      </TouchableOpacity>
-    </View>
-  </TouchableOpacity>
-));
-
-ProductItem.displayName = 'ProductItem';
 
 interface RouteParams {
   productId: string;
 }
 
 export function ProductScreen() {
-  const theme = useTheme();
   const navigation = useNavigation();
   const route = useRoute();
   const { productId } = route.params as RouteParams;
@@ -132,7 +37,7 @@ export function ProductScreen() {
         setLoading(true);
         setError(null);
 
-        const productService = new ProductService();
+        const productService = ProductService.getInstance();
         const productData = await productService.getProductById(productId);
 
         if (!productData) {
@@ -200,20 +105,20 @@ export function ProductScreen() {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        <Image
-          source={{ uri: product.imageUrl || 'https://via.placeholder.com/400' }}
+        <OptimizedImage
+          source={{ uri: product.imagens?.[0] || 'https://via.placeholder.com/400' }}
           style={styles.productImage}
           resizeMode="cover"
         />
 
         <View style={styles.productInfo}>
-          <Text style={styles.productName}>{product.name}</Text>
-          <Text style={styles.productPrice}>R$ {product.price.toFixed(2).replace('.', ',')}</Text>
+          <Text style={styles.productName}>{product.nome}</Text>
+          <Text style={styles.productPrice}>R$ {product.preco.toFixed(2).replace('.', ',')}</Text>
 
           <Divider style={styles.divider} />
 
           <Text style={styles.descriptionTitle}>Descrição</Text>
-          <Text style={styles.description}>{product.description}</Text>
+          <Text style={styles.description}>{product.descricao}</Text>
 
           {/* Botão para encontrar lojas próximas com este produto */}
           <View style={styles.locationSection}>

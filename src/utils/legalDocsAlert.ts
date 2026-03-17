@@ -150,7 +150,7 @@ async function sendEmailAlert({
 /**
  * Função auxiliar para registrar logs no servidor
  */
-async function logToServer(data: Record<string, string | number | boolean>): Promise<void> {
+async function logToServer(data: Record<string, any>): Promise<void> {
   try {
     // Implementação depende do backend utilizado
     // Exemplo usando Firebase:

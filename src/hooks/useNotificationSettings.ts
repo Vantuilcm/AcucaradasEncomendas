@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { notificationSettingsServiceWithCache } from '../services/NotificationSettingsServiceWithCache';
 import { NotificationSettings } from '../types/NotificationSettings';
-import { secureLoggingService } from '../services/SecureLoggingService';
+import { loggingService } from '../services/LoggingService';
 
 /**
  * Interface para o retorno do hook useNotificationSettings
@@ -53,11 +53,11 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
       setIsLoading(true);
       setError(null);
 
-      let userSettings = await notificationSettingsServiceWithCache.getUserSettings(user.uid);
+      let userSettings = await notificationSettingsServiceWithCache.getUserSettings(user.id);
 
       // Se não existirem configurações, criar padrão
       if (!userSettings) {
-        userSettings = await notificationSettingsServiceWithCache.createDefaultSettings(user.uid);
+        userSettings = await notificationSettingsServiceWithCache.createDefaultSettings(user.id);
       }
 
       setSettings(userSettings);
@@ -65,7 +65,7 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
       const error =
         err instanceof Error ? err : new Error('Erro ao carregar configurações de notificação');
       setError(error);
-      loggingService.error('Erro ao carregar configurações de notificação', err);
+      loggingService.error('Erro ao carregar configurações de notificação', error);
       Alert.alert('Erro', 'Não foi possível carregar suas configurações de notificação');
     } finally {
       setIsLoading(false);
@@ -83,13 +83,13 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
         setIsLoading(true);
         setError(null);
 
-        await notificationSettingsServiceWithCache.updateSettings(user.uid, updates);
+        await notificationSettingsServiceWithCache.updateSettings(user.id, updates);
         await loadSettings(); // Recarregar configurações atualizadas
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Erro ao atualizar configurações de notificação');
         setError(error);
-        loggingService.error('Erro ao atualizar configurações de notificação', err);
+        loggingService.error('Erro ao atualizar configurações de notificação', error);
         Alert.alert('Erro', 'Não foi possível atualizar suas configurações de notificação');
       } finally {
         setIsLoading(false);
@@ -109,13 +109,13 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
         setIsLoading(true);
         setError(null);
 
-        await notificationSettingsServiceWithCache.toggleNotificationType(user.uid, type);
+        await notificationSettingsServiceWithCache.toggleNotificationType(user.id, type);
         await loadSettings(); // Recarregar configurações atualizadas
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Erro ao alternar tipo de notificação');
         setError(error);
-        loggingService.error('Erro ao alternar tipo de notificação', err);
+        loggingService.error('Erro ao alternar tipo de notificação', error);
         Alert.alert('Erro', 'Não foi possível alternar o tipo de notificação');
       } finally {
         setIsLoading(false);
@@ -135,12 +135,12 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
         setIsLoading(true);
         setError(null);
 
-        await notificationSettingsServiceWithCache.toggleQuietHours(user.uid, enabled);
+        await notificationSettingsServiceWithCache.toggleQuietHours(user.id, enabled);
         await loadSettings(); // Recarregar configurações atualizadas
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Erro ao alternar modo silencioso');
         setError(error);
-        loggingService.error('Erro ao alternar modo silencioso', err);
+        loggingService.error('Erro ao alternar modo silencioso', error);
         Alert.alert('Erro', 'Não foi possível alternar o modo silencioso');
       } finally {
         setIsLoading(false);
@@ -160,13 +160,13 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
         setIsLoading(true);
         setError(null);
 
-        await notificationSettingsServiceWithCache.updateQuietHoursTime(user.uid, start, end);
+        await notificationSettingsServiceWithCache.updateQuietHoursTime(user.id, start, end);
         await loadSettings(); // Recarregar configurações atualizadas
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Erro ao atualizar horário do modo silencioso');
         setError(error);
-        loggingService.error('Erro ao atualizar horário do modo silencioso', err);
+        loggingService.error('Erro ao atualizar horário do modo silencioso', error);
         Alert.alert('Erro', 'Não foi possível atualizar o horário do modo silencioso');
       } finally {
         setIsLoading(false);
@@ -186,13 +186,13 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
         setIsLoading(true);
         setError(null);
 
-        await notificationSettingsServiceWithCache.updateFrequency(user.uid, frequency);
+        await notificationSettingsServiceWithCache.updateFrequency(user.id, frequency);
         await loadSettings(); // Recarregar configurações atualizadas
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Erro ao atualizar frequência de notificações');
         setError(error);
-        loggingService.error('Erro ao atualizar frequência de notificações', err);
+        loggingService.error('Erro ao atualizar frequência de notificações', error);
         Alert.alert('Erro', 'Não foi possível atualizar a frequência de notificações');
       } finally {
         setIsLoading(false);
@@ -213,13 +213,13 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
       setError(null);
 
       // Limpar o cache para forçar uma nova consulta ao Firestore
-      await notificationSettingsServiceWithCache.clearCache(user.uid);
+      await notificationSettingsServiceWithCache.clearCache(user.id);
       await loadSettings();
     } catch (err) {
       const error =
         err instanceof Error ? err : new Error('Erro ao recarregar configurações de notificação');
       setError(error);
-      loggingService.error('Erro ao recarregar configurações de notificação', err);
+      loggingService.error('Erro ao recarregar configurações de notificação', error);
       Alert.alert('Erro', 'Não foi possível recarregar suas configurações de notificação');
     } finally {
       setIsLoading(false);

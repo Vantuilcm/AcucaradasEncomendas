@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, StatusBar, RefreshControl } from 'react-native';
-import { Text, Button } from 'react-native-paper';
+import { Text, Button, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { MainTabNavigationProp } from '../types/navigation';
@@ -19,13 +19,13 @@ export function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [productLoading, setProductLoading] = useState(true);
-  const { theme, isDark } = useAppTheme();
+  const { theme, isDark, toggleTheme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const loadProducts = async () => {
     try {
       setProductLoading(true);
-      const productService = new ProductService();
+      const productService = ProductService.getInstance();
       const products = await productService.getFeaturedProducts(10);
       setFeaturedProducts(products);
     } catch (error) {
@@ -52,7 +52,7 @@ export function HomeScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top']} testID="home-screen">
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
 
       <ScrollView
@@ -67,12 +67,22 @@ export function HomeScreen() {
         }
       >
         <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Açucaradas Encomendas
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Deliciosas sobremesas artesanais perto de você
-          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <View style={{ flex: 1 }}>
+              <Text variant="headlineMedium" style={styles.title}>
+                Açucaradas Encomendas
+              </Text>
+              <Text variant="bodyMedium" style={styles.subtitle}>
+                Deliciosas sobremesas artesanais perto de você
+              </Text>
+            </View>
+            <IconButton
+              icon={isDark ? 'weather-sunny' : 'weather-night'}
+              onPress={() => toggleTheme(!isDark)}
+              testID="theme-toggle"
+              iconColor={theme.colors.primary}
+            />
+          </View>
         </View>
 
         <View style={styles.locationSection}>

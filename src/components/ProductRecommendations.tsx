@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
-import { useTheme } from 'react-native-paper';
 import { Product } from '../types/Product';
 import { RecommendationService } from '../services/RecommendationService';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,7 +29,6 @@ export const ProductRecommendations = ({
   cardStyle = 'regular',
   containerStyle,
 }: ProductRecommendationsProps) => {
-  const theme = useTheme();
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +102,7 @@ export const ProductRecommendations = ({
       onPress={() => onProductPress && onProductPress(item)}
     >
       <EnhancedImage
-        source={{ uri: item.imagens[0] || 'https://via.placeholder.com/150' }}
+        source={{ uri: (item.imagens && item.imagens.length > 0) ? item.imagens[0] : 'https://via.placeholder.com/150' }}
         style={[styles.productImage, { height: imageHeight }]}
         placeholderType={PlaceholderType.SKELETON}
         lazy={true}

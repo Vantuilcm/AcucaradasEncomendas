@@ -1,14 +1,22 @@
 import { MobileNotificationService } from '../MobileNotificationService';
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+// import * as Device from 'expo-device'; // Removido pois o serviço usa o compat
 import Constants from 'expo-constants';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { loggingService } from '../LoggingService';
-import { NotificationSettingsService } from '../NotificationSettingsService';
+import { NotificationSettingsServiceWithCache } from '../NotificationSettingsServiceWithCache';
 
 // Mock das dependências
-jest.mock('expo-notifications');
-jest.mock('expo-device');
+// jest.mock('expo-notifications'); // Usar o mock do jest.setup.ts
+
+let mockIsDevice = true;
+
+// Mock do compat/expoDevice
+jest.mock('../../compat/expoDevice', () => ({
+  get isDevice() { return mockIsDevice; },
+  deviceName: 'test-device',
+}));
+
 jest.mock('expo-constants', () => ({
   __esModule: true,
   default: {
@@ -40,12 +48,16 @@ jest.mock('../LoggingService', () => ({
   },
 }));
 
-// Mock do NotificationSettingsService
+// Mock do NotificationSettingsServiceWithCache
 const mockShouldReceiveNotification = jest.fn();
-jest.mock('../NotificationSettingsService', () => ({
-  NotificationSettingsService: jest.fn().mockImplementation(() => ({
-    shouldReceiveNotification: mockShouldReceiveNotification,
-  })),
+const mockNotificationSettingsServiceInstance = {
+  shouldReceiveNotification: mockShouldReceiveNotification,
+};
+
+jest.mock('../NotificationSettingsServiceWithCache', () => ({
+  NotificationSettingsServiceWithCache: {
+    getInstance: jest.fn(() => mockNotificationSettingsServiceInstance),
+  },
 }));
 
 // Mock do fetch global
@@ -59,11 +71,15 @@ describe('MobileNotificationService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mobileNotificationService = new MobileNotificationService();
+    
+    // Reset singleton instance if possible or just get instance
+    // Forçar a recriação da instância para garantir que o mock de settingsService seja usado
+    (MobileNotificationService as any).instance = undefined;
+    mobileNotificationService = MobileNotificationService.getInstance();
 
     // Configuração padrão dos mocks
-    (Device as any).isDevice = true;
-    (Device as any).deviceName = deviceId;
+    // (Device as any).isDevice = true; // Removido pois é constante no mock do compat
+    // (Device as any).deviceName = deviceId;
 
     (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({
       status: 'granted',
@@ -111,14 +127,18 @@ describe('MobileNotificationService', () => {
     });
 
     it('deve retornar null quando não estiver em um dispositivo físico', async () => {
-      (Device as any).isDevice = false;
-
+      // Mock para este teste específico
+      mockIsDevice = false;
+      
       const result = await mobileNotificationService.registerForPushNotifications(userId);
 
       expect(result).toBeNull();
       expect(loggingService.info).toHaveBeenCalledWith(
         'Notificações push não funcionam em emulador/simulador'
       );
+      
+      // Restaurar mocks
+      mockIsDevice = true;
     });
 
     it('deve solicitar permissões quando não estiverem concedidas', async () => {

@@ -6,8 +6,6 @@ import {
   StyleSheet,
   Platform,
   Modal,
-  ActivityIndicator,
-  Alert,
   AccessibilityInfo,
 } from 'react-native';
 import Animated, {
@@ -59,7 +57,7 @@ export const VoiceSearch = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [recognizedText, setRecognizedText] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+  const [_availableLanguages, setAvailableLanguages] = useState<string[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<string>(language);
   const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
 
@@ -197,7 +195,7 @@ export const VoiceSearch = ({
     };
 
     const errorMessage =
-      errorMessages[e.error?.code?.toString()] || 'Erro no reconhecimento de voz. Tente novamente.';
+      (e.error && e.error.code && errorMessages[e.error.code.toString()]) || 'Erro no reconhecimento de voz. Tente novamente.';
 
     setError(errorMessage);
     setIsListening(false);

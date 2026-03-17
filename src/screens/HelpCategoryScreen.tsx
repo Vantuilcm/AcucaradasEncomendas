@@ -87,7 +87,7 @@ export function HelpCategoryScreen() {
               title={article.title}
               description={article.content.substring(0, 100) + '...'}
               left={props => <List.Icon {...props} icon="text-box" />}
-              onPress={() => navigation.navigate('HelpArticle', { articleId: article.id })}
+              onPress={() => (navigation as any).navigate('HelpArticle', { articleId: article.id })}
             />
           ))}
         </List.Section>

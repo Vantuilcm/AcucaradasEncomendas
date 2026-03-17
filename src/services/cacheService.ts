@@ -60,6 +60,7 @@ class CacheService {
   private async loadFromStorage(): Promise<void> {
     try {
       const keys = await AsyncStorage.getAllKeys();
+      if (!keys) return;
       const cacheKeys = keys.filter(key => key.startsWith(this.config.storageKey));
       
       if (cacheKeys.length > 0) {
@@ -226,6 +227,7 @@ class CacheService {
       this.memoryCache.clear();
       
       const keys = await AsyncStorage.getAllKeys();
+      if (!keys) return;
       const cacheKeys = keys.filter(key => key.startsWith(this.config.storageKey));
       
       if (cacheKeys.length > 0) {

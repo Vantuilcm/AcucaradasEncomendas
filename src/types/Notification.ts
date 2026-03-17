@@ -19,7 +19,7 @@ export interface Notification {
     orderId?: string;
     amount?: number;
     promotionId?: string;
-    [key: string]: string | number | boolean | null;
+    [key: string]: string | number | boolean | null | undefined;
   };
   priority: NotificationPriority;
   read: boolean;

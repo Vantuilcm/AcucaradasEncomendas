@@ -57,20 +57,20 @@ export const useAdvancedSearch = () => {
         setCurrentPage(pagina);
 
         // Verificar cache primeiro (simulação)
-        const cacheKey = `search_${termo}_${JSON.stringify(filtros)}_${pagina}`;
-        const cachedResult = null; // Implementar cache real se necessário
+        // const cacheKey = `search_${termo}_${JSON.stringify(filtros)}_${pagina}`;
+        const cachedResult: any = null; // Implementar cache real se necessário
 
         if (cachedResult) {
-          recordCacheHit();
+          recordCacheHit('search');
           setResults(cachedResult.produtos);
           setSuggestions(cachedResult.sugestoes);
           setTotalResults(cachedResult.total);
           setTotalPages(cachedResult.paginas);
-          recordSearchLatency(Date.now() - startTime);
+          recordSearchLatency('search', Date.now() - startTime);
           return;
         }
 
-        recordCacheMiss();
+        // recordCacheMiss('search');
 
         const resultado = await searchService.buscarProdutos(
           termo,
@@ -81,7 +81,7 @@ export const useAdvancedSearch = () => {
         );
 
         // Registrar latência da busca
-        recordSearchLatency(Date.now() - startTime);
+        recordSearchLatency('search', Date.now() - startTime);
 
         setResults(resultado.produtos);
         setSuggestions(resultado.sugestoes);

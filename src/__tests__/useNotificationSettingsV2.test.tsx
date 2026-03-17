@@ -1,14 +1,14 @@
 import { renderHook, act } from '@testing-library/react-hooks';
 import { useNotificationSettingsV2 } from '../hooks/useNotificationSettingsV2';
-import { NotificationSettingsServiceWithCacheV2 } from '../services/NotificationSettingsServiceWithCacheV2';
+import { notificationSettingsServiceWithCacheV2 } from '../services/NotificationSettingsServiceWithCacheV2';
 import { AuthContext } from '../contexts/AuthContext';
 import React from 'react';
-import { loggingService } from '../services/loggingService';
-import { ToastAndroid } from 'react-native';
+import { secureLoggingService } from '../services/SecureLoggingService';
+import { Alert } from 'react-native';
 
 // Mock do NotificationSettingsServiceWithCacheV2
-jest.mock('../services/NotificationSettingsServiceWithCacheV2', () => ({
-  getInstance: jest.fn().mockReturnValue({
+jest.mock('../services/NotificationSettingsServiceWithCacheV2', () => {
+  const mockService = {
     getUserSettings: jest.fn(),
     updateSettings: jest.fn().mockResolvedValue({}),
     toggleNotificationType: jest.fn().mockResolvedValue({}),
@@ -17,28 +17,46 @@ jest.mock('../services/NotificationSettingsServiceWithCacheV2', () => ({
     updateFrequency: jest.fn().mockResolvedValue({}),
     clearCache: jest.fn().mockResolvedValue({}),
     shouldReceiveNotification: jest.fn(),
-  }),
-}));
+    createDefaultSettings: jest.fn().mockResolvedValue({}),
+  };
+
+  return {
+    NotificationSettingsServiceWithCacheV2: {
+      getInstance: jest.fn().mockReturnValue(mockService),
+    },
+    notificationSettingsServiceWithCacheV2: mockService,
+  };
+});
 
 // Mock do AuthContext
 jest.mock('../contexts/AuthContext', () => ({
   AuthContext: {
     Consumer: ({ children }: any) => children({ user: { uid: 'testUserId' } }),
   },
+  useAuth: jest.fn().mockReturnValue({ user: { uid: 'testUserId' } }),
 }));
 
-// Mock do loggingService
-jest.mock('../services/loggingService', () => ({
-  logInfo: jest.fn(),
-  logError: jest.fn(),
-  logWarning: jest.fn(),
+// Mock do SecureLoggingService
+jest.mock('../services/SecureLoggingService', () => ({
+  secureLoggingService: {
+    error: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+  },
 }));
 
-// Mock do ToastAndroid
+// Mock do Alert
 jest.mock('react-native', () => ({
+  Alert: {
+    alert: jest.fn(),
+  },
   ToastAndroid: {
     show: jest.fn(),
     SHORT: 'short',
+  },
+  Platform: {
+    OS: 'android',
+    select: jest.fn((obj) => obj.android),
   },
 }));
 
@@ -49,22 +67,22 @@ describe('useNotificationSettingsV2', () => {
     // Limpar todos os mocks antes de cada teste
     jest.clearAllMocks();
 
-    // Obter a instância mockada do serviço
-    service = NotificationSettingsServiceWithCacheV2.getInstance();
+    // Usar a instância mockada diretamente
+    service = notificationSettingsServiceWithCacheV2;
 
     // Configurar mock do serviço para retornar configurações padrão
     service.getUserSettings.mockResolvedValue({
       userId: 'testUserId',
-      allNotificationsEnabled: true,
-      notificationTypes: {
+      enabled: true,
+      types: {
         news: true,
-        delivery: true,
-        payment: true,
+        deliveryUpdates: true,
+        paymentUpdates: true,
       },
       quietHours: {
         enabled: false,
-        startTime: '22:00',
-        endTime: '06:00',
+        start: '22:00',
+        end: '06:00',
       },
       frequency: 'immediate',
     });
@@ -90,8 +108,8 @@ describe('useNotificationSettingsV2', () => {
     // Verificar se as configurações foram carregadas corretamente
     expect(result.current.settings).toEqual(
       expect.objectContaining({
-        allNotificationsEnabled: true,
-        notificationTypes: expect.any(Object),
+        enabled: true,
+        types: expect.any(Object),
         quietHours: expect.any(Object),
         frequency: 'immediate',
       })
@@ -109,17 +127,17 @@ describe('useNotificationSettingsV2', () => {
 
     // Alternar todas as notificações para desativado
     await act(async () => {
-      await result.current.toggleAllNotifications();
+      await result.current.toggleAllNotifications(false);
     });
 
     // Verificar se o estado foi atualizado otimisticamente
-    expect(result.current.settings.allNotificationsEnabled).toBe(false);
+    expect(result.current.settings?.enabled).toBe(false);
 
     // Verificar se o serviço foi chamado corretamente
     expect(service.updateSettings).toHaveBeenCalledWith(
       'testUserId',
       expect.objectContaining({
-        allNotificationsEnabled: false,
+        enabled: false,
       })
     );
   });
@@ -136,13 +154,12 @@ describe('useNotificationSettingsV2', () => {
     });
 
     // Verificar se o estado foi atualizado otimisticamente
-    expect(result.current.settings.notificationTypes.news).toBe(false);
+    expect(result.current.settings?.types.news).toBe(false);
 
     // Verificar se o serviço foi chamado corretamente
     expect(service.toggleNotificationType).toHaveBeenCalledWith(
       'testUserId',
-      'news',
-      true // valor anterior
+      'news'
     );
   });
 
@@ -154,16 +171,16 @@ describe('useNotificationSettingsV2', () => {
 
     // Alternar modo silencioso para ativado
     await act(async () => {
-      await result.current.toggleQuietHours();
+      await result.current.toggleQuietHours(true);
     });
 
     // Verificar se o estado foi atualizado otimisticamente
-    expect(result.current.settings.quietHours.enabled).toBe(true);
+    expect(result.current.settings?.quietHours.enabled).toBe(true);
 
     // Verificar se o serviço foi chamado corretamente
     expect(service.toggleQuietHours).toHaveBeenCalledWith(
       'testUserId',
-      false // valor anterior
+      true
     );
   });
 
@@ -182,8 +199,8 @@ describe('useNotificationSettingsV2', () => {
     });
 
     // Verificar se o estado foi atualizado otimisticamente
-    expect(result.current.settings.quietHours.startTime).toBe(newStartTime);
-    expect(result.current.settings.quietHours.endTime).toBe(newEndTime);
+    expect(result.current.settings?.quietHours.start).toBe(newStartTime);
+    expect(result.current.settings?.quietHours.end).toBe(newEndTime);
 
     // Verificar se o serviço foi chamado corretamente
     expect(service.updateQuietHoursTime).toHaveBeenCalledWith(
@@ -207,7 +224,7 @@ describe('useNotificationSettingsV2', () => {
     });
 
     // Verificar se o estado foi atualizado otimisticamente
-    expect(result.current.settings.frequency).toBe(newFrequency);
+    expect(result.current.settings?.frequency).toBe(newFrequency);
 
     // Verificar se o serviço foi chamado corretamente
     expect(service.updateFrequency).toHaveBeenCalledWith('testUserId', newFrequency);
@@ -244,7 +261,7 @@ describe('useNotificationSettingsV2', () => {
     expect(result.current.error).toBeTruthy();
 
     // Verificar se o erro foi registrado
-    expect(loggingService.logError).toHaveBeenCalled();
+    expect(secureLoggingService.error).toHaveBeenCalled();
   });
 
   test('deve reverter para o estado anterior em caso de erro ao atualizar', async () => {
@@ -265,14 +282,16 @@ describe('useNotificationSettingsV2', () => {
     });
 
     // Verificar se o estado foi revertido para o valor inicial
-    expect(result.current.settings.notificationTypes.news).toBe(
-      initialSettings.notificationTypes.news
+    // Como o hook recarrega as configurações em caso de erro, e o mock getUserSettings retorna o valor original,
+    // o estado deve voltar ao original.
+    expect(result.current.settings?.types.news).toBe(
+      initialSettings.types?.news
     );
 
     // Verificar se o erro foi registrado
-    expect(loggingService.logError).toHaveBeenCalled();
+    expect(secureLoggingService.error).toHaveBeenCalled();
 
     // Verificar se uma mensagem de erro foi exibida
-    expect(ToastAndroid.show).toHaveBeenCalled();
+    expect(Alert.alert).toHaveBeenCalled();
   });
 });

@@ -32,8 +32,8 @@ const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
 export const DeliveryTracker = ({
-  orderId,
-  deliveryPersonId,
+  orderId: _orderId,
+  deliveryPersonId: _deliveryPersonId,
   deliveryAddress,
   storeAddress,
   onClose,
@@ -43,7 +43,7 @@ export const DeliveryTracker = ({
   const [error, setError] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [estimatedTime, setEstimatedTime] = useState<number | null>(null);
-  const [mapRegion, setMapRegion] = useState({
+  const [mapRegion] = useState({
     latitude: (deliveryAddress.latitude + storeAddress.latitude) / 2,
     longitude: (deliveryAddress.longitude + storeAddress.longitude) / 2,
     latitudeDelta: LATITUDE_DELTA,

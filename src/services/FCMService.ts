@@ -139,7 +139,7 @@ export class FCMService {
       if (userTokensDoc.exists()) {
         // Atualizar o documento existente
         await updateDoc(userTokensRef, {
-          tokens: [...(userTokensDoc.data().tokens || []), tokenData],
+          tokens: [...((userTokensDoc.data()?.tokens as any[]) || []), tokenData],
           updatedAt: new Date(),
         });
       } else {
@@ -172,14 +172,17 @@ export class FCMService {
 
       if (userTokensDoc.exists()) {
         const userData = userTokensDoc.data();
-        const tokens = userData.tokens || [];
+        if (!userData) return;
 
+        const tokens = userData.tokens || [];
         // Filtrar o token atual
-        const updatedTokens = tokens.filter((t: any) => t.token !== this.currentToken);
+        const updatedTokens = Array.isArray(tokens)
+          ? tokens.filter((t: any) => t.token !== this.currentToken)
+          : [];
 
         // Atualizar o documento
         await updateDoc(userTokensRef, {
-          tokens: updatedTokens,
+          tokens: updatedTokens as any,
           updatedAt: new Date(),
         });
       }

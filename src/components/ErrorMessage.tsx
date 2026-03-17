@@ -2,16 +2,18 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button, useTheme } from 'react-native-paper';
 
-interface ErrorMessageProps {
+export interface ErrorMessageProps {
   message: string;
   onRetry?: () => void;
-  retryText?: string;
+  retryLabel?: string;
+  actionLabel?: string;
 }
 
 export function ErrorMessage({
   message,
   onRetry,
-  retryText = 'Tentar Novamente',
+  retryLabel,
+  actionLabel,
 }: ErrorMessageProps) {
   const theme = useTheme();
 
@@ -26,7 +28,7 @@ export function ErrorMessage({
           onPress={onRetry}
           style={[styles.retryButton, { backgroundColor: theme.colors.error }]}
         >
-          {retryText}
+          {retryLabel || actionLabel || 'Tentar Novamente'}
         </Button>
       )}
     </View>

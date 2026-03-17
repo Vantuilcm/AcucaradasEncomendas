@@ -54,11 +54,11 @@ const ProfileSettingsScreen = () => {
   // Carregar dados do perfil
   useEffect(() => {
     const loadProfile = async () => {
-      if (!user || !user.id) return;
+      if (!user || !(user as any).uid) return;
 
       try {
         setLoading(true);
-        const profileWithReviews = await profileService.obterPerfilCompleto(user.id);
+        const profileWithReviews = await profileService.obterPerfilCompleto((user as any).uid);
 
         if (profileWithReviews) {
           setProfileData({
@@ -93,12 +93,12 @@ const ProfileSettingsScreen = () => {
 
   // Atualizar perfil básico
   const handleUpdateProfile = async () => {
-    if (!user || !user.id) return;
+    if (!user || !(user as any).uid) return;
 
     try {
       setLoading(true);
 
-      await profileService.atualizarPerfil(user.id, {
+      await profileService.atualizarPerfil((user as any).uid, {
         nome: profileData.nome,
         telefone: profileData.telefone,
       });
@@ -114,13 +114,13 @@ const ProfileSettingsScreen = () => {
 
   // Atualizar preferências
   const handleUpdatePreferences = async () => {
-    if (!user || !user.id) return;
+    if (!user || !(user as any).uid) return;
 
     try {
       setLoading(true);
 
-      await profileService.atualizarPreferencias(user.id, profileData.perfil.preferencias);
-      await profileService.atualizarNotificacoes(user.id, profileData.perfil.notificacoes);
+      await profileService.atualizarPreferencias((user as any).uid, profileData.perfil.preferencias);
+      await profileService.atualizarNotificacoes((user as any).uid, profileData.perfil.notificacoes);
 
       Alert.alert('Sucesso', 'Preferências atualizadas com sucesso!');
     } catch (error) {
@@ -150,11 +150,11 @@ const ProfileSettingsScreen = () => {
         quality: 0.8,
       });
 
-      if (!result.cancelled && result.assets && result.assets[0].uri) {
+      if (!result.canceled && result.assets && result.assets[0].uri) {
         setLoadingPhoto(true);
 
         try {
-          const photoUrl = await profileService.atualizarFotoPerfil(user!.id, result.assets[0].uri);
+          const photoUrl = await profileService.atualizarFotoPerfil((user as any).uid, result.assets[0].uri);
 
           setProfileData({
             ...profileData,
@@ -193,7 +193,7 @@ const ProfileSettingsScreen = () => {
       setLoadingPhoto(true);
 
       try {
-        await profileService.removerFotoPerfil(user!.id);
+        await profileService.removerFotoPerfil((user as any).uid);
 
         setProfileData({
           ...profileData,

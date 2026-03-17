@@ -1,7 +1,5 @@
 import * as ExpoNotifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
-import { app } from './firebase';
 
 // Notification types
 export enum NotificationType {
@@ -53,7 +51,7 @@ export const requestNotificationPermission = async () => {
       }
       // Usar o ID do manifesto como fallback
       else if (Constants.manifest?.id) {
-        tokenOptions.experienceId = Constants.manifest.id;
+        (tokenOptions as any).experienceId = Constants.manifest.id;
       }
       // Último recurso: usar o valor definido no app.json
       else {

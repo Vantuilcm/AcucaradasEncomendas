@@ -37,14 +37,13 @@ export const DynamicWatermark: React.FC<DynamicWatermarkProps> = ({
   userInfo,
   opacity = securityConfig.watermark?.opacity || 0.3,
   rotation = securityConfig.watermark?.rotation || -45,
-  updateInterval = securityConfig.watermark?.updateInterval || 30000,
+  updateInterval = 30000,
   containerStyle,
   textStyle,
   customTextGenerator,
-  enableLogging = securityConfig.watermark?.enableLogging || false,
+  enableLogging = false,
 }) => {
   const [watermarkText, setWatermarkText] = useState<string>('');
-  const [timestamp, setTimestamp] = useState<string>('');
 
   // Gerar texto da marca d'água
   const generateWatermarkText = () => {
@@ -57,7 +56,6 @@ export const DynamicWatermark: React.FC<DynamicWatermarkProps> = ({
       // Texto padrão com informações do usuário e timestamp
       const currentDate = new Date();
       const formattedDate = `${currentDate.toLocaleDateString()} ${currentDate.toLocaleTimeString()}`;
-      setTimestamp(formattedDate);
 
       // Texto personalizado ou padrão
       const baseText = text || securityConfig.watermark?.defaultText || 'CONFIDENCIAL';

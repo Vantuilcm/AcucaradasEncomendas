@@ -1,4 +1,4 @@
-import { Share, Platform } from 'react-native';
+import { Share } from 'react-native';
 import { addDoc, collection, doc, getDoc } from 'firebase/firestore';
 import { Product } from '../types/Product';
 import { User } from '../models/User';
@@ -59,7 +59,7 @@ export class SocialService {
     message?: string
   ): Promise<boolean> {
     try {
-      const defaultMessage = `Olá! ${currentUser.name} convidou você para conhecer a Açucaradas Encomendas. 
+      const defaultMessage = `Olá! ${currentUser.nome} convidou você para conhecer a Açucaradas Encomendas. 
       Visite nossa loja online e descubra os doces mais deliciosos da cidade!`;
 
       const emailContent = {

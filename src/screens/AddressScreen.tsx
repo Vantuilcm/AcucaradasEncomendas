@@ -39,11 +39,11 @@ export function AddressScreen() {
   };
 
   const handleAddAddress = () => {
-    navigation.navigate('AddressForm');
+    (navigation as any).navigate('AddressForm');
   };
 
   const handleEditAddress = (address: Address) => {
-    navigation.navigate('AddressForm', { address });
+    (navigation as any).navigate('AddressForm', { address });
   };
 
   const handleDeleteAddress = async (addressId: string) => {

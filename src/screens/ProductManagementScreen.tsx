@@ -1,10 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Image, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import {
   Text,
   Card,
   Button,
-  Divider,
   FAB,
   Searchbar,
   Chip,
@@ -374,7 +373,7 @@ export function ProductManagementScreen() {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => navigation.navigate('AddEditProduct')}
+        onPress={() => (navigation as any).navigate('AddEditProduct')}
         color={theme.colors.background}
       />
 

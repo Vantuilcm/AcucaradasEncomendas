@@ -35,7 +35,7 @@ interface SalesChartProps {
   showGrid?: boolean;
   showValues?: boolean;
   loading?: boolean;
-  error?: string;
+  error?: string | null;
   onRetry?: () => void;
   yAxisSuffix?: string;
   yAxisPrefix?: string;
@@ -150,7 +150,7 @@ export const SalesChart = ({
             withHorizontalLabels={showLabels}
             withVerticalLabels={showLabels}
             style={styles.chart}
-            withCustomBarColorFromData={customColors?.length > 1}
+            withCustomBarColorFromData={(customColors?.length ?? 0) > 1}
             flatColor={true}
             segments={5}
             showBarTops={true}

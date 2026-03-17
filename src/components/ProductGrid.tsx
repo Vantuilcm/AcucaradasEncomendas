@@ -11,22 +11,10 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Chip, Searchbar, Button, Badge } from 'react-native-paper';
+import { Chip, Searchbar, Badge, Button } from 'react-native-paper';
 import { useCart } from '../contexts/CartContext';
-import { ProductCategories } from '../types/Product';
+import { Product } from '../types/Product';
 import { Ionicons } from '@expo/vector-icons';
-
-interface Product {
-  id: string;
-  nome: string;
-  descricao: string;
-  preco: number;
-  categoria: string;
-  disponivel: boolean;
-  imagens: string[];
-  destacado?: boolean;
-  tagsEspeciais?: string[];
-}
 
 interface ProductGridProps {
   products: Product[];
@@ -137,7 +125,7 @@ export function ProductGrid({
         onPress={() =>
           onProductPress
             ? onProductPress(item)
-            : navigation.navigate('ProductDetails', { product: item })
+            : (navigation.navigate as any)('ProductDetails', { product: item })
         }
         activeOpacity={0.7}
       >

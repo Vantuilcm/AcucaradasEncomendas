@@ -1,14 +1,22 @@
-import { Product, ProductFilter, ProductStats, ProductTag } from '../types/Product';
+import { Product, ProductFilter, ProductStats } from '../types/Product';
 import { loggingService } from './LoggingService';
 import { db } from '../config/firebase';
 import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 export class ProductService {
+  private static instance: ProductService;
   private readonly collectionName = 'products';
 
-  constructor() {
+  private constructor() {
     // Inicialização do serviço
     loggingService.info('ProductService inicializado');
+  }
+
+  public static getInstance(): ProductService {
+    if (!ProductService.instance) {
+      ProductService.instance = new ProductService();
+    }
+    return ProductService.instance;
   }
 
   /**
@@ -548,4 +556,4 @@ export class ProductService {
   }
 }
 
-export const productService = new ProductService();
+export const productService = ProductService.getInstance();

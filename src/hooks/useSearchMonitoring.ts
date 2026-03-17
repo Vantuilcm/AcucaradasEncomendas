@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { searchMonitor, MetricType, AlertLevel } from '../monitoring/SearchMonitoring';
+import { searchMonitor, MetricType } from '../monitoring/SearchMonitoring';
 
 // Interfaces para o hook
 interface MonitoringHookState {
@@ -18,8 +18,9 @@ interface MonitoringHookState {
 
 interface MonitoringHookActions {
   recordMetric: (metric: MetricType, value: number, context?: Record<string, any>) => void;
-  recordSearchLatency: (latency: number, query: string) => void;
-  recordCacheHit: (hit: boolean) => void;
+  recordSearchLatency: (query: string, latency: number) => void;
+  recordCacheHit: (cacheType: string) => void;
+  recordCacheMiss: (cacheType: string) => void;
   recordZeroResults: (query: string, filters?: Record<string, any>) => void;
   acknowledgeAlert: (alertId: string) => boolean;
   refreshData: () => Promise<void>;
@@ -94,7 +95,7 @@ export const useSearchMonitoring = (
   );
 
   // Função para registrar latência de busca
-  const recordSearchLatency = useCallback((latency: number, query: string) => {
+  const recordSearchLatency = useCallback((query: string, latency: number) => {
     try {
       searchMonitor.recordMetric(MetricType.SEARCH_LATENCY, latency, { query });
       searchMonitor.recordSearchTrend(query, latency, true);
@@ -104,21 +105,36 @@ export const useSearchMonitoring = (
   }, []);
 
   // Função para registrar hit/miss do cache
-  const recordCacheHit = useCallback((hit: boolean) => {
+  const recordCacheHit = useCallback((cacheType: string) => {
     try {
-      if (hit) {
-        cacheHits.current++;
-      } else {
-        cacheMisses.current++;
-      }
+      // Registrar hit de cache baseado no tipo
+      searchMonitor.recordMetric(MetricType.CACHE_HIT_RATE, 1, { cacheType, hit: true });
+      cacheHits.current++;
 
       // Registrar taxa de acerto do cache a cada 10 operações
       const totalOperations = cacheHits.current + cacheMisses.current;
-      if (totalOperations % 10 === 0) {
+      if (totalOperations > 0 && totalOperations % 10 === 0) {
         searchMonitor.recordCacheHitRate(cacheHits.current, cacheMisses.current);
       }
     } catch (error) {
-      console.error('Erro ao registrar cache hit/miss:', error);
+      console.error('Erro ao registrar cache hit:', error);
+    }
+  }, []);
+
+  // Função para registrar miss do cache
+  const recordCacheMiss = useCallback((cacheType: string) => {
+    try {
+      // Registrar miss de cache baseado no tipo
+      searchMonitor.recordMetric(MetricType.CACHE_HIT_RATE, 0, { cacheType, hit: false });
+      cacheMisses.current++;
+
+      // Registrar taxa de acerto do cache a cada 10 operações
+      const totalOperations = cacheHits.current + cacheMisses.current;
+      if (totalOperations > 0 && totalOperations % 10 === 0) {
+        searchMonitor.recordCacheHitRate(cacheHits.current, cacheMisses.current);
+      }
+    } catch (error) {
+      console.error('Erro ao registrar cache miss:', error);
     }
   }, []);
 
@@ -190,6 +206,7 @@ export const useSearchMonitoring = (
     recordMetric,
     recordSearchLatency,
     recordCacheHit,
+    recordCacheMiss,
     recordZeroResults,
     acknowledgeAlert,
     refreshData,

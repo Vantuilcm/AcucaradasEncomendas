@@ -3,6 +3,15 @@ import { StripeController } from '../../controllers/StripeController';
 import { PaymentService } from '../../services/PaymentService';
 import Stripe from 'stripe';
 
+// Mock do PaymentService
+jest.mock('../../services/PaymentService', () => ({
+  PaymentService: {
+    getInstance: jest.fn().mockReturnValue({
+      savePayment: jest.fn(),
+    }),
+  },
+}));
+
 // Mock do Stripe
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
@@ -55,6 +64,9 @@ describe('StripeController', () => {
         },
       }));
 
+      // Recreate controller to pick up the new mock
+      controller = new StripeController();
+
       mockReq = {
         body: { amount: 100 },
         user: { id: 'user123' },
@@ -72,6 +84,9 @@ describe('StripeController', () => {
         },
       }));
 
+      // Recreate controller to pick up the new mock
+      controller = new StripeController();
+
       mockReq = {
         body: { amount: 100 },
         user: { id: 'user123' },
@@ -80,7 +95,7 @@ describe('StripeController', () => {
       await controller.createPaymentIntent(mockReq as Request, mockRes as Response);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Erro ao processar pagamento' });
+      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Erro ao processar pagamento', details: 'Stripe error' });
     });
   });
 
@@ -97,6 +112,9 @@ describe('StripeController', () => {
           confirm: jest.fn().mockResolvedValue(mockPaymentIntent),
         },
       }));
+
+      // Recreate controller to pick up the new mock
+      controller = new StripeController();
 
       mockReq = {
         body: { paymentIntentId: 'pi_123', paymentMethodId: 'pm_123' },
@@ -129,6 +147,9 @@ describe('StripeController', () => {
           confirm: jest.fn().mockResolvedValue(mockPaymentIntent),
         },
       }));
+
+      // Recreate controller to pick up the new mock
+      controller = new StripeController();
 
       mockReq = {
         body: { paymentIntentId: 'pi_123', paymentMethodId: 'pm_123' },
@@ -168,6 +189,9 @@ describe('StripeController', () => {
         },
       }));
 
+      // Recreate controller to pick up the new mock
+      controller = new StripeController();
+
       mockReq = {
         body: { amount: 100 },
         user: { id: 'user123' },
@@ -197,6 +221,9 @@ describe('StripeController', () => {
         },
       }));
 
+      // Recreate controller to pick up the new mock
+      controller = new StripeController();
+
       mockReq = {
         query: { customerId: 'cus_123' },
       };
@@ -219,6 +246,9 @@ describe('StripeController', () => {
           attach: jest.fn().mockResolvedValue(mockPaymentMethod),
         },
       }));
+
+      // Recreate controller to pick up the new mock
+      controller = new StripeController();
 
       mockReq = {
         body: { paymentMethodId: 'pm_123', customerId: 'cus_123' },
@@ -243,6 +273,9 @@ describe('StripeController', () => {
             .mockResolvedValueOnce(mockDeliveryTransfer),
         },
       }));
+
+      // Recreate controller to pick up the new mock
+      controller = new StripeController();
 
       mockReq = {
         body: {
@@ -271,6 +304,9 @@ describe('StripeController', () => {
           detach: jest.fn().mockResolvedValue({}),
         },
       }));
+
+      // Recreate controller to pick up the new mock
+      controller = new StripeController();
 
       mockReq = {
         params: { paymentMethodId: 'pm_123' },

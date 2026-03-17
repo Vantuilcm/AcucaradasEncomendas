@@ -76,7 +76,7 @@ export function RegisterScreen() {
         type: 'email'
       });
 
-      await register(sanitizedEmail, password, sanitizedName);
+      await register({ email: sanitizedEmail, nome: sanitizedName } as any, password);
       
       // Registrar registro bem-sucedido
       secureLoggingService.security('Registro de conta bem-sucedido', { 

@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Switch, List, Divider, useTheme, Button } from 'react-native-paper';
+import { StyleSheet, ScrollView } from 'react-native';
+import { Switch, List, Divider, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
@@ -44,7 +44,9 @@ export function NotificationSettingsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {error && <ErrorMessage message={error} onRetry={refreshSettings} />}
+        {error && (
+          <ErrorMessage message={(error as Error).message || 'Erro ao carregar configurações'} onRetry={refreshSettings} />
+        )}
 
         <List.Section>
           <List.Subheader>Configurações Gerais</List.Subheader>

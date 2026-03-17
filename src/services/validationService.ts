@@ -160,6 +160,59 @@ export class ValidationService {
     }
     return zipCode;
   }
+
+  validarCartao(cartao: {
+    numero: string;
+    expiracao: string;
+    cvv: string;
+    nome: string;
+  }): boolean {
+    if (!cartao || !cartao.numero || !cartao.expiracao || !cartao.cvv || !cartao.nome) {
+      return false;
+    }
+
+    // Validate Number (Luhn Algorithm simplified or just regex for now)
+    const numeroLimpo = cartao.numero.replace(/\D/g, '');
+    if (numeroLimpo.length < 13 || numeroLimpo.length > 19) {
+      return false;
+    }
+
+    // Validate Expiration (MM/YY)
+    const expRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+    if (!expRegex.test(cartao.expiracao)) {
+      return false;
+    }
+
+    // Check if expired
+    const [month, year] = cartao.expiracao.split('/').map(Number);
+    const now = new Date();
+    const currentYear = now.getFullYear() % 100; // Last 2 digits
+    const currentMonth = now.getMonth() + 1;
+
+    if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      return false;
+    }
+
+    // Validate CVV
+    const cvvRegex = /^\d{3,4}$/;
+    if (!cvvRegex.test(cartao.cvv)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  validarCliente(cliente: { nome?: string; email?: string; telefone?: string }): boolean {
+    if (!cliente) return false;
+    if (!cliente.nome) return false;
+    if (!cliente.email || !this.validateEmail(cliente.email)) return false;
+    if (!cliente.telefone || !this.validatePhone(cliente.telefone)) return false;
+    return true;
+  }
+
+  validatePasswordStrength(password: string): boolean {
+    return this.validatePassword(password).isValid;
+  }
 }
 
 export const validationService = ValidationService.getInstance();

@@ -40,6 +40,7 @@ export class PerformanceService {
   private cacheService: CacheService;
   private observer: any;
   private isMonitoring: boolean = false;
+  private memoryInterval: any = null;
 
   private constructor() {
     this.metrics = {
@@ -48,9 +49,9 @@ export class PerformanceService {
       renderTime: 0,
       memoryUsage: 0,
       deviceInfo: {
-        platform: Platform.OS,
-        model: Platform.OS === 'ios' ? 'iPhone' : 'Android',
-        osVersion: Platform.Version.toString(),
+        platform: Platform?.OS || 'unknown',
+        model: Platform?.OS === 'ios' ? 'iPhone' : 'Android',
+        osVersion: Platform?.Version ? Platform.Version.toString() : 'unknown',
       }
     };
     this.userInteractions = new Map();
@@ -62,7 +63,7 @@ export class PerformanceService {
     }
   }
 
-  static getInstance(): PerformanceService {
+  public static getInstance(): PerformanceService {
     if (!PerformanceService.instance) {
       PerformanceService.instance = new PerformanceService();
     }
@@ -83,7 +84,8 @@ export class PerformanceService {
       });
 
       this.observer.observe({ entryTypes: ['measure', 'resource', 'navigation'] });
-      this.isMonitoring = true;
+      // Não marcar como isMonitoring aqui para permitir que startMonitoring() configure outros monitores
+      // this.isMonitoring = true;
     } catch (error) {
       console.error('Error setting up performance observer:', error);
     }
@@ -149,7 +151,10 @@ export class PerformanceService {
    */
   private setupMemoryMonitoring(): void {
     // Verificar uso de memória periodicamente
-    setInterval(() => {
+    if (this.memoryInterval) {
+      clearInterval(this.memoryInterval);
+    }
+    this.memoryInterval = setInterval(() => {
       if (typeof performance !== 'undefined' && (performance as any).memory) {
         const memoryInfo = (performance as any).memory;
         const usedMemory = Number(memoryInfo?.usedJSHeapSize ?? 0);
@@ -397,6 +402,22 @@ export class PerformanceService {
     if (__DEV__) {
       console.warn(`Performance Issue [${issueType}]:`, data);
     }
+  }
+
+  /**
+   * Para o monitoramento de performance
+   */
+  stopMonitoring(): void {
+    if (this.memoryInterval) {
+      clearInterval(this.memoryInterval);
+      this.memoryInterval = null;
+    }
+    
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+    
+    this.isMonitoring = false;
   }
 
   /**

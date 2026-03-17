@@ -98,6 +98,7 @@ export default function CartScreen() {
 
               <Button
                 mode="contained"
+                testID="finalizar-compra-button"
                 style={styles.checkoutButton}
                 labelStyle={styles.checkoutButtonText}
                 icon="calendar-check"

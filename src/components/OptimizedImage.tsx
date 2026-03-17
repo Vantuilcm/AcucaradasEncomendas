@@ -2,6 +2,7 @@ import React, { memo, useState, useEffect } from 'react';
 import { Image, View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import * as FileSystem from 'expo-file-system';
+// @ts-ignore
 import { SHA1 } from 'crypto-js';
 
 interface OptimizedImageProps {
@@ -23,7 +24,7 @@ export const OptimizedImage = memo(
     style,
     placeholder,
     resizeMode = 'cover',
-    priority = 'normal',
+    priority: _priority = 'normal',
     cacheTimeout = DEFAULT_CACHE_TIMEOUT,
   }: OptimizedImageProps) => {
     const theme = useTheme();
@@ -73,16 +74,20 @@ export const OptimizedImage = memo(
             remoteUri,
             cacheFilePath,
             {},
-            downloadProgress => {
+            _downloadProgress => {
               // Opcionalmente, acompanhar o progresso do download
-              const progress =
-                downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+              // const progress =
+              //   downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
               // console.log(`Progress: ${progress * 100}%`);
             }
           );
 
-          const { uri } = await downloadResumable.downloadAsync();
-          setImageUri(`file://${uri}`);
+          const downloadResult = await downloadResumable.downloadAsync();
+          if (downloadResult) {
+            setImageUri(`file://${downloadResult.uri}`);
+          } else {
+            setImageUri(remoteUri);
+          }
           setLoading(false);
         } catch (e) {
           console.error('Erro ao processar o cache da imagem:', e);

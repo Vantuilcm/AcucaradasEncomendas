@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from '../compat/expoDevice';
 import Constants from 'expo-constants';
 import { db } from '../config/firebase';
-import { collection, doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { loggingService } from './LoggingService';
 import { NotificationType } from '../types/Notification';
 import { NotificationSettingsServiceWithCache } from './NotificationSettingsServiceWithCache';
@@ -101,7 +101,7 @@ export class MobileNotificationService {
       await this.saveToken(userId, token);
 
       return token;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao registrar para notificações push', error);
       throw error;
     }
@@ -118,10 +118,10 @@ export class MobileNotificationService {
       projectId = Constants.expoConfig.extra.eas.projectId;
     } else if (Constants.manifest?.extra?.eas?.projectId) {
       projectId = Constants.manifest.extra.eas.projectId;
-    } else if (Constants.expoConfig?.projectId) {
-      projectId = Constants.expoConfig.projectId;
-    } else if (Constants.manifest?.projectId) {
-      projectId = Constants.manifest.projectId;
+    } else if ((Constants.expoConfig as any)?.projectId) {
+      projectId = (Constants.expoConfig as any).projectId;
+    } else if ((Constants.manifest as any)?.projectId) {
+      projectId = (Constants.manifest as any).projectId;
     } else {
       // Valor fixo para desenvolvimento
       projectId = 'your-project-id';
@@ -153,7 +153,7 @@ export class MobileNotificationService {
 
       await setDoc(tokenRef, tokenData);
       loggingService.info(`Token de notificação registrado para usuário ${userId}`);
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao salvar token de notificação', error);
       throw error;
     }
@@ -168,7 +168,7 @@ export class MobileNotificationService {
       const tokenRef = doc(db, this.tokensCollection, token);
       await deleteDoc(tokenRef);
       loggingService.info(`Token de notificação removido: ${token}`);
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao remover token de notificação', error);
       throw error;
     }
@@ -188,12 +188,12 @@ export class MobileNotificationService {
       const tokenDoc = await getDoc(tokenRef);
 
       if (tokenDoc.exists()) {
-        const tokenData = tokenDoc.data() as NotificationToken;
+        const tokenData = tokenDoc.data() as unknown as NotificationToken;
         return tokenData.token;
       }
 
       return null;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao obter token de notificação', error);
       throw error;
     }
@@ -217,7 +217,7 @@ export class MobileNotificationService {
   ): Promise<boolean> {
     try {
       // Verifica se o usuário deve receber este tipo de notificação
-      const shouldReceive = await this.settingsService.shouldReceiveNotification(userId, type);
+      const shouldReceive = await this.settingsService.shouldReceiveNotification(userId, type as any);
 
       if (!shouldReceive) {
         loggingService.info(`Usuário ${userId} optou por não receber notificações do tipo ${type}`);
@@ -261,7 +261,7 @@ export class MobileNotificationService {
 
       loggingService.info(`Notificação push enviada para usuário ${userId}`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao enviar notificação push', error);
       throw error;
     }
@@ -294,7 +294,7 @@ export class MobileNotificationService {
 
       loggingService.info(`Notificação local agendada com ID ${identifier}`);
       return identifier;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao agendar notificação local', error);
       throw error;
     }
@@ -308,7 +308,7 @@ export class MobileNotificationService {
     try {
       await Notifications.cancelScheduledNotificationAsync(notificationId);
       loggingService.info(`Notificação local cancelada: ${notificationId}`);
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao cancelar notificação local', error);
       throw error;
     }
@@ -321,7 +321,7 @@ export class MobileNotificationService {
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
       loggingService.info('Todas as notificações locais foram canceladas');
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao cancelar todas as notificações locais', error);
       throw error;
     }

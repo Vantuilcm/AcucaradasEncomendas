@@ -42,7 +42,7 @@ export function OrderDetailsScreen() {
       setLoading(true);
       setError(null);
 
-      const orderService = new OrderService();
+      const orderService = OrderService.getInstance();
       const orderData = await orderService.getOrderById(orderId);
 
       if (!orderData) {

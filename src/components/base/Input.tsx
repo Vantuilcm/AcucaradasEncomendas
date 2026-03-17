@@ -28,7 +28,7 @@ export function Input({
   errorStyle,
   ...props
 }: InputProps) {
-  const theme = useAppTheme();
+  const { theme } = useAppTheme();
 
   return (
     <View style={[styles.container, containerStyle]}>

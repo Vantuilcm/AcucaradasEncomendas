@@ -245,7 +245,7 @@ export class DemandForecastService {
    */
   private applyHoltWinters(
     history: SalesHistoryPoint[],
-    trend: ProductTrend
+    _trend: ProductTrend
   ): {
     date: Date;
     expectedQuantity: number;
@@ -262,7 +262,7 @@ export class DemandForecastService {
     // Implementação simplificada do algoritmo Holt-Winters
     // Inicialização
     let level = history[0].quantity;
-    let trend = 0;
+    let trendValue = 0;
     let seasonalPeriod = 7; // Assumindo sazonalidade semanal
     let seasonal: number[] = [];
 
@@ -299,11 +299,11 @@ export class DemandForecastService {
         // Atualiza o nível, tendência e sazonalidade
         level =
           this.config.smoothingFactorAlpha * (observation / seasonal[seasonalIndex]) +
-          (1 - this.config.smoothingFactorAlpha) * (lastLevel + trend);
+          (1 - this.config.smoothingFactorAlpha) * (lastLevel + trendValue);
 
-        trend =
+        trendValue =
           this.config.smoothingFactorBeta * (level - lastLevel) +
-          (1 - this.config.smoothingFactorBeta) * trend;
+          (1 - this.config.smoothingFactorBeta) * trendValue;
 
         seasonal[seasonalIndex] =
           this.config.smoothingFactorGamma * (observation / level) +
@@ -320,7 +320,7 @@ export class DemandForecastService {
       const seasonalIndex = (history.length + i - 1) % seasonalPeriod;
 
       // Calcula a previsão base
-      let forecast = (level + i * trend) * seasonal[seasonalIndex];
+      let forecast = (level + i * trendValue) * seasonal[seasonalIndex];
 
       // Ajusta com fatores sazonais configurados
       const seasonalMultiplier = this.getSeasonalMultiplier(forecastDate, history[0].productId);
@@ -335,7 +335,7 @@ export class DemandForecastService {
         (1 -
           this.calculateConfidenceScore(history, {
             productId: history[0].productId,
-            trendCoefficient: trend,
+            trendCoefficient: trendValue,
             confidenceScore: 0.7, // Valor padrão
           })) *
         0.5;

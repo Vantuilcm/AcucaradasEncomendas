@@ -5,11 +5,13 @@ export class PerformanceOptimizer {
   static async clearImageCache() {
     if (Platform.OS === 'ios') {
       const cacheDir = FileSystem.cacheDirectory;
-      await FileSystem.deleteAsync(cacheDir, { idempotent: true });
+      if (cacheDir) {
+        await FileSystem.deleteAsync(cacheDir, { idempotent: true });
+      }
     }
   }
 
-  static enableImageLazyLoading(imageRef) {
+  static enableImageLazyLoading(imageRef: any) {
     return {
       ...imageRef,
       loading: 'lazy',

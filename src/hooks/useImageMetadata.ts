@@ -49,7 +49,7 @@ export function useImageMetadata(): [ImageMetadataState, ImageMetadataHandlers] 
         height: 0,
         type: imageUri.split('.').pop()?.toLowerCase() || 'unknown',
         size: info.size || 0,
-        creationTime: info.creationTime || Date.now(),
+        creationTime: (info as any).creationTime || Date.now(),
         modificationTime: info.modificationTime || Date.now(),
       };
 

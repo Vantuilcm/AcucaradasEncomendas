@@ -4,9 +4,9 @@ import {
   where,
   getDocs,
   addDoc,
-  updateDoc,
   deleteDoc,
   doc,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { PaymentMethod, CreditCard, PixPayment } from '../types/PaymentMethod';
@@ -23,7 +23,7 @@ export class PaymentMethodService {
       const querySnapshot = await getDocs(q);
       const paymentMethods: PaymentMethod[] = [];
 
-      querySnapshot.forEach(doc => {
+      querySnapshot.docs.forEach(doc => {
         paymentMethods.push({
           id: doc.id,
           ...doc.data(),
@@ -124,10 +124,10 @@ export class PaymentMethodService {
       );
 
       const querySnapshot = await getDocs(q);
-      const batch = db.batch();
+      const batch = writeBatch(db);
 
-      querySnapshot.forEach(doc => {
-        batch.update(doc.ref, { isDefault: false });
+      querySnapshot.docs.forEach((d: any) => {
+        batch.update(d.ref, { isDefault: false });
       });
 
       // Define o novo método de pagamento padrão

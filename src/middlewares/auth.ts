@@ -1,6 +1,6 @@
-import jwt from 'jsonwebtoken';
+import { admin } from '../config/firebaseAdmin';
 
-export const authMiddleware = (req: any, res: any, next: any) => {
+export const authMiddleware = async (req: any, res: any, next: any) => {
   const authHeader = req?.headers?.authorization;
   if (!authHeader) {
     return res.status(401).json({ error: 'Token não fornecido' });
@@ -12,14 +12,14 @@ export const authMiddleware = (req: any, res: any, next: any) => {
   }
 
   try {
-    const jwtSecret = process.env.JWT_SECRET || 'default_jwt_secret_for_development';
-    const payload = jwt.verify(token, jwtSecret) as any;
+    const decodedToken = await admin.auth().verifyIdToken(token);
     req.user = {
-      id: payload?.uid ?? payload?.id,
-      ...payload,
+      id: decodedToken.uid,
+      ...decodedToken,
     };
     return next();
   } catch (error) {
-    return res.status(401).json({ error: 'Token inválido' });
+    console.error('Erro na validação do token Firebase:', error);
+    return res.status(401).json({ error: 'Token inválido ou expirado' });
   }
 };

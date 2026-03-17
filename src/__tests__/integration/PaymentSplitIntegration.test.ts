@@ -1,8 +1,11 @@
 import { PaymentService } from '../../services/PaymentService';
 import { StripeService } from '../../services/StripeService';
 import { NotificationService } from '../../services/NotificationService';
-import { getDoc, updateDoc } from 'firebase/firestore';
+import { getDoc, updateDoc, doc } from 'firebase/firestore';
 import { loggingService } from '../../services/LoggingService';
+
+// Ensure we use the real PaymentService
+jest.unmock('../../services/PaymentService');
 
 // Mock das dependências
 jest.mock('../../config/firebase', () => ({
@@ -19,6 +22,21 @@ jest.mock('../../services/LoggingService', () => ({
     error: jest.fn(),
     warn: jest.fn(),
     debug: jest.fn(),
+  },
+}));
+
+jest.mock('../../services/api', () => ({
+  api: {
+    post: jest.fn(),
+    get: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    create: jest.fn().mockReturnThis(),
+    interceptors: {
+      request: { use: jest.fn(), eject: jest.fn() },
+      response: { use: jest.fn(), eject: jest.fn() },
+    },
+    defaults: { headers: { common: {} } },
   },
 }));
 
@@ -61,9 +79,18 @@ describe('Payment Split Integration Tests', () => {
     stripeService = StripeService.getInstance();
     notificationService = NotificationService.getInstance();
 
+    // Mock doc to return an object with path
+    (doc as any).mockImplementation((_db: any, collection: string, id: string) => ({
+      path: `${collection}/${id}`,
+      id: id,
+    }));
+
     // Mock do documento de pedido
     (getDoc as any).mockImplementation((docRef: any) => {
-      if (docRef.path.includes('orders')) {
+      // Verifica se docRef e path existem antes de acessar
+      const path = docRef?.path || '';
+      
+      if (path.includes('orders')) {
         return Promise.resolve({
           exists: () => true,
           data: () => ({
@@ -76,7 +103,7 @@ describe('Payment Split Integration Tests', () => {
           }),
           id: mockOrderId,
         });
-      } else if (docRef.path.includes('users')) {
+      } else if (path.includes('users')) {
         return Promise.resolve({
           exists: () => true,
           data: () => ({
@@ -86,7 +113,7 @@ describe('Payment Split Integration Tests', () => {
           }),
           id: mockUserId,
         });
-      } else if (docRef.path.includes('producers')) {
+      } else if (path.includes('producers')) {
         return Promise.resolve({
           exists: () => true,
           data: () => ({
@@ -95,7 +122,7 @@ describe('Payment Split Integration Tests', () => {
           }),
           id: mockProducerId,
         });
-      } else if (docRef.path.includes('delivery_drivers')) {
+      } else if (path.includes('delivery_drivers')) {
         return Promise.resolve({
           exists: () => true,
           data: () => ({
@@ -118,6 +145,8 @@ describe('Payment Split Integration Tests', () => {
       id: 'pi_123456',
       client_secret: 'pi_123456_secret_789',
     });
+
+    jest.spyOn(stripeService, 'createPaymentMethod').mockResolvedValue('pm_123456');
 
     jest.spyOn(stripeService, 'processPaymentWithSplit').mockResolvedValue({
       paymentIntentId: 'pi_123456',
@@ -203,9 +232,9 @@ describe('Payment Split Integration Tests', () => {
       // Verificar se o erro foi registrado
       expect(loggingService.error).toHaveBeenCalledWith(
         'Erro ao processar pagamento com divisão',
+        expect.any(Error),
         expect.objectContaining({
           orderId: mockOrderId,
-          error: expect.any(Error),
         })
       );
 
@@ -237,6 +266,7 @@ describe('Payment Split Integration Tests', () => {
       // Verificar que o erro foi registrado
       expect(loggingService.error).toHaveBeenCalledWith(
         'Pedido não encontrado',
+        undefined,
         expect.objectContaining({
           orderId: 'INVALID_ORDER',
         })
@@ -273,6 +303,7 @@ describe('Payment Split Integration Tests', () => {
       // Verificar que o erro foi registrado
       expect(loggingService.error).toHaveBeenCalledWith(
         'Produtor ou entregador não definido no pedido',
+        undefined,
         expect.objectContaining({
           orderId: mockOrderId,
         })

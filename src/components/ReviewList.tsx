@@ -10,19 +10,15 @@ import Animated, {
   useAnimatedStyle,
   withSequence,
   withTiming,
-  withSpring,
-  withDelay,
   Easing,
   ZoomIn,
   SlideInRight,
   StretchInX,
-  StretchInY,
-  RotateInDownLeft,
   FlipInEasyX,
 } from 'react-native-reanimated';
 import { StarRating } from './StarRating';
 import { Review } from '../types/Review';
-import { wp, hp, fontSize, spacing } from '../utils/responsive';
+import { wp, fontSize, spacing } from '../utils/responsive';
 
 interface ReviewListProps {
   reviews: Review[];
@@ -212,17 +208,17 @@ export const ReviewList: React.FC<ReviewListProps> = ({
       case 'staggered':
         return FadeInDown.delay(delay)
           .duration(400)
-          .easing(Easing.bezier(0.25, 0.1, 0.25, 1));
+          .easing(Easing.bezier(0.25, 0.1, 0.25, 1) as any);
       case 'zoom':
         return ZoomIn.delay(delay)
           .duration(500)
-          .easing(Easing.bezier(0.16, 1, 0.3, 1));
+          .easing(Easing.bezier(0.16, 1, 0.3, 1) as any);
       case 'flip':
         return FlipInEasyX.delay(delay).duration(600);
       default:
         return FadeInDown.delay(delay)
           .duration(400)
-          .easing(Easing.bezier(0.25, 0.1, 0.25, 1));
+          .easing(Easing.bezier(0.25, 0.1, 0.25, 1) as any);
     }
   };
 
@@ -255,7 +251,6 @@ export const ReviewList: React.FC<ReviewListProps> = ({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         removeClippedSubviews={false}
-        itemLayoutAnimation={Layout.springify().damping(14).stiffness(100)}
       />
     </Animated.View>
   );

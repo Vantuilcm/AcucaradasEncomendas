@@ -9,7 +9,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import Svg, { Polygon } from 'react-native-svg';
-import { wp, fontSize, spacing } from '../utils/responsive';
+import { wp, spacing } from '../utils/responsive';
 
 interface StarRatingProps {
   rating: number;

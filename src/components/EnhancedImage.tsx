@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import * as FileSystem from 'expo-file-system';
+// @ts-ignore
 import { SHA1 } from 'crypto-js';
 
 // Tipos de placeholder

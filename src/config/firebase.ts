@@ -1,4 +1,5 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
+// @ts-ignore
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
@@ -63,7 +64,7 @@ try {
     // No ambiente web, verificamos primeiro se o FCM é suportado
     const { getMessaging, isSupported } = require('firebase/messaging');
     isSupported()
-      .then(supported => {
+      .then((supported: boolean) => {
         if (supported) {
           messaging = getMessaging(app);
           console.log('Firebase Cloud Messaging inicializado no navegador');
@@ -71,7 +72,7 @@ try {
           console.log('Firebase Cloud Messaging não é suportado neste navegador');
         }
       })
-      .catch(error => {
+      .catch((error: any) => {
         console.error('Erro ao verificar suporte para FCM no navegador:', error);
       });
   } else if (Platform.OS === 'ios') {
@@ -141,11 +142,11 @@ try {
   // Mock simples para auth e db quando Firebase falha
   auth = {
     currentUser: null,
-    onAuthStateChanged: callback => callback(null),
+    onAuthStateChanged: (callback: any) => callback(null),
     signInWithEmailAndPassword: async () => ({ user: { uid: 'mock-uid' } }),
     createUserWithEmailAndPassword: async () => ({ user: { uid: 'mock-uid' } }),
     signOut: async () => {},
-  };
+  } as any;
 
   db = {
     collection: () => ({
@@ -164,7 +165,7 @@ try {
       set: async () => {},
       update: async () => {},
     }),
-  };
+  } as any;
 }
 
 // Exportar as variáveis após a inicialização

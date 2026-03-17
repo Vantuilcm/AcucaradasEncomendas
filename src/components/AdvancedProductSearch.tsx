@@ -4,13 +4,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
   ActivityIndicator,
-  RefreshControl,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Chip, Searchbar, Button, Badge, Divider } from 'react-native-paper';
+import { Chip, Searchbar, Button, Divider } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useAdvancedSearch } from '../hooks/useAdvancedSearch';
 import { Product, ProductFilter } from '../types/Product';
@@ -35,7 +32,6 @@ export function AdvancedProductSearch({
   onProductPress,
   emptyMessage = 'Nenhum produto encontrado',
 }: AdvancedProductSearchProps) {
-  const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState(initialFilter.busca || '');
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
     initialFilter.categoria
@@ -59,7 +55,6 @@ export function AdvancedProductSearch({
     currentPage,
     searchStats,
     searchProducts,
-    goToPage,
     isAdvancedSearchAvailable,
   } = useAdvancedSearch();
 
@@ -328,7 +323,7 @@ export function AdvancedProductSearch({
           <ProductGrid
             products={results}
             loading={loading}
-            error={error}
+            error={error || undefined}
             onRefresh={handleSearch}
             showSearch={false}
             showCategories={false}

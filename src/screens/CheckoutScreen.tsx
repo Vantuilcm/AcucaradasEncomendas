@@ -30,7 +30,7 @@ export default function CheckoutScreen() {
   const { cart, cartTotal, clearCart } = useCart();
   const { user } = useAuth();
   const validationService = ValidationService.getInstance();
-  const orderService = new OrderService();
+  const orderService = OrderService.getInstance();
   const paymentService = PaymentService.getInstance();
 
   const [address, setAddress] = useState({

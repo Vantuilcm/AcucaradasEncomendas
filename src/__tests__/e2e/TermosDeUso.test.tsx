@@ -1,7 +1,33 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { TermsOfUseScreen } from '../../screens/TermsOfUseScreen';
 import { useNavigation } from '@react-navigation/native';
+
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: jest.fn(),
+}));
+
+jest.mock('react-native-paper', () => {
+  const React = require('react');
+  const { View, Text } = require('react-native');
+  return {
+    Text: (props: any) => <Text {...props} />,
+    List: {
+      Section: (props: any) => <View {...props} />,
+      Subheader: (props: any) => <Text {...props} />,
+      Item: (props: any) => (
+        <View {...props} testID={props.testID}>
+          <Text>{props.title}</Text>
+          <Text>{props.description}</Text>
+        </View>
+      ),
+      Icon: (props: any) => <View {...props} />,
+    },
+    Divider: () => <View />,
+    useTheme: () => ({ colors: { primary: 'blue' } }),
+  };
+});
 
 describe('Testes E2E - Termos de Uso', () => {
   const mockNavigate = jest.fn();
@@ -109,6 +135,11 @@ describe('Testes E2E - Termos de Uso', () => {
     const container = getByTestId('terms-scroll-view');
 
     expect(container.props.style).toHaveProperty('flex', 1);
-    expect(getByText('Política de Uso').props.style).toHaveProperty('textAlign', 'center');
+    
+    // Check for textAlign: 'center' in style array or object
+    const titleStyle = getByText('Política de Uso').props.style;
+    const flattenedStyle = StyleSheet.flatten(titleStyle);
+      
+    expect(flattenedStyle).toHaveProperty('textAlign', 'center');
   });
 });

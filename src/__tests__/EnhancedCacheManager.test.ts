@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { EnhancedCacheManager } from '../utils/EnhancedCacheManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -11,31 +12,26 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 // Mock do loggingService
-jest.mock('../services/loggingService', () => ({
-  logInfo: jest.fn(),
-  logError: jest.fn(),
-  logWarning: jest.fn(),
+jest.mock('../services/LoggingService', () => ({
+  loggingService: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+  },
 }));
 
 describe('EnhancedCacheManager', () => {
-  let cacheManager: EnhancedCacheManager;
-
   beforeEach(() => {
     // Limpar todos os mocks antes de cada teste
     jest.clearAllMocks();
 
-    // Criar uma nova instância do cache manager
-    cacheManager = EnhancedCacheManager.getInstance();
-
     // Limpar o cache para garantir testes isolados
-    cacheManager.clearAll();
+    EnhancedCacheManager.clearAll();
   });
 
-  test('deve ser uma instância singleton', () => {
-    const instance1 = EnhancedCacheManager.getInstance();
-    const instance2 = EnhancedCacheManager.getInstance();
-
-    expect(instance1).toBe(instance2);
+  test('deve ter métodos estáticos funcionais', () => {
+    expect(typeof EnhancedCacheManager.setData).toBe('function');
+    expect(typeof EnhancedCacheManager.getData).toBe('function');
   });
 
   test('deve armazenar e recuperar dados do cache', async () => {
@@ -43,10 +39,10 @@ describe('EnhancedCacheManager', () => {
     const data = { id: 1, name: 'Test Data' };
 
     // Configurar mock do AsyncStorage.getItem para retornar null (não encontrado)
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+    (AsyncStorage.getItem as jest.Mock<any>).mockResolvedValue(null);
 
     // Armazenar dados no cache
-    await cacheManager.setData(key, data);
+    await EnhancedCacheManager.setData(key, data);
 
     // Verificar se os dados foram armazenados no AsyncStorage
     expect(AsyncStorage.setItem).toHaveBeenCalledWith(
@@ -55,7 +51,7 @@ describe('EnhancedCacheManager', () => {
     );
 
     // Recuperar dados do cache
-    const cachedData = await cacheManager.getData(key);
+    const cachedData = await EnhancedCacheManager.getData(key);
 
     // Verificar se os dados recuperados são iguais aos armazenados
     expect(cachedData).toEqual(data);
@@ -69,13 +65,13 @@ describe('EnhancedCacheManager', () => {
     const storedData = {
       data,
       timestamp: Date.now(),
-      expiresIn: null,
+      expirationMinutes: 60,
     };
 
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(storedData));
+    (AsyncStorage.getItem as jest.Mock<any>).mockResolvedValue(JSON.stringify(storedData));
 
     // Recuperar dados (deve vir do AsyncStorage)
-    const cachedData = await cacheManager.getData(key);
+    const cachedData = await EnhancedCacheManager.getData(key);
 
     // Verificar se os dados recuperados são iguais aos armazenados
     expect(cachedData).toEqual(data);
@@ -89,16 +85,16 @@ describe('EnhancedCacheManager', () => {
     const data = { id: 1, name: 'Test Data' };
 
     // Armazenar dados com expiração de 1 minuto
-    await cacheManager.setData(key, data, 1);
+    await EnhancedCacheManager.setData(key, data, 1);
 
     // Avançar o tempo em 2 minutos
     jest.advanceTimersByTime(2 * 60 * 1000);
 
     // Configurar mock do AsyncStorage.getItem para retornar null
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+    (AsyncStorage.getItem as jest.Mock<any>).mockResolvedValue(null);
 
     // Recuperar dados (deve retornar null porque expirou)
-    const cachedData = await cacheManager.getData(key);
+    const cachedData = await EnhancedCacheManager.getData(key);
 
     // Verificar se retornou null
     expect(cachedData).toBeNull();
@@ -111,67 +107,67 @@ describe('EnhancedCacheManager', () => {
     const data = { id: 1, name: 'Test Data' };
 
     // Armazenar dados no cache
-    await cacheManager.setData(key, data);
+    await EnhancedCacheManager.setData(key, data);
 
     // Remover dados do cache
-    await cacheManager.removeData(key);
+    await EnhancedCacheManager.removeData(key);
 
     // Verificar se os dados foram removidos do AsyncStorage
     expect(AsyncStorage.removeItem).toHaveBeenCalledWith(expect.stringContaining(key));
 
     // Configurar mock do AsyncStorage.getItem para retornar null
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+    (AsyncStorage.getItem as jest.Mock<any>).mockResolvedValue(null);
 
     // Tentar recuperar dados (deve retornar null)
-    const cachedData = await cacheManager.getData(key);
+    const cachedData = await EnhancedCacheManager.getData(key);
     expect(cachedData).toBeNull();
   });
 
   test('deve limpar todo o cache', async () => {
     // Configurar mock do AsyncStorage.getAllKeys para retornar algumas chaves
-    const keys = ['cache:key1', 'cache:key2', 'other:key'];
-    (AsyncStorage.getAllKeys as jest.Mock).mockResolvedValue(keys);
+    const keys = ['cache_key1', 'cache_key2', 'other_key'];
+    (AsyncStorage.getAllKeys as jest.Mock<any>).mockResolvedValue(keys);
 
     // Limpar todo o cache
-    await cacheManager.clearAll();
+    await EnhancedCacheManager.clearAll();
 
     // Verificar se multiRemove foi chamado com as chaves de cache corretas
-    expect(AsyncStorage.multiRemove).toHaveBeenCalledWith(['cache:key1', 'cache:key2']);
+    expect(AsyncStorage.multiRemove).toHaveBeenCalledWith(['cache_key1', 'cache_key2']);
   });
 
   test('deve remover itens expirados durante a limpeza automática', async () => {
     jest.useFakeTimers();
 
     // Configurar mock do AsyncStorage.getAllKeys para retornar algumas chaves
-    const keys = ['cache:key1', 'cache:key2'];
-    (AsyncStorage.getAllKeys as jest.Mock).mockResolvedValue(keys);
+    const keys = ['cache_key1', 'cache_key2'];
+    (AsyncStorage.getAllKeys as jest.Mock<any>).mockResolvedValue(keys);
 
     // Configurar mock do AsyncStorage.getItem para retornar dados expirados para key1
     // e dados válidos para key2
     const expiredData = {
       data: { id: 1 },
       timestamp: Date.now() - 2 * 60 * 60 * 1000, // 2 horas atrás
-      expiresIn: 60, // 1 minuto
+      expirationMinutes: 60, // 1 hora
     };
 
     const validData = {
       data: { id: 2 },
       timestamp: Date.now(),
-      expiresIn: 60, // 1 minuto
+      expirationMinutes: 60, // 1 hora
     };
 
-    (AsyncStorage.getItem as jest.Mock).mockImplementation(key => {
-      if (key === 'cache:key1') return Promise.resolve(JSON.stringify(expiredData));
-      if (key === 'cache:key2') return Promise.resolve(JSON.stringify(validData));
+    (AsyncStorage.getItem as jest.Mock<any>).mockImplementation((key: any) => {
+      if (key === 'cache_key1') return Promise.resolve(JSON.stringify(expiredData));
+      if (key === 'cache_key2') return Promise.resolve(JSON.stringify(validData));
       return Promise.resolve(null);
     });
 
     // Executar limpeza de itens expirados
-    await cacheManager.purgeExpiredItems();
+    await EnhancedCacheManager.purgeExpiredItems();
 
     // Verificar se removeItem foi chamado apenas para a chave expirada
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('cache:key1');
-    expect(AsyncStorage.removeItem).not.toHaveBeenCalledWith('cache:key2');
+    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('cache_key1');
+    expect(AsyncStorage.removeItem).not.toHaveBeenCalledWith('cache_key2');
 
     jest.useRealTimers();
   });

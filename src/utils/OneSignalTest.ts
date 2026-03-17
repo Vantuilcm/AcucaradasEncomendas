@@ -1,4 +1,4 @@
-import OneSignal from 'onesignal-expo-plugin/build/OneSignal';
+import { OneSignal } from 'react-native-onesignal';
 import { loggingService } from '../services/LoggingService';
 
 /**
@@ -39,7 +39,7 @@ export class OneSignalTest {
    */
   private static async checkInitialization(): Promise<void> {
     try {
-      const deviceState = await OneSignal.getDeviceState();
+      const deviceState = await OneSignal.User.getOnesignalId();
       if (deviceState) {
         loggingService.info('✅ OneSignal: Inicializado corretamente');
       } else {
@@ -55,29 +55,32 @@ export class OneSignalTest {
    */
   private static async checkDeviceState(): Promise<void> {
     try {
-      const deviceState = await OneSignal.getDeviceState();
+      const userId = await OneSignal.User.getOnesignalId();
+      const pushSubscription = OneSignal.User.pushSubscription;
+      const pushToken = pushSubscription.getPushSubscriptionToken();
+      const isSubscribed = pushSubscription.getOptedIn();
+      const hasNotificationPermission = await OneSignal.Notifications.getPermissionAsync();
+
       loggingService.info('📱 OneSignal: Estado do dispositivo', {
-        userId: deviceState?.userId,
-        pushToken: deviceState?.pushToken,
-        emailUserId: deviceState?.emailUserId,
-        isSubscribed: deviceState?.isSubscribed,
-        isPushDisabled: deviceState?.isPushDisabled,
-        hasNotificationPermission: deviceState?.hasNotificationPermission
+        userId: userId,
+        pushToken: pushToken,
+        isSubscribed: isSubscribed,
+        hasNotificationPermission: hasNotificationPermission
       });
 
-      if (!deviceState?.userId) {
+      if (!userId) {
         loggingService.warn('⚠️ OneSignal: Usuário não possui ID - pode não estar inscrito');
       }
 
-      if (!deviceState?.pushToken) {
+      if (!pushToken) {
         loggingService.warn('⚠️ OneSignal: Dispositivo não possui push token');
       }
 
-      if (!deviceState?.isSubscribed) {
+      if (!isSubscribed) {
         loggingService.warn('⚠️ OneSignal: Usuário não está inscrito para notificações');
       }
 
-      if (!deviceState?.hasNotificationPermission) {
+      if (!hasNotificationPermission) {
         loggingService.warn('⚠️ OneSignal: Usuário não concedeu permissão para notificações');
       }
     } catch (error) {
@@ -90,16 +93,16 @@ export class OneSignalTest {
    */
   private static async checkPermissions(): Promise<void> {
     try {
-      const permissionState = await OneSignal.getDeviceState();
+      const hasNotificationPermission = await OneSignal.Notifications.getPermissionAsync();
       
-      if (permissionState?.hasNotificationPermission) {
+      if (hasNotificationPermission) {
         loggingService.info('✅ OneSignal: Permissões concedidas');
       } else {
         loggingService.warn('⚠️ OneSignal: Permissões não concedidas');
         
         // Tentar solicitar permissão novamente
         loggingService.info('🔄 OneSignal: Solicitando permissões...');
-        const response = await OneSignal.promptForPushNotificationsWithUserResponse();
+        const response = await OneSignal.Notifications.requestPermission(true);
         loggingService.info('📝 OneSignal: Resposta da permissão', { response });
       }
     } catch (error) {
@@ -112,8 +115,7 @@ export class OneSignalTest {
    */
   private static async checkUserId(): Promise<void> {
     try {
-      const deviceState = await OneSignal.getDeviceState();
-      const userId = deviceState?.userId;
+      const userId = await OneSignal.User.getOnesignalId();
       
       if (userId) {
         loggingService.info('✅ OneSignal: ID do usuário encontrado', { userId });
@@ -139,13 +141,13 @@ export class OneSignalTest {
         test_timestamp: new Date().toISOString()
       };
 
-      await OneSignal.sendTags(testTags);
+      OneSignal.User.addTags(testTags);
       loggingService.info('✅ OneSignal: Tags de teste definidas', { testTags });
 
       // Verificar tags após um pequeno delay
       setTimeout(async () => {
         try {
-          const tags = await OneSignal.getTags();
+          const tags = OneSignal.User.getTags();
           loggingService.info('📋 OneSignal: Tags atuais', { tags });
         } catch (error) {
           loggingService.error('❌ OneSignal: Erro ao obter tags', { error });
@@ -164,16 +166,20 @@ export class OneSignalTest {
       loggingService.info('🔄 OneSignal: Forçando nova inscrição...');
       
       // Solicitar permissão
-      const response = await OneSignal.promptForPushNotificationsWithUserResponse();
+      const response = await OneSignal.Notifications.requestPermission(true);
       loggingService.info('📝 OneSignal: Resposta da permissão', { response });
       
       // Aguardar um pouco e verificar estado
       setTimeout(async () => {
-        const deviceState = await OneSignal.getDeviceState();
+        const userId = await OneSignal.User.getOnesignalId();
+        const pushSubscription = OneSignal.User.pushSubscription;
+        const isSubscribed = pushSubscription.getOptedIn();
+        const hasNotificationPermission = await OneSignal.Notifications.getPermissionAsync();
+
         loggingService.info('📱 OneSignal: Estado após forçar inscrição', {
-          userId: deviceState?.userId,
-          isSubscribed: deviceState?.isSubscribed,
-          hasNotificationPermission: deviceState?.hasNotificationPermission
+          userId: userId,
+          isSubscribed: isSubscribed,
+          hasNotificationPermission: hasNotificationPermission
         });
       }, 3000);
     } catch (error) {

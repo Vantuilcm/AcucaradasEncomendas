@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Searchbar, Card, List, Divider, useTheme, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -69,7 +69,7 @@ export function HelpCenterScreen() {
     <Card
       key={category.id}
       style={styles.card}
-      onPress={() => navigation.navigate('HelpCategory', { categoryId: category.id })}
+      onPress={() => (navigation as any).navigate('HelpCategory', { categoryId: category.id })}
     >
       <Card.Content style={styles.cardContent}>
         <IconButton
@@ -94,7 +94,7 @@ export function HelpCenterScreen() {
       title={article.title}
       description={article.category.name}
       left={props => <List.Icon {...props} icon="text-box" />}
-      onPress={() => navigation.navigate('HelpArticle', { articleId: article.id })}
+      onPress={() => (navigation as any).navigate('HelpArticle', { articleId: article.id })}
     />
   );
 
@@ -128,7 +128,7 @@ export function HelpCenterScreen() {
                   <Card
                     key={category.id}
                     style={styles.card}
-                    onPress={() => navigation.navigate('HelpCategory', { categoryId: category.id })}
+                    onPress={() => (navigation as any).navigate('HelpCategory', { categoryId: category.id })}
                   >
                     <Card.Content style={styles.cardContent}>
                       <IconButton

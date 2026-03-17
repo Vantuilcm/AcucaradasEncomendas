@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
-import { DeviceSecurityService } from './DeviceSecurityService';
+// import { DeviceSecurityService } from './DeviceSecurityService'; // Removido para evitar ciclo de dependência
 
 // Tipos de logs
 export enum LogLevel {
@@ -323,6 +323,9 @@ class SecureLoggingService {
     // Implementação depende da infraestrutura de backend
     // Aqui usamos o Sentry como exemplo, mas poderia ser qualquer serviço
     try {
+      // Lazy import para evitar ciclo de dependência
+      const { DeviceSecurityService } = require('./DeviceSecurityService');
+
       // Verificar se o dispositivo está comprometido antes de enviar dados sensíveis
       const isCompromised = await DeviceSecurityService.isDeviceCompromised();
       if (isCompromised) {
@@ -407,6 +410,9 @@ class SecureLoggingService {
    */
   public async exportLogs(): Promise<string | null> {
     try {
+      // Lazy import para evitar ciclo de dependência
+      const { DeviceSecurityService } = require('./DeviceSecurityService');
+
       // Verificar se o dispositivo está comprometido
       const isCompromised = await DeviceSecurityService.isDeviceCompromised();
       if (isCompromised) {

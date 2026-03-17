@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { IconButton, Text, useTheme, Badge } from 'react-native-paper';
+import { IconButton, Text, useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { Product } from '../types/Product';
 import { SocialService } from '../services/SocialService';

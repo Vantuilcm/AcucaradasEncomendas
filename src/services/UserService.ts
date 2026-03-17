@@ -5,9 +5,8 @@
 
 import { loggingService } from './LoggingService';
 import { User } from '../models/User';
-import { getAuth } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { auth, db } from '../config/firebase';
 
 // Interface para informações básicas do usuário
 export interface UserInfo {
@@ -27,7 +26,6 @@ export const userInfo = (): UserInfo | null => {
 // Método seguro para obter informações do usuário (compatível com App Store)
 export const getUserInfo = (): UserInfo | null => {
   try {
-    const auth = getAuth();
     const currentUser = auth.currentUser;
     
     if (!currentUser) {
@@ -56,7 +54,7 @@ export const getUserDetails = async (userId: string): Promise<User | null> => {
       return null;
     }
     
-    const userData = userDoc.data() as Omit<User, 'id'>;
+    const userData = userDoc.data() as any as Omit<User, 'id'>;
     
     return {
       id: userId,

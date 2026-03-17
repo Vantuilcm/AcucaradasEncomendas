@@ -20,12 +20,12 @@ export const StoreLocationButton: React.FC<StoreLocationButtonProps> = ({
   const { currentAddress, isLoadingLocation, nearbyStores } = useLocation();
 
   const handlePress = () => {
-    navigation.navigate(
-      'StoreList' as never,
+    (navigation.navigate as any)(
+      'StoreList',
       {
         productId,
         title: productId ? 'Lojas com este produto' : 'Lojas próximas',
-      } as never
+      }
     );
   };
 

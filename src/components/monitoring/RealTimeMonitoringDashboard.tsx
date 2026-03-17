@@ -49,7 +49,6 @@ const RealTimeMonitoringDashboard: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
@@ -103,6 +102,7 @@ const RealTimeMonitoringDashboard: React.FC = () => {
           connectWebSocket();
         }, 5000 * reconnectAttempts.current); // Backoff exponencial
       }
+      return undefined;
     }
   };
 

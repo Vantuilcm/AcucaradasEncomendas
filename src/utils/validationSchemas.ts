@@ -117,7 +117,7 @@ export function validarProduto(produto: unknown): ResultadoValidacao {
   const valido = validate(produto);
 
   return {
-    valido,
+    valido: !!valido,
     erros: validate.errors || [],
   };
 }
@@ -132,7 +132,7 @@ export function validarFiltros(filtros: unknown): ResultadoValidacao {
   const valido = validate(filtros);
 
   return {
-    valido,
+    valido: !!valido,
     erros: validate.errors || [],
   };
 }
@@ -143,10 +143,10 @@ export function validarFiltros(filtros: unknown): ResultadoValidacao {
  * @returns O produto sanitizado
  */
 export function sanitizarProduto(produto: unknown): Produto | null {
-  if (!produto) return null;
+  if (!produto || typeof produto !== 'object') return null;
 
-  // Cria uma cópia para não modificar o original
-  const sanitizado = { ...produto };
+  // Cria uma cópia para não modificar o original e tipa como any para facilitar a manipulação
+  const sanitizado = { ...produto } as any;
 
   // Garante que campos de string sejam strings válidas
   ['nome', 'descricao', 'categoria', 'sabor', 'ocasiao'].forEach(campo => {
@@ -183,5 +183,5 @@ export function sanitizarProduto(produto: unknown): Produto | null {
     }
   });
 
-  return sanitizado;
+  return sanitizado as Produto;
 }

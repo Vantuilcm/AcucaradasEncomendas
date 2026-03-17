@@ -1,4 +1,4 @@
-import { Product, ProductCategories } from '../types/Product';
+import { Product } from '../types/Product';
 import { loggingService } from './LoggingService';
 import { OrderService } from './OrderService';
 import { ProductService } from './ProductService';
@@ -36,8 +36,8 @@ export class RecommendationService {
   private productService: ProductService;
 
   private constructor() {
-    this.orderService = new OrderService();
-    this.productService = new ProductService();
+    this.orderService = OrderService.getInstance();
+    this.productService = ProductService.getInstance();
   }
 
   public static getInstance(): RecommendationService {
@@ -169,18 +169,22 @@ export class RecommendationService {
       const purchasedProductIds = new Set<string>();
       const purchasedCategories = new Map<string, number>();
 
-      userOrders.forEach(order => {
-        order.items.forEach(item => {
+      for (const order of userOrders) {
+        for (const item of order.items) {
           purchasedProductIds.add(item.productId);
 
           // Contar frequência de categorias
-          const product = this.productService.getProductById(item.productId);
-          if (product) {
-            const category = product.categoria;
-            purchasedCategories.set(category, (purchasedCategories.get(category) || 0) + 1);
+          try {
+            const product = await this.productService.consultarProduto(item.productId);
+            if (product) {
+              const category = product.categoria;
+              purchasedCategories.set(category, (purchasedCategories.get(category) || 0) + 1);
+            }
+          } catch (error) {
+            loggingService.warn('Produto não encontrado ao gerar recomendações', { productId: item.productId });
           }
-        });
-      });
+        }
+      }
 
       // Ordenar categorias por frequência
       const sortedCategories = Array.from(purchasedCategories.entries())
@@ -195,7 +199,7 @@ export class RecommendationService {
         if (recommendedProducts.length >= limit) break;
 
         // Buscar produtos da categoria que não foram comprados ainda
-        const categoryProducts = await this.productService.getProductsByCategory(category);
+        const categoryProducts = await this.productService.listarProdutos({ categoria: category });
         const newRecommendations = categoryProducts
           .filter(p => !purchasedProductIds.has(p.id))
           .slice(0, limit - recommendedProducts.length);
@@ -205,9 +209,10 @@ export class RecommendationService {
 
       // Se ainda não temos produtos suficientes, adicionar destaques
       if (recommendedProducts.length < limit) {
-        const featuredProducts = await this.productService.getFeaturedProducts(
-          limit - recommendedProducts.length
-        );
+        const featuredProducts = await this.productService.listarProdutos({ 
+          destacado: true, 
+          limite: limit - recommendedProducts.length 
+        });
 
         const newFeaturedProducts = featuredProducts.filter(
           p => !purchasedProductIds.has(p.id) && !recommendedProducts.some(rp => rp.id === p.id)
@@ -247,7 +252,7 @@ export class RecommendationService {
       const viewedProductIds = new Set(relevantViews.map(view => view.productId));
       const viewedProducts: Product[] = [];
 
-      for (const productId of viewedProductIds) {
+      for (const productId of Array.from(viewedProductIds)) {
         const product = await this.productService.getProductById(productId);
         if (product && product.disponivel) {
           viewedProducts.push(product);
@@ -259,7 +264,7 @@ export class RecommendationService {
       let recommendedProducts: Product[] = [];
 
       // Para cada categoria visualizada
-      for (const category of viewedCategories) {
+      for (const category of Array.from(viewedCategories)) {
         if (recommendedProducts.length >= limit) break;
 
         // Buscar produtos da categoria

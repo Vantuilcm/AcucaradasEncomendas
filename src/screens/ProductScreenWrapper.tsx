@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import ProductScreen from './ProductScreen';
+import { ProductScreen } from './ProductScreen';
 import LegalDocumentLinks from '../components/LegalDocumentLinks';
 
 /**

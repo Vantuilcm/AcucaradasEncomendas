@@ -29,7 +29,7 @@ export function Modal({
   titleStyle,
   contentStyle,
 }: ModalProps) {
-  const theme = useAppTheme();
+  const { theme } = useAppTheme();
 
   return (
     <RNModal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

@@ -507,9 +507,9 @@ export class WebSocketManager {
             (sub: any) => typeof sub === 'string'
           );
           
-          connection.subscriptions = [
-            ...new Set([...connection.subscriptions, ...validSubscriptions]),
-          ];
+          connection.subscriptions = Array.from(
+            new Set([...connection.subscriptions, ...validSubscriptions])
+          );
           console.log(`📋 ${id} se inscreveu em:`, validSubscriptions);
         }
         break;

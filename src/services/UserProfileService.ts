@@ -4,7 +4,6 @@ import {
   doc,
   getDoc,
   updateDoc,
-  setDoc,
   query,
   collection,
   where,
@@ -12,8 +11,6 @@ import {
   orderBy,
   limit,
   serverTimestamp,
-  arrayUnion,
-  arrayRemove,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { User, Address } from '../models/User';
@@ -80,7 +77,7 @@ export class UserProfileService {
         throw new Error('Usuário não encontrado');
       }
 
-      const userData = userDoc.data() as User;
+      const userData = userDoc.data() as unknown as User;
       userData.id = userId;
 
       // Obter estatísticas do usuário
@@ -90,7 +87,7 @@ export class UserProfileService {
         ...userData,
         stats,
       };
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao obter perfil do usuário', { error, userId });
       throw error;
     }
@@ -112,7 +109,8 @@ export class UserProfileService {
       }
 
       // Limpar dados indefinidos para não sobrescrever com null
-      Object.keys(profileData).forEach(key => {
+      Object.keys(profileData).forEach(k => {
+        const key = k as keyof ProfileUpdateData;
         if (profileData[key] === undefined) {
           delete profileData[key];
         }
@@ -124,17 +122,17 @@ export class UserProfileService {
         dataAtualizacao: serverTimestamp(),
       };
 
-      await updateDoc(userRef, updateData);
+      await updateDoc(userRef, updateData as any);
 
       // Obter dados atualizados
       const updatedDoc = await getDoc(userRef);
-      const updatedUserData = updatedDoc.data() as User;
+      const updatedUserData = updatedDoc.data() as any as User;
       updatedUserData.id = userId;
 
       loggingService.info('Perfil de usuário atualizado com sucesso', { userId });
 
       return updatedUserData;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao atualizar perfil do usuário', { error, userId });
       throw error;
     }
@@ -157,7 +155,7 @@ export class UserProfileService {
       }
 
       // Verificar se já existe uma foto para excluir
-      const userData = userDoc.data();
+      const userData = userDoc.data() as any as User;
       const oldPhotoUrl = userData?.perfil?.fotoPerfil;
 
       if (oldPhotoUrl) {
@@ -201,7 +199,7 @@ export class UserProfileService {
       loggingService.info('Foto de perfil atualizada com sucesso', { userId });
 
       return photoUrl;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao atualizar foto de perfil', { error, userId });
       throw error;
     }
@@ -222,7 +220,7 @@ export class UserProfileService {
         throw new Error('Usuário não encontrado');
       }
 
-      const userData = userDoc.data();
+      const userData = userDoc.data() as any as User;
       const enderecos = userData.endereco || [];
 
       // Se for marcado como principal, desmarca os outros
@@ -242,12 +240,12 @@ export class UserProfileService {
       await updateDoc(userRef, {
         endereco: enderecos,
         dataAtualizacao: serverTimestamp(),
-      });
+      } as any);
 
       loggingService.info('Endereço adicionado com sucesso', { userId });
 
       return enderecos;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao adicionar endereço', { error, userId });
       throw error;
     }
@@ -268,7 +266,7 @@ export class UserProfileService {
         throw new Error('Usuário não encontrado');
       }
 
-      const userData = userDoc.data();
+      const userData = userDoc.data() as any as User;
       const enderecos = userData.endereco || [];
 
       if (addressIndex < 0 || addressIndex >= enderecos.length) {
@@ -290,12 +288,12 @@ export class UserProfileService {
       await updateDoc(userRef, {
         endereco: enderecos,
         dataAtualizacao: serverTimestamp(),
-      });
+      } as any);
 
       loggingService.info('Endereço removido com sucesso', { userId });
 
       return enderecos;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao remover endereço', { error, userId });
       throw error;
     }
@@ -316,7 +314,7 @@ export class UserProfileService {
         throw new Error('Usuário não encontrado');
       }
 
-      const userData = userDoc.data();
+      const userData = userDoc.data() as any as User;
       const enderecos = userData.endereco || [];
 
       if (addressIndex < 0 || addressIndex >= enderecos.length) {
@@ -331,12 +329,12 @@ export class UserProfileService {
       await updateDoc(userRef, {
         endereco: enderecos,
         dataAtualizacao: serverTimestamp(),
-      });
+      } as any);
 
       loggingService.info('Endereço principal definido com sucesso', { userId });
 
       return enderecos;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao definir endereço principal', { error, userId });
       throw error;
     }
@@ -368,7 +366,7 @@ export class UserProfileService {
       // Calcular média das avaliações
       let somaAvaliacoes = 0;
       avaliacoes.forEach(avaliacao => {
-        somaAvaliacoes += avaliacao.nota;
+        somaAvaliacoes += avaliacao.rating;
       });
 
       const mediaAvaliacoes = avaliacoes.length > 0 ? somaAvaliacoes / avaliacoes.length : 0;
@@ -381,12 +379,12 @@ export class UserProfileService {
         totalPedidos: pedidos.length,
         totalAvaliacoes: avaliacoes.length,
         mediaAvaliacoes: Number(mediaAvaliacoes.toFixed(1)),
-        dataCriacao: userData?.dataCriacao?.toDate?.() || new Date().toISOString(),
-        ultimoPedido: pedidos.length > 0 ? pedidos[0].dataCriacao?.toDate?.() || null : null,
+        dataCriacao: (userData?.dataCriacao as any)?.toDate?.().toISOString() || new Date().toISOString(),
+        ultimoPedido: pedidos.length > 0 ? (pedidos[0] as any).dataCriacao?.toDate?.().toISOString() || null : null,
         pedidosRecentes: pedidos.slice(0, 5),
         avaliacoesRecentes: avaliacoes.slice(0, 5),
       };
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao obter estatísticas do usuário', { error, userId });
       // Retornar estatísticas vazias em caso de erro
       return {
@@ -428,7 +426,7 @@ export class UserProfileService {
       }
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao verificar CPF', { error, cpf });
       return false;
     }
@@ -486,7 +484,7 @@ export class UserProfileService {
 
       // Converter para array e limitar resultados
       return Array.from(results.values()).slice(0, maxResults);
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao buscar usuários', { error, searchQuery });
       return [];
     }
@@ -513,7 +511,7 @@ export class UserProfileService {
       loggingService.info('Preferências de notificação atualizadas', { userId });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao atualizar preferências de notificação', { error, userId });
       return false;
     }
@@ -551,7 +549,7 @@ export class UserProfileService {
       loggingService.info('Preferências do app atualizadas', { userId });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao atualizar preferências do app', { error, userId });
       return false;
     }
@@ -580,15 +578,15 @@ export class UserProfileService {
       // Calcular estatísticas de avaliação
       let totalScore = 0;
       userReviews.forEach(review => {
-        totalScore += review.nota;
+        totalScore += review.rating;
       });
 
       const averageScore = userReviews.length > 0 ? totalScore / userReviews.length : 0;
 
       // Ordenar por data (mais recentes primeiro)
       const sortedReviews = [...userReviews].sort((a, b) => {
-        const dateA = a.dataCriacao?.toDate?.() || new Date(a.dataCriacao);
-        const dateB = b.dataCriacao?.toDate?.() || new Date(b.dataCriacao);
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
         return dateB.getTime() - dateA.getTime();
       });
 
@@ -603,7 +601,7 @@ export class UserProfileService {
           recentReviews,
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao integrar perfil com avaliações', { error, userId });
       throw error;
     }
@@ -628,32 +626,23 @@ export class UserProfileService {
         throw new Error('Usuário não encontrado');
       }
 
-      const userData = userDoc.data() as User;
+      const userData = userDoc.data() as any as User;
 
       // Buscar avaliações do usuário
-      const avaliacoesQuery = query(collection(db, 'avaliacoes'), where('usuarioId', '==', userId));
-
-      const avaliacoesSnapshot = await getDocs(avaliacoesQuery);
-      const avaliacoes = avaliacoesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const avaliacoes = await this.reviewService.getUserReviews(userId);
 
       // Calcular média das avaliações
       const mediaAvaliacoes =
         avaliacoes.length > 0
-          ? avaliacoes.reduce((acc, curr: any) => acc + curr.nota, 0) / avaliacoes.length
+          ? avaliacoes.reduce((acc, curr) => acc + curr.rating, 0) / avaliacoes.length
           : 0;
 
       return {
         ...userData,
-        avaliacoes: {
-          lista: avaliacoes,
-          media: mediaAvaliacoes,
-          total: avaliacoes.length,
-        },
+        avaliacoes,
+        mediaAvaliacoes,
       };
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao obter perfil do usuário', { error, userId });
       throw error;
     }
@@ -675,11 +664,11 @@ export class UserProfileService {
       const validationService = ValidationService.getInstance();
 
       // Validar dados do perfil
-      if (dadosPerfil.email && !validationService.validarEmail(dadosPerfil.email)) {
+      if (dadosPerfil.email && !validationService.validateEmail(dadosPerfil.email)) {
         throw new Error('Email inválido');
       }
 
-      if (dadosPerfil.telefone && !validationService.validarTelefone(dadosPerfil.telefone)) {
+      if (dadosPerfil.telefone && !validationService.validatePhone(dadosPerfil.telefone)) {
         throw new Error('Telefone inválido');
       }
 
@@ -690,7 +679,7 @@ export class UserProfileService {
       await updateDoc(doc(db, 'usuarios', userId), {
         ...dadosAtualizaveis,
         dataAtualizacao: new Date(),
-      });
+      } as any);
 
       // Buscar perfil atualizado
       const userDoc = await getDoc(doc(db, 'usuarios', userId));
@@ -704,8 +693,8 @@ export class UserProfileService {
       return {
         id: userId,
         ...userDoc.data(),
-      } as User;
-    } catch (error) {
+      } as any as User;
+    } catch (error: any) {
       loggingService.error('Erro ao atualizar perfil do usuário', { error, userId });
       throw error;
     }
@@ -727,7 +716,7 @@ export class UserProfileService {
       // Validar dados do endereço
       const validationService = ValidationService.getInstance();
 
-      if (!validationService.validarCEP(endereco.cep)) {
+      if (!validationService.validateZipCode(endereco.cep)) {
         throw new Error('CEP inválido');
       }
 
@@ -748,7 +737,7 @@ export class UserProfileService {
         throw new Error('Usuário não encontrado');
       }
 
-      const userData = userDoc.data() as User;
+      const userData = userDoc.data() as any as User;
 
       // Se for endereço principal, remover a marcação de principal dos demais
       if (endereco.principal && userData.endereco && userData.endereco.length > 0) {
@@ -760,13 +749,14 @@ export class UserProfileService {
         await updateDoc(doc(db, 'usuarios', userId), {
           endereco: [...enderecosAtualizados, endereco],
           dataAtualizacao: new Date(),
-        });
+        } as any);
       } else {
-        // Adicionar novo endereço
+        // Adicionar novo endereço manualmente para evitar problemas com arrayUnion
+        const enderecosAtuais = userData.endereco || [];
         await updateDoc(doc(db, 'usuarios', userId), {
-          endereco: arrayUnion(endereco),
+          endereco: [...enderecosAtuais, endereco],
           dataAtualizacao: new Date(),
-        });
+        } as any);
       }
 
       // Buscar perfil atualizado
@@ -777,8 +767,8 @@ export class UserProfileService {
       return {
         id: userId,
         ...userDocAtualizado.data(),
-      } as User;
-    } catch (error) {
+      } as any as User;
+    } catch (error: any) {
       loggingService.error('Erro ao adicionar endereço', { error, userId });
       throw error;
     }
@@ -797,22 +787,40 @@ export class UserProfileService {
         throw new Error('ID do usuário não informado');
       }
 
-      // Remover endereço
+      // Buscar perfil atual para remover manualmente
+      const userDoc = await getDoc(doc(db, 'usuarios', userId));
+
+      if (!userDoc.exists()) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      const userData = userDoc.data() as any as User;
+      const enderecos = userData.endereco || [];
+
+      // Filtrar endereços removendo o que corresponde aos dados passados
+      // Usando comparação de campos chave pois objetos diferentes não são iguais
+      const enderecosAtualizados = enderecos.filter(end => 
+        end.cep !== endereco.cep || 
+        end.numero !== endereco.numero ||
+        end.rua !== endereco.rua
+      );
+
+      // Atualizar documento
       await updateDoc(doc(db, 'usuarios', userId), {
-        endereco: arrayRemove(endereco),
+        endereco: enderecosAtualizados,
         dataAtualizacao: new Date(),
-      });
+      } as any);
 
       // Buscar perfil atualizado
-      const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      const userDocAtualizado = await getDoc(doc(db, 'usuarios', userId));
 
       loggingService.info('Endereço removido do perfil', { userId });
 
       return {
         id: userId,
-        ...userDoc.data(),
-      } as User;
-    } catch (error) {
+        ...userDocAtualizado.data(),
+      } as any as User;
+    } catch (error: any) {
       loggingService.error('Erro ao remover endereço', { error, userId });
       throw error;
     }
@@ -853,7 +861,7 @@ export class UserProfileService {
       loggingService.info('Foto de perfil atualizada', { userId });
 
       return downloadURL;
-    } catch (error) {
+    } catch (error: any) {
       loggingService.error('Erro ao atualizar foto de perfil', { error, userId });
       throw error;
     }
@@ -884,7 +892,7 @@ export class UserProfileService {
       });
 
       loggingService.info('Foto de perfil removida', { userId });
-    } catch (error) {
+    } catch (error: any) {
       // Ignorar erro de arquivo não encontrado
       if (error.code !== 'storage/object-not-found') {
         loggingService.error('Erro ao remover foto de perfil', { error, userId });
@@ -926,7 +934,7 @@ export class UserProfileService {
       return {
         id: userId,
         ...userDoc.data(),
-      } as User;
+      } as any as User;
     } catch (error) {
       loggingService.error('Erro ao atualizar preferências', { error, userId });
       throw error;
@@ -960,7 +968,7 @@ export class UserProfileService {
       return {
         id: userId,
         ...userDoc.data(),
-      } as User;
+      } as any as User;
     } catch (error) {
       loggingService.error('Erro ao atualizar configurações de notificação', { error, userId });
       throw error;

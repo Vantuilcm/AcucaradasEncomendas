@@ -9,7 +9,7 @@ export class StripeController {
   constructor() {
     this.paymentService = PaymentService.getInstance();
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-      apiVersion: '2025-12-15.clover',
+      apiVersion: '2026-02-25.clover',
     });
   }
 
@@ -62,7 +62,7 @@ export class StripeController {
       return res.json({ id: paymentIntent.id, clientSecret: paymentIntent.client_secret });
     } catch (error) {
       console.error('Erro ao criar PaymentIntent:', error);
-      return res.status(500).json({ error: 'Erro ao processar pagamento' });
+      return res.status(500).json({ error: 'Erro ao processar pagamento', details: error instanceof Error ? error.message : String(error) });
     }
   };
 

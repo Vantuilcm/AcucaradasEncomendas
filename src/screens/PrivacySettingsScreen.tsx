@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Switch, Button, useTheme, Portal, Modal, Divider } from 'react-native-paper';
+import { Text, Switch, Button, useTheme, Portal, Modal } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { ErrorMessage } from '../components/ErrorMessage';

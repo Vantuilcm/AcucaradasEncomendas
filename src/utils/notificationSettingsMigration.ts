@@ -3,7 +3,6 @@ import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { NotificationSettingsServiceWithCache } from '../services/NotificationSettingsServiceWithCache';
 import { NotificationSettingsServiceWithCacheV2 } from '../services/NotificationSettingsServiceWithCacheV2';
 import { loggingService } from '../services/LoggingService';
-import { EnhancedCacheManager } from './EnhancedCacheManager';
 
 /**
  * Utilitário para migrar as configurações de notificação da versão 1 para a versão 2

@@ -39,7 +39,7 @@ export class MonitoringSetup {
 
   // Propriedades para controle de inicialização
    
-  private initializationError: Error | null = null; // Mantido para compatibilidade com implementações futuras
+  public initializationError: Error | null = null;
   private initializationTimeout: NodeJS.Timeout | null = null;
   private fallbackMode: boolean = false;
   private globalTimeoutMs: number = 3000; // Reduzido para 3 segundos para evitar bloqueio da UI
@@ -178,7 +178,19 @@ export class MonitoringSetup {
     console.warn('⚠️ Sistema continuará funcionando em modo de fallback');
   }
 
-  // As funções isInFallbackMode e getInitializationError já estão definidas acima
+  /**
+   * Verifica se o sistema de monitoramento está operando em modo de fallback
+   */
+  public isInFallbackMode(): boolean {
+    return this.fallbackMode;
+  }
+
+  /**
+   * Retorna o erro de inicialização, se houver
+   */
+  public getInitializationError(): Error | null {
+    return this.initializationError;
+  }
 
   /**
    * Configura alertas baseados no ambiente
@@ -186,21 +198,19 @@ export class MonitoringSetup {
   private async setupAlerts(): Promise<void> {
     console.log('⚙️ Configurando alertas...');
 
-    const alertConfig = getAlertConfig(ENVIRONMENT);
+    const alertConfig = getAlertConfig();
 
     console.log(`📋 Configuração de alertas para ${ENVIRONMENT}:`);
-    console.log(
-      `   - Latência de busca: warning ${alertConfig.searchLatency.warning}ms, critical ${alertConfig.searchLatency.critical}ms`
-    );
-    console.log(
-      `   - Taxa de erro: warning ${alertConfig.errorRate.warning}%, critical ${alertConfig.errorRate.critical}%`
-    );
-    console.log(
-      `   - Uso de memória: warning ${alertConfig.memoryUsage.warning}MB, critical ${alertConfig.memoryUsage.critical}MB`
-    );
-    console.log(
-      `   - Cache miss: warning ${alertConfig.cacheMissRate.warning}%, critical ${alertConfig.cacheMissRate.critical}%`
-    );
+    console.log(`   - Notificações Push: ${alertConfig.enablePushNotifications ? 'Ativo' : 'Inativo'}`);
+    console.log(`   - Alertas por Email: ${alertConfig.enableEmailAlerts ? 'Ativo' : 'Inativo'}`);
+    console.log(`   - Limite de Estoque Baixo: ${alertConfig.lowStockThreshold}`);
+    
+    // Configurações específicas de monitoramento de busca (hardcoded por enquanto)
+    console.log('📋 Limites de Monitoramento de Busca:');
+    console.log('   - Latência de busca: warning 500ms, critical 1000ms');
+    console.log('   - Taxa de erro: warning 1%, critical 5%');
+    console.log('   - Uso de memória: warning 80MB, critical 120MB');
+    console.log('   - Cache miss: warning 20%, critical 40%');
 
     console.log('✅ Alertas configurados');
   }
@@ -285,7 +295,12 @@ export class MonitoringSetup {
         alertsInterval: ALERTS_INTERVAL,
         maxDataPoints: 100,
         enableNotifications: ENABLE_REAL_TIME,
-        customThresholds: getAlertConfig(ENVIRONMENT),
+        customThresholds: {
+          searchLatency: { warning: 500, critical: 1000 },
+          errorRate: { warning: 1, critical: 5 },
+          memoryUsage: { warning: 80, critical: 120 },
+          cacheMissRate: { warning: 20, critical: 40 },
+        },
         alertThrottleMs: ALERT_THROTTLE_MS,
         logLevel: LOG_LEVEL,
         fallbackEnabled: true, // Habilitar modo de fallback

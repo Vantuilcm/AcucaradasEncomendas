@@ -139,6 +139,7 @@ export const Toast = ({
 
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [visible, duration, opacity, translateY, position, onHide]);
 
   if (!visible) return null;
@@ -156,7 +157,7 @@ export const Toast = ({
         },
       ]}
     >
-      <Ionicons name={icon} size={20} color="white" style={styles.icon} />
+      <Ionicons name={icon as any} size={20} color="white" style={styles.icon} />
       <Text style={styles.toastText}>{message}</Text>
     </Animated.View>
   );
@@ -168,7 +169,7 @@ export const Toast = ({
 export const FeedbackButton = ({
   onPress,
   style,
-  textStyle,
+  textStyle: _textStyle,
   activeScale = 0.95,
   feedbackType = 'both',
   hapticFeedback = true,

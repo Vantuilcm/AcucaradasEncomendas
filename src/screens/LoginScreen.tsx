@@ -15,8 +15,9 @@ import { useAppTheme } from '../components/ThemeProvider';
 export default function LoginScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const navigation = useNavigation();
-  const { login, loading, error: authError } = useAuth();
+  const navigation = useNavigation<any>();
+  const { login, loading } = useAuth();
+  const [authError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +89,7 @@ export default function LoginScreen() {
       blurContent={true}
       onScreenshotDetected={() => setError('Captura de tela detectada! Por motivos de segurança, esta ação não é permitida.')}
     >
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} testID="login-screen">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoid}
@@ -101,7 +102,7 @@ export default function LoginScreen() {
             Faça login para continuar
           </Text>
 
-          {(error || authError) && <ErrorMessage message={error || authError} />}
+          {authError && <ErrorMessage message={authError || 'Erro'} />}
 
           <TextInput
             label="E-mail"
@@ -110,6 +111,7 @@ export default function LoginScreen() {
             autoCapitalize="none"
             keyboardType="email-address"
             style={styles.input}
+            testID="email-input"
           />
 
           <TextInput
@@ -118,9 +120,10 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             secureTextEntry
             style={styles.input}
+            testID="password-input"
           />
 
-          <Button mode="contained" onPress={handleLogin} style={styles.button} disabled={loading}>
+          <Button mode="contained" onPress={handleLogin} style={styles.button} disabled={loading} testID="login-button">
             Entrar
           </Button>
 

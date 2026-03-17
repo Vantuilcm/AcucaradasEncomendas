@@ -32,7 +32,7 @@ export function AddProductScreen() {
   });
 
   // Verificar se o usuário é administrador ou produtor
-  if (user?.role !== 'admin' && user?.role !== 'producer') {
+  if ((user as any)?.role !== 'admin' && (user as any)?.role !== 'producer') {
     return (
       <ErrorMessage
         message="Você não tem permissão para acessar esta área"
@@ -87,7 +87,7 @@ export function AddProductScreen() {
 
     // Abrir o seletor de imagens
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'] as any,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,

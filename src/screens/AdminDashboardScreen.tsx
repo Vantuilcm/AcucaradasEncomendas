@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Text, Card, Button, useTheme, Divider, List, Surface, FAB } from 'react-native-paper';
+import { Text, Card, Divider, List, Surface, FAB } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
-import { Ionicons } from '@expo/vector-icons';
 
 export function AdminDashboardScreen() {
-  const theme = useTheme();
   const navigation = useNavigation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -72,7 +70,7 @@ export function AdminDashboardScreen() {
   }
 
   // Verificar se o usuário é administrador ou produtor
-  if (user?.role !== 'admin' && user?.role !== 'producer') {
+  if ((user as any)?.role !== 'admin' && (user as any)?.role !== 'producer') {
     return (
       <ErrorMessage
         message="Você não tem permissão para acessar esta área"
@@ -156,7 +154,7 @@ export function AdminDashboardScreen() {
             description="Gerenciar catálogo de produtos"
             left={props => <List.Icon {...props} icon="cake-variant" color="#FF69B4" />}
             right={props => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => navigation.navigate('ProductManagement')}
+            onPress={() => (navigation as any).navigate('ProductManagement')}
             style={styles.menuItem}
           />
 
@@ -166,12 +164,12 @@ export function AdminDashboardScreen() {
             title="Pedidos"
             description="Gerenciar pedidos recebidos"
             left={props => <List.Icon {...props} icon="shopping" color="#FF69B4" />}
-            right={props => (
+            right={() => (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{stats.pendingOrders}</Text>
               </View>
             )}
-            onPress={() => navigation.navigate('OrderManagement')}
+            onPress={() => (navigation as any).navigate('OrderManagement')}
             style={styles.menuItem}
           />
 
@@ -181,12 +179,12 @@ export function AdminDashboardScreen() {
             title="Pedidos Agendados"
             description="Gerenciar entregas agendadas"
             left={props => <List.Icon {...props} icon="calendar-clock" color="#FF69B4" />}
-            right={props => (
+            right={() => (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{stats.scheduledOrders}</Text>
               </View>
             )}
-            onPress={() => navigation.navigate('ScheduledOrders')}
+            onPress={() => (navigation as any).navigate('ScheduledOrders')}
             style={styles.menuItem}
           />
 
@@ -205,7 +203,7 @@ export function AdminDashboardScreen() {
                 <List.Icon {...props} icon="chevron-right" />
               )
             }
-            onPress={() => navigation.navigate('InventoryManagement')}
+            onPress={() => (navigation as any).navigate('InventoryManagement')}
             style={styles.menuItem}
           />
 
@@ -216,7 +214,7 @@ export function AdminDashboardScreen() {
             description="Gerenciar cadastro de clientes"
             left={props => <List.Icon {...props} icon="account-group" color="#FF69B4" />}
             right={props => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => navigation.navigate('CustomerManagement')}
+            onPress={() => (navigation as any).navigate('CustomerManagement')}
             style={styles.menuItem}
           />
 
@@ -227,7 +225,7 @@ export function AdminDashboardScreen() {
             description="Gerenciar cupons e descontos"
             left={props => <List.Icon {...props} icon="tag" color="#FF69B4" />}
             right={props => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => navigation.navigate('PromotionManagement')}
+            onPress={() => (navigation as any).navigate('PromotionManagement')}
             style={styles.menuItem}
           />
 
@@ -238,7 +236,7 @@ export function AdminDashboardScreen() {
             description="Visualizar relatórios e análises de vendas"
             left={props => <List.Icon {...props} icon="chart-bar" color="#FF69B4" />}
             right={props => <List.Icon {...props} icon="chart-line" color="#FF69B4" />}
-            onPress={() => navigation.navigate('ReportsScreen')}
+            onPress={() => (navigation as any).navigate('ReportsScreen')}
             style={styles.menuItem}
           />
 
@@ -249,7 +247,7 @@ export function AdminDashboardScreen() {
             description="Configurações do sistema"
             left={props => <List.Icon {...props} icon="cog" color="#FF69B4" />}
             right={props => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => navigation.navigate('AdminSettings')}
+            onPress={() => (navigation as any).navigate('AdminSettings')}
             style={styles.menuItem}
           />
         </Surface>
@@ -258,7 +256,7 @@ export function AdminDashboardScreen() {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => navigation.navigate('AddProduct')}
+        onPress={() => (navigation as any).navigate('AddProduct')}
         color="#FFFFFF"
       />
     </SafeAreaView>

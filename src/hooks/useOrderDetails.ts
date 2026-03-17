@@ -12,7 +12,7 @@ interface OrderDetailsState {
 }
 
 export function useOrderDetails(): OrderDetailsState {
-  const route = useRoute();
+  const route = useRoute<any>();
   const orderId = route.params?.orderId as string;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export function useOrderDetails(): OrderDetailsState {
     try {
       setLoading(true);
       setError(null);
-      const orderData = await OrderService.getOrderById(orderId);
+      const orderData = await OrderService.getInstance().getOrderById(orderId);
       setOrder(orderData);
       loggingService.info('Detalhes do pedido carregados com sucesso', {
         orderId,
@@ -44,7 +44,7 @@ export function useOrderDetails(): OrderDetailsState {
       try {
         setLoading(true);
         setError(null);
-        await OrderService.updateOrderStatus(orderId, newStatus);
+        await OrderService.getInstance().updateOrderStatus(orderId, newStatus);
         await loadOrderDetails(); // Recarrega os detalhes do pedido
         loggingService.info('Status do pedido atualizado com sucesso', {
           orderId,

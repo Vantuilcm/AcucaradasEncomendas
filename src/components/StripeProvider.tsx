@@ -8,6 +8,7 @@ interface StripeProviderProps {
 
 export const StripeProvider: React.FC<StripeProviderProps> = ({ children }) => {
   return (
+    // @ts-ignore
     <StripeProviderBase publishableKey={STRIPE_PUBLISHABLE_KEY}>{children}</StripeProviderBase>
   );
 };

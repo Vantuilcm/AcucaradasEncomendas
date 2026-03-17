@@ -4,7 +4,7 @@
  * a performance e estabilidade do sistema de busca
  */
 
-import { LoggingService } from '../services/LoggingService';
+import { loggingService } from '../services/LoggingService';
 
 // Interface para WebSocket de monitoramento em tempo real
 // Estende as funcionalidades básicas necessárias do WebSocket
@@ -290,8 +290,8 @@ export class SearchMonitoring {
       return result;
     } catch (error) {
       const duration = performance.now() - startTime;
-      this.recordMetric(metric, duration, { ...context, error: error.message });
-      this.recordMetric(MetricType.ERROR_RATE, 1, { ...context, error: error.message });
+      this.recordMetric(metric, duration, { ...context, error: (error as any).message });
+      this.recordMetric(MetricType.ERROR_RATE, 1, { ...context, error: (error as any).message });
       throw error;
     }
   }
@@ -305,7 +305,7 @@ export class SearchMonitoring {
     this.recordMetric(MetricType.ZERO_RESULTS, 1, { query, filters });
 
     // Log para análise posterior
-    LoggingService.info('Busca sem resultados', {
+    loggingService.info('Busca sem resultados', {
       query,
       filters,
       timestamp: new Date().toISOString(),
@@ -335,13 +335,13 @@ export class SearchMonitoring {
       }
       // Fallback: registrar valor padrão se não conseguir obter dados reais
       else {
-        LoggingService.warn(
+        loggingService.warn(
           'Não foi possível obter informações de memória - usando valor estimado'
         );
         this.recordMetric(MetricType.MEMORY_USAGE, 50, { component }); // Valor padrão estimado
       }
     } catch (error) {
-      LoggingService.error('Erro ao registrar uso de memória', { error });
+      loggingService.error('Erro ao registrar uso de memória', { error });
       this.recordMetric(MetricType.MEMORY_USAGE, 50, { component }); // Valor padrão em caso de erro
     }
   }
@@ -445,13 +445,13 @@ export class SearchMonitoring {
     // Registrar alerta no sistema de logging
     switch (level) {
       case AlertLevel.INFO:
-        LoggingService.info(message, { metric, value, threshold });
+        loggingService.info(message, { metric, value, threshold });
         break;
       case AlertLevel.WARNING:
-        LoggingService.warn(message, { metric, value, threshold });
+        loggingService.warn(message, { metric, value, threshold });
         break;
       case AlertLevel.CRITICAL:
-        LoggingService.error(message, { metric, value, threshold });
+        loggingService.error(message, { metric, value, threshold });
         // Enviar notificações críticas
         this.sendCriticalNotification(alertData);
         break;
@@ -588,7 +588,7 @@ export class SearchMonitoring {
     // Limpar conexões WebSocket
     this.webSocketConnections.clear();
 
-    LoggingService.info('Sistema de monitoramento limpo com sucesso');
+    loggingService.info('Sistema de monitoramento limpo com sucesso');
   }
 
   /**
@@ -622,7 +622,7 @@ export class SearchMonitoring {
         ws.send(JSON.stringify(data));
       }
     } catch (error) {
-      LoggingService.error('Erro ao enviar dados em tempo real via WebSocket', { error });
+      loggingService.error('Erro ao enviar dados em tempo real via WebSocket', { error });
       // Remover conexão com problema
       this.webSocketConnections.delete(ws);
     }
@@ -647,7 +647,7 @@ export class SearchMonitoring {
           this.webSocketConnections.delete(ws);
         }
       } catch (error) {
-        LoggingService.error('Erro ao transmitir dados em tempo real', { error });
+        loggingService.error('Erro ao transmitir dados em tempo real', { error });
         this.webSocketConnections.delete(ws);
       }
     });
@@ -672,7 +672,7 @@ export class SearchMonitoring {
           this.webSocketConnections.delete(ws);
         }
       } catch (error) {
-        LoggingService.error('Erro ao transmitir alerta via WebSocket', { error });
+        loggingService.error('Erro ao transmitir alerta via WebSocket', { error });
         this.webSocketConnections.delete(ws);
       }
     });
@@ -785,7 +785,7 @@ export class SearchMonitoring {
         }
 
         // Log da anomalia
-        LoggingService.warn('Anomalia detectada', anomaly);
+        loggingService.warn('Anomalia detectada', anomaly);
       }
     });
   }
@@ -821,7 +821,7 @@ export class SearchMonitoring {
 
       // Email notifications (implementação dependeria do serviço de email)
       if (this.notificationConfig.email && this.notificationConfig.email.length > 0) {
-        LoggingService.info('Email notification would be sent', {
+        loggingService.info('Email notification would be sent', {
           recipients: this.notificationConfig.email,
           alert,
         });
@@ -829,13 +829,13 @@ export class SearchMonitoring {
 
       // SMS notifications (implementação dependeria do serviço de SMS)
       if (this.notificationConfig.sms && this.notificationConfig.sms.length > 0) {
-        LoggingService.info('SMS notification would be sent', {
+        loggingService.info('SMS notification would be sent', {
           recipients: this.notificationConfig.sms,
           alert,
         });
       }
     } catch (error) {
-      LoggingService.error('Erro ao enviar notificação crítica', { error, alert });
+      loggingService.error('Erro ao enviar notificação crítica', { error, alert });
     }
   }
 
@@ -848,7 +848,7 @@ export class SearchMonitoring {
     const alert = this.alertHistory.find(a => a.id === alertId);
     if (alert) {
       alert.acknowledged = true;
-      LoggingService.info('Alerta reconhecido', { alertId, acknowledgedBy });
+      loggingService.info('Alerta reconhecido', { alertId, acknowledgedBy });
       return true;
     }
     return false;

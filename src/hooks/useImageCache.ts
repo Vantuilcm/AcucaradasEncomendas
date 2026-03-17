@@ -112,14 +112,14 @@ export function useImageCache(): [ImageCacheState, ImageCacheHandlers] {
         const filePath = `${CACHE_DIRECTORY}${cacheKey}`;
 
         // Verifica se o arquivo já está em cache e é válido
-        if (!finalOptions.forceRefresh && (await isCacheValid(filePath, finalOptions.maxAge))) {
+        if (!finalOptions.forceRefresh && (await isCacheValid(filePath, finalOptions.maxAge!))) {
           loggingService.info('Imagem encontrada em cache válido', { url: imageUrl });
           return filePath;
         }
 
         // Faz download da imagem
         const downloadResult = await FileSystem.downloadAsync(imageUrl, filePath);
-        if (!downloadResult.status === 200) {
+        if (downloadResult.status !== 200) {
           throw new Error('Falha ao baixar imagem');
         }
 
@@ -151,7 +151,7 @@ export function useImageCache(): [ImageCacheState, ImageCacheHandlers] {
           return null;
         }
 
-        if (await isCacheValid(filePath, DEFAULT_OPTIONS.maxAge)) {
+        if (await isCacheValid(filePath, DEFAULT_OPTIONS.maxAge!)) {
           return filePath;
         }
 

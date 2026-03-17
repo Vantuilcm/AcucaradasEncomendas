@@ -1,7 +1,7 @@
 import { Product } from '../types/Product';
 import { ProductService } from './ProductService';
 import { loggingService } from './LoggingService';
-import { SearchMonitoring } from '../monitoring/SearchMonitoring';
+import { SearchMonitoring, MetricType } from '../monitoring/SearchMonitoring';
 import { webSocketManager } from '../monitoring/WebSocketManager';
 
 /**
@@ -28,7 +28,7 @@ export class SearchService {
   private monitoring: SearchMonitoring;
 
   private constructor() {
-    this.productService = new ProductService();
+    this.productService = ProductService.getInstance();
     this.monitoring = SearchMonitoring.getInstance();
     this.inicializarSistemaBusca();
   }
@@ -98,8 +98,8 @@ export class SearchService {
         categoria: produto.categoria,
         tags: produto.tagsEspeciais || [],
         ingredientes: produto.ingredientes || [],
-        sabor: produto.sabor || '',
-        ocasiao: produto.ocasiao || '',
+        sabor: (produto as any).sabor || '',
+        ocasiao: (produto as any).ocasiao || '',
         preco: produto.preco,
         disponivel: produto.disponivel,
       }));
@@ -126,8 +126,8 @@ export class SearchService {
         categoria: produto.categoria,
         tags: produto.tagsEspeciais || [],
         ingredientes: produto.ingredientes || [],
-        sabor: produto.sabor || '',
-        ocasiao: produto.ocasiao || '',
+        sabor: (produto as any).sabor || '',
+        ocasiao: (produto as any).ocasiao || '',
         preco: produto.preco,
         disponivel: produto.disponivel,
       };
@@ -219,9 +219,9 @@ export class SearchService {
           }
 
           // Realizar a busca avançada com monitoramento
-          const resultado = await this.monitoring.measureExecutionTime(
+          const resultado: any = await this.monitoring.measureExecutionTime(
+            MetricType.SEARCH_LATENCY,
             () => Promise.resolve(this.sistemaBusca!.buscar(termo, opcoesBusca)),
-            'search_execution',
             searchContext
           );
 
@@ -262,8 +262,8 @@ export class SearchService {
           return response;
         } catch (error) {
           // Registrar erro no monitoramento
-          this.monitoring.recordMetric('search_error', 1, {
-            error: error.message,
+          this.monitoring.recordMetric(MetricType.ERROR_RATE, 1, {
+            error: (error as any).message,
             algoritmo: 'avancado',
             termo,
           });
@@ -275,6 +275,7 @@ export class SearchService {
 
       // Fallback: usar a busca simples do ProductService
       const produtos = await this.monitoring.measureExecutionTime(
+        MetricType.SEARCH_LATENCY,
         () =>
           this.productService.listarProdutos({
             busca: termo,
@@ -284,7 +285,6 @@ export class SearchService {
             tagEspecial: filtros.tagEspecial,
             disponivel: filtros.disponivel,
           }),
-        'search_execution',
         { ...searchContext, algoritmo: 'simples' }
       );
 
@@ -355,8 +355,8 @@ export class SearchService {
       return response;
     } catch (error) {
       // Registrar erro no monitoramento
-      this.monitoring.recordMetric('search_error', 1, {
-        error: error.message,
+      this.monitoring.recordMetric(MetricType.ERROR_RATE, 1, {
+        error: (error as any).message,
         algoritmo: searchContext.algoritmo,
         termo,
       });

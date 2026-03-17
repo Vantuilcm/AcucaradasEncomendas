@@ -28,7 +28,7 @@ export class WebSocketServer extends EventEmitter {
     return new Promise((resolve, reject) => {
       try {
         // Se o servidor já estiver ouvindo, resolve imediatamente
-        if (this.server.listening) {
+        if ((this.server as any).listening) {
           console.log(`WebSocket server already listening on port ${this.port}`);
           resolve();
           return;

@@ -233,12 +233,7 @@ export const ReviewSummary: React.FC<ReviewSummaryProps> = ({
     };
   });
 
-  const countAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      fontSize: fontSize(16),
-      color: '#666',
-    };
-  });
+
 
   const distributionContainerStyle = useAnimatedStyle(() => {
     return {
@@ -269,7 +264,7 @@ export const ReviewSummary: React.FC<ReviewSummaryProps> = ({
   };
 
   return (
-    <Card style={[styles.container, style]}>
+    <Card style={StyleSheet.flatten([styles.container, style])}>
       <View style={styles.header}>
         <Text style={styles.title}>Avaliações dos clientes</Text>
         <Animated.Text

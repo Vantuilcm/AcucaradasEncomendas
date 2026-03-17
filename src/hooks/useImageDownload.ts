@@ -63,7 +63,7 @@ export function useImageDownload(): [ImageDownloadState, ImageDownloadHandlers] 
             ...prev,
             progress,
           }));
-          loggingService.debug('Progresso do download', { progress });
+          loggingService.info('Progresso do download', { progress });
         };
 
         const downloadResumable = FileSystem.createDownloadResumable(
@@ -75,7 +75,8 @@ export function useImageDownload(): [ImageDownloadState, ImageDownloadHandlers] 
 
         setDownloadTask(downloadResumable);
 
-        const { uri } = await downloadResumable.downloadAsync();
+        const result = await downloadResumable.downloadAsync();
+        const uri = result?.uri;
 
         if (uri) {
           setState(prev => ({

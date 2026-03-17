@@ -1,13 +1,8 @@
 import {
-  collection,
-  query,
-  where,
-  getDocs,
   doc,
   getDoc,
   setDoc,
   updateDoc,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { NotificationSettings } from '../types/NotificationSettings';

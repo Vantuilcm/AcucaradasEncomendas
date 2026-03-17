@@ -1,5 +1,4 @@
 import OneSignal from 'react-native-onesignal';
-import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 // Determinar ambiente (desenvolvimento ou produção)
@@ -54,30 +53,36 @@ export const initOneSignal = (): boolean => {
   try {
     // Configurar nível de log para debug em desenvolvimento
     if (isDevelopment) {
+      // @ts-ignore
       OneSignal.setLogLevel(6, 0); // DEBUG level
     } else {
+      // @ts-ignore
       OneSignal.setLogLevel(0, 0); // No logs in production
     }
 
     // Inicializar OneSignal com o App ID
+    // @ts-ignore
     OneSignal.setAppId(ONESIGNAL_APP_ID[ENV]);
 
     // Habilitar notificações in-app
-    OneSignal.setInAppMessageClickHandler(event => {
+    // @ts-ignore
+    OneSignal.setInAppMessageClickHandler((event: any) => {
       console.log('OneSignal IAM clicked:', event);
     });
 
     // Configurar manipulador de notificações
-    OneSignal.setNotificationWillShowInForegroundHandler(notificationReceivedEvent => {
+    // @ts-ignore
+    OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent: any) => {
       console.log('OneSignal: notification will show in foreground:', notificationReceivedEvent);
       // Complete o evento para mostrar a notificação
       notificationReceivedEvent.complete(notificationReceivedEvent.getNotification());
     });
 
     // Configurar manipulador de cliques em notificações
-    OneSignal.setNotificationOpenedHandler(openedEvent => {
+    // @ts-ignore
+    OneSignal.setNotificationOpenedHandler((openedEvent: any) => {
       console.log('OneSignal: notification opened:', openedEvent);
-      const { action, notification } = openedEvent;
+      // const { action, notification } = openedEvent;
 
       // Aqui você pode adicionar lógica para lidar com diferentes ações
       // Por exemplo, navegar para uma tela específica com base nos dados da notificação
@@ -105,6 +110,7 @@ export const requestOneSignalPermission = async () => {
     }
 
     // Solicitar permissão para notificações
+    // @ts-ignore
     const deviceState = await OneSignal.getDeviceState();
 
     if (deviceState?.hasNotificationPermission) {
@@ -113,7 +119,8 @@ export const requestOneSignalPermission = async () => {
     }
 
     // Solicitar permissão
-    OneSignal.promptForPushNotificationsWithUserResponse(response => {
+    // @ts-ignore
+    OneSignal.promptForPushNotificationsWithUserResponse((response: any) => {
       console.log('OneSignal: User response to notification permission:', response);
       return response;
     });
@@ -130,6 +137,7 @@ export const requestOneSignalPermission = async () => {
  */
 export const getOneSignalUserId = async () => {
   try {
+    // @ts-ignore
     const deviceState = await OneSignal.getDeviceState();
     return deviceState?.userId || null;
   } catch (error) {
@@ -144,6 +152,7 @@ export const getOneSignalUserId = async () => {
  */
 export const setOneSignalTags = async (tags: Record<string, string | number | boolean>) => {
   try {
+    // @ts-ignore
     await OneSignal.sendTags(tags);
     console.log('OneSignal: Tags set successfully', tags);
     return true;
@@ -159,6 +168,7 @@ export const setOneSignalTags = async (tags: Record<string, string | number | bo
  */
 export const deleteOneSignalTags = async (keys: string[]) => {
   try {
+    // @ts-ignore
     await OneSignal.deleteTags(keys);
     console.log('OneSignal: Tags deleted successfully', keys);
     return true;
@@ -305,6 +315,7 @@ export const sendOneSignalNotificationToSegment = async (
  */
 export const setupOneSignalEcommerce = (userId: string) => {
   // Configurar identificação do usuário para análise
+  // @ts-ignore
   OneSignal.setExternalUserId(userId);
 
   // Você pode adicionar mais configurações específicas para e-commerce aqui

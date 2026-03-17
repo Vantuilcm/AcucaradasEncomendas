@@ -17,7 +17,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { useAuth } from '../hooks/useAuth';
-import type { DeliveryDriver } from '../types/DeliveryDriver';
+
 
 export default function DeliveryDriverRegistration() {
   const { user } = useAuth();
@@ -33,7 +33,7 @@ export default function DeliveryDriverRegistration() {
     insurance: null,
   });
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const cameraRef = useRef<Camera | null>(null);
+  const cameraRef = useRef<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<{
     name: string;
@@ -41,7 +41,7 @@ export default function DeliveryDriverRegistration() {
     email: string;
     cpf: string;
     cnh: string;
-    vehicleType: DeliveryDriver['vehicle']['type'];
+    vehicleType: 'car' | 'bicycle' | 'motorcycle';
     vehicleBrand: string;
     vehicleModel: string;
     vehicleYear: string;
@@ -64,7 +64,7 @@ export default function DeliveryDriverRegistration() {
   useEffect(() => {
     if (Platform.OS !== 'web') {
       (async () => {
-        const { status } = await Camera.requestCameraPermissionsAsync();
+        // const { status } = await Camera.requestCameraPermissionsAsync();
         setHasPermission(status === 'granted');
       })();
     } else {
@@ -132,9 +132,11 @@ export default function DeliveryDriverRegistration() {
     }
 
     try {
-      const result = await DocumentPicker.getDocumentAsync({
+      const result = await (DocumentPicker.getDocumentAsync as any)({
         type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
       });
+
 
       if (!result.canceled) {
         setDocuments(prev => ({
@@ -331,7 +333,7 @@ export default function DeliveryDriverRegistration() {
         onChangeText={vehicleType =>
           setForm(prev => ({
             ...prev,
-            vehicleType: vehicleType as DeliveryDriver['vehicle']['type'],
+            vehicleType: vehicleType as 'car' | 'bicycle' | 'motorcycle',
           }))
         }
       />

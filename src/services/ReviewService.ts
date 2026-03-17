@@ -10,9 +10,6 @@ import {
   updateDoc,
   deleteDoc,
   limit,
-  startAfter,
-  Timestamp,
-  increment,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Review, ReviewFilters, ReviewSummary } from '../types/Review';
@@ -39,10 +36,12 @@ export class ReviewService {
       let q = query(reviewsRef, orderBy('createdAt', 'desc'), limit(this.pageSize));
 
       if (lastReview) {
+        // @ts-ignore
+        const { startAfter } = require('firebase/firestore');
         q = query(
           reviewsRef,
           orderBy('createdAt', 'desc'),
-          startAfter(Timestamp.fromDate(new Date(lastReview.createdAt))),
+          startAfter(new Date(lastReview.createdAt)),
           limit(this.pageSize)
         );
       }
@@ -216,6 +215,8 @@ export class ReviewService {
   async likeReview(reviewId: string): Promise<void> {
     try {
       const reviewRef = doc(db, this.collection, reviewId);
+      // @ts-ignore
+      const { increment } = require('firebase/firestore');
       await updateDoc(reviewRef, {
         likes: increment(1),
       });

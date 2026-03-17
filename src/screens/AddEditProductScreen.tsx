@@ -78,7 +78,7 @@ export function AddEditProductScreen() {
       <ErrorMessage
         message="Você não tem permissão para acessar esta área"
         onRetry={() => navigation.goBack()}
-        retryText="Voltar"
+        retryLabel="Voltar"
       />
     );
   }
@@ -129,8 +129,8 @@ export function AddEditProductScreen() {
     }
 
     // Abrir o seletor de imagens
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    let result = await (ImagePicker.launchImageLibraryAsync as any)({
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,

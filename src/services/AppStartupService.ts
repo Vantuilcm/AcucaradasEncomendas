@@ -226,7 +226,12 @@ class AppStartupService {
     this.appStateSubscription?.remove();
     this.appStateSubscription = undefined;
 
-    // Outros procedimentos de limpeza
+    // Parar monitoramento de performance
+    if (this.performanceService) {
+      this.performanceService.stopMonitoring();
+    }
+
+    this.isInitialized = false;
   }
 }
 

@@ -23,7 +23,7 @@ export class AddressService {
       const querySnapshot = await getDocs(q);
       const addresses: Address[] = [];
 
-      querySnapshot.forEach(doc => {
+      querySnapshot.docs.forEach((doc: any) => {
         addresses.push({
           id: doc.id,
           ...doc.data(),
@@ -104,9 +104,9 @@ export class AddressService {
       const q = query(addressesRef, where('userId', '==', userId), where('isDefault', '==', true));
 
       const querySnapshot = await getDocs(q);
-      const batch = db.batch();
+      const batch = (db as any).batch();
 
-      querySnapshot.forEach(doc => {
+      querySnapshot.docs.forEach((doc: any) => {
         batch.update(doc.ref, { isDefault: false });
       });
 

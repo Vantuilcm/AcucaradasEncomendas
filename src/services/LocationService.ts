@@ -1,11 +1,7 @@
 import {
   collection,
-  query,
-  where,
   getDocs,
   doc,
-  getDoc,
-  GeoPoint,
   updateDoc,
 } from 'firebase/firestore';
 import * as Location from '../compat/expoLocation';
@@ -213,8 +209,8 @@ export class LocationService {
       const stores: Store[] = [];
 
       // Para cada loja, calcular a distância e adicionar se estiver dentro do raio
-      querySnapshot.forEach(doc => {
-        const storeData = doc.data() as Omit<Store, 'id'>;
+      querySnapshot.docs.forEach(doc => {
+        const storeData = doc.data() as unknown as Omit<Store, 'id'>;
 
         // Calcular distância
         const distance = this.calculateDistance(location, storeData.coordinates);

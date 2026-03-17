@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import { Product } from '../types/Product';
+// import { Product } from '../types/Product';
 
 // Interface para configuração do cache
 interface CacheConfig {
@@ -38,9 +38,9 @@ class CacheServiceOptimized {
   private static instance: CacheServiceOptimized;
   private config: CacheConfig;
   private memoryCache: Map<string, CacheItem<any>>;
-  private isNetworkAvailable: boolean = true;
+  // private _isNetworkAvailable: boolean = true;
   private stats: CacheStats;
-  private pendingWrites: Map<string, Promise<void>>;
+  // private _pendingWrites: Map<string, Promise<void>>;
   private writeQueue: { key: string; item: CacheItem<any> }[];
   private writeTimer: NodeJS.Timeout | null = null;
 
@@ -60,12 +60,12 @@ class CacheServiceOptimized {
       totalSize: 0,
       hitRate: 0,
     };
-    this.pendingWrites = new Map();
+    // this._pendingWrites = new Map();
     this.writeQueue = [];
 
     // Monitorar conectividade de rede
-    NetInfo.addEventListener(state => {
-      this.isNetworkAvailable = state.isConnected ?? false;
+    NetInfo.addEventListener(_state => {
+      // this._isNetworkAvailable = state.isConnected ?? false;
     });
 
     // Carregar cache do armazenamento persistente (lazy loading)

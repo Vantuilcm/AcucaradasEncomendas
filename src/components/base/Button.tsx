@@ -12,7 +12,6 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import { useAppTheme } from '../ThemeProvider';
 
@@ -42,7 +41,7 @@ export function Button({
   testID,
   ...accessibilityProps
 }: ButtonProps) {
-  const theme = useAppTheme();
+  const { theme } = useAppTheme();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -126,7 +125,7 @@ export function Button({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled || loading}
-        style={({ pressed }) => [
+        style={() => [
           styles.button,
           getVariantStyles(),
           getSizeStyles(),

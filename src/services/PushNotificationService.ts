@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from '../compat/expoDevice';
 import { Platform } from 'react-native';
 import { db } from '../config/firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { loggingService } from './LoggingService';
 
 export class PushNotificationService {
@@ -78,7 +78,7 @@ export class PushNotificationService {
   async unregisterForPushNotifications(userId: string): Promise<void> {
     try {
       const tokenRef = doc(db, this.collection, userId);
-      await tokenRef.delete();
+      await deleteDoc(tokenRef);
 
       loggingService.info('Token de notificação removido com sucesso', {
         userId,
@@ -101,7 +101,7 @@ export class PushNotificationService {
         return null;
       }
 
-      return tokenDoc.data().token;
+      return tokenDoc.data()?.token as string || null;
     } catch (error) {
       loggingService.error('Erro ao buscar token de notificação', {
         userId,
@@ -169,7 +169,7 @@ export class PushNotificationService {
           body,
           data,
         },
-        trigger,
+        trigger: trigger as Notifications.NotificationTriggerInput,
       });
 
       loggingService.info('Notificação local agendada com sucesso', {

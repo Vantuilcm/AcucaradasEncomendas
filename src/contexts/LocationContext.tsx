@@ -7,7 +7,7 @@ import {
   MAX_PROXIMITY_RADIUS,
 } from '../services/LocationService';
 import { useAuth } from './AuthContext';
-import { secureLoggingService } from '../services/SecureLoggingService';
+import { loggingService } from '../services/LoggingService';
 
 interface LocationContextProps {
   currentLocation: GeoCoordinates | null;

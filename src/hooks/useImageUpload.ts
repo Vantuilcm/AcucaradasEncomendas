@@ -53,7 +53,7 @@ export function useImageUpload(): [ImageUploadState, ImageUploadHandlers] {
       }
 
       const fileSize = fileInfo.size || 0;
-      const maxSize = finalOptions.maxSize * 1024 * 1024; // Converte para bytes
+      const maxSize = finalOptions.maxSize! * 1024 * 1024; // Converte para bytes
 
       if (fileSize > maxSize) {
         if (!finalOptions.compress) {
@@ -61,7 +61,7 @@ export function useImageUpload(): [ImageUploadState, ImageUploadHandlers] {
         }
 
         // Comprime a imagem se necessário
-        const compressedUri = await compressImage(imageUri, finalOptions.compressQuality);
+        const compressedUri = await compressImage(imageUri, finalOptions.compressQuality!);
         imageUri = compressedUri;
       }
 
@@ -110,7 +110,7 @@ export function useImageUpload(): [ImageUploadState, ImageUploadHandlers] {
       );
 
       const result = await uploadTask.uploadAsync();
-      const response = await fetch(result.uri);
+      const response = await fetch(result?.body || '');
       const data = await response.json();
 
       setState(prev => ({
@@ -180,7 +180,7 @@ export function useImageUpload(): [ImageUploadState, ImageUploadHandlers] {
   }, []);
 
   // Função auxiliar para comprimir imagem
-  const compressImage = async (imageUri: string, quality: number): Promise<string> => {
+  const compressImage = async (imageUri: string, _quality: number): Promise<string> => {
     const compressedUri = `${imageUri}_compressed.jpg`;
     await FileSystem.copyAsync({
       from: imageUri,

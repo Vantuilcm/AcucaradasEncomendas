@@ -3,7 +3,6 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Card, Title, Paragraph, Button, List, Divider, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const AdminPanelScreen = () => {
   const navigation = useNavigation();
@@ -29,19 +28,19 @@ const AdminPanelScreen = () => {
     { id: '#12343', customer: 'Ana Oliveira', total: 'R$ 210,50', status: 'Em preparo', date: '14/06/2023' },
   ];
 
-  const navigateToSection = (section) => {
+  const navigateToSection = (section: string) => {
     switch (section) {
       case 'products':
-        navigation.navigate('ProductManagement');
+        (navigation as any).navigate('ProductManagement');
         break;
       case 'orders':
-        navigation.navigate('OrderManagement');
+        (navigation as any).navigate('OrderManagement');
         break;
       case 'users':
         // Navegar para gerenciamento de usuários quando disponível
         break;
       case 'notifications':
-        navigation.navigate('NotificationSettings');
+        (navigation as any).navigate('NotificationSettings');
         break;
       default:
         break;
@@ -156,7 +155,7 @@ const AdminPanelScreen = () => {
                   title={`${order.id} - ${order.customer}`}
                   description={`${order.date} | ${order.status}`}
                   right={() => <Text style={styles.orderTotal}>{order.total}</Text>}
-                  onPress={() => navigation.navigate('OrderDetail', { orderId: order.id })}
+                  onPress={() => (navigation as any).navigate('OrderDetail', { orderId: order.id })}
                 />
                 {index < recentOrders.length - 1 && <Divider />}
               </React.Fragment>
@@ -177,7 +176,7 @@ const AdminPanelScreen = () => {
             <Button 
               icon="plus" 
               mode="contained" 
-              onPress={() => navigation.navigate('AddEditProduct')}
+              onPress={() => (navigation as any).navigate('AddEditProduct')}
               style={styles.quickActionButton}
             >
               Novo Produto

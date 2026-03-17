@@ -325,7 +325,7 @@ export class RealTimeMonitoring {
    */
   private checkAlerts(): void {
     try {
-      for (const [metricType, metrics] of this.realTimeMetrics) {
+      for (const [metricType, metrics] of Array.from(this.realTimeMetrics.entries())) {
         if (metrics.length === 0) continue;
 
         const latestMetric = metrics[metrics.length - 1];
@@ -447,8 +447,8 @@ export class RealTimeMonitoring {
    */
   private getCurrentMemoryUsage(): number {
     try {
-      if (typeof performance !== 'undefined' && performance.memory) {
-        const memory = performance.memory;
+      if (typeof performance !== 'undefined' && (performance as any).memory) {
+        const memory = (performance as any).memory;
         return (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
       }
 
@@ -679,7 +679,7 @@ export class RealTimeMonitoring {
     const metricHealth: { [key: string]: 'healthy' | 'warning' | 'critical' } = {};
     let overallHealth: 'healthy' | 'warning' | 'critical' = 'healthy';
 
-    for (const [metricType, metrics] of this.realTimeMetrics) {
+    for (const [metricType, metrics] of Array.from(this.realTimeMetrics.entries())) {
       if (metrics.length === 0) {
         metricHealth[metricType] = 'healthy';
         continue;

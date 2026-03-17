@@ -25,7 +25,7 @@ export function LoadingIndicator({
   style,
   variant = 'dots',
 }: LoadingIndicatorProps) {
-  const theme = useAppTheme();
+  const { theme } = useAppTheme();
 
   // Definir tamanho baseado na prop size
   const getSize = () => {

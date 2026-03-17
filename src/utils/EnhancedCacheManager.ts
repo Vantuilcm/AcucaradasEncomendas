@@ -196,5 +196,7 @@ export class EnhancedCacheManager {
   }
 }
 
-// Inicializar o gerenciador de cache
-EnhancedCacheManager.initialize();
+// Inicializar o gerenciador de cache apenas se não estiver em ambiente de teste
+if (process.env.NODE_ENV !== 'test') {
+  EnhancedCacheManager.initialize();
+}

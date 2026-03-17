@@ -1,3 +1,4 @@
+// @ts-ignore
 import * as CryptoJS from 'crypto-js';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
@@ -38,9 +39,9 @@ export class EncryptionService {
         key = CryptoJS.lib.WordArray.random(32).toString();
         
         if (Platform.OS !== 'web') {
-          await SecureStore.setItemAsync(this.KEY_STORAGE_ALIAS, key);
+          await SecureStore.setItemAsync(this.KEY_STORAGE_ALIAS, key!);
         } else {
-          localStorage.setItem(this.KEY_STORAGE_ALIAS, key);
+          localStorage.setItem(this.KEY_STORAGE_ALIAS, key!);
         }
       }
 
@@ -70,7 +71,7 @@ export class EncryptionService {
     
     try {
       // @ts-ignore - CryptoJS types mismatch sometimes
-      const encrypted = CryptoJS.AES.encrypt(data, this.secretKey!).toString();
+      const encrypted = CryptoJS.AES.encrypt(data || '', this.secretKey!).toString();
       return encrypted;
     } catch (error) {
       console.error('Erro ao criptografar dados:', error);

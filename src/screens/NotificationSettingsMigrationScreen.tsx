@@ -11,7 +11,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { useNotificationSettingsMigration } from '../utils/notificationSettingsMigration';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { loggingService } from '../services/LoggingService';
 
 /**
@@ -23,6 +23,12 @@ export const NotificationSettingsMigrationScreen = () => {
   const theme = useTheme();
   const { migrateUserSettings, migrateAllUsers, checkIfMigrated, clearCache } =
     useNotificationSettingsMigration();
+
+  const dynamicStyles = {
+    adminButton: {
+      backgroundColor: theme.colors.error,
+    },
+  };
 
   const [isMigrated, setIsMigrated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,27 +47,28 @@ export const NotificationSettingsMigrationScreen = () => {
 
   // Verificar o status da migração para o usuário atual
   const checkMigrationStatus = async () => {
-    if (!user?.uid) return;
+    if (!user || !(user as any).uid) return;
 
     setIsLoading(true);
     try {
-      const migrated = await checkIfMigrated(user.uid);
+      const migrated = await checkIfMigrated((user as any).uid);
       setIsMigrated(migrated);
     } catch (error) {
-      loggingService.error('Erro ao verificar status da migração', error);
+      loggingService.error('Erro ao verificar status da migração', error as Error);
       Alert.alert('Erro', 'Não foi possível verificar o status da migração.');
     } finally {
-      setIsLoading(false);
-    }
-  };
+        setIsLoading(false);
+      }
+    };
 
   // Migrar as configurações do usuário atual
   const handleMigrateCurrentUser = async () => {
-    if (!user?.uid) return;
+    if (!user || !(user as any).uid) return;
 
     setIsLoading(true);
     try {
-      const success = await migrateUserSettings(user.uid);
+      const success = await migrateUserSettings((user as any).uid);
+
 
       if (success) {
         setIsMigrated(true);
@@ -70,7 +77,7 @@ export const NotificationSettingsMigrationScreen = () => {
         Alert.alert('Erro', 'Não foi possível migrar suas configurações de notificação.');
       }
     } catch (error) {
-      loggingService.error('Erro ao migrar configurações do usuário atual', error);
+      loggingService.error('Erro ao migrar configurações do usuário atual', error as Error);
       Alert.alert('Erro', 'Ocorreu um erro durante a migração.');
     } finally {
       setIsLoading(false);
@@ -95,13 +102,12 @@ export const NotificationSettingsMigrationScreen = () => {
               const result = await migrateAllUsers();
               setMigrationStats(result);
 
-              const total = result.success + result.failed;
               Alert.alert(
                 'Migração Concluída',
-                `Migração concluída com ${result.success} sucessos e ${result.failed} falhas.`
+                `Migração finalizada com sucesso.`
               );
             } catch (error) {
-              loggingService.error('Erro ao migrar todos os usuários', error);
+              loggingService.error('Erro ao migrar todos os usuários', error as Error);
               Alert.alert('Erro', 'Ocorreu um erro durante a migração de todos os usuários.');
             } finally {
               setIsMigrating(false);
@@ -115,22 +121,22 @@ export const NotificationSettingsMigrationScreen = () => {
 
   // Limpar o cache de configurações do usuário atual
   const handleClearCache = async () => {
-    if (!user?.uid) return;
+    if (!user || !(user as any).uid) return;
 
     setIsLoading(true);
     try {
-      await clearCache(user.uid);
+      await clearCache((user as any).uid);
       Alert.alert('Sucesso', 'Cache de configurações limpo com sucesso.');
     } catch (error) {
-      loggingService.error('Erro ao limpar cache', error);
-      Alert.alert('Erro', 'Não foi possível limpar o cache de configurações.');
-    } finally {
+        loggingService.error('Erro ao limpar cache', error as Error);
+        Alert.alert('Erro', 'Não foi possível limpar o cache de configurações.');
+      } finally {
       setIsLoading(false);
     }
   };
 
   // Verificar se o usuário é administrador
-  const isAdmin = user?.isAdmin === true;
+  const isAdmin = (user as any)?.isAdmin === true;
 
   return (
     <ScrollView style={styles.container}>
@@ -187,8 +193,9 @@ export const NotificationSettingsMigrationScreen = () => {
               <Button
                 mode="contained"
                 onPress={handleMigrateAllUsers}
+                style={[styles.button, dynamicStyles.adminButton]}
                 disabled={isLoading || isMigrating}
-                style={[styles.button, styles.adminButton]}
+                icon="account-multiple-check"
               >
                 Migrar Todos os Usuários
               </Button>
@@ -256,9 +263,6 @@ const styles = StyleSheet.create({
   },
   button: {
     marginBottom: 12,
-  },
-  adminButton: {
-    backgroundColor: theme.colors.error,
   },
   progressContainer: {
     marginTop: 16,

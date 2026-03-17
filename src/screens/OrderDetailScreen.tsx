@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { Text, Button, Card, Chip, Divider, List, useTheme, IconButton } from 'react-native-paper';
+import { Text, Button, Card, Chip, Divider, useTheme, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 // Tipos para pedidos
@@ -128,7 +128,6 @@ const getStatusText = (status: Order['status']) => {
 export default function OrderDetailScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
-  const route = useRoute();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 

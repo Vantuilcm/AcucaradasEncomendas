@@ -1,9 +1,11 @@
-import { NotificationSettingsService } from '../NotificationSettingsService';
+import { NotificationSettingsServiceWithCache } from '../NotificationSettingsServiceWithCache';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { loggingService } from '../LoggingService';
+import { CacheManager } from '../../utils/cache';
 
 // Mock do Firestore
 jest.mock('firebase/firestore', () => ({
+  getFirestore: jest.fn(),
   collection: jest.fn(),
   query: jest.fn(),
   where: jest.fn(),
@@ -15,6 +17,11 @@ jest.mock('firebase/firestore', () => ({
   serverTimestamp: jest.fn(() => new Date().toISOString()),
 }));
 
+// Mock do Firebase Config
+jest.mock('../../config/firebase', () => ({
+  db: {},
+}));
+
 // Mock do LoggingService
 jest.mock('../LoggingService', () => ({
   loggingService: {
@@ -23,17 +30,27 @@ jest.mock('../LoggingService', () => ({
   },
 }));
 
-describe('NotificationSettingsService', () => {
-  let notificationSettingsService: NotificationSettingsService;
+// Mock do CacheManager
+jest.mock('../../utils/cache', () => ({
+  CacheManager: {
+    getData: jest.fn(),
+    setData: jest.fn(),
+    removeData: jest.fn(),
+    clearAll: jest.fn(),
+  },
+}));
+
+describe('NotificationSettingsServiceWithCache', () => {
+  let notificationSettingsService: NotificationSettingsServiceWithCache;
   const userId = 'test-user-id';
 
   beforeEach(() => {
-    notificationSettingsService = new NotificationSettingsService();
+    notificationSettingsService = NotificationSettingsServiceWithCache.getInstance();
     jest.clearAllMocks();
   });
 
   describe('getUserSettings', () => {
-    it('deve retornar as configurações do usuário quando existirem', async () => {
+    it('deve retornar as configurações do usuário quando existirem (Firestore)', async () => {
       // Configurar mock
       const mockSettingsData = {
         userId,
@@ -55,6 +72,7 @@ describe('NotificationSettingsService', () => {
         updatedAt: '2023-01-02T00:00:00.000Z',
       };
 
+      (CacheManager.getData as jest.Mock).mockResolvedValue(null); // Cache miss
       (doc as jest.Mock).mockReturnValue({ id: userId });
       (getDoc as jest.Mock).mockResolvedValue({
         exists: () => true,
@@ -70,12 +88,49 @@ describe('NotificationSettingsService', () => {
         id: userId,
         ...mockSettingsData,
       });
+      expect(CacheManager.getData).toHaveBeenCalled();
       expect(doc).toHaveBeenCalled();
       expect(getDoc).toHaveBeenCalled();
+      expect(CacheManager.setData).toHaveBeenCalled(); // Should cache after fetch
+    });
+
+    it('deve retornar as configurações do usuário quando existirem (Cache)', async () => {
+      // Configurar mock
+      const mockSettingsData = {
+        id: userId,
+        userId,
+        enabled: true,
+        types: {
+          orderStatus: true,
+          promotions: false,
+          news: true,
+          deliveryUpdates: true,
+          paymentUpdates: false,
+        },
+        frequency: 'immediate',
+        quietHours: {
+          enabled: true,
+          start: '22:00',
+          end: '06:00',
+        },
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-02T00:00:00.000Z',
+      };
+
+      (CacheManager.getData as jest.Mock).mockResolvedValue(mockSettingsData); // Cache hit
+
+      // Executar método
+      const result = await notificationSettingsService.getUserSettings(userId);
+
+      // Verificar resultado
+      expect(result).toEqual(mockSettingsData);
+      expect(CacheManager.getData).toHaveBeenCalled();
+      expect(getDoc).not.toHaveBeenCalled(); // Should NOT hit Firestore
     });
 
     it('deve retornar null quando as configurações não existirem', async () => {
       // Configurar mock
+      (CacheManager.getData as jest.Mock).mockResolvedValue(null);
       (doc as jest.Mock).mockReturnValue({ id: userId });
       (getDoc as jest.Mock).mockResolvedValue({
         exists: () => false,
@@ -93,6 +148,7 @@ describe('NotificationSettingsService', () => {
     it('deve lançar erro quando ocorrer uma exceção', async () => {
       // Configurar mock
       const mockError = new Error('Erro de teste');
+      (CacheManager.getData as jest.Mock).mockResolvedValue(null);
       (doc as jest.Mock).mockReturnValue({ id: userId });
       (getDoc as jest.Mock).mockRejectedValue(mockError);
 
@@ -131,6 +187,7 @@ describe('NotificationSettingsService', () => {
       expect(result).toHaveProperty('updatedAt');
       expect(doc).toHaveBeenCalled();
       expect(setDoc).toHaveBeenCalled();
+      expect(CacheManager.setData).toHaveBeenCalled(); // Should cache
       expect(loggingService.info).toHaveBeenCalled();
     });
 
@@ -153,6 +210,29 @@ describe('NotificationSettingsService', () => {
       // Configurar mock
       (doc as jest.Mock).mockReturnValue({ id: userId });
       (updateDoc as jest.Mock).mockResolvedValue(undefined);
+      
+      // Mock getUserSettings for internal call
+      const mockSettingsData = {
+        id: userId,
+        userId,
+        enabled: true,
+        types: {
+            orderStatus: true,
+            promotions: false,
+            news: true,
+            deliveryUpdates: true,
+            paymentUpdates: false,
+        },
+        frequency: 'immediate',
+        quietHours: {
+            enabled: true,
+            start: '22:00',
+            end: '06:00',
+        },
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-02T00:00:00.000Z',
+      };
+      (CacheManager.getData as jest.Mock).mockResolvedValue(mockSettingsData);
 
       const updates = {
         enabled: false,
@@ -165,6 +245,7 @@ describe('NotificationSettingsService', () => {
       // Verificar resultado
       expect(doc).toHaveBeenCalled();
       expect(updateDoc).toHaveBeenCalled();
+      expect(CacheManager.setData).toHaveBeenCalled(); // Should update cache
       expect(loggingService.info).toHaveBeenCalled();
     });
 
@@ -190,6 +271,7 @@ describe('NotificationSettingsService', () => {
     it('deve retornar true quando as notificações estiverem habilitadas', async () => {
       // Configurar mock
       const mockSettingsData = {
+        id: userId,
         userId,
         enabled: true,
         types: {
@@ -209,12 +291,7 @@ describe('NotificationSettingsService', () => {
         updatedAt: '2023-01-02T00:00:00.000Z',
       };
 
-      (doc as jest.Mock).mockReturnValue({ id: userId });
-      (getDoc as jest.Mock).mockResolvedValue({
-        exists: () => true,
-        id: userId,
-        data: () => mockSettingsData,
-      });
+      (CacheManager.getData as jest.Mock).mockResolvedValue(mockSettingsData);
 
       // Executar método para um tipo habilitado
       const result = await notificationSettingsService.shouldReceiveNotification(
@@ -229,6 +306,7 @@ describe('NotificationSettingsService', () => {
     it('deve retornar false quando as notificações estiverem desabilitadas globalmente', async () => {
       // Configurar mock
       const mockSettingsData = {
+        id: userId,
         userId,
         enabled: false, // Desabilitado globalmente
         types: {
@@ -248,12 +326,7 @@ describe('NotificationSettingsService', () => {
         updatedAt: '2023-01-02T00:00:00.000Z',
       };
 
-      (doc as jest.Mock).mockReturnValue({ id: userId });
-      (getDoc as jest.Mock).mockResolvedValue({
-        exists: () => true,
-        id: userId,
-        data: () => mockSettingsData,
-      });
+      (CacheManager.getData as jest.Mock).mockResolvedValue(mockSettingsData);
 
       // Executar método
       const result = await notificationSettingsService.shouldReceiveNotification(
@@ -268,6 +341,7 @@ describe('NotificationSettingsService', () => {
     it('deve retornar false quando o tipo específico estiver desabilitado', async () => {
       // Configurar mock
       const mockSettingsData = {
+        id: userId,
         userId,
         enabled: true,
         types: {
@@ -287,12 +361,7 @@ describe('NotificationSettingsService', () => {
         updatedAt: '2023-01-02T00:00:00.000Z',
       };
 
-      (doc as jest.Mock).mockReturnValue({ id: userId });
-      (getDoc as jest.Mock).mockResolvedValue({
-        exists: () => true,
-        id: userId,
-        data: () => mockSettingsData,
-      });
+      (CacheManager.getData as jest.Mock).mockResolvedValue(mockSettingsData);
 
       // Executar método para um tipo desabilitado
       const result = await notificationSettingsService.shouldReceiveNotification(

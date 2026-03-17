@@ -200,7 +200,7 @@ export class FraudDetectionService {
    * Verifica se há múltiplos pedidos em um curto período
    */
   private checkMultipleOrders(
-    order: Order,
+    _order: Order,
     previousOrders: Order[],
     result: FraudAnalysisResult
   ): void {
@@ -420,16 +420,16 @@ export class FraudDetectionService {
   /**
    * Calcula o valor total de um pedido
    */
-  private calculateOrderValue(order: Order): number {
+  private calculateOrderValue(_order: Order): number {
     let total = 0;
 
     // Soma o valor de cada item
-    if (order.items && Array.isArray(order.items)) {
-      total = order.items.reduce((sum, item) => {
-        const itemTotal = (item.price || 0) * (item.quantity || 1);
+    if (_order.items && Array.isArray(_order.items)) {
+      total = _order.items.reduce((sum, item) => {
+        const itemTotal = (item.unitPrice || 0) * (item.quantity || 1);
         // Adiciona o valor das opções, se houver
-        const optionsTotal = item.options
-          ? item.options.reduce((optSum, opt) => optSum + (opt.price || 0), 0)
+        const optionsTotal = (item as any).options
+          ? (item as any).options.reduce((optSum: number, opt: any) => optSum + (opt.price || 0), 0)
           : 0;
         return sum + itemTotal + optionsTotal;
       }, 0);

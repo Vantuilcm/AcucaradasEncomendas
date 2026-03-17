@@ -11,7 +11,7 @@ interface PaymentSummaryProps {
 export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
   subtotal,
   deliveryFee,
-  paymentMethod = 'credit_card',
+  paymentMethod: _paymentMethod = 'credit_card',
 }) => {
   const theme = useTheme();
   const total = subtotal + deliveryFee;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, useTheme, IconButton, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { HelpArticle } from '../types/HelpCenter';
@@ -14,7 +14,6 @@ type RouteParams = {
 
 export function HelpArticleScreen() {
   const theme = useTheme();
-  const navigation = useNavigation();
   const route = useRoute();
   const { articleId } = route.params as RouteParams;
   const [article, setArticle] = useState<HelpArticle | null>(null);
