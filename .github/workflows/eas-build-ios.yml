@@ -1,0 +1,52 @@
+name: EAS Local Build - iOS
+
+on:
+  workflow_dispatch: # Permite acionar o build manualmente pelo painel do GitHub Actions
+
+jobs:
+  build-ios:
+    name: Build iOS App
+    # O GitHub fornece runners macOS que já vêm com o Xcode instalado
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Configurar PNPM
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Instalar dependências
+        run: pnpm install
+
+      - name: Configurar Expo e EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Criar diretório para o artefato
+        run: mkdir -p build-artifacts
+
+      - name: Executar Build iOS (EAS Local)
+        # O comando --local fará o build na máquina do GitHub, não consumindo sua cota do Expo!
+        # O profile 'production' vai baixar os certificados de assinatura remoto do Expo via EXPO_TOKEN.
+        run: eas build --platform ios --profile production --local --non-interactive --output ./build-artifacts/Acucaradas.ipa
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          # Se precisar submeter para a App Store automaticamente no futuro, você precisaria adicionar:
+          # EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+
+      - name: Fazer upload do artefato (.ipa)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Acucaradas-iOS-Build
+          path: build-artifacts/Acucaradas.ipa
+          retention-days: 7
