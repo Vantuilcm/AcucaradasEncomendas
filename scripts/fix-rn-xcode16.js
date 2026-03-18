@@ -28,7 +28,7 @@ const filesToPatch = [
   {
     file: 'node_modules/expo-apple-authentication/ios/AppleAuthenticationExceptions.swift',
     replacements: [
-      { search: /return RequestFailedException\(\)\s*\n\s*\}/g, replace: 'return RequestFailedException()\n  @unknown default:\n    return RequestUnknownException()\n  }' }
+      { search: /return RequestNotInteractiveException\(\)\s*\n\s*\}/g, replace: 'return RequestNotInteractiveException()\n  @unknown default:\n    return RequestUnknownException()\n  }' }
     ]
   }
 ];
