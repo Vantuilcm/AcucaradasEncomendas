@@ -69,10 +69,8 @@ jobs:
 
       - name: Validate profile
         run: |
-          if [ "${INPUT_PROFILE}" != "production_local" ]; then
-            echo "Erro: Este workflow so permite production_local."
-            exit 1
-          fi
+          echo "Perfil selecionado: ${INPUT_PROFILE}"
+
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -104,7 +102,7 @@ jobs:
     name: Build iOS IPA
     runs-on: macos-15
     needs: preflight
-    if: ${{ (inputs.mode || github.event.client_payload.mode || 'github_macos') == 'github_macos' && (inputs.profile || github.event.client_payload.profile || 'production_local') == 'production_local' }}
+    if: ${{ (inputs.mode || github.event.client_payload.mode || 'github_macos') == 'github_macos' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -163,7 +161,7 @@ jobs:
             fi
           fi
           
-          eas build --platform ios --profile production_local --local --non-interactive --output="./Acucaradas.ipa"
+          eas build --platform ios --profile ${{ env.INPUT_PROFILE }} --local --non-interactive --output="./Acucaradas.ipa"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
