@@ -1,0 +1,31 @@
+diff --git a/node_modules/@react-native-community/datetimepicker/ios/RNDateTimePickerShadowView.m b/node_modules/@react-native-community/datetimepicker/ios/RNDateTimePickerShadowView.m
+index ba0273b..21d28e6 100644
+--- a/node_modules/@react-native-community/datetimepicker/ios/RNDateTimePickerShadowView.m
++++ b/node_modules/@react-native-community/datetimepicker/ios/RNDateTimePickerShadowView.m
+@@ -1,11 +1,13 @@
+ #import "RNDateTimePickerShadowView.h"
+ 
++static YGSize RNDateTimePickerShadowViewMeasure(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode);
++
+ @implementation RNDateTimePickerShadowView
+ 
+ - (instancetype)init
+ {
+   if (self = [super init]) {
+-    YGNodeSetMeasureFunc(self.yogaNode, RNDateTimePickerShadowViewMeasure);
++    YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RNDateTimePickerShadowViewMeasure);
+   }
+   return self;
+ }
+@@ -31,9 +33,9 @@
+   YGNodeMarkDirty(self.yogaNode);
+ }
+ 
+-static YGSize RNDateTimePickerShadowViewMeasure(YGNodeRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)
++static YGSize RNDateTimePickerShadowViewMeasure(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)
+ {
+-  RNDateTimePickerShadowView *shadowPickerView = (__bridge RNDateTimePickerShadowView *)YGNodeGetContext(node);
++  RNDateTimePickerShadowView *shadowPickerView = (__bridge RNDateTimePickerShadowView *)YGNodeGetContext((YGNodeRef)node);
+ 
+   __block CGSize size;
+   dispatch_sync(dispatch_get_main_queue(), ^{
