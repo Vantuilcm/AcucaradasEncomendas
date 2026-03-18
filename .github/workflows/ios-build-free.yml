@@ -177,3 +177,12 @@ jobs:
           path: Acucaradas.ipa
           if-no-files-found: error
           retention-days: 7
+
+      - name: Submit to TestFlight (App Store)
+        run: |
+          echo "Iniciando upload para o TestFlight..."
+          eas submit --platform ios --path ./Acucaradas.ipa --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
