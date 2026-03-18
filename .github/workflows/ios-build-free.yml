@@ -51,6 +51,7 @@ env:
   INPUT_PROFILE: ${{ inputs.profile || github.event.client_payload.profile || 'production_local' }}
   INPUT_MODE: ${{ inputs.mode || github.event.client_payload.mode || 'github_macos' }}
   INPUT_PUBLISH_UPDATE: ${{ inputs.publish_update || github.event.client_payload.publish_update || false }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   preflight:
