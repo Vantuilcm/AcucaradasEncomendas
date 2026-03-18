@@ -119,37 +119,9 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --legacy-peer-deps --no-audit --fund=false
+          # postinstall scripts will automatically run fix-rn-xcode16.js and patch-package
         env:
           NODE_ENV: development
-
-      - name: Force Apply React Native & Swift Patches
-        run: |
-          echo "Aplicando correções manuais no React Native para Xcode 16..."
-          
-          # Correção 1: Yoga.h
-          sed -i '' 's/YGMeasureFunc)(YGNodeRef/YGMeasureFunc)(YGNodeConstRef/g' node_modules/react-native/ReactCommon/yoga/yoga/Yoga.h || true
-          
-          # Correção 2: RCTTextShadowView.m
-          sed -i '' 's/YGNodeSetMeasureFunc(self.yogaNode, RCTTextShadowViewMeasure);/YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTTextShadowViewMeasure);/g' node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m || true
-          sed -i '' 's/YGNodeSetBaselineFunc(self.yogaNode, RCTTextShadowViewBaseline);/YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextShadowViewBaseline);/g' node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m || true
-          sed -i '' 's/RCTTextShadowViewMeasure(YGNodeRef/RCTTextShadowViewMeasure(YGNodeConstRef/g' node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m || true
-          
-          # Correção 3: RCTBaseTextInputShadowView.m
-          sed -i '' 's/YGNodeSetMeasureFunc(self.yogaNode, RCTBaseTextInputShadowViewMeasure);/YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTBaseTextInputShadowViewMeasure);/g' node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m || true
-          sed -i '' 's/YGNodeSetBaselineFunc(self.yogaNode, RCTTextInputShadowViewBaseline);/YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextInputShadowViewBaseline);/g' node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m || true
-          sed -i '' 's/RCTBaseTextInputShadowViewMeasure(YGNodeRef/RCTBaseTextInputShadowViewMeasure(const struct YGNode */g' node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m || true
-          sed -i '' 's/RCTTextInputShadowViewBaseline(YGNodeRef/RCTTextInputShadowViewBaseline(const struct YGNode */g' node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m || true
-
-          # Correção 4: AppleAuthenticationExceptions.swift (Switch Exhaustiveness)
-          # Adiciona '@unknown default' para satisfazer o compilador Swift no Xcode 16
-          AUTH_FILE="node_modules/expo-apple-authentication/ios/AppleAuthenticationExceptions.swift"
-          if [ -f "$AUTH_FILE" ]; then
-            echo "Patching AppleAuthenticationExceptions.swift..."
-            # Substitui a linha do último return adicionando o default case logo em seguida
-            sed -i '' 's/return RequestFailedException()/return RequestFailedException(); @unknown default: return RequestUnknownException()/' "$AUTH_FILE" || true
-          fi
-
-          echo "Correções manuais aplicadas."
 
       - name: Prepare iOS Build
         run: npm run prepare:ios
