@@ -81,6 +81,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --legacy-peer-deps --no-audit --fund=false
+          npx patch-package
         env:
           NODE_ENV: development
           NO_SENTRY_VALIDATE: 1
