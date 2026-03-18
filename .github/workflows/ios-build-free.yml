@@ -149,21 +149,6 @@ jobs:
       - name: Build IPA
         run: |
           set -o pipefail
-          # Validar se o P12 gerado é legível (sem mostrar a senha)
-          if [ -f "credentials/ios/AcucaradasEncomendas-dist-cert.p12" ]; then
-            echo "🔍 Verificando integridade do certificado P12..."
-            if openssl pkcs12 -info -in credentials/ios/AcucaradasEncomendas-dist-cert.p12 -passin pass:"${APPLE_CERT_PASSWORD}" -nokeys -nodes > /dev/null 2>&1; then
-              echo "✅ Certificado P12 e senha validados com sucesso."
-            else
-              echo "------------------------------------------------------"
-              echo "❌ ERRO CRÍTICO: SENHA DO CERTIFICADO INVÁLIDA"
-              echo "A senha configurada no segredo 'IOS_CERT_PASSWORD' não funciona para este certificado P12."
-              echo "Verifique se você digitou a senha correta ao exportar o arquivo .p12."
-              echo "------------------------------------------------------"
-              exit 1
-            fi
-          fi
-          
           eas build --platform ios --profile ${{ env.INPUT_PROFILE }} --local --non-interactive --output="./Acucaradas.ipa"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
