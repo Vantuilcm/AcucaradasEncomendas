@@ -22,7 +22,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.acucaradas.encomendas",
-      "buildNumber": "376",
+      "buildNumber": "373",
       "entitlements": {
         "com.apple.developer.applesignin": ["Default"]
       },
