@@ -122,6 +122,26 @@ jobs:
         env:
           NODE_ENV: development
 
+      - name: Force Apply React Native Patch
+        run: |
+          echo "Aplicando correções manuais no React Native para Xcode 16..."
+          
+          # Correção 1: Yoga.h
+          sed -i '' 's/YGMeasureFunc)(YGNodeRef/YGMeasureFunc)(YGNodeConstRef/g' node_modules/react-native/ReactCommon/yoga/yoga/Yoga.h || true
+          
+          # Correção 2: RCTTextShadowView.m
+          sed -i '' 's/YGNodeSetMeasureFunc(self.yogaNode, RCTTextShadowViewMeasure);/YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTTextShadowViewMeasure);/g' node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m || true
+          sed -i '' 's/YGNodeSetBaselineFunc(self.yogaNode, RCTTextShadowViewBaseline);/YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextShadowViewBaseline);/g' node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m || true
+          sed -i '' 's/RCTTextShadowViewMeasure(YGNodeRef/RCTTextShadowViewMeasure(YGNodeConstRef/g' node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m || true
+          
+          # Correção 3: RCTBaseTextInputShadowView.m
+          sed -i '' 's/YGNodeSetMeasureFunc(self.yogaNode, RCTBaseTextInputShadowViewMeasure);/YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTBaseTextInputShadowViewMeasure);/g' node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m || true
+          sed -i '' 's/YGNodeSetBaselineFunc(self.yogaNode, RCTTextInputShadowViewBaseline);/YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextInputShadowViewBaseline);/g' node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m || true
+          sed -i '' 's/RCTBaseTextInputShadowViewMeasure(YGNodeRef/RCTBaseTextInputShadowViewMeasure(const struct YGNode */g' node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m || true
+          sed -i '' 's/RCTTextInputShadowViewBaseline(YGNodeRef/RCTTextInputShadowViewBaseline(const struct YGNode */g' node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m || true
+
+          echo "Correções manuais aplicadas."
+
       - name: Prepare iOS Build
         run: npm run prepare:ios
         env:
