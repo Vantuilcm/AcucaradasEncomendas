@@ -9,7 +9,7 @@
   },
   "scripts": {
     "prepare:ios": "node ./scripts/prepare-ios-build.js",
-    "postinstall": "patch-package",
+    "postinstall": "patch-package && node ./scripts/fix-rn-xcode16.js",
     "build:ios": "node -e \"require('fs').mkdirSync('build-artifacts',{recursive:true})\" && eas build --platform ios --profile production_local --local --non-interactive --output ./build-artifacts/Acucaradas.ipa",
     "start": "expo start",
     "web": "expo start --web",
