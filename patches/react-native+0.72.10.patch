@@ -1,0 +1,94 @@
+diff --git a/node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m b/node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m
+index d84aca5..f2065c7 100644
+--- a/node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m
++++ b/node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m
+@@ -27,8 +27,8 @@
+     _bridge = bridge;
+     _cachedTextStorages = [NSMapTable strongToStrongObjectsMapTable];
+     _needsUpdateView = YES;
+-    YGNodeSetMeasureFunc(self.yogaNode, RCTTextShadowViewMeasure);
+-    YGNodeSetBaselineFunc(self.yogaNode, RCTTextShadowViewBaseline);
++    YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTTextShadowViewMeasure);
++    YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextShadowViewBaseline);
+   }
+ 
+   return self;
+@@ -369,7 +369,7 @@
+ }
+ 
+ static YGSize
+-RCTTextShadowViewMeasure(YGNodeRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)
++RCTTextShadowViewMeasure(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)
+ {
+   CGSize maximumSize = (CGSize){
+       widthMode == YGMeasureModeUndefined ? CGFLOAT_MAX : RCTCoreGraphicsFloatFromYogaFloat(width),
+diff --git a/node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m b/node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m
+index 04d2446..2f4a410 100644
+--- a/node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m
++++ b/node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m
+@@ -15,6 +15,9 @@
+ #import <React/RCTBaseTextInputView.h>
+ #import "NSTextStorage+FontScaling.h"
+ 
++static YGSize RCTBaseTextInputShadowViewMeasure(const struct YGNode *node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode);
++static float RCTTextInputShadowViewBaseline(const struct YGNode *node, const float width, const float height);
++
+ @implementation RCTBaseTextInputShadowView {
+   __weak RCTBridge *_bridge;
+   NSAttributedString *_Nullable _previousAttributedText;
+@@ -34,8 +37,8 @@
+     _bridge = bridge;
+     _needsUpdateView = YES;
+ 
+-    YGNodeSetMeasureFunc(self.yogaNode, RCTBaseTextInputShadowViewMeasure);
+-    YGNodeSetBaselineFunc(self.yogaNode, RCTTextInputShadowViewBaseline);
++    YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTBaseTextInputShadowViewMeasure);
++    YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextInputShadowViewBaseline);
+   }
+ 
+   return self;
+@@ -258,8 +261,7 @@
+   return size.height + maximumDescender;
+ }
+ 
+-static YGSize RCTBaseTextInputShadowViewMeasure(
+-    YGNodeRef node,
++static YGSize RCTBaseTextInputShadowViewMeasure(const struct YGNode *node,
+     float width,
+     YGMeasureMode widthMode,
+     float height,
+@@ -302,7 +304,7 @@ static YGSize RCTBaseTextInputShadowViewMeasure(
+       RCTYogaFloatFromCoreGraphicsFloat(measuredSize.width), RCTYogaFloatFromCoreGraphicsFloat(measuredSize.height)};
+ }
+ 
+-static float RCTTextInputShadowViewBaseline(YGNodeRef node, const float width, const float height)
++static float RCTTextInputShadowViewBaseline(const struct YGNode *node, const float width, const float height)
+ {
+   RCTBaseTextInputShadowView *shadowTextView = (__bridge RCTBaseTextInputShadowView *)YGNodeGetContext(node);
+ 
+diff --git a/node_modules/react-native/React/Views/RCTShadowView.m b/node_modules/react-native/React/Views/RCTShadowView.m
+index baca3ce..6fd52d4 100644
+--- a/node_modules/react-native/React/Views/RCTShadowView.m
++++ b/node_modules/react-native/React/Views/RCTShadowView.m
+@@ -568,7 +568,7 @@ RCT_POSITION_PROPERTY(End, end, YGEdgeEnd)
+ // IntrinsicContentSize
+ 
+ static inline YGSize
+-RCTShadowViewMeasure(YGNodeRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)
++RCTShadowViewMeasure(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode)
+ {
+   RCTShadowView *shadowView = (__bridge RCTShadowView *)YGNodeGetContext(node);
+ 
+diff --git a/node_modules/react-native/ReactCommon/yoga/yoga/Yoga.h b/node_modules/react-native/ReactCommon/yoga/yoga/Yoga.h
+index 7fbf269..ac5ef20 100644
+--- a/node_modules/react-native/ReactCommon/yoga/yoga/Yoga.h
++++ b/node_modules/react-native/ReactCommon/yoga/yoga/Yoga.h
+@@ -35,7 +35,7 @@ typedef struct YGNode* YGNodeRef;
+ typedef const struct YGNode* YGNodeConstRef;
+ 
+ typedef YGSize (*YGMeasureFunc)(
+-    YGNodeRef node,
++    YGNodeConstRef node,
+     float width,
+     YGMeasureMode widthMode,
+     float height,
