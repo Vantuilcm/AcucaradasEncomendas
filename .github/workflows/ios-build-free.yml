@@ -170,6 +170,15 @@ jobs:
           APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
           NODE_ENV: production
           NO_SENTRY_VALIDATE: 1
+          # Firebase Configuration (Injected directly to fix missing env vars in build)
+          EXPO_PUBLIC_FIREBASE_API_KEY: "AIzaSyDZtvP51yQzFZQjJJMAXJ-aRmmN-__p1-Y"
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: "acucaradas-encomendas.firebaseapp.com"
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID: "acucaradas-encomendas"
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: "acucaradas-encomendas.appspot.com"
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "398756107192"
+          EXPO_PUBLIC_FIREBASE_APP_ID: "1:398756107192:web:a76b8d2af2b2e6e86a6fa7"
+
+
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
