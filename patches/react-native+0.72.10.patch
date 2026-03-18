@@ -66,6 +66,41 @@ index 04d2446..2f4a410 100644
  {
    RCTBaseTextInputShadowView *shadowTextView = (__bridge RCTBaseTextInputShadowView *)YGNodeGetContext(node);
  
+diff --git a/node_modules/react-native/Libraries/Wrapper/RCTWrapperShadowView.m b/node_modules/react-native/Libraries/Wrapper/RCTWrapperShadowView.m
+index 99b8acf..1a9acf6 100644
+--- a/node_modules/react-native/Libraries/Wrapper/RCTWrapperShadowView.m
++++ b/node_modules/react-native/Libraries/Wrapper/RCTWrapperShadowView.m
+@@ -13,6 +13,13 @@
+ 
+ #import "RCTWrapperView.h"
+ 
++static YGSize RCTWrapperShadowViewMeasure(
++    YGNodeConstRef node,
++    float width,
++    YGMeasureMode widthMode,
++    float height,
++    YGMeasureMode heightMode);
++
+ @implementation RCTWrapperShadowView {
+   __weak RCTBridge *_bridge;
+   RCTWrapperMeasureBlock _measureBlock;
+@@ -23,14 +30,14 @@
+ {
+   if (self = [super init]) {
+     _bridge = bridge;
+-    YGNodeSetMeasureFunc(self.yogaNode, RCTWrapperShadowViewMeasure);
++    YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTWrapperShadowViewMeasure);
+   }
+ 
+   return self;
+ }
+ 
+ static YGSize RCTWrapperShadowViewMeasure(
+-    YGNodeRef node,
++    YGNodeConstRef node,
+     float width,
+     YGMeasureMode widthMode,
+     float height,
 diff --git a/node_modules/react-native/React/Views/RCTShadowView.m b/node_modules/react-native/React/Views/RCTShadowView.m
 index baca3ce..6fd52d4 100644
 --- a/node_modules/react-native/React/Views/RCTShadowView.m
