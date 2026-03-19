@@ -22,10 +22,10 @@ on:
       profile:
         description: 'EAS Build Profile'
         required: true
-        default: 'production_local'
+        default: 'production'
         type: choice
         options:
-          - production_local
+          - production
           - preview
           - development
       mode:
@@ -48,7 +48,7 @@ on:
 env:
   # Using safe access to inputs
   INPUT_REF: ${{ inputs.ref || github.event.client_payload.ref || github.ref_name }}
-  INPUT_PROFILE: ${{ inputs.profile || github.event.client_payload.profile || 'production_local' }}
+  INPUT_PROFILE: ${{ inputs.profile || github.event.client_payload.profile || 'production' }}
   INPUT_MODE: ${{ inputs.mode || github.event.client_payload.mode || 'github_macos' }}
   INPUT_PUBLISH_UPDATE: ${{ inputs.publish_update || github.event.client_payload.publish_update || false }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -130,9 +130,6 @@ jobs:
         run: npm run prepare:ios
         env:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-          APPLE_CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}
-          APPLE_PROVISION_BASE64: ${{ secrets.IOS_PROV_PROFILE_BASE64 }}
-          APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
           ONESIGNAL_CERT_BASE64: ${{ secrets.ONESIGNAL_CERT_BASE64 }}
           ONESIGNAL_PROVISION_BASE64: ${{ secrets.ONESIGNAL_PROVISION_BASE64 }}
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
