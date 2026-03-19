@@ -99,7 +99,8 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
           packager: npm
-          cache: false
+          expo-cache: false
+          eas-cache: false
 
   build:
     name: Build iOS IPA
