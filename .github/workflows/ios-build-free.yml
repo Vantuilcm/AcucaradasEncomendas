@@ -174,7 +174,7 @@ jobs:
       - name: Build IPA
         run: |
           set -o pipefail
-          eas build --platform ios --profile production_local --local --non-interactive --output="./Acucaradas.ipa"
+          eas build --platform ios --profile production --local --non-interactive --output="./Acucaradas.ipa"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
