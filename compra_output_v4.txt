@@ -1,0 +1,286 @@
+  console.log
+    Aviso: Configuração de notificações em background para iOS pode não estar ativa
+
+      at Object.log (src/config/firebase.ts:91:17)
+
+  console.log
+    Firebase Cloud Messaging inicializado no iOS
+
+      at Object.log (src/config/firebase.ts:96:15)
+
+  console.warn
+    Firebase Cloud Messaging não foi inicializado. Algumas funcionalidades de notificação podem não funcionar.
+
+    [0m [90m 130 |[39m   [90m// Verificação final da inicialização do FCM[39m
+     [90m 131 |[39m   [36mif[39m ([33m![39mmessaging) {
+    [31m[1m>[22m[39m[90m 132 |[39m     console[33m.[39mwarn(
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 133 |[39m       [32m'Firebase Cloud Messaging não foi inicializado. Algumas funcionalidades de notificação podem não funcionar.'[39m
+     [90m 134 |[39m     )[33m;[39m
+     [90m 135 |[39m   }[0m
+
+      at Object.warn (src/config/firebase.ts:132:13)
+      at Object.require (src/contexts/AuthContext.tsx:2:1)
+      at Object.require (src/navigation/AppNavigator.tsx:6:1)
+      at Object.require (src/App.tsx:4:1)
+      at Object.require (src/__tests__/e2e/CompraCompleta.test.tsx:3:1)
+
+  console.log
+    Firebase initialized successfully on ios
+
+      at Object.log (src/config/firebase.ts:137:11)
+
+  console.log
+    Test started: Rendering App
+
+      at Object.log (src/__tests__/e2e/CompraCompleta.test.tsx:525:13)
+
+  console.log
+    App rendered. Advancing timers...
+
+      at Object.log (src/__tests__/e2e/CompraCompleta.test.tsx:529:13)
+
+  console.log
+    Timers advanced. Waiting for login screen...
+
+      at Object.log (src/__tests__/e2e/CompraCompleta.test.tsx:534:13)
+
+  console.log
+    Login screen found.
+
+      at Object.log (src/__tests__/e2e/CompraCompleta.test.tsx:539:13)
+
+  console.error
+    The above error occurred in the <Screen> component:
+    
+        at Screen (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\elements\src\Screen.tsx:34:38)
+        at RNSScreen
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockNativeComponent.js:17:18)
+        at C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Animated\createAnimatedComponent.js:36:57
+        at freeze (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-freeze\src\index.tsx:6:3)
+        at Suspense
+        at freeze (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-freeze\src\index.tsx:24:26)
+        at freeze (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:191:26)
+        at InnerScreen (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:242:56)
+        at Screen (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:540:13)
+        at visible (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\bottom-tabs\src\views\ScreenFallback.tsx:36:31)
+        at RNSScreenNavigationContainer
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockNativeComponent.js:17:18)
+        at enabled (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:371:11)
+        at enabled (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\bottom-tabs\src\views\ScreenFallback.tsx:22:3)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\elements\src\SafeAreaProviderCompat.tsx:36:50)
+        at tabBar (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\bottom-tabs\src\views\BottomTabView.tsx:36:5)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\PreventRemoveProvider.tsx:45:49)
+        at render (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\useComponent.tsx:10:30)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\useComponent.tsx:26:26)
+        at id (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\bottom-tabs\src\navigators\createBottomTabNavigator.tsx:31:3)
+        at MainTabs
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\StaticContainer.tsx:7:16)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\EnsureSingleNavigator.tsx:20:49)
+        at screen (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\SceneView.tsx:40:3)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at enabled (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Stack\CardSheet.tsx:19:5)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Animated\createAnimatedComponent.js:36:57
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at useRef (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\GestureHandlerNative.tsx:10:28)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Animated\createAnimatedComponent.js:36:57
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at Card (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Stack\Card.tsx:92:26)
+        at interpolationIndex (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Stack\CardContainer.tsx:60:3)
+        at RNSScreen
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockNativeComponent.js:17:18)
+        at C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Animated\createAnimatedComponent.js:36:57
+        at freeze (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-freeze\src\index.tsx:6:3)
+        at Suspense
+        at freeze (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-freeze\src\index.tsx:24:26)
+        at freeze (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:191:26)
+        at InnerScreen (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:242:56)
+        at Screen (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:540:13)
+        at enabled (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Screens.tsx:27:3)
+        at RNSScreenContainer
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockNativeComponent.js:17:18)
+        at enabled (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:371:11)
+        at enabled (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Screens.tsx:13:3)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at style (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\elements\src\Background.tsx:9:38)
+        at CardStack (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Stack\CardStack.tsx:385:29)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\elements\src\SafeAreaProviderCompat.tsx:36:50)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at StackView (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Stack\StackView.tsx:63:31)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\PreventRemoveProvider.tsx:45:49)
+        at render (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\useComponent.tsx:10:30)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\useComponent.tsx:26:26)
+        at id (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\navigators\createStackNavigator.tsx:34:3)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\EnsureSingleNavigator.tsx:20:49)
+        at initialState (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\BaseNavigationContainer.tsx:82:7)
+        at value (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\native\src\theming\ThemeProvider.tsx:11:41)
+        at theme (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\native\src\NavigationContainer.tsx:55:5)
+        at AppNavigator (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\navigation\AppNavigator.tsx:166:36)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\components\ThemeProvider.tsx:46:33)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\CartContext.tsx:19:73)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\LocationContext.tsx:35:69)
+        at TouchableWithoutFeedback (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Components\Touchable\TouchableWithoutFeedback.js:118:31)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\AuthContext.tsx:31:73)
+        at App
+    
+    Consider adding an error boundary to your tree to customize error handling behavior.
+    Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+      at logCapturedError (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8661:23)
+      at update.callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8694:5)
+      at callCallback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4092:12)
+      at commitUpdateQueue (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4113:9)
+      at commitLayoutEffectOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13232:13)
+      at commitLayoutMountEffects_complete (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14330:9)
+      at commitLayoutEffects_begin (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14316:7)
+      at commitLayoutEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14301:3)
+      at commitRootImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16062:5)
+      at commitRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15933:5)
+      at finishConcurrentRender (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15229:9)
+      at performConcurrentWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15146:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:2667:24)
+      at recursivelyFlushAsyncActWork (node_modules/react/cjs/react.development.js:2633:9)
+      at Immediate._onImmediate (node_modules/react/cjs/react.development.js:2641:13)
+
+  console.error
+    The above error occurred in the <BottomTabBar> component:
+    
+        at state (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\bottom-tabs\src\views\BottomTabBar.tsx:129:3)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\elements\src\SafeAreaProviderCompat.tsx:36:50)
+        at tabBar (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\bottom-tabs\src\views\BottomTabView.tsx:36:5)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\PreventRemoveProvider.tsx:45:49)
+        at render (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\useComponent.tsx:10:30)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\useComponent.tsx:26:26)
+        at id (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\bottom-tabs\src\navigators\createBottomTabNavigator.tsx:31:3)
+        at MainTabs
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\StaticContainer.tsx:7:16)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\EnsureSingleNavigator.tsx:20:49)
+        at screen (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\SceneView.tsx:40:3)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at enabled (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Stack\CardSheet.tsx:19:5)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Animated\createAnimatedComponent.js:36:57
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at useRef (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\GestureHandlerNative.tsx:10:28)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Animated\createAnimatedComponent.js:36:57
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at Card (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Stack\Card.tsx:92:26)
+        at interpolationIndex (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Stack\CardContainer.tsx:60:3)
+        at RNSScreen
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockNativeComponent.js:17:18)
+        at C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Animated\createAnimatedComponent.js:36:57
+        at freeze (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-freeze\src\index.tsx:6:3)
+        at Suspense
+        at freeze (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-freeze\src\index.tsx:24:26)
+        at freeze (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:191:26)
+        at InnerScreen (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:242:56)
+        at Screen (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:540:13)
+        at enabled (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Screens.tsx:27:3)
+        at RNSScreenContainer
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockNativeComponent.js:17:18)
+        at enabled (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native-screens\lib\commonjs\index.native.tsx:371:11)
+        at enabled (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Screens.tsx:13:3)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at style (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\elements\src\Background.tsx:9:38)
+        at CardStack (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Stack\CardStack.tsx:385:29)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\elements\src\SafeAreaProviderCompat.tsx:36:50)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at StackView (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\views\Stack\StackView.tsx:63:31)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\PreventRemoveProvider.tsx:45:49)
+        at render (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\useComponent.tsx:10:30)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\useComponent.tsx:26:26)
+        at id (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\stack\src\navigators\createStackNavigator.tsx:34:3)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\EnsureSingleNavigator.tsx:20:49)
+        at initialState (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\core\src\BaseNavigationContainer.tsx:82:7)
+        at value (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\native\src\theming\ThemeProvider.tsx:11:41)
+        at theme (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\@react-navigation\native\src\NavigationContainer.tsx:55:5)
+        at AppNavigator (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\navigation\AppNavigator.tsx:166:36)
+        at View
+        at Component (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\jest\mockComponent.js:30:18)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\components\ThemeProvider.tsx:46:33)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\CartContext.tsx:19:73)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\LocationContext.tsx:35:69)
+        at TouchableWithoutFeedback (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Components\Touchable\TouchableWithoutFeedback.js:118:31)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\AuthContext.tsx:31:73)
+        at App
+    
+    Consider adding an error boundary to your tree to customize error handling behavior.
+    Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+      at logCapturedError (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8661:23)
+      at update.callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8694:5)
+      at callCallback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4092:12)
+      at commitUpdateQueue (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4113:9)
+      at commitLayoutEffectOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13232:13)
+      at commitLayoutMountEffects_complete (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14330:9)
+      at commitLayoutEffects_begin (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14316:7)
+      at commitLayoutEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14301:3)
+      at commitRootImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16062:5)
+      at commitRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15933:5)
+      at finishConcurrentRender (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15229:9)
+      at performConcurrentWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15146:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:2667:24)
+      at recursivelyFlushAsyncActWork (node_modules/react/cjs/react.development.js:2633:9)
+      at Immediate._onImmediate (node_modules/react/cjs/react.development.js:2641:13)
+
+FAIL src/__tests__/e2e/CompraCompleta.test.tsx (23.333 s)
+  Teste E2E - Fluxo Completo de Compra
+    × deve completar o fluxo de compra do login até a confirmação do pedido (514 ms)
+
+  ● Teste E2E - Fluxo Completo de Compra › deve completar o fluxo de compra do login até a confirmação do pedido
+
+    TypeError: (0 , _reactNativeSafeAreaContext.useSafeAreaFrame) is not a function
+
+      at Screen (node_modules/@react-navigation/elements/src/Screen.tsx:34:38)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6351:18)
+      at mountIndeterminateComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9855:13)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11312:16)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15811:12)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15745:5)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15717:7)
+      at recoverFromConcurrentError (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15187:20)
+      at performConcurrentWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15087:22)
+      at flushActQueue (node_modules/react/cjs/react.development.js:2667:24)
+      at recursivelyFlushAsyncActWork (node_modules/react/cjs/react.development.js:2633:9)
+      at Immediate.<anonymous> (node_modules/react/cjs/react.development.js:2641:13)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        23.922 s, estimated 26 s
+Ran all test suites matching /src\\__tests__\\e2e\\CompraCompleta.test.tsx/i.

@@ -15,9 +15,9 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: 'Git ref (branch or tag)'
-        required: true
-        default: 'upgrade/sdk-52-rn-076'
+        description: 'Branch to build'
+        required: false
+        default: 'fix-build-sdk-52'
         type: string
       profile:
         description: 'EAS Build Profile'

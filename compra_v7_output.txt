@@ -1,0 +1,557 @@
+  console.log
+    JEST SETUP STARTING...
+
+      at Object.log (jest.setup.ts:1:9)
+
+  console.log
+    JEST SETUP: Mocking Timers...
+
+      at Object.log (jest.setup.ts:424:9)
+
+  console.log
+    JEST SETUP: Mocking DeviceSecurityService...
+
+      at Object.log (jest.setup.ts:428:9)
+
+  console.log
+    TEST FILE STARTING execution...
+
+      at Object.log (src/__tests__/e2e/CompraCompleta.test.tsx:9:9)
+
+  console.log
+    [LOG] 2026-03-16T13:58:09.179Z - Test started: Rendering App
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    AuthContext: useEffect checkDeviceSecurity started
+
+      at log (src/contexts/AuthContext.tsx:42:13)
+
+  console.log
+    AuthContext: calling deviceSecurityService.performSecurityCheck
+
+      at log (src/contexts/AuthContext.tsx:45:17)
+
+  console.log
+    [LOG] 2026-03-16T13:58:09.470Z - App rendered. Advancing timers...
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    AuthContext: securityCheck result { compromised: false, emulator: false, debugging: false }
+
+      at log (src/contexts/AuthContext.tsx:47:17)
+
+  console.log
+    [SECURE_LOG] Logout realizado { userId: undefined, timestamp: '2026-03-16T13:58:09.477Z' }
+
+      at Object.log (src/__tests__/e2e/CompraCompleta.test.tsx:138:46)
+
+  console.log
+    [LOG] 2026-03-16T13:58:12.134Z - Timers advanced. Waiting for login screen...
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    [LOG] 2026-03-16T13:58:12.148Z - Login screen found.
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    [LOG] 2026-03-16T13:58:12.149Z - Finding email input...
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    [LOG] 2026-03-16T13:58:12.154Z - Email input found
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    [LOG] 2026-03-16T13:58:12.156Z - Password input found
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    [LOG] 2026-03-16T13:58:12.164Z - Login button found
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    [LOG] 2026-03-16T13:58:12.172Z - Email set
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    [LOG] 2026-03-16T13:58:12.178Z - Password set
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    [LOG] 2026-03-16T13:58:12.179Z - Pressing login button...
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+  console.log
+    [SECURE_LOG] Tentativa de login { email: 'cliente@exemplo.com' }
+
+      at Object.log (src/__tests__/e2e/CompraCompleta.test.tsx:138:46)
+
+  console.log
+    [SECURE_LOG] Tentativa de login iniciada { email: 'cliente@exemplo.com' }
+
+      at Object.log (src/__tests__/e2e/CompraCompleta.test.tsx:138:46)
+
+  console.log
+    [SECURE_LOG] Login bem-sucedido { userId: 'test-user-id', timestamp: '2026-03-16T13:58:12.186Z' }
+
+      at Object.log (src/__tests__/e2e/CompraCompleta.test.tsx:138:46)
+
+  console.log
+    [SECURE_LOG] Login bem-sucedido { email: 'cliente@exemplo.com' }
+
+      at Object.log (src/__tests__/e2e/CompraCompleta.test.tsx:138:46)
+
+  console.log
+    [LOG] 2026-03-16T13:58:13.766Z - Login button pressed.
+
+      at log (src/__tests__/e2e/CompraCompleta.test.tsx:23:11)
+
+FAIL src/__tests__/e2e/CompraCompleta.test.tsx (53.475 s)
+  Teste E2E - Fluxo Completo de Compra
+    × deve completar o fluxo de compra do login até a confirmação do pedido (5768 ms)
+
+  ● Teste E2E - Fluxo Completo de Compra › deve completar o fluxo de compra do login até a confirmação do pedido
+
+    Unable to find an element with testID: checkout-screen
+
+    [36m<View[39m
+      [33mtestID[39m=[32m"app-container"[39m
+    [36m>[39m
+      [36m<View>[39m
+        [36m<View>[39m
+          [36m<View>[39m
+            [36m<View[39m
+              [33mpointerEvents[39m=[32m"box-none"[39m
+            [36m>[39m
+              [36m<View />[39m
+              [36m<View[39m
+                [33maccessibilityElementsHidden[39m=[32m{false}[39m
+                [33mimportantForAccessibility[39m=[32m"auto"[39m
+                [33mpointerEvents[39m=[32m"box-none"[39m
+              [36m>[39m
+                [36m<View[39m
+                  [33mpointerEvents[39m=[32m"box-none"[39m
+                [36m>[39m
+                  [36m<View>[39m
+                    [36m<View>[39m
+                      [36m<View[39m
+                        [33mpointerEvents[39m=[32m"box-none"[39m
+                      [36m>[39m
+                        [36m<View>[39m
+                          [36m<View>[39m
+                            [36m<View>[39m
+                              [36m<View[39m
+                                [33mpointerEvents[39m=[32m"none"[39m
+                              [36m>[39m
+                                [36m<View[39m
+                                  [33mpointerEvents[39m=[32m"none"[39m
+                                [36m>[39m
+                                  [36m<View[39m
+                                    [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                                    [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                                  [36m>[39m
+                                    [36m<View>[39m
+                                      [36m<View[39m
+                                        [33mtestID[39m=[32m"home-screen"[39m
+                                      [36m>[39m
+                                        [36m<View[39m
+                                          [33maccessibilityRole[39m=[32m"button"[39m
+                                          [33maccessible[39m=[32m{true}[39m
+                                          [33mtestID[39m=[32m"produtos-button"[39m
+                                        [36m>[39m
+                                          [36m<View>[39m
+                                            [36m<Text>[39m
+                                              [0mProdutos[0m
+                                            [36m</Text>[39m
+                                          [36m</View>[39m
+                                        [36m</View>[39m
+                                      [36m</View>[39m
+                                    [36m</View>[39m
+                                    [36m<View>[39m
+                                      [36m<View[39m
+                                        [33mpointerEvents[39m=[32m"box-none"[39m
+                                      [36m>[39m
+                                        [36m<View />[39m
+                                      [36m</View>[39m
+                                      [36m<View[39m
+                                        [33mpointerEvents[39m=[32m"box-none"[39m
+                                      [36m>[39m
+                                        [36m<View[39m
+                                          [33mpointerEvents[39m=[32m"none"[39m
+                                        [36m/>[39m
+                                        [36m<View[39m
+                                          [33mpointerEvents[39m=[32m"box-none"[39m
+                                        [36m>[39m
+                                          [36m<View[39m
+                                            [33mpointerEvents[39m=[32m"box-none"[39m
+                                          [36m/>[39m
+                                          [36m<View[39m
+                                            [33mpointerEvents[39m=[32m"box-none"[39m
+                                          [36m>[39m
+                                            [36m<Text[39m
+                                              [33maccessibilityRole[39m=[32m"header"[39m
+                                            [36m>[39m
+                                              [0mInício[0m
+                                            [36m</Text>[39m
+                                          [36m</View>[39m
+                                          [36m<View[39m
+                                            [33mpointerEvents[39m=[32m"box-none"[39m
+                                          [36m/>[39m
+                                        [36m</View>[39m
+                                      [36m</View>[39m
+                                    [36m</View>[39m
+                                  [36m</View>[39m
+                                [36m</View>[39m
+                              [36m</View>[39m
+                              [36m<View[39m
+                                [33mpointerEvents[39m=[32m"none"[39m
+                              [36m>[39m
+                                [36m<View[39m
+                                  [33mpointerEvents[39m=[32m"none"[39m
+                                [36m>[39m
+                                  [36m<View[39m
+                                    [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                                    [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                                  [36m>[39m
+                                    [36m<View>[39m
+                                      [36m<View[39m
+                                        [33mtestID[39m=[32m"produtos-screen"[39m
+                                      [36m>[39m
+                                        [36m<Text>[39m
+                                          [0mBolo de Chocolate[0m
+                                        [36m</Text>[39m
+                                        [36m<View[39m
+                                          [33maccessibilityRole[39m=[32m"button"[39m
+                                          [33maccessible[39m=[32m{true}[39m
+                                          [33mtestID[39m=[32m"produto-prod1"[39m
+                                        [36m>[39m
+                                          [36m<View>[39m
+                                            [36m<Text>[39m
+                                              [0mBolo[0m
+                                            [36m</Text>[39m
+                                          [36m</View>[39m
+                                        [36m</View>[39m
+                                      [36m</View>[39m
+                                    [36m</View>[39m
+                                    [36m<View>[39m
+                                      [36m<View[39m
+                                        [33mpointerEvents[39m=[32m"box-none"[39m
+                                      [36m>[39m
+                                        [36m<View />[39m
+                                      [36m</View>[39m
+                                      [36m<View[39m
+                                        [33mpointerEvents[39m=[32m"box-none"[39m
+                                      [36m>[39m
+                                        [36m<View[39m
+                                          [33mpointerEvents[39m=[32m"none"[39m
+                                        [36m/>[39m
+                                        [36m<View[39m
+                                          [33mpointerEvents[39m=[32m"box-none"[39m
+                                        [36m>[39m
+                                          [36m<View[39m
+                                            [33mpointerEvents[39m=[32m"box-none"[39m
+                                          [36m/>[39m
+                                          [36m<View[39m
+                                            [33mpointerEvents[39m=[32m"box-none"[39m
+                                          [36m>[39m
+                                            [36m<Text[39m
+                                              [33maccessibilityRole[39m=[32m"header"[39m
+                                            [36m>[39m
+                                              [0mCatálogo[0m
+                                            [36m</Text>[39m
+                                          [36m</View>[39m
+                                          [36m<View[39m
+                                            [33mpointerEvents[39m=[32m"box-none"[39m
+                                          [36m/>[39m
+                                        [36m</View>[39m
+                                      [36m</View>[39m
+                                    [36m</View>[39m
+                                  [36m</View>[39m
+                                [36m</View>[39m
+                              [36m</View>[39m
+                              [36m<View[39m
+                                [33mpointerEvents[39m=[32m"auto"[39m
+                              [36m>[39m
+                                [36m<View[39m
+                                  [33mpointerEvents[39m=[32m"auto"[39m
+                                [36m>[39m
+                                  [36m<View[39m
+                                    [33maccessibilityElementsHidden[39m=[32m{false}[39m
+                                    [33mimportantForAccessibility[39m=[32m"auto"[39m
+                                  [36m>[39m
+                                    [36m<View>[39m
+                                      [36m<View[39m
+                                        [33mtestID[39m=[32m"carrinho-screen"[39m
+                                      [36m>[39m
+                                        [36m<Text>[39m
+                                          [0mBolo de Chocolate[0m
+                                        [36m</Text>[39m
+                                        [36m<Text>[39m
+                                          [0mR$ 45,90[0m
+                                        [36m</Text>[39m
+                                        [36m<View[39m
+                                          [33maccessibilityRole[39m=[32m"button"[39m
+                                          [33maccessible[39m=[32m{true}[39m
+                                          [33mtestID[39m=[32m"finalizar-compra-button"[39m
+                                        [36m>[39m
+                                          [36m<View>[39m
+                                            [36m<Text>[39m
+                                              [0mCheckout[0m
+                                            [36m</Text>[39m
+                                          [36m</View>[39m
+                                        [36m</View>[39m
+                                      [36m</View>[39m
+                                    [36m</View>[39m
+                                    [36m<View>[39m
+                                      [36m<View[39m
+                                        [33mpointerEvents[39m=[32m"box-none"[39m
+                                      [36m>[39m
+                                        [36m<View />[39m
+                                      [36m</View>[39m
+                                      [36m<View[39m
+                                        [33mpointerEvents[39m=[32m"box-none"[39m
+                                      [36m>[39m
+                                        [36m<View[39m
+                                          [33mpointerEvents[39m=[32m"none"[39m
+                                        [36m/>[39m
+                                        [36m<View[39m
+                                          [33mpointerEvents[39m=[32m"box-none"[39m
+                                        [36m>[39m
+                                          [36m<View[39m
+                                            [33mpointerEvents[39m=[32m"box-none"[39m
+                                          [36m/>[39m
+                                          [36m<View[39m
+                                            [33mpointerEvents[39m=[32m"box-none"[39m
+                                          [36m>[39m
+                                            [36m<Text[39m
+                                              [33maccessibilityRole[39m=[32m"header"[39m
+                                            [36m>[39m
+                                              [0mCarrinho[0m
+                                            [36m</Text>[39m
+                                          [36m</View>[39m
+                                          [36m<View[39m
+                                            [33mpointerEvents[39m=[32m"box-none"[39m
+                                          [36m/>[39m
+                                        [36m</View>[39m
+                                      [36m</View>[39m
+                                    [36m</View>[39m
+                                  [36m</View>[39m
+                                [36m</View>[39m
+                              [36m</View>[39m
+                            [36m</View>[39m
+                            [36m<View[39m
+                              [33mpointerEvents[39m=[32m"auto"[39m
+                            [36m>[39m
+                              [36m<View[39m
+                                [33mpointerEvents[39m=[32m"none"[39m
+                              [36m/>[39m
+                              [36m<View[39m
+                                [33maccessibilityRole[39m=[32m"tablist"[39m
+                              [36m>[39m
+                                [36m<View[39m
+                                  [33maccessibilityLabel[39m=[32m"Início, tab, 1 of 5"[39m
+                                  [33maccessibilityRole[39m=[32m"button"[39m
+                                  [33maccessibilityState[39m=[32m{
+                                    {
+                                      "selected": false,
+                                    }
+                                  }[39m
+                                  [33maccessible[39m=[32m{true}[39m
+                                [36m>[39m
+                                  [36m<View>[39m
+                                    [36m<View[39m
+                                      [33mstyle[39m=[32m{
+                                        {
+                                          "opacity": 0,
+                                        }
+                                      }[39m
+                                    [36m>[39m
+                                      [36m<Text>[39m
+                                        [0m󰋜[0m
+                                      [36m</Text>[39m
+                                    [36m</View>[39m
+                                    [36m<View>[39m
+                                      [36m<Text>[39m
+                                        [0m󰚡[0m
+                                      [36m</Text>[39m
+                                    [36m</View>[39m
+                                  [36m</View>[39m
+                                  [36m<Text>[39m
+                                    [0mInício[0m
+                                  [36m</Text>[39m
+                                [36m</View>[39m
+                                [36m<View[39m
+                                  [33maccessibilityLabel[39m=[32m"Catálogo, tab, 2 of 5"[39m
+                                  [33maccessibilityRole[39m=[32m"button"[39m
+                                  [33maccessibilityState[39m=[32m{
+                                    {
+                                      "selected": false,
+                                    }
+                                  }[39m
+                                  [33maccessible[39m=[32m{true}[39m
+                                [36m>[39m
+                                  [36m<View>[39m
+                                    [36m<View[39m
+                                      [33mstyle[39m=[32m{
+                                        {
+                                          "opacity": 0,
+                                        }
+                                      }[39m
+                                    [36m>[39m
+                                      [36m<Text>[39m
+                                        [0m󰕰[0m
+                                      [36m</Text>[39m
+                                    [36m</View>[39m
+                                    [36m<View>[39m
+                                      [36m<Text>[39m
+                                        [0m󱇙[0m
+                                      [36m</Text>[39m
+                                    [36m</View>[39m
+                                  [36m</View>[39m
+                                  [36m<Text>[39m
+                                    [0mCatálogo[0m
+                                  [36m</Text>[39m
+                                [36m</View>[39m
+                                [36m<View[39m
+                                  [33maccessibilityLabel[39m=[32m"Pedidos, tab, 3 of 5"[39m
+                                  [33maccessibilityRole[39m=[32m"button"[39m
+                                  [33maccessibilityState[39m=[32m{
+                                    {
+                                      "selected": false,
+                                    }
+                                  }[39m
+                                  [33maccessible[39m=[32m{true}[39m
+                                [36m>[39m
+                                  [36m<View>[39m
+                                    [36m<View[39m
+                                      [33mstyle[39m=[32m{
+                                        {
+                                          "opacity": 0,
+                                        }
+                                      }[39m
+                                    [36m>[39m
+                                      [36m<Text>[39m
+                                        [0m󱃔[0m
+                                      [36m</Text>[39m
+                                    [36m</View>[39m
+                                    [36m<View>[39m
+                                      [36m<Text>[39m
+                                        [0m󱃕[0m
+                                      [36m</Text>[39m
+                                    [36m</View>[39m
+                                  [36m</View>[39m
+                                  [36m<Text>[39m
+                                    [0mPedidos[0m
+                                  [36m</Text>[39m
+                                [36m</View>[39m
+                                [36m<View[39m
+                                  [33maccessibilityLabel[39m=[32m"Carrinho, tab, 4 of 5"[39m
+                                  [33maccessibilityRole[39m=[32m"button"[39m
+                                  [33maccessibilityState[39m=[32m{
+                                    {
+                                      "selected": true,
+                                    }
+                                  }[39m
+                                  [33maccessible[39m=[32m{true}[39m
+                                [36m>[39m
+                                  [36m<View>[39m
+                                    [36m<View>[39m
+                                      [36m<Text>[39m
+                                        [0m󰄐[0m
+                                      [36m</Text>[39m
+                                    [36m</View>[39m
+                                    [36m<View[39m
+                                      [33mstyle[39m=[32m{
+                                        {
+                                          "opacity": 0,
+                                        }
+                                      }[39m
+                                    [36m>[39m
+                                      [36m<Text>[39m
+                                        [0m󰄑[0m
+                                      [36m</Text>[39m
+                                    [36m</View>[39m
+                                  [36m</View>[39m
+                                  [36m<Text>[39m
+                                    [0mCarrinho[0m
+                                  [36m</Text>[39m
+                                [36m</View>[39m
+                                [36m<View[39m
+                                  [33maccessibilityLabel[39m=[32m"Perfil, tab, 5 of 5"[39m
+                                  [33maccessibilityRole[39m=[32m"button"[39m
+                                  [33maccessibilityState[39m=[32m{
+                                    {
+                                      "selected": false,
+                                    }
+                                  }[39m
+                                  [33maccessible[39m=[32m{true}[39m
+                                [36m>[39m
+                                  [36m<View>[39m
+                                    [36m<View[39m
+                                      [33mstyle[39m=[32m{
+                                        {
+                                          "opacity": 0,
+                                        }
+                                      }[39m
+                                    [36m>[39m
+                                      [36m<Text>[39m
+                                        [0m󰀄[0m
+                                      [36m</Text>[39m
+                                    [36m</View>[39m
+                                    [36m<View>[39m
+                                      [36m<Text>[39m
+                                        [0m󰀓[0m
+                                      [36m</Text>[39m
+                                    [36m</View>[39m
+                                  [36m</View>[39m
+                                  [36m<Text>[39m
+                                    [0mPerfil[0m
+                                  [36m</Text>[39m
+                                [36m</View>[39m
+                              [36m</View>[39m
+                            [36m</View>[39m
+                          [36m</View>[39m
+                        [36m</View>[39m
+                      [36m</View>[39m
+                    [36m</View>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View[39m
+            [33mpointerEvents[39m=[32m"box-none"[39m
+          [36m/>[39m
+        [36m</View>[39m
+      [36m</View>[39m
+    [36m</View>[39m
+
+    [0m [90m 631 |[39m
+     [90m 632 |[39m     [90m// 13. Verificar se a tela de checkout carregou[39m
+    [31m[1m>[22m[39m[90m 633 |[39m     [36mawait[39m waitFor(() [33m=>[39m {
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 634 |[39m       expect(getByTestId([32m'checkout-screen'[39m))[33m.[39mtoBeTruthy()[33m;[39m
+     [90m 635 |[39m     })[33m;[39m
+     [90m 636 |[39m[0m
+
+      at Object.<anonymous> (src/__tests__/e2e/CompraCompleta.test.tsx:633:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        58.037 s
+Ran all test suites matching /src\\__tests__\\e2e\\CompraCompleta.test.tsx/i.

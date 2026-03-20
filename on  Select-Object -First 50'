@@ -1,0 +1,54 @@
+[1mdiff --git a/src/screens/LoginScreen.tsx b/src/screens/LoginScreen.tsx[m
+[1mindex 734897fd..d9306f12 100644[m
+[1m--- a/src/screens/LoginScreen.tsx[m
+[1m+++ b/src/screens/LoginScreen.tsx[m
+[36m@@ -15,8 +15,9 @@[m [mimport { useAppTheme } from '../components/ThemeProvider';[m
+ export default function LoginScreen() {[m
+   const { theme } = useAppTheme();[m
+   const styles = useMemo(() => createStyles(theme), [theme]);[m
+[31m-  const navigation = useNavigation();[m
+[31m-  const { login, loading, error: authError } = useAuth();[m
+[32m+[m[32m  const navigation = useNavigation<any>();[m
+[32m+[m[32m  const { login, loading } = useAuth();[m
+[32m+[m[32m  const [authError] = useState<string | null>(null);[m
+   const [email, setEmail] = useState('');[m
+   const [password, setPassword] = useState('');[m
+   const [error, setError] = useState<string | null>(null);[m
+[36m@@ -88,7 +89,7 @@[m [mexport default function LoginScreen() {[m
+       blurContent={true}[m
+       onScreenshotDetected={() => setError('Captura de tela detectada! Por motivos de segurança, esta ação não é permitida.')}[m
+     >[m
+[31m-      <SafeAreaView style={styles.container}>[m
+[32m+[m[32m      <SafeAreaView style={styles.container} testID="login-screen">[m
+         <KeyboardAvoidingView[m
+           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}[m
+           style={styles.keyboardAvoid}[m
+[36m@@ -101,7 +102,7 @@[m [mexport default function LoginScreen() {[m
+             Faça login para continuar[m
+           </Text>[m
+ [m
+[31m-          {(error || authError) && <ErrorMessage message={error || authError} />}[m
+[32m+[m[32m          {authError && <ErrorMessage message={authError || 'Erro'} />}[m
+ [m
+           <TextInput[m
+             label="E-mail"[m
+[36m@@ -110,6 +111,7 @@[m [mexport default function LoginScreen() {[m
+             autoCapitalize="none"[m
+             keyboardType="email-address"[m
+             style={styles.input}[m
+[32m+[m[32m            testID="email-input"[m
+           />[m
+ [m
+           <TextInput[m
+[36m@@ -118,9 +120,10 @@[m [mexport default function LoginScreen() {[m
+             onChangeText={setPassword}[m
+             secureTextEntry[m
+             style={styles.input}[m
+[32m+[m[32m            testID="password-input"[m
+           />[m
+ [m
+[31m-          <Button mode="contained" onPress={handleLogin} style={styles.button} disabled={loading}>[m
+[32m+[m[32m          <Button mode="contained" onPress={handleLogin} style={styles.button} disabled={loading} testID="login-button">[m
+             Entrar[m
+           </Button>[m
+ [m

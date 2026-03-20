@@ -1,0 +1,5 @@
+  console.log
+    JEST SETUP STARTING...
+
+      at Object.log (jest.setup.ts:1:9)
+

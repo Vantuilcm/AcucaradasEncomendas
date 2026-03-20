@@ -103,30 +103,30 @@ function addPostInstallBlock(contents) {
 
 function applyStringPatch(filePath, replacements) {
   if (!fs.existsSync(filePath)) {
-    console.warn(`[withSentryCppExceptions] File not found: ${filePath}`);
+    console.warn(`[withYogaFix] File not found: ${filePath}`);
     return;
   }
   const contents = fs.readFileSync(filePath, 'utf8');
   let updated = contents;
   let changed = false;
-  
+
   replacements.forEach(({ regex, replaceWith }) => {
     if (regex.test(updated)) {
       updated = updated.replace(regex, replaceWith);
       changed = true;
-      console.log(`[withSentryCppExceptions] Applied patch to ${path.basename(filePath)} with regex ${regex}`);
+      console.log(`[withYogaFix] Applied patch to ${path.basename(filePath)} with regex ${regex}`);
     }
   });
 
   if (changed) {
     fs.writeFileSync(filePath, updated);
-    console.log(`[withSentryCppExceptions] Successfully saved patches to ${path.basename(filePath)}`);
+    console.log(`[withYogaFix] Successfully saved patches to ${path.basename(filePath)}`);
   } else {
-    console.log(`[withSentryCppExceptions] No changes needed for ${path.basename(filePath)}`);
+    console.log(`[withYogaFix] No changes needed for ${path.basename(filePath)}`);
   }
 }
 
-const withSentryCppExceptions = (config) => {
+const withYogaFix = (config) => {
   // 1. Modificar Podfile
   config = withPodfile(config, (configMod) => {
     configMod.modResults.contents = addPostInstallBlock(configMod.modResults.contents);
@@ -195,4 +195,4 @@ const withSentryCppExceptions = (config) => {
   return config;
 };
 
-module.exports = withSentryCppExceptions;
+module.exports = withYogaFix;

@@ -1,0 +1,501 @@
+-plugins": "*",
+    "metro": "^0.76.8",
+    "metro-resolver": "^0.76.8",
+    "@types/react": "~18.2.14",
+    "expo-router": "~2.0.0",
+    "metro-core": "^0.76.8",
+    "@react-native-async-storage/async-storage": "~1.18.2",
+    "metro-config": "^0.76.8",
+    "metro-runtime": "^0.76.8",
+    "@react-native-community/cli": "^11.3.8",
+    "react-dom": "18.2.0",
+    "react-native-svg": "~13.9.0",
+    "firebase": "^10.7.1",
+    "semver": "^7.5.4",
+    "undici": "^6.22.1"
+  }
+}
+[INSTALL_DEPENDENCIES] Running "npm install --include=dev" in /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build directory
+[INSTALL_DEPENDENCIES] npm warn deprecated watchman@1.0.0: Package no longer supported. Contact support@npmjs.com for more info.
+[INSTALL_DEPENDENCIES] npm warn deprecated osenv@0.1.5: This package is no longer supported.
+[INSTALL_DEPENDENCIES] npm warn deprecated @npmcli/move-file@1.0.1: This functionality has been moved to @npmcli/fs
+[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-optional-catch-binding@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-optional-catch-binding instead.
+[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-numeric-separator@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-numeric-separator instead.
+[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-nullish-coalescing-operator@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-nullish-coalescing-operator instead.
+[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-class-properties@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-class-properties instead.
+[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-export-namespace-from@7.18.9: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-export-namespace-from instead.
+[INSTALL_DEPENDENCIES] npm warn deprecated rimraf@2.4.5: Rimraf versions prior to v4 are no longer supported
+[INSTALL_DEPENDENCIES] npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+[INSTALL_DEPENDENCIES] npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-optional-chaining@7.21.0: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-optional-chaining instead.
+[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-async-generator-functions@7.20.7: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-async-generator-functions instead.
+[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[INSTALL_DEPENDENCIES] npm warn deprecated glob@6.0.4: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[INSTALL_DEPENDENCIES] npm warn deprecated sudo-prompt@9.2.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.1.6: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-object-rest-spread@7.20.7: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-object-rest-spread instead.
+[INSTALL_DEPENDENCIES] npm warn deprecated sudo-prompt@9.1.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+[INSTALL_DEPENDENCIES] npm warn deprecated metro-react-native-babel-preset@0.76.8: Use @react-native/babel-preset instead
+[INSTALL_DEPENDENCIES] npm warn deprecated metro-react-native-babel-preset@0.76.9: Use @react-native/babel-preset instead
+[INSTALL_DEPENDENCIES] npm warn deprecated metro-react-native-babel-preset@0.76.9: Use @react-native/babel-preset instead
+[INSTALL_DEPENDENCIES] npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+[INSTALL_DEPENDENCIES] npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+[INSTALL_DEPENDENCIES] npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+[INSTALL_DEPENDENCIES] npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+[INSTALL_DEPENDENCIES] npm warn deprecated uglify-es@3.3.10: support for ECMAScript is superseded by `uglify-js` as of v3.13.0
+[INSTALL_DEPENDENCIES] npm warn deprecated @react-native-voice/voice@3.1.5: This package is deprecated. Use expo-speech-recognition instead.
+[INSTALL_DEPENDENCIES] > acucaradas-encomendas@1.0.1 postinstall
+[INSTALL_DEPENDENCIES] > patch-package
+[INSTALL_DEPENDENCIES] patch-package 8.0.0
+[INSTALL_DEPENDENCIES] Applying patches...
+[INSTALL_DEPENDENCIES] No patch files found
+[INSTALL_DEPENDENCIES] added 1692 packages in 36s
+[READ_APP_CONFIG] Using app configuration:
+[READ_APP_CONFIG] {
+  "name": "Açucaradas Encomendas",
+  "slug": "acucaradas-encomendas",
+  "version": "1.0.1",
+  "platforms": [
+    "ios",
+    "android",
+    "web"
+  ],
+  "orientation": "portrait",
+  "icon": "./assets/app-icon.png",
+  "userInterfaceStyle": "light",
+  "splash": {
+    "image": "./assets/splash.png",
+    "resizeMode": "contain",
+    "backgroundColor": "#ffffff"
+  },
+  "assetBundlePatterns": [
+    "**/*"
+  ],
+  "ios": {
+    "supportsTablet": true,
+    "bundleIdentifier": "com.acucaradas.encomendas",
+    "buildNumber": "362",
+    "infoPlist": {
+      "NSCameraUsageDescription": "Este aplicativo usa a câmera para escanear códigos QR e tirar fotos dos produtos.",
+      "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar sua galeria para selecionar imagens para os produtos.",
+      "NSMicrophoneUsageDescription": "Este aplicativo usa o microfone para gravar notas de voz para os pedidos.",
+      "NSLocationWhenInUseUsageDescription": "Este aplicativo usa sua localização para encontrar confeitarias próximas e calcular o tempo de entrega.",
+      "UIBackgroundModes": [
+        "remote-notification"
+      ],
+      "ITSAppUsesNonExemptEncryption": false
+    },
+    "googleServicesFile": "./GoogleService-Info.prod.plist"
+  },
+  "android": {
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/app-icon.png",
+      "backgroundColor": "#ffffff"
+    },
+    "package": "com.acucaradas.encomendas",
+    "versionCode": 1,
+    "permissions": [
+      "CAMERA",
+      "READ_EXTERNAL_STORAGE",
+      "WRITE_EXTERNAL_STORAGE",
+      "ACCESS_FINE_LOCATION",
+      "RECORD_AUDIO"
+    ],
+    "googleServicesFile": "./google-services.prod.json"
+  },
+  "web": {
+    "favicon": "./assets/app-icon.png",
+    "bundler": "metro"
+  },
+  "scheme": "acucaradas-encomendas",
+  "plugins": [
+    "./plugins/withSentryCppExceptions",
+    [
+      "expo-build-properties",
+      {
+        "ios": {
+          "deploymentTarget": "15.0"
+        }
+      }
+    ],
+    [
+      "expo-notifications",
+      {
+        "icon": "./assets/notification-icon.png",
+        "color": "#ffffff"
+      }
+    ]
+  ],
+  "updates": {
+    "url": "https://u.expo.dev/acucaradas-encomendas",
+    "fallbackToCacheTimeout": 0
+  },
+  "extra": {
+    "hostUri": "177.192.13.46:8081",
+    "eas": {
+      "projectId": "6090106b-e327-4744-bce5-9ddb0d037045"
+    }
+  },
+  "owner": "acucaradaencomendas",
+  "runtimeVersion": {
+    "policy": "sdkVersion"
+  },
+  "sdkVersion": "49.0.0"
+}
+[RUN_EXPO_DOCTOR] Running "expo doctor"
+[RUN_EXPO_DOCTOR] Running 15 checks on your project...
+[RUN_EXPO_DOCTOR] 4 checks failed, indicating possible issues with the project.
+[RUN_EXPO_DOCTOR] 11/15 checks passed. 4 checks failed. Possible issues detected:
+[RUN_EXPO_DOCTOR] Use the --verbose flag to see more details about passed checks.
+[RUN_EXPO_DOCTOR] Command "expo doctor" failed.
+[RUN_EXPO_DOCTOR] ✖ Check that required peer dependencies are installed
+Error: npx -y expo-doctor exited with non-zero code: 1
+[RUN_EXPO_DOCTOR] Missing peer dependency: expo-application
+    at ChildProcess.completionListener (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/spawn-async/build/spawnAsync.js:42:23)
+    at Object.onceWrapper (node:events:634:26)
+[RUN_EXPO_DOCTOR] Required by: sentry-expo
+    at ChildProcess.emit (node:events:519:28)
+[RUN_EXPO_DOCTOR] Missing peer dependency: expo-device
+    at maybeClose (node:internal/child_process:1101:16)
+    at Socket.<anonymous> (node:internal/child_process:456:11)
+    at Socket.emit (node:events:519:28)
+    at Pipe.<anonymous> (node:net:346:12)
+    ...
+    at spawnAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/spawn-async/build/spawnAsync.js:7:23)
+    at spawn (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/turtle-spawn/dist/index.js:16:47)
+    at runExpoDoctor (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/common/setup.js:141:52)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/common/setup.js:120:17
+    at async BuildContext.runBuildPhase (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/context.js:125:28)
+    at async setupAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/common/setup.js:118:9)
+    at async buildAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/builders/ios.js:50:5)
+    at async runBuilderWithHooksAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/builders/common.js:12:13)
+    at async Object.iosBuilder (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/builders/ios.js:37:16)
+[RUN_EXPO_DOCTOR] Required by: sentry-expo
+[RUN_EXPO_DOCTOR] Advice:
+[RUN_EXPO_DOCTOR] Install missing required peer dependencies with "npx expo install expo-application expo-device"
+[RUN_EXPO_DOCTOR] Your app may crash outside of Expo Go without these dependencies. Native module peer dependencies must be installed directly.
+[RUN_EXPO_DOCTOR] ✖ Check that native modules use compatible support package versions for installed Expo SDK
+[RUN_EXPO_DOCTOR] Expected package @expo/config-plugins@~7.2.2
+[RUN_EXPO_DOCTOR] Found invalid:
+[RUN_EXPO_DOCTOR]   @expo/config-plugins@55.0.6
+[RUN_EXPO_DOCTOR]   (for more info, run: npm why @expo/config-plugins)
+[RUN_EXPO_DOCTOR] Advice:
+[RUN_EXPO_DOCTOR] Upgrade dependencies that are using the invalid package versions and remove resolutions from package.json that are pinning @expo/config-plugins to an invalid version.
+[RUN_EXPO_DOCTOR] 
+[RUN_EXPO_DOCTOR] ✖ Check if the project meets version requirements for submission to app stores
+[RUN_EXPO_DOCTOR] This project is using an SDK version that by default targets Android API level 33 or lower. To submit your app to the Google Play Store after August 31 2024, you must target Android API level 34 or higher.
+[RUN_EXPO_DOCTOR] Advice:
+[RUN_EXPO_DOCTOR] Upgrade to Expo SDK 50 or later, which by default supports Android API level 34 Learn more: https://support.google.com/googleplay/android-developer/answer/11926878?hl=en
+[RUN_EXPO_DOCTOR] 
+[RUN_EXPO_DOCTOR] ✖ Check that packages match versions required by installed Expo SDK
+[RUN_EXPO_DOCTOR] Some dependencies are incompatible with the installed expo version:
+[RUN_EXPO_DOCTOR]   @react-native-community/datetimepicker@8.6.0 - expected version: 7.2.0
+[RUN_EXPO_DOCTOR]   @react-native-community/netinfo@12.0.1 - expected version: 9.3.10
+[RUN_EXPO_DOCTOR]   expo-sharing@55.0.10 - expected version: ~11.5.0
+[RUN_EXPO_DOCTOR]   sentry-expo@7.2.0 - expected version: ~7.1.0
+[RUN_EXPO_DOCTOR] Your project may not work correctly until you install the correct versions of the packages.
+[RUN_EXPO_DOCTOR] Fix with: npx expo install --fix
+[RUN_EXPO_DOCTOR] Found outdated dependencies
+[RUN_EXPO_DOCTOR] Advice:
+[RUN_EXPO_DOCTOR] Use 'npx expo install --check' to review and upgrade your dependencies.
+[RUN_EXPO_DOCTOR] To ignore specific packages, add them to "expo.install.exclude" in package.json. Learn more: https://expo.fyi/dependency-validation
+[PREPARE_CREDENTIALS] Preparing credentials
+[PREPARE_CREDENTIALS] Creating keychain
+[PREPARE_CREDENTIALS] Preparing credentials for target 'AucaradasEncomendas'
+[PREPARE_CREDENTIALS] Getting distribution certificate fingerprint and common name
+[PREPARE_CREDENTIALS] Fingerprint = "0D792E86BE065B7CF99EE5EC1134F5B36CC043E0", common name = iPhone Distribution: VANTUIL CARAMEZ MORAES PORTAIS E SERVICOS DE INFORMACAO LTDA (4G75MX4TPA)
+[PREPARE_CREDENTIALS] Writing distribution certificate to /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/ef6ec5a5-1369-411f-b2fd-77a37c81724e.p12
+[PREPARE_CREDENTIALS] Importing distribution certificate into the keychain
+[PREPARE_CREDENTIALS] Initializing provisioning profile
+[PREPARE_CREDENTIALS] Validating whether the distribution certificate has been imported successfully
+[PREPARE_CREDENTIALS] Verifying whether the distribution certificate and provisioning profile match
+[PREBUILD] The ios project is malformed, project files will be cleared and reinitialized.
+[PREBUILD] - Clearing ios
+[PREBUILD] ✔ Cleared ios code
+[PREBUILD] - Creating native project directories (./ios and ./android) and updating .gitignore
+[PREBUILD] ✔ Created native project | gitignore skipped
+[PREBUILD] - Updating your package.json scripts, dependencies, and main file
+[PREBUILD] ✔ Updated package.json and added index.js entry point for iOS and Android
+[PREBUILD] - Config syncing
+[PREBUILD] Using node to generate images. This is much slower than using native packages.
+[PREBUILD] › Optionally you can stop the process and try again after successfully running `npm install -g sharp-cli`.
+[PREBUILD] - Config syncing
+[PREBUILD] ✔ Config synced
+[PREBUILD] Running "npm install --include=dev" in /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build directory
+[PREBUILD] > acucaradas-encomendas@1.0.1 postinstall
+[PREBUILD] > patch-package
+[PREBUILD] patch-package 8.0.0
+[PREBUILD] Applying patches...
+[PREBUILD] No patch files found
+[PREBUILD] up to date in 2s
+[RESTORE_CACHE] Local builds do not support restoring cache
+[INSTALL_PODS] Using Expo modules
+[INSTALL_PODS] [Expo] Enabling modular headers for pod ExpoModulesCore
+[INSTALL_PODS] [Expo] Enabling modular headers for pod React-Core
+[INSTALL_PODS] [Expo] Enabling modular headers for pod React-RCTAppDelegate
+[INSTALL_PODS] [Expo] Enabling modular headers for pod expo-dev-menu-interface
+[INSTALL_PODS] [Expo] Enabling modular headers for pod EXManifests
+[INSTALL_PODS] [Expo] Enabling modular headers for pod EXUpdatesInterface
+[INSTALL_PODS] [Expo] Enabling modular headers for pod expo-dev-menu
+[INSTALL_PODS] [Expo] Enabling modular headers for pod RCT-Folly
+[INSTALL_PODS] [Expo] Enabling modular headers for pod expo-dev-launcher
+[INSTALL_PODS] [Expo] Enabling modular headers for pod EXStructuredHeaders
+[INSTALL_PODS] [Expo] Enabling modular headers for pod EASClient
+[INSTALL_PODS] [Expo] Enabling modular headers for pod ReachabilitySwift
+[INSTALL_PODS] [Expo] Enabling modular headers for pod ASN1Decoder
+[INSTALL_PODS] Auto-generating `.xcode.env.local` with $NODE_BINARY=/Users/runner/hostedtoolcache/node/22.22.0/arm64/bin/node
+[INSTALL_PODS] Auto-linking React Native modules for target `AucaradasEncomendas`: RNCAsyncStorage, RNDateTimePicker, RNGestureHandler, RNReanimated, RNSVG, RNScreens, RNSentry, react-native-netinfo, react-native-onesignal, react-native-safe-area-context, and react-native-voice
+[INSTALL_PODS] Framework build type is static library
+[INSTALL_PODS] [Hermes] Downloading Hermes source code for commit 813b2def12bc9df02654b3e3653ae4a68d0572e0
+[INSTALL_PODS] % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[INSTALL_PODS] Dload  Upload   Total   Spent    Left  Speed
+[INSTALL_PODS] 0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+[INSTALL_PODS] 100  1917    0  1917    0     0   2116      0 --:--:-- --:--:-- --:--:--  2116
+100 5128k    0 5128k    0     0  2946k      0 --:--:--  0:00:01 --:--:-- 6139k
+100 9775k    0 9775k    0     0  4270k      0 --:--:--  0:00:02 --:--:-- 7066k
+[INSTALL_PODS] [Hermes] Expanding Hermes tarball for commit 813b2def12bc9df02654b3e3653ae4a68d0572e0
+[INSTALL_PODS] [Hermes] Using pre-built HermesC
+[INSTALL_PODS] [Codegen] Generating ./build/generated/ios/React-Codegen.podspec.json
+[INSTALL_PODS] Analyzing dependencies
+[INSTALL_PODS] Fetching podspec for `DoubleConversion` from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`
+[INSTALL_PODS] [Codegen] Found FBReactNativeSpec
+[INSTALL_PODS] Fetching podspec for `RCT-Folly` from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`
+[INSTALL_PODS] [Codegen] Found rncore
+[INSTALL_PODS] Fetching podspec for `boost` from `../node_modules/react-native/third-party-podspecs/boost.podspec`
+[INSTALL_PODS] Fetching podspec for `glog` from `../node_modules/react-native/third-party-podspecs/glog.podspec`
+[INSTALL_PODS] Fetching podspec for `hermes-engine` from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`
+[INSTALL_PODS] [Hermes] Using the release tarball from Maven Central
+[INSTALL_PODS] Adding spec repo `trunk` with CDN `https://cdn.cocoapods.org/`
+[INSTALL_PODS] Downloading dependencies
+[INSTALL_PODS] Installing ASN1Decoder (1.10.0)
+[INSTALL_PODS] Installing DoubleConversion (1.1.6)
+[INSTALL_PODS] Installing EASClient (0.6.0)
+[INSTALL_PODS] Installing EXApplication (5.3.1)
+[INSTALL_PODS] Installing EXConstants (14.4.2)
+[INSTALL_PODS] Installing EXFileSystem (15.4.5)
+[INSTALL_PODS] Installing EXFont (11.4.0)
+[INSTALL_PODS] Installing EXJSONUtils (0.7.1)
+[INSTALL_PODS] Installing EXManifests (0.7.2)
+[INSTALL_PODS] Installing EXNotifications (0.20.1)
+[INSTALL_PODS] Installing EXSplashScreen (0.20.5)
+[INSTALL_PODS] Installing EXStructuredHeaders (3.3.0)
+[INSTALL_PODS] Installing EXUpdates (0.18.19)
+[INSTALL_PODS] Installing EXUpdatesInterface (0.10.1)
+[INSTALL_PODS] Installing Expo (49.0.23)
+[INSTALL_PODS] Installing ExpoCrypto (12.4.1)
+[INSTALL_PODS] Installing ExpoHaptics (12.4.0)
+[INSTALL_PODS] Installing ExpoHead (0.0.20)
+[INSTALL_PODS] Installing ExpoImagePicker (14.3.2)
+[INSTALL_PODS] Installing ExpoKeepAwake (12.3.0)
+[INSTALL_PODS] Installing ExpoModulesCore (1.5.13)
+[INSTALL_PODS] Installing ExpoSecureStore (12.3.1)
+[INSTALL_PODS] Installing ExpoWebBrowser (12.3.2)
+[INSTALL_PODS] Installing FBLazyVector (0.72.10)
+[INSTALL_PODS] Installing FBReactNativeSpec (0.72.10)
+[INSTALL_PODS] Installing OneSignalXCFramework (5.4.1)
+[INSTALL_PODS] Installing RCT-Folly (2021.07.22.00)
+[INSTALL_PODS] Installing RCTRequired (0.72.10)
+[INSTALL_PODS] Installing RCTTypeSafety (0.72.10)
+[INSTALL_PODS] Installing RNCAsyncStorage (1.18.2)
+[INSTALL_PODS] Installing RNDateTimePicker (8.6.0)
+[INSTALL_PODS] Installing RNGestureHandler (2.12.0)
+[INSTALL_PODS] Installing RNReanimated (3.3.0)
+[INSTALL_PODS] Installing RNSVG (13.9.0)
+[INSTALL_PODS] Installing RNScreens (3.22.0)
+[INSTALL_PODS] Installing RNSentry (5.10.0)
+[INSTALL_PODS] Installing ReachabilitySwift (5.2.4)
+[INSTALL_PODS] Installing React (0.72.10)
+[INSTALL_PODS] Installing React-Codegen (0.72.10)
+[INSTALL_PODS] Installing React-Core (0.72.10)
+[INSTALL_PODS] Installing React-CoreModules (0.72.10)
+[INSTALL_PODS] Installing React-NativeModulesApple (0.72.10)
+[INSTALL_PODS] Installing React-RCTActionSheet (0.72.10)
+[INSTALL_PODS] Installing React-RCTAnimation (0.72.10)
+[INSTALL_PODS] Installing React-RCTAppDelegate (0.72.10)
+[INSTALL_PODS] Installing React-RCTBlob (0.72.10)
+[INSTALL_PODS] Installing React-RCTImage (0.72.10)
+[INSTALL_PODS] Installing React-RCTLinking (0.72.10)
+[INSTALL_PODS] Installing React-RCTNetwork (0.72.10)
+[INSTALL_PODS] Installing React-RCTSettings (0.72.10)
+[INSTALL_PODS] Installing React-RCTText (0.72.10)
+[INSTALL_PODS] Installing React-RCTVibration (0.72.10)
+[INSTALL_PODS] Installing React-callinvoker (0.72.10)
+[INSTALL_PODS] Installing React-cxxreact (0.72.10)
+[INSTALL_PODS] Installing React-debug (0.72.10)
+[INSTALL_PODS] Installing React-hermes (0.72.10)
+[INSTALL_PODS] Installing React-jsi (0.72.10)
+[INSTALL_PODS] Installing React-jsiexecutor (0.72.10)
+[INSTALL_PODS] Installing React-jsinspector (0.72.10)
+[INSTALL_PODS] Installing React-logger (0.72.10)
+[INSTALL_PODS] Installing React-perflogger (0.72.10)
+[INSTALL_PODS] Installing React-rncore (0.72.10)
+[INSTALL_PODS] Installing React-runtimeexecutor (0.72.10)
+[INSTALL_PODS] Installing React-runtimescheduler (0.72.10)
+[INSTALL_PODS] Installing React-utils (0.72.10)
+[INSTALL_PODS] Installing ReactCommon (0.72.10)
+[INSTALL_PODS] Installing Sentry (8.11.0)
+[INSTALL_PODS] Installing SentryPrivate (8.11.0)
+[INSTALL_PODS] Installing SocketRocket (0.6.1)
+[INSTALL_PODS] Installing Yoga (1.14.0)
+[INSTALL_PODS] Installing boost (1.76.0)
+[INSTALL_PODS] Installing expo-dev-client (2.4.13)
+[INSTALL_PODS] Installing expo-dev-launcher (2.4.15)
+[INSTALL_PODS] Installing expo-dev-menu (3.2.4)
+[INSTALL_PODS] Installing expo-dev-menu-interface (1.3.0)
+[INSTALL_PODS] Installing fmt (6.2.1)
+[INSTALL_PODS] Installing glog (0.3.5)
+[INSTALL_PODS] Installing hermes-engine (0.72.10)
+[INSTALL_PODS] Installing libevent (2.1.12)
+[INSTALL_PODS] Installing react-native-netinfo (12.0.1)
+[INSTALL_PODS] Installing react-native-onesignal (5.3.1)
+[INSTALL_PODS] Installing react-native-safe-area-context (4.6.3)
+[INSTALL_PODS] Installing react-native-voice (3.1.5)
+[INSTALL_PODS] Generating Pods project
+[INSTALL_PODS] Setting REACT_NATIVE build settings
+[INSTALL_PODS] Setting CLANG_CXX_LANGUAGE_STANDARD to c++17 on /private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/ios/AucaradasEncomendas.xcodeproj
+[INSTALL_PODS] Pod install took 288 [s] to run
+[INSTALL_PODS] Integrating client project
+[INSTALL_PODS] [!] Please close any current Xcode sessions and use `AucaradasEncomendas.xcworkspace` for this project from now on.
+[INSTALL_PODS] [Expo] Installing the build script for target AucaradasEncomendas
+[INSTALL_PODS] Patching imports for file: /private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/node_modules/react-native-onesignal/ios/RCTOneSignal/RCTOneSignal.m
+[INSTALL_PODS] Patching imports for file: /private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/node_modules/react-native-onesignal/ios/RCTOneSignal/RCTOneSignalEventEmitter.h
+[INSTALL_PODS] Patching imports for file: /private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/node_modules/@sentry/react-native/ios/RNSentry.h
+[INSTALL_PODS] Patching imports for file: /private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/node_modules/@sentry/react-native/ios/RNSentry.mm
+[INSTALL_PODS] expo_patch_react_imports! took 0.2172 seconds to transform files.
+[INSTALL_PODS] [!] `<PBXResourcesBuildPhase UUID=`13B07F8E1A680F5B00A75B9A`>` attempted to initialize an object with an unknown UUID. `FBAB7038902042629BF56A90` for attribute: `files`. This can be the result of a merge and the unknown UUID is being discarded.
+[INSTALL_PODS] Pod installation complete! There are 77 dependencies from the Podfile and 83 total pods installed.
+[INSTALL_PODS] [!] Can't merge pod_target_xcconfig for pod targets: ["expo-dev-menu", "Main", "SafeAreaView", "Vendored"]. Singular build setting DEFINES_MODULE has different values.
+[INSTALL_PODS] [!] Can't merge pod_target_xcconfig for pod targets: ["expo-dev-menu", "Main", "SafeAreaView", "Vendored"]. Singular build setting DEFINES_MODULE has different values.
+[CALCULATE_EXPO_UPDATES_RUNTIME_VERSION] Resolved runtime version: exposdk:49.0.0
+[CONFIGURE_XCODE_PROJECT] Configuring Xcode project
+[CONFIGURE_XCODE_PROJECT] Assigning provisioning profile '*[expo] com.acucaradas.encomendas AppStore 2026-02-07T18:57:26.033Z' (Apple Team ID: 4G75MX4TPA) to target 'AucaradasEncomendas'
+[CONFIGURE_EXPO_UPDATES] Setting the update request headers in 'Expo.plist' to '{"expo-channel-name":"production"}'
+[RUN_FASTLANE] Creating Gymfile
+[RUN_FASTLANE] Gymfile created
+[RUN_FASTLANE] Successfully loaded '/private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/ios/Gymfile' 📄
+[RUN_FASTLANE] +---------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+[RUN_FASTLANE] |                                                                  Detected Values from './Gymfile'                                                                   |
+[RUN_FASTLANE] +-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
+[RUN_FASTLANE] | suppress_xcode_output | true                                                                                                                                        |
+[RUN_FASTLANE] | clean                 | false                                                                                                                                       |
+[RUN_FASTLANE] | scheme                | AucaradasEncomendas                                                                                                                         |
+[RUN_FASTLANE] | configuration         | Release                                                                                                                                     |
+[RUN_FASTLANE] | export_options        |                                                                                                                                             |
+[RUN_FASTLANE] | export_xcargs         | OTHER_CODE_SIGN_FLAGS="--keychain /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-f79be2a9-9f48-4300-b568-a40061b04502.keychain" |
+[RUN_FASTLANE] | disable_xcpretty      | true                                                                                                                                        |
+[RUN_FASTLANE] | buildlog_path         | /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/logs                           |
+[RUN_FASTLANE] | output_directory      | ./build                                                                                                                                     |
+[RUN_FASTLANE] +-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
+[RUN_FASTLANE] Resolving Swift Package Manager dependencies...
+[RUN_FASTLANE] $ xcodebuild -resolvePackageDependencies -workspace ./AucaradasEncomendas.xcworkspace -scheme AucaradasEncomendas -configuration Release
+[RUN_FASTLANE] ▸ Command line invocation:
+[RUN_FASTLANE] ▸     /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/xcodebuild -resolvePackageDependencies -workspace ./AucaradasEncomendas.xcworkspace -scheme AucaradasEncomendas -configuration Release
+[RUN_FASTLANE] ▸ resolved source packages:
+[RUN_FASTLANE] $ xcodebuild -showBuildSettings -workspace ./AucaradasEncomendas.xcworkspace -scheme AucaradasEncomendas -configuration Release 2>&1
+[RUN_FASTLANE] Command timed out after 3 seconds on try 1 of 4, trying again with a 6 second timeout...
+[RUN_FASTLANE] Detected provisioning profile mapping: {:"com.acucaradas.encomendas"=>"169d3eec-07e2-429f-b08a-8d9ed6a9ccf5"}
+[RUN_FASTLANE] 
+[RUN_FASTLANE] +-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+[RUN_FASTLANE] |                                                                                           Summary for gym 2.232.2                                                                                           |
+[RUN_FASTLANE] +---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
+[RUN_FASTLANE] | workspace                                                     | ./AucaradasEncomendas.xcworkspace                                                                                                           |
+[RUN_FASTLANE] | scheme                                                        | AucaradasEncomendas                                                                                                                         |
+[RUN_FASTLANE] | clean                                                         | false                                                                                                                                       |
+[RUN_FASTLANE] | output_directory                                              | ./build                                                                                                                                     |
+[RUN_FASTLANE] | output_name                                                   | AucaradasEncomendas                                                                                                                         |
+[RUN_FASTLANE] | configuration                                                 | Release                                                                                                                                     |
+[RUN_FASTLANE] | silent                                                        | false                                                                                                                                       |
+[RUN_FASTLANE] | skip_package_ipa                                              | false                                                                                                                                       |
+[RUN_FASTLANE] | skip_package_pkg                                              | false                                                                                                                                       |
+[RUN_FASTLANE] | export_options.method                                         | app-store                                                                                                                                   |
+[RUN_FASTLANE] | export_options.provisioningProfiles.com.acucaradas.encomendas | 169d3eec-07e2-429f-b08a-8d9ed6a9ccf5                                                                                                        |
+[RUN_FASTLANE] | export_xcargs                                                 | OTHER_CODE_SIGN_FLAGS="--keychain /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-f79be2a9-9f48-4300-b568-a40061b04502.keychain" |
+[RUN_FASTLANE] | build_path                                                    | /Users/runner/Library/Developer/Xcode/Archives/2026-03-19                                                                                   |
+[RUN_FASTLANE] | result_bundle                                                 | false                                                                                                                                       |
+[RUN_FASTLANE] | buildlog_path                                                 | /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/logs                           |
+[RUN_FASTLANE] | destination                                                   | generic/platform=iOS                                                                                                                        |
+[RUN_FASTLANE] | suppress_xcode_output                                         | true                                                                                                                                        |
+[RUN_FASTLANE] | xcodebuild_formatter                                          | xcbeautify                                                                                                                                  |
+[RUN_FASTLANE] | build_timing_summary                                          | false                                                                                                                                       |
+[RUN_FASTLANE] | disable_xcpretty                                              | true                                                                                                                                        |
+[RUN_FASTLANE] | skip_profile_detection                                        | false                                                                                                                                       |
+[RUN_FASTLANE] | xcodebuild_command                                            | xcodebuild                                                                                                                                  |
+[RUN_FASTLANE] | skip_package_dependencies_resolution                          | false                                                                                                                                       |
+[RUN_FASTLANE] | disable_package_automatic_updates                             | false                                                                                                                                       |
+[RUN_FASTLANE] | skip_package_repository_fetches                               | false                                                                                                                                       |
+[RUN_FASTLANE] | use_system_scm                                                | false                                                                                                                                       |
+[RUN_FASTLANE] | generate_appstore_info                                        | false                                                                                                                                       |
+[RUN_FASTLANE] | xcode_path                                                    | /Applications/Xcode_16.4.app                                                                                                                |
+[RUN_FASTLANE] +---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
+[RUN_FASTLANE] $ set -o pipefail && xcodebuild -workspace ./AucaradasEncomendas.xcworkspace -scheme AucaradasEncomendas -configuration Release -destination 'generic/platform=iOS' -archivePath /Users/runner/Library/Developer/Xcode/Archives/2026-03-19/AucaradasEncomendas\ 2026-03-19\ 00.19.23.xcarchive archive | tee /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/logs/AucaradasEncomendas-AucaradasEncomendas.log > /dev/null
+[RUN_FASTLANE]     Run script build phase '[CP-User] Generate app.config for prebuilt Constants.manifest' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'EXConstants' from project 'Pods')
+[RUN_FASTLANE]     Run script build phase 'Start Packager' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'AucaradasEncomendas' from project 'AucaradasEncomendas')
+[RUN_FASTLANE]     Run script build phase 'Bundle React Native code and images' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'AucaradasEncomendas' from project 'AucaradasEncomendas')
+[RUN_FASTLANE]     Run script build phase '[CP-User] Generate app.manifest for expo-updates' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'EXUpdates' from project 'Pods')
+[RUN_FASTLANE] ▸ ** ARCHIVE FAILED **
+[RUN_FASTLANE] ▸ The following build commands failed:
+[RUN_FASTLANE] ▸ 	Archiving workspace AucaradasEncomendas with scheme AucaradasEncomendas
+[RUN_FASTLANE] ▸ (1 failure)
+[RUN_FASTLANE] Exit status: 65
+[RUN_FASTLANE] 
+[RUN_FASTLANE] Maybe the error shown is caused by using the wrong version of Xcode
+[RUN_FASTLANE] Found multiple versions of Xcode in '/Applications/'
+[RUN_FASTLANE] Make sure you selected the right version for your project
+[RUN_FASTLANE] [!] Error building the application - see the log above
+[RUN_FASTLANE] This build process was executed using '/Applications/Xcode_16.4.app'
+[RUN_FASTLANE] If you want to update your Xcode path, either
+[RUN_FASTLANE] 
+[RUN_FASTLANE] - Specify the Xcode version in your Fastfile
+[RUN_FASTLANE] ▸ xcversion(version: "8.1") # Selects Xcode 8.1.0
+[RUN_FASTLANE] - Specify an absolute path to your Xcode installation in your Fastfile
+[RUN_FASTLANE] ▸ xcode_select "/Applications/Xcode8.app"
+[RUN_FASTLANE] 
+[RUN_FASTLANE] - Manually update the path using
+[RUN_FASTLANE] Error: The "Run fastlane" step failed because of an error in the Xcode build process. We automatically detected following errors in your Xcode build logs:
+[RUN_FASTLANE] ▸ sudo xcode-select -s /Applications/Xcode.app
+- Signing certificate is invalid. Signing certificate "iPhone Distribution: VANTUIL CARAMEZ MORAES PORTAIS E SERVICOS DE INFORMACAO LTDA (4G75MX4TPA)", serial number "57A1E8E4625A4807C2CA9C3ADCEFC549", is not valid for code signing. It may have been revoked or expired. (in target 'AucaradasEncomendas' from project 'AucaradasEncomendas')
+[RUN_FASTLANE] 
+Refer to "Xcode Logs" below for additional, more detailed logs.
+[RUN_FASTLANE] +--------------------------------------------+
+[RUN_FASTLANE] |             Build environment              |
+[RUN_FASTLANE] +-------------+------------------------------+
+[RUN_FASTLANE] | xcode_path  | /Applications/Xcode_16.4.app |
+[RUN_FASTLANE] | gym_version | 2.232.2                      |
+[RUN_FASTLANE] | sdk         | iPhoneOS18.5.sdk             |
+[RUN_FASTLANE] +-------------+------------------------------+
+[RUN_FASTLANE] Looks like fastlane ran into a build/archive error with your project
+[RUN_FASTLANE] It's hard to tell what's causing the error, so we wrote some guides on how
+[RUN_FASTLANE] to troubleshoot build and signing issues: https://docs.fastlane.tools/codesigning/getting-started/
+[RUN_FASTLANE] Before submitting an issue on GitHub, please follow the guide above and make
+[RUN_FASTLANE] sure your project is set up correctly.
+[RUN_FASTLANE] fastlane uses `xcodebuild` commands to generate your binary, you can see the
+[RUN_FASTLANE] the full commands printed out in yellow in the above log.
+[RUN_FASTLANE] Make sure to inspect the output above, as usually you'll find more error information there
+[RUN_FASTLANE] 
+[CLEAN_UP_CREDENTIALS] Destroying keychain - /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-f79be2a9-9f48-4300-b568-a40061b04502.keychain
+[CLEAN_UP_CREDENTIALS] Removing provisioning profile
+Build failed
+The "Run fastlane" step failed because of an error in the Xcode build process. We automatically detected following errors in your Xcode build logs:
+- Signing certificate is invalid. Signing certificate "iPhone Distribution: VANTUIL CARAMEZ MORAES PORTAIS E SERVICOS DE INFORMACAO LTDA (4G75MX4TPA)", serial number "57A1E8E4625A4807C2CA9C3ADCEFC549", is not valid for code signing. It may have been revoked or expired. (in target 'AucaradasEncomendas' from project 'AucaradasEncomendas')
+Refer to "Xcode Logs" below for additional, more detailed logs.
+Error: The "Run fastlane" step failed because of an error in the Xcode build process. We automatically detected following errors in your Xcode build logs:
+- Signing certificate is invalid. Signing certificate "iPhone Distribution: VANTUIL CARAMEZ MORAES PORTAIS E SERVICOS DE INFORMACAO LTDA (4G75MX4TPA)", serial number "57A1E8E4625A4807C2CA9C3ADCEFC549", is not valid for code signing. It may have been revoked or expired. (in target 'AucaradasEncomendas' from project 'AucaradasEncomendas')
+Refer to "Xcode Logs" below for additional, more detailed logs.
+    at resolveBuildPhaseErrorAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/buildErrors/detectError.js:61:12)
+    at async BuildContext.handleBuildPhaseErrorAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/context.js:192:28)
+    at async BuildContext.runBuildPhase (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/context.js:137:35)
+    at async buildAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/builders/ios.js:135:9)
+    at async runBuilderWithHooksAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/builders/common.js:12:13)
+    at async Object.iosBuilder (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/builders/ios.js:37:16)
+    at async buildIosAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/eas-cli-local-build-plugin/dist/ios.js:43:12)
+    at async buildAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/eas-cli-local-build-plugin/dist/build.js:58:29)
+    at async main (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/eas-cli-local-build-plugin/dist/main.js:16:9)
+npx -y eas-cli-local-build-plugin@18.4.0 eyJqb2IiOnsidHlwZSI6Im1hbmFnZWQiLCJwbGF0Zm9ybSI6ImlvcyIsInByb2plY3RBcmNoaXZlIjp7InR5cGUiOiJQQVRIIiwicGF0aCI6Ii92YXIvZm9sZGVycy90NS9mNzdfZ3duajZwOTVxeHk5cHkzZmNreDAwMDAwZ24vVC9lYXMtY2xpLW5vZGVqcy81Mzg5MGVlOS00YWEzLTQzM2MtYTg3NC0zNmNjYjVhNGEyM2UudGFyLmd6In0sInByb2plY3RSb290RGlyZWN0b3J5IjoiLiIsImJ1aWxkZXJFbnZpcm9ubWVudCI6eyJlbnYiOnsiQVBQX0VOViI6InByb2R1Y3Rpb24iLCJFWFBPX1BVQkxJQ19BUFBfRU5WIjoicHJvZHVjdGlvbiIsIkVYUE9fUFVCTElDX0FQUF9OQU1FIjoiQcOndWNhcmFkYXMgRW5jb21lbmRhcyIsIkVYUE9fUFVCTElDX0FQUF9WRVJTSU9OIjoiMS4wLjEiLCJFWFBPX1BVQkxJQ19QUk9KRUNUX0lEIjoiNjA5MDEwNmItZTMyNy00NzQ0LWJjZTUtOWRkYjBkMDM3MDQ1In19LCJjYWNoZSI6eyJkaXNhYmxlZCI6ZmFsc2UsInBhdGhzIjpbXSwiY2xlYXIiOmZhbHNlfSwic2VjcmV0cyI6eyJidWlsZENyZWRlbnRpYWxzIjp7IkF1Y2FyYWRhc0VuY29tZW5kYXMiOnsicHJvdmlzaW9uaW5nUHJvZmlsZUJhc2U2NCI6Ik1JSXhmQVlKS29aSWh2Y05BUWNDb0lJeGJUQ0NNV2tDQVFFeEN6QUpCZ1VyRGdNQ0dnVUFNSUloaVFZSktvWklodmNOQVFjQm9JSWhlZ1NDSVhZOFAzaHRiQ0IyWlhKemFXOXVQU0l4TGpBaUlHVnVZMjlrYVc1blBTSlZWRVl0T0NJL1BnbzhJVVJQUTFSWlVFVWd
+    Error: build command failed.
+Error: Process completed with exit code 1.
