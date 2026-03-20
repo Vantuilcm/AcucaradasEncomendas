@@ -9,6 +9,8 @@ export enum Role {
   ATENDENTE = 'atendente',
   CLIENTE = 'cliente',
   ENTREGADOR = 'entregador',
+  PRODUTOR = 'produtor',
+  COMPRADOR = 'comprador',
 }
 
 // Definição de permissões disponíveis
@@ -83,6 +85,22 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.VISUALIZAR_PERFIL,
     Permission.VISUALIZAR_ENTREGAS,
     Permission.ATUALIZAR_STATUS_ENTREGA,
+  ],
+  [Role.PRODUTOR]: [
+    Permission.GERENCIAR_PRODUTOS,
+    Permission.VISUALIZAR_PRODUTOS,
+    Permission.VISUALIZAR_TODOS_PEDIDOS,
+    Permission.GERENCIAR_PEDIDOS,
+    Permission.EDITAR_PERFIL,
+    Permission.VISUALIZAR_PERFIL,
+    Permission.GERAR_RELATORIOS,
+    Permission.VISUALIZAR_RELATORIOS,
+  ],
+  [Role.COMPRADOR]: [
+    Permission.EDITAR_PERFIL,
+    Permission.VISUALIZAR_PERFIL,
+    Permission.VISUALIZAR_PRODUTOS,
+    Permission.CRIAR_AVALIACAO,
   ],
 };
 

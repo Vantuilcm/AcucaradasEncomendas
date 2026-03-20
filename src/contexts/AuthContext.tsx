@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { db } from '../config/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { Alert, TouchableWithoutFeedback } from 'react-native';
 import { User } from '../models/User';
 import { AuthService } from '../services/AuthService';
@@ -9,22 +9,28 @@ import { SecurityService } from '../services/SecurityService';
 import { DeviceSecurityService } from '../services/DeviceSecurityService';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { SecureStorageService } from '../services/SecureStorageService';
+import { SocialAuthService, GOOGLE_CLIENT_ID, FACEBOOK_APP_ID } from '../services/SocialAuthService';
+import { TwoFactorAuthService } from '../services/TwoFactorAuthService';
+import * as Google from 'expo-auth-session/providers/google';
+import * as Facebook from 'expo-auth-session/providers/facebook';
+// @ts-ignore
+import { GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 
 // Interface para o contexto de autenticação
 interface AuthContextData {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, role?: string) => Promise<void>;
   register: (userData: User, password: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
   validateSession: () => Promise<boolean>;
   refreshUserActivity: () => void;
-  signInWithGoogle?: () => Promise<{ success: boolean; error?: string }>;
-  signInWithFacebook?: () => Promise<{ success: boolean; error?: string }>;
-  signInWithApple?: () => Promise<{ success: boolean; error?: string }>;
+  signInWithGoogle?: (role?: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithFacebook?: (role?: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithApple?: (role?: string) => Promise<{ success: boolean; error?: string }>;
   is2FAEnabled?: boolean;
 }
 
@@ -39,7 +45,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [, setIsDeviceSecure] = useState<boolean>(true);
 
   const authService = AuthService.getInstance();
-  // const deviceSecurityService = new DeviceSecurityService();
+  const socialAuthService = SocialAuthService.getInstance();
+  const twoFactorAuthService = new TwoFactorAuthService();
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+
+  const [, , googlePromptAsync] = Google.useAuthRequest({
+    expoClientId: GOOGLE_CLIENT_ID.expo,
+    iosClientId: GOOGLE_CLIENT_ID.ios,
+    androidClientId: GOOGLE_CLIENT_ID.android,
+    webClientId: GOOGLE_CLIENT_ID.web,
+    scopes: ['profile', 'email'],
+  });
+
+  const [, , facebookPromptAsync] = Facebook.useAuthRequest({
+    clientId: FACEBOOK_APP_ID,
+    scopes: ['public_profile', 'email'],
+  });
 
   // Verificar segurança do dispositivo
   useEffect(() => {
@@ -122,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Método de login
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role?: string) => {
     try {
       console.log('AuthContext: login started', email);
       setLoading(true);
@@ -181,7 +202,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('AuthContext: userDoc fetched', userDoc.exists());
 
         if (userDoc.exists()) {
-           const userData = userDoc.data() as unknown as User;
+           let userData = userDoc.data() as unknown as User;
+           
+           // Se o papel for fornecido e for diferente, atualize no banco de dados para permitir testes de papéis diferentes
+           if (role && userData.role !== role) {
+             await updateDoc(userRef, { role });
+             // Também atualizar na coleção usuarios se existir
+             const usuariosRef = doc(db, 'usuarios', authUser.id);
+             const usuariosDoc = await getDoc(usuariosRef);
+             if (usuariosDoc.exists()) {
+               await updateDoc(usuariosRef, { role });
+             }
+             userData = { ...userData, role };
+           }
+           
            setUser(userData);
 
           // Iniciar monitoramento de inatividade
@@ -428,6 +462,114 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     SecurityService.updateLastActivity();
   };
 
+  const handlePostSocialLogin = async (authUser: any, role: string) => {
+    const userRef = doc(db, 'users', authUser.uid);
+    const usuariosRef = doc(db, 'usuarios', authUser.uid);
+    const userDoc = await getDoc(userRef);
+    if (userDoc.exists()) {
+      // Se já existe, atualiza o papel se for diferente
+      const existingData = userDoc.data() || {};
+      if (existingData.role !== role) {
+        await setDoc(userRef, { role }, { merge: true });
+        await setDoc(usuariosRef, { role }, { merge: true });
+      }
+      setUser({ id: authUser.uid, ...existingData, role } as unknown as User);
+    } else {
+      // Cria o registro no Firestore se não existir
+      const newUser = {
+        email: authUser.email || '',
+        nome: authUser.displayName || 'Usuário Social',
+        role: role,
+        dataCriacao: new Date(),
+        ultimoLogin: new Date(),
+      };
+      await setDoc(userRef, newUser);
+      await setDoc(usuariosRef, newUser);
+      setUser({ id: authUser.uid, ...newUser } as unknown as User);
+    }
+
+    // Gerar e salvar token JWT
+    const token = await authUser.getIdToken(true);
+    await SecureStorageService.storeData('authToken', token, { sensitive: true });
+    setAuthToken(token);
+
+    // Iniciar monitoramento de inatividade
+    SecurityService.startActivityMonitor(() => logout());
+  };
+
+  const signInWithGoogle = useCallback(async (role: string = 'comprador') => {
+    try {
+      setLoading(true);
+      const authResponse = await googlePromptAsync();
+      if (authResponse.type !== 'success') {
+        return { success: false, error: 'Autenticação cancelada ou não concluída.' };
+      }
+      const idToken = authResponse.params?.id_token;
+      if (!idToken) return { success: false, error: 'Token do Google ausente.' };
+      
+      const credential = GoogleAuthProvider.credential(idToken);
+      const result = await socialAuthService.signInWithCredential(credential, role);
+      
+      if (result.success && result.user) {
+        await handlePostSocialLogin(result.user, role);
+        const enabled = await twoFactorAuthService.is2FAEnabled();
+        setIs2FAEnabled(enabled);
+      }
+      return result;
+    } catch (err: any) {
+      secureLoggingService.security('Falha na autenticação com Google', { errorMessage: err.message });
+      return { success: false, error: 'Erro ao autenticar com Google' };
+    } finally {
+      setLoading(false);
+    }
+  }, [googlePromptAsync, socialAuthService, twoFactorAuthService]);
+
+  const signInWithFacebook = useCallback(async (role: string = 'comprador') => {
+    try {
+      setLoading(true);
+      const authResponse = await facebookPromptAsync();
+      if (authResponse.type !== 'success') {
+        return { success: false, error: 'Autenticação cancelada ou não concluída.' };
+      }
+      const accessToken = authResponse.params?.access_token;
+      if (!accessToken) return { success: false, error: 'Token do Facebook ausente.' };
+      
+      const credential = FacebookAuthProvider.credential(accessToken);
+      const result = await socialAuthService.signInWithCredential(credential, role);
+      
+      if (result.success && result.user) {
+        await handlePostSocialLogin(result.user, role);
+        const enabled = await twoFactorAuthService.is2FAEnabled();
+        setIs2FAEnabled(enabled);
+      }
+      return result;
+    } catch (err: any) {
+      secureLoggingService.security('Falha na autenticação com Facebook', { errorMessage: err.message });
+      return { success: false, error: 'Erro ao autenticar com Facebook' };
+    } finally {
+      setLoading(false);
+    }
+  }, [facebookPromptAsync, socialAuthService, twoFactorAuthService]);
+
+  const signInWithApple = useCallback(async (role: string = 'comprador') => {
+    try {
+      setLoading(true);
+      const result = await socialAuthService.signInWithApple(role);
+      
+      if (result.success && result.user) {
+        await handlePostSocialLogin(result.user, role);
+        const enabled = await twoFactorAuthService.is2FAEnabled();
+        setIs2FAEnabled(enabled);
+      }
+      return result;
+    } catch (err: any) {
+      secureLoggingService.security('Falha na autenticação com Apple', { errorMessage: err.message });
+      return { success: false, error: 'Erro ao autenticar com Apple' };
+    } finally {
+      setLoading(false);
+    }
+  }, [socialAuthService, twoFactorAuthService]);
+
   return (
     <TouchableWithoutFeedback onPress={refreshUserActivity}>
       <AuthContext.Provider
@@ -442,6 +584,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updateUser,
           validateSession,
           refreshUserActivity,
+          signInWithGoogle,
+          signInWithFacebook,
+          signInWithApple,
+          is2FAEnabled,
         }}
       >
         {children}

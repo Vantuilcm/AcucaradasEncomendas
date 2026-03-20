@@ -13,7 +13,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useNavigation } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { StatusBar } from 'expo-status-bar';
 
@@ -23,8 +23,7 @@ const TwoFactorAuthScreen = () => {
   const [code, setCode] = useState<string>('');
   const [countdown, setCountdown] = useState<number>(60);
   const [isResending, setIsResending] = useState<boolean>(false);
-  const router = useRouter();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { verify2FACode, generate2FACode, signOut, loading } = useAuth();
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -115,7 +114,7 @@ const TwoFactorAuthScreen = () => {
 
       if (result.success) {
         // Navegar para a tela principal após verificação bem-sucedida
-        router.replace('/home');
+        navigation.replace('MainTabs');
       } else {
         Alert.alert('Erro', result.error || 'Código inválido. Tente novamente.');
       }
@@ -158,7 +157,7 @@ const TwoFactorAuthScreen = () => {
           style: 'destructive',
           onPress: async () => {
             await signOut();
-            router.replace('/login');
+            navigation.replace('Login');
           },
         },
       ]

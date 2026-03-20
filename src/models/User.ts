@@ -19,6 +19,7 @@ export interface User {
   dataCriacao?: Date;
   ultimoLogin?: Date;
   isAdmin?: boolean;
+  role?: string;
   perfil?: {
     fotoPerfil?: string;
     notificacoes?: {

@@ -9,16 +9,17 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SocialAuthButtonsProps {
   onSuccess?: () => void;
+  role?: string;
 }
 
-const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess }) => {
+const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role = 'comprador' }) => {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { signInWithGoogle, signInWithFacebook, signInWithApple, is2FAEnabled } = useAuth();
 
   const handleSocialAuth = async (provider: string) => {
@@ -29,13 +30,13 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess }) => {
 
       switch (provider) {
         case 'google':
-          if (signInWithGoogle) result = await signInWithGoogle();
+          if (signInWithGoogle) result = await signInWithGoogle(role);
           break;
         case 'facebook':
-          if (signInWithFacebook) result = await signInWithFacebook();
+          if (signInWithFacebook) result = await signInWithFacebook(role);
           break;
         case 'apple':
-          if (signInWithApple) result = await signInWithApple();
+          if (signInWithApple) result = await signInWithApple(role);
           break;
         default:
           throw new Error('Provedor de autenticação não suportado');
@@ -44,13 +45,12 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess }) => {
       if (result && result.success) {
         if (is2FAEnabled) {
           // Se 2FA está habilitado, navegar para tela de verificação
-          router.replace('/two-factor-auth');
+          navigation.navigate('TwoFactorAuth');
         } else {
-          // Se não tem 2FA, navegar para a tela principal
+          // Se não tem 2FA, a navegação principal é tratada automaticamente pelo AppNavigator
+          // quando o estado do 'user' for atualizado no AuthContext
           if (onSuccess) {
             onSuccess();
-          } else {
-            router.replace('/home');
           }
         }
       } else {

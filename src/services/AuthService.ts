@@ -287,6 +287,7 @@ export class AuthService {
       email: string;
       telefone?: string;
       senha?: string;
+      role?: string;
     },
     senha?: string
   ): Promise<{
@@ -339,8 +340,11 @@ export class AuthService {
         dataCriacao: serverTimestamp(),
         emailVerificado: false,
         ultimoLogin: serverTimestamp(),
+        role: dadosUsuario.role || 'comprador',
       };
 
+      await setDoc(doc(db, 'users', user.uid), userData);
+      // Mantendo compatibilidade caso outro lugar use 'usuarios'
       await setDoc(doc(db, 'usuarios', user.uid), userData);
 
       const usuarioSimulado = {
@@ -363,6 +367,7 @@ export class AuthService {
         nome: dadosUsuario.nome,
         email: dadosUsuario.email,
         telefone: dadosUsuario.telefone,
+        role: dadosUsuario.role || 'comprador',
         dataCriacao: new Date(),
         ultimoLogin: new Date(),
       };
@@ -435,9 +440,20 @@ export class AuthService {
       }
 
       // Atualizar último login no Firestore
-      await updateDoc(doc(db, 'usuarios', user.uid), {
-        ultimoLogin: serverTimestamp(),
-      });
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          ultimoLogin: serverTimestamp(),
+        });
+      } catch (e) {
+        // Ignora se não existir
+      }
+      try {
+        await updateDoc(doc(db, 'usuarios', user.uid), {
+          ultimoLogin: serverTimestamp(),
+        });
+      } catch (e) {
+        // Ignora se não existir
+      }
 
       // Versão simulada para compatibilidade
       const usuario = Array.from(this.usuarios.values()).find(u => u.email === credenciais.email);

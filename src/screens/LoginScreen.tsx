@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { TextInput, Button, Text, SegmentedButtons } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +12,8 @@ import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { useAppTheme } from '../components/ThemeProvider';
 
+import { Role } from '../services/PermissionsService';
+
 export default function LoginScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -21,6 +23,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<string>(Role.COMPRADOR);
 
   const validateInputs = () => {
     try {
@@ -57,7 +60,7 @@ export default function LoginScreen() {
         type: 'email'
       });
       
-      await login(sanitizedEmail, password);
+      await login(sanitizedEmail, password, role);
       
       // Registrar login bem-sucedido
       secureLoggingService.security('Login bem-sucedido', { email: sanitizedEmail });
@@ -76,7 +79,7 @@ export default function LoginScreen() {
 
   const handleRegister = () => {
     secureLoggingService.info('Navegação para tela de registro');
-    navigation.navigate('Register');
+    navigation.navigate('Register', { role });
   };
 
   if (loading) {
@@ -95,14 +98,33 @@ export default function LoginScreen() {
           style={styles.keyboardAvoid}
         >
           <View style={styles.content}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Bem-vindo(a)!
-          </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
-            Faça login para continuar
-          </Text>
+            <View style={styles.logoContainer}>
+              <Image 
+                source={require('../../assets/logo-original.png')} 
+                style={styles.logo} 
+                resizeMode="contain"
+              />
+            </View>
+            <Text variant="headlineMedium" style={styles.title}>
+              Bem-vindo(a)!
+            </Text>
+            <Text variant="bodyLarge" style={styles.subtitle}>
+              Você está a um clique de adoçar o mundo
+            </Text>
 
-          {authError && <ErrorMessage message={authError || 'Erro'} />}
+            <SegmentedButtons
+              value={role}
+              onValueChange={setRole}
+              buttons={[
+                { value: Role.COMPRADOR, label: 'Comprador' },
+                { value: Role.PRODUTOR, label: 'Produtor' },
+                { value: Role.ENTREGADOR, label: 'Entregador' },
+              ]}
+              style={styles.segmentedButtons}
+            />
+
+            {authError && <ErrorMessage message={authError || 'Erro'} />}
+
 
           <TextInput
             label="E-mail"
@@ -124,12 +146,12 @@ export default function LoginScreen() {
           />
 
           <Button mode="contained" onPress={handleLogin} style={styles.button} disabled={loading} testID="login-button">
-            Entrar
-          </Button>
+                      Entrar
+                    </Button>
 
-          <SocialAuthButtons />
+                    <SocialAuthButtons role={role} />
 
-          <Button mode="text" onPress={handleRegister} style={styles.registerButton}>
+                    <Button mode="text" onPress={handleRegister} style={styles.registerButton}>
             Não tem uma conta? Cadastre-se
           </Button>
           </View>
@@ -152,6 +174,17 @@ const createStyles = (theme: { colors: any }) =>
     flex: 1,
     padding: 20,
     justifyContent: 'center',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logo: {
+    width: 150,
+    height: 150,
+  },
+  segmentedButtons: {
+    marginBottom: 24,
   },
   title: {
     textAlign: 'center',

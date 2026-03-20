@@ -14,7 +14,7 @@ import * as FirebaseAuth from 'firebase/auth';
 
 const signInWithCredential = (FirebaseAuth as any).signInWithCredential;
 const OAuthProvider = (FirebaseAuth as any).OAuthProvider;
-import { collection, query, where, limit, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, limit, getDocs, addDoc, updateDoc, doc, setDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Importação condicional para evitar erros em plataformas não suportadas
 let AppleAuthentication: any = null;
@@ -165,7 +165,7 @@ export class SocialAuthService {
   /**
    * Login com Apple usando Expo Apple Authentication
    */
-  async signInWithApple(): Promise<SocialAuthResult> {
+  async signInWithApple(role?: string): Promise<SocialAuthResult> {
     try {
       if (!AppleAuthentication.isAvailableAsync()) {
         return {
@@ -188,7 +188,7 @@ export class SocialAuthService {
         rawNonce: credential.nonce,
       });
 
-      return await this.signInWithCredential(authCredential);
+      return await this.signInWithCredential(authCredential, role);
     } catch (error: any) {
       // Verifica se o erro foi porque o usuário cancelou
       if (error.code === 'ERR_CANCELED') {
@@ -210,7 +210,7 @@ export class SocialAuthService {
   /**
    * Método auxiliar para fazer login no Firebase com uma credencial
    */
-  public async signInWithCredential(credential: AuthCredential): Promise<SocialAuthResult> {
+  public async signInWithCredential(credential: AuthCredential, role?: string): Promise<SocialAuthResult> {
     try {
       const result = await signInWithCredential(auth, credential);
       const { user, additionalUserInfo } = result;
@@ -222,7 +222,9 @@ export class SocialAuthService {
 
       // Se for a primeira vez que o usuário acessa, salvar dados adicionais
       if (additionalUserInfo?.isNewUser) {
-        await this.setupNewUser(user);
+        await this.setupNewUser(user, role);
+      } else if (role) {
+        await this.updateUserRole(user, role);
       }
 
       secureLoggingService.security('Login social realizado com sucesso', {
@@ -230,6 +232,7 @@ export class SocialAuthService {
         email: user.email,
         provider: additionalUserInfo?.providerId,
         isNewUser: additionalUserInfo?.isNewUser,
+        role: role,
         timestamp: new Date().toISOString()
       });
 
@@ -254,7 +257,7 @@ export class SocialAuthService {
   /**
    * Configura um novo usuário no sistema
    */
-  private async setupNewUser(user: any): Promise<void> {
+  private async setupNewUser(user: any, role?: string): Promise<void> {
     try {
       // Se o usuário não tiver um nome de exibição, usar o email
       if (!user.displayName && user.email) {
@@ -262,8 +265,7 @@ export class SocialAuthService {
         await updateProfile(user, { displayName });
       }
 
-      // Criação do perfil de usuário com dados padrão
-      // Você deve implementar isso baseado nas necessidades do seu app
+      await this.updateUserRole(user, role || 'comprador');
     } catch (error: any) {
       secureLoggingService.security('Erro ao configurar novo usuário', { 
         userId: user.uid,
@@ -272,6 +274,26 @@ export class SocialAuthService {
         timestamp: new Date().toISOString()
       });
       // Não lançamos exceção aqui para não interromper o fluxo de login
+    }
+  }
+
+  private async updateUserRole(user: any, role: string): Promise<void> {
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, {
+        email: user.email,
+        nome: user.displayName || user.email?.split('@')[0] || '',
+        role: role,
+        dataCriacao: new Date(),
+        ultimoLogin: new Date()
+      }, { merge: true });
+    } catch (error: any) {
+      secureLoggingService.security('Erro ao atualizar papel do usuário', {
+        userId: user.uid,
+        role: role,
+        errorMessage: error.message || 'Erro desconhecido',
+        timestamp: new Date().toISOString()
+      });
     }
   }
 

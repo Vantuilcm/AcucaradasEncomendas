@@ -11,10 +11,11 @@ import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { useAppTheme } from '../components/ThemeProvider';
 
-export function RegisterScreen() {
+export function RegisterScreen({ route }: { route?: any }) {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
+  const role = route?.params?.role || 'comprador';
   const { register, loading } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -76,7 +77,7 @@ export function RegisterScreen() {
         type: 'email'
       });
 
-      await register({ email: sanitizedEmail, nome: sanitizedName } as any, password);
+      await register({ email: sanitizedEmail, nome: sanitizedName, role } as any, password);
       
       // Registrar registro bem-sucedido
       secureLoggingService.security('Registro de conta bem-sucedido', { 

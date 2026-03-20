@@ -16,6 +16,7 @@ interface UsePermissionsReturn {
   isAtendente: boolean;
   isCliente: boolean;
   isEntregador: boolean;
+  isProdutor: boolean;
 }
 
 export function usePermissions(): UsePermissionsReturn {
@@ -119,8 +120,9 @@ export function usePermissions(): UsePermissionsReturn {
   const isAdmin = userRole === Role.ADMIN;
   const isGerente = userRole === Role.GERENTE;
   const isAtendente = userRole === Role.ATENDENTE;
-  const isCliente = userRole === Role.CLIENTE;
+  const isCliente = userRole === Role.CLIENTE || userRole === 'comprador' as any || userRole === 'customer' as any;
   const isEntregador = userRole === Role.ENTREGADOR;
+  const isProdutor = userRole === 'produtor' as any || userRole === 'producer' as any;
 
   return {
     loading,
@@ -133,6 +135,7 @@ export function usePermissions(): UsePermissionsReturn {
     isAtendente,
     isCliente,
     isEntregador,
+    isProdutor,
   };
 }
 

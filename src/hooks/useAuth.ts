@@ -26,6 +26,8 @@ import {
 } from '../services/SocialAuthService';
 import { TwoFactorAuthService, TwoFactorAuthResult } from '../services/TwoFactorAuthService';
 
+import { Role } from '../services/PermissionsService';
+
 interface AuthState {
   user: User | null;
   loading: boolean;
@@ -36,9 +38,9 @@ interface AuthState {
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetError: () => void;
-  signInWithGoogle: () => Promise<SocialAuthResult>;
-  signInWithFacebook: () => Promise<SocialAuthResult>;
-  signInWithApple: () => Promise<SocialAuthResult>;
+  signInWithGoogle: (role?: string) => Promise<SocialAuthResult>;
+  signInWithFacebook: (role?: string) => Promise<SocialAuthResult>;
+  signInWithApple: (role?: string) => Promise<SocialAuthResult>;
   enable2FA: () => Promise<TwoFactorAuthResult>;
   disable2FA: () => Promise<TwoFactorAuthResult>;
   verify2FACode: (code: string) => Promise<TwoFactorAuthResult>;
@@ -206,10 +208,18 @@ export function useAuth(): AuthState {
   }, []);
 
   // Métodos de autenticação social
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (role?: string) => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Validate role against PermissionsService.ts enum
+      if (role && !Object.values(Role).includes(role as Role)) {
+        const errorMessage = 'Função de usuário inválida. Selecione Comprador, Produtor ou Entregador.';
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
+      }
+
       const authResponse = await googlePromptAsync();
       if (authResponse.type !== 'success') {
         return { success: false, error: 'Autenticação cancelada ou não concluída.' };
@@ -219,7 +229,7 @@ export function useAuth(): AuthState {
         return { success: false, error: 'Token do Google ausente.' };
       }
       const credential = GoogleAuthProvider.credential(idToken);
-      const result = await socialAuthService.signInWithCredential(credential);
+      const result = await socialAuthService.signInWithCredential(credential, role);
       if (result.success) {
         // Registrar autenticação social bem-sucedida
         secureLoggingService.security('Autenticação com Google bem-sucedida', {
@@ -253,10 +263,18 @@ export function useAuth(): AuthState {
     }
   }, [auth, googlePromptAsync, socialAuthService, twoFactorAuthService]);
 
-  const signInWithFacebook = useCallback(async () => {
+  const signInWithFacebook = useCallback(async (role?: string) => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Validate role against PermissionsService.ts enum
+      if (role && !Object.values(Role).includes(role as Role)) {
+        const errorMessage = 'Função de usuário inválida. Selecione Comprador, Produtor ou Entregador.';
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
+      }
+
       const authResponse = await facebookPromptAsync();
       if (authResponse.type !== 'success') {
         return { success: false, error: 'Autenticação cancelada ou não concluída.' };
@@ -266,7 +284,7 @@ export function useAuth(): AuthState {
         return { success: false, error: 'Token do Facebook ausente.' };
       }
       const credential = FacebookAuthProvider.credential(accessToken);
-      const result = await socialAuthService.signInWithCredential(credential);
+      const result = await socialAuthService.signInWithCredential(credential, role);
       if (result.success) {
         // Registrar autenticação social bem-sucedida
         secureLoggingService.security('Autenticação com Facebook bem-sucedida', {
@@ -300,11 +318,19 @@ export function useAuth(): AuthState {
     }
   }, [auth, facebookPromptAsync, socialAuthService, twoFactorAuthService]);
 
-  const signInWithApple = useCallback(async () => {
+  const signInWithApple = useCallback(async (role?: string) => {
     try {
       setLoading(true);
       setError(null);
-      const result = await socialAuthService.signInWithApple();
+
+      // Validate role against PermissionsService.ts enum
+      if (role && !Object.values(Role).includes(role as Role)) {
+        const errorMessage = 'Função de usuário inválida. Selecione Comprador, Produtor ou Entregador.';
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
+      }
+
+      const result = await socialAuthService.signInWithApple(role);
       if (result.success) {
         // Registrar autenticação social bem-sucedida
         secureLoggingService.security('Autenticação com Apple bem-sucedida', {
