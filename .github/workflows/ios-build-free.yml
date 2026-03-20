@@ -122,17 +122,17 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --legacy-peer-deps --no-audit --fund=false
+          # Forçamos a execução do script node que remenda o código e do patch-package
+          node fix-rn-xcode16.js
           npx patch-package
-          # postinstall scripts will automatically run fix-rn-xcode16.js and patch-package
         env:
           NODE_ENV: development
 
       - name: Prepare iOS Environment
         run: |
           npm run prepare:ios
-          # Fix Yoga patch forcefully inside the build directory using a Node script
-          # The sed command was likely failing because the files don't exist yet or are in a different location during EAS build
-          # By putting it in a postinstall script, we ensure it runs after npm install but before pod install
+          # AQUI É O PONTO CRÍTICO: Expo pode re-baixar pacotes, então forçamos NOVAMENTE antes do build final!
+          node fix-rn-xcode16.js
         env:
           ONESIGNAL_CERT_BASE64: ${{ secrets.ONESIGNAL_CERT_BASE64 }}
           ONESIGNAL_PROVISION_BASE64: ${{ secrets.ONESIGNAL_PROVISION_BASE64 }}
@@ -179,6 +179,10 @@ jobs:
       - name: Build IPA
         run: |
           set -o pipefail
+          # Ação nuclear: injetar a correção como script prebuild do Expo
+          echo "node fix-rn-xcode16.js" > prebuild-hook.sh
+          chmod +x prebuild-hook.sh
+          # Passamos para o EAS
           eas build --platform ios --profile production --local --non-interactive --output="./Acucaradas.ipa"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
