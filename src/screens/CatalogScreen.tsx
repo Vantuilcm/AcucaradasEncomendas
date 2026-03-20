@@ -1,177 +1,130 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
-import { Searchbar, Card, Text, Chip, useTheme } from 'react-native-paper';
+import { StyleSheet, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Appbar, FAB } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import { ProductGrid } from '../components/ProductGrid';
+import { ProductService } from '../services/ProductService';
+import { loggingService } from '../services/LoggingService';
+import { useCart } from '../contexts/CartContext';
 import type { MainTabNavigationProp } from '../types/navigation';
 
-// Tipo para os produtos
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  category: string;
-  description: string;
-  available: boolean;
-}
-
-// Dados de exemplo para produtos
-const sampleProducts: Product[] = [
+const sampleProducts = [
   {
     id: '1',
-    name: 'Bolo de Chocolate',
-    price: 45.99,
-    image: 'https://via.placeholder.com/150',
-    category: 'Bolos',
-    description: 'Delicioso bolo de chocolate com cobertura de brigadeiro',
-    available: true,
+    nome: 'Bolo de Chocolate',
+    preco: 45.99,
+    imagens: ['https://images.unsplash.com/photo-1578985545062-69928b1d9587?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'],
+    categoria: 'Bolos',
+    descricao: 'Delicioso bolo de chocolate com cobertura de brigadeiro',
+    disponivel: true,
   },
   {
     id: '2',
-    name: 'Cupcake de Baunilha',
-    price: 8.99,
-    image: 'https://via.placeholder.com/150',
-    category: 'Cupcakes',
-    description: 'Cupcake de baunilha com cobertura de buttercream',
-    available: true,
+    nome: 'Cupcake de Baunilha',
+    preco: 8.99,
+    imagens: ['https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'],
+    categoria: 'Cupcakes',
+    descricao: 'Cupcake de baunilha com cobertura de buttercream',
+    disponivel: true,
   },
   {
     id: '3',
-    name: 'Torta de Limão',
-    price: 39.99,
-    image: 'https://via.placeholder.com/150',
-    category: 'Tortas',
-    description: 'Torta de limão com merengue',
-    available: true,
+    nome: 'Torta de Limão',
+    preco: 39.99,
+    imagens: ['https://images.unsplash.com/photo-1519869325930-281384150729?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'],
+    categoria: 'Tortas',
+    descricao: 'Torta de limão com merengue',
+    disponivel: true,
   },
   {
     id: '4',
-    name: 'Brigadeiro Gourmet',
-    price: 3.99,
-    image: 'https://via.placeholder.com/150',
-    category: 'Doces',
-    description: 'Brigadeiro gourmet com chocolate belga',
-    available: true,
+    nome: 'Brigadeiro Gourmet',
+    preco: 3.99,
+    imagens: ['https://images.unsplash.com/photo-1541783245831-57d6fb0926d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'],
+    categoria: 'Doces',
+    descricao: 'Brigadeiro gourmet com chocolate belga',
+    disponivel: true,
   },
   {
     id: '5',
-    name: 'Bolo Red Velvet',
-    price: 55.99,
-    image: 'https://via.placeholder.com/150',
-    category: 'Bolos',
-    description: 'Bolo red velvet com cream cheese',
-    available: false,
+    nome: 'Bolo Red Velvet',
+    preco: 55.99,
+    imagens: ['https://images.unsplash.com/photo-1616541823729-00fe0aacd32c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'],
+    categoria: 'Bolos',
+    descricao: 'Bolo red velvet com cream cheese',
+    disponivel: false,
   },
 ];
 
-// Categorias disponíveis
-const categories = ['Todos', 'Bolos', 'Cupcakes', 'Tortas', 'Doces'];
-
 export default function CatalogScreen() {
-  const theme = useTheme();
   const navigation = useNavigation<MainTabNavigationProp<'Catalog'>>();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { itemCount } = useCart();
 
-  // Simular carregamento de produtos
-  useEffect(() => {
-    const loadProducts = async () => {
-      // Aqui você faria uma chamada API real
-      setTimeout(() => {
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const productService = ProductService.getInstance();
+      const data = await productService.getProducts();
+      
+      if (data && data.length > 0) {
+        setProducts(data);
+      } else {
+        // Fallback to sample data if database is empty
         setProducts(sampleProducts);
-        setLoading(false);
-      }, 1000);
-    };
+      }
+    } catch (error: any) {
+      loggingService.error('Erro ao carregar produtos no catálogo', { error });
+      // Fallback to sample data on error
+      setProducts(sampleProducts);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadProducts();
   }, []);
 
-  // Filtrar produtos por categoria e busca
-  const filteredProducts = products.filter((product) => {
-    const matchesCategory = selectedCategory === 'Todos' || product.category === selectedCategory;
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  // Renderizar item do produto
-  const renderProductItem = ({ item }: { item: Product }) => (
-    <Card
-      style={styles.productCard}
-      onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
-    >
-      <Card.Cover source={{ uri: item.image }} style={styles.productImage} />
-      <Card.Content style={styles.productContent}>
-        <Text variant="titleMedium" numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text variant="bodyMedium" style={styles.productPrice}>
-          R$ {item.price.toFixed(2)}
-        </Text>
-        {!item.available && (
-          <Chip
-            style={styles.unavailableChip}
-            textStyle={{ color: theme.colors.error }}
-          >
-            Indisponível
-          </Chip>
-        )}
-      </Card.Content>
-    </Card>
-  );
+  const handleProductPress = (product: any) => {
+    navigation.navigate('ProductDetail', { productId: product.id });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Searchbar
-        placeholder="Buscar produtos"
-        onChangeText={setSearchQuery}
-        value={searchQuery}
-        style={styles.searchBar}
+      <Appbar.Header>
+        <Appbar.Content title="Catálogo" />
+        <Appbar.Action
+          icon="cart"
+          onPress={() => navigation.navigate('Cart')}
+          style={styles.cartButton}
+          size={24}
+        />
+        {itemCount > 0 && (
+          <View style={styles.cartBadge}>
+            <Text style={styles.cartBadgeText}>{itemCount > 99 ? '99+' : itemCount}</Text>
+          </View>
+        )}
+      </Appbar.Header>
+
+      <ProductGrid
+        products={products as any}
+        loading={loading}
+        error={error ? error : undefined}
+        onRefresh={loadProducts}
+        showSearch={true}
+        showCategories={true}
+        showAddToCart={true}
+        numColumns={2}
+        onProductPress={handleProductPress as any}
+        emptyMessage="Nenhum produto disponível no momento"
       />
 
-      <View style={styles.categoriesContainer}>
-        <FlatList
-          data={categories}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item}
-          renderItem={({ item }) => (
-            <Chip
-              selected={selectedCategory === item}
-              onPress={() => setSelectedCategory(item)}
-              style={styles.categoryChip}
-              selectedColor={theme.colors.primary}
-            >
-              {item}
-            </Chip>
-          )}
-          contentContainerStyle={styles.categoriesList}
-        />
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-      ) : (
-        <FlatList
-          data={filteredProducts}
-          renderItem={renderProductItem}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={styles.productsList}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text variant="titleMedium">Nenhum produto encontrado</Text>
-              <Text variant="bodyMedium">
-                Tente mudar os filtros ou a busca
-              </Text>
-            </View>
-          }
-        />
-      )}
+      <FAB icon="refresh" style={styles.fab} onPress={loadProducts} color="#fff" />
     </SafeAreaView>
   );
 }
@@ -179,52 +132,32 @@ export default function CatalogScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
-  searchBar: {
-    margin: 10,
-    elevation: 2,
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FF69B4',
   },
-  categoriesContainer: {
-    marginBottom: 10,
+  cartButton: {
+    marginRight: 8,
   },
-  categoriesList: {
-    paddingHorizontal: 10,
+  cartBadge: {
+    position: 'absolute',
+    right: 8,
+    top: 8,
+    backgroundColor: '#FF69B4',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  categoryChip: {
-    marginHorizontal: 4,
-  },
-  productsList: {
-    padding: 8,
-  },
-  productCard: {
-    flex: 1,
-    margin: 8,
-    maxWidth: '46%',
-  },
-  productImage: {
-    height: 120,
-  },
-  productContent: {
-    padding: 8,
-  },
-  productPrice: {
-    marginTop: 4,
+  cartBadgeText: {
+    color: 'white',
+    fontSize: 10,
     fontWeight: 'bold',
-  },
-  unavailableChip: {
-    marginTop: 8,
-    backgroundColor: '#ffebee',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
 });

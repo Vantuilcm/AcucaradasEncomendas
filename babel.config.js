@@ -9,7 +9,7 @@ module.exports = function (api) {
           exclude: ['error', 'warn', 'info'],
         },
       ],
-      
+      'react-native-reanimated/plugin'
     ].filter(Boolean),
   };
 };
