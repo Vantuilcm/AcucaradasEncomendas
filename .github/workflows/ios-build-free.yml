@@ -179,9 +179,28 @@ jobs:
       - name: Build IPA
         run: |
           set -o pipefail
-          # Ação nuclear: injetar a correção como script prebuild do Expo
-          echo "node $GITHUB_WORKSPACE/fix-rn-xcode16.js || true" > prebuild-hook.sh
-          chmod +x prebuild-hook.sh
+          
+          # EAS Build limpa e copia os arquivos para uma pasta temporária (ex: /var/folders/t5/...).
+          # Para consertar o bug do Yoga no Xcode 16 de forma agressiva, vamos criar um script "postinstall"
+          # customizado que o EAS será OBRIGADO a rodar logo após instalar os pods/dependências na pasta temporária.
+          
+          echo "const fs = require('fs');" > fix-yoga.js
+          echo "const p = require('path');" >> fix-yoga.js
+          echo "const files = ['node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m', 'node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m'];" >> fix-yoga.js
+          echo "files.forEach(f => {" >> fix-yoga.js
+          echo "  try {" >> fix-yoga.js
+          echo "    let c = fs.readFileSync(f, 'utf8');" >> fix-yoga.js
+          echo "    c = c.replace(/YGNodeSetMeasureFunc\\\(\s*self\\.yogaNode\s*,\s*RCTBaseTextInputShadowViewMeasure\s*\\\);/g, 'YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTBaseTextInputShadowViewMeasure);');" >> fix-yoga.js
+          echo "    c = c.replace(/YGNodeSetBaselineFunc\\\(\s*self\\.yogaNode\s*,\s*RCTTextInputShadowViewBaseline\s*\\\);/g, 'YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextInputShadowViewBaseline);');" >> fix-yoga.js
+          echo "    c = c.replace(/YGNodeSetMeasureFunc\\\(\s*self\\.yogaNode\s*,\s*RCTTextShadowViewMeasure\s*\\\);/g, 'YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTTextShadowViewMeasure);');" >> fix-yoga.js
+          echo "    c = c.replace(/YGNodeSetBaselineFunc\\\(\s*self\\.yogaNode\s*,\s*RCTTextShadowViewBaseline\s*\\\);/g, 'YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextShadowViewBaseline);');" >> fix-yoga.js
+          echo "    fs.writeFileSync(f, c, 'utf8');" >> fix-yoga.js
+          echo "  } catch(e) {}" >> fix-yoga.js
+          echo "});" >> fix-yoga.js
+          
+          # Injetamos o comando diretamente no package.json temporário ANTES do build começar
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json')); pkg.scripts.postinstall = (pkg.scripts.postinstall ? pkg.scripts.postinstall + ' && ' : '') + 'node fix-yoga.js'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+
           # Passamos para o EAS
           eas build --platform ios --profile production --local --non-interactive --output="./Acucaradas.ipa"
         env:
