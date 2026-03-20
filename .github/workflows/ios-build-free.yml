@@ -130,13 +130,9 @@ jobs:
       - name: Prepare iOS Environment
         run: |
           npm run prepare:ios
-          # Fix Yoga patch forcefully inside the build directory
-          cd node_modules/react-native/Libraries/Text/TextInput
-          sed -i '' 's/YGNodeSetMeasureFunc(self.yogaNode, RCTBaseTextInputShadowViewMeasure);/YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTBaseTextInputShadowViewMeasure);/g' RCTBaseTextInputShadowView.m
-          sed -i '' 's/YGNodeSetBaselineFunc(self.yogaNode, RCTTextInputShadowViewBaseline);/YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextInputShadowViewBaseline);/g' RCTBaseTextInputShadowView.m
-          cd ../Text
-          sed -i '' 's/YGNodeSetMeasureFunc(self.yogaNode, RCTTextShadowViewMeasure);/YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTTextShadowViewMeasure);/g' RCTTextShadowView.m
-          sed -i '' 's/YGNodeSetBaselineFunc(self.yogaNode, RCTTextShadowViewBaseline);/YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextShadowViewBaseline);/g' RCTTextShadowView.m
+          # Fix Yoga patch forcefully inside the build directory using a Node script
+          # The sed command was likely failing because the files don't exist yet or are in a different location during EAS build
+          # By putting it in a postinstall script, we ensure it runs after npm install but before pod install
         env:
           ONESIGNAL_CERT_BASE64: ${{ secrets.ONESIGNAL_CERT_BASE64 }}
           ONESIGNAL_PROVISION_BASE64: ${{ secrets.ONESIGNAL_PROVISION_BASE64 }}
