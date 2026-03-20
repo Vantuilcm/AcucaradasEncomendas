@@ -151,14 +151,14 @@ jobs:
 
       - name: Generate .env file
         run: |
-          echo "EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyDtb3R9DyV50vpS_6SI_k-6sv0zh8DQuAc" >> .env
-          echo "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=acucaradas-encomendas.firebaseapp.com" >> .env
-          echo "EXPO_PUBLIC_FIREBASE_PROJECT_ID=acucaradas-encomendas" >> .env
-          echo "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=acucaradas-encomendas.firebasestorage.app" >> .env
-          echo "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=627855691834" >> .env
-          echo "EXPO_PUBLIC_FIREBASE_APP_ID=1:627855691834:ios:802f87fc389cae45af6503" >> .env
-          echo "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=G-L9E5XQZ8Z7" >> .env
-          echo "EXPO_PUBLIC_FIREBASE_VAPID_KEY=BGsK_P7k_J6R7z_9X_X_X_X_X_X_X_X_X_X_X_X_X_X" >> .env
+          echo "EXPO_PUBLIC_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env
+          echo "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }}" >> .env
+          echo "EXPO_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> .env
+          echo "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}" >> .env
+          echo "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" >> .env
+          echo "EXPO_PUBLIC_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}" >> .env
+          echo "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=${{ secrets.FIREBASE_MEASUREMENT_ID }}" >> .env
+          echo "EXPO_PUBLIC_FIREBASE_VAPID_KEY=${{ secrets.FIREBASE_VAPID_KEY }}" >> .env
           echo "EXPO_PUBLIC_FACEBOOK_APP_ID=1141386540846067" >> .env
           echo "EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS=627855691834-stv1r6evltm67q62isqqodgkv4ie023a.apps.googleusercontent.com" >> .env
           echo "EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB=627855691834-d3jm1hc7o3p6l6j26mc8u3ouhve27iqv.apps.googleusercontent.com" >> .env
@@ -209,14 +209,14 @@ jobs:
           NODE_ENV: production
           NO_SENTRY_VALIDATE: 1
           # Firebase Configuration (Restored original correct values)
-          EXPO_PUBLIC_FIREBASE_API_KEY: "AIzaSyDtb3R9DyV50vpS_6SI_k-6sv0zh8DQuAc"
-          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: "acucaradas-encomendas.firebaseapp.com"
-          EXPO_PUBLIC_FIREBASE_PROJECT_ID: "acucaradas-encomendas"
-          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: "acucaradas-encomendas.firebasestorage.app"
-          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "627855691834"
-          EXPO_PUBLIC_FIREBASE_APP_ID: "1:627855691834:ios:802f87fc389cae45af6503"
-          EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID: "G-L9E5XQZ8Z7"
-          EXPO_PUBLIC_FIREBASE_VAPID_KEY: "BGsK_P7k_J6R7z_9X_X_X_X_X_X_X_X_X_X_X_X_X_X"
+          EXPO_PUBLIC_FIREBASE_API_KEY: "${{ secrets.FIREBASE_API_KEY }}"
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: "${{ secrets.FIREBASE_AUTH_DOMAIN }}"
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID: "${{ secrets.FIREBASE_PROJECT_ID }}"
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: "${{ secrets.FIREBASE_STORAGE_BUCKET }}"
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}"
+          EXPO_PUBLIC_FIREBASE_APP_ID: "${{ secrets.FIREBASE_APP_ID }}"
+          EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID: "${{ secrets.FIREBASE_MEASUREMENT_ID }}"
+          EXPO_PUBLIC_FIREBASE_VAPID_KEY: "${{ secrets.FIREBASE_VAPID_KEY }}"
 
           # Social Login and Other Integrations
           EXPO_PUBLIC_FACEBOOK_APP_ID: "1141386540846067"
