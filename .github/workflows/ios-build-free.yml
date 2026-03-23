@@ -151,7 +151,7 @@ jobs:
 
       - name: Generate .env file
         run: |
-          echo "EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyDtb3R9DyV50vpS_6SI_k-6sv0zh8DQuAc" >> .env
+          echo "EXPO_PUBLIC_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env
           echo "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=acucaradas-encomendas.firebaseapp.com" >> .env
           echo "EXPO_PUBLIC_FIREBASE_PROJECT_ID=acucaradas-encomendas" >> .env
           echo "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=acucaradas-encomendas.firebasestorage.app" >> .env
@@ -173,7 +173,7 @@ jobs:
           echo "EXPO_PUBLIC_ENABLE_ONESIGNAL=true" >> .env
           echo "EXPO_PUBLIC_ONESIGNAL_APP_ID=2df9c7f0-6fb7-4cbe-87e9-c6fb116203f7" >> .env
           echo "EXPO_PUBLIC_APPLE_MERCHANT_ID=merchant.com.acucaradas.encomendas" >> .env
-          echo "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51R83kwP3V81jclQkVaVnARH82yqXsxyXIQfEXTcij3DpITlJIkS5Vyw3z02ijC1fG2TGeTiQ3VBlIbwHNJHIVJxr00KkaXYQa2" >> .env
+          echo "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}" >> .env
           echo "EXPO_PUBLIC_ENABLE_DEVICE_SECURITY_CHECKS=true" >> .env
 
       - name: Build IPA
@@ -209,7 +209,7 @@ jobs:
           NODE_ENV: production
           NO_SENTRY_VALIDATE: 1
           # Firebase Configuration (Restored original correct values)
-          EXPO_PUBLIC_FIREBASE_API_KEY: "AIzaSyDtb3R9DyV50vpS_6SI_k-6sv0zh8DQuAc"
+          EXPO_PUBLIC_FIREBASE_API_KEY: "${{ secrets.FIREBASE_API_KEY }}"
           EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: "acucaradas-encomendas.firebaseapp.com"
           EXPO_PUBLIC_FIREBASE_PROJECT_ID: "acucaradas-encomendas"
           EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: "acucaradas-encomendas.firebasestorage.app"
@@ -235,7 +235,7 @@ jobs:
           EXPO_PUBLIC_ENABLE_ONESIGNAL: "true"
           EXPO_PUBLIC_ONESIGNAL_APP_ID: "2df9c7f0-6fb7-4cbe-87e9-c6fb116203f7"
           EXPO_PUBLIC_APPLE_MERCHANT_ID: "merchant.com.acucaradas.encomendas"
-          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_51R83kwP3V81jclQkVaVnARH82yqXsxyXIQfEXTcij3DpITlJIkS5Vyw3z02ijC1fG2TGeTiQ3VBlIbwHNJHIVJxr00KkaXYQa2"
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: "${{ secrets.STRIPE_PUBLISHABLE_KEY }}"
           EXPO_PUBLIC_ENABLE_DEVICE_SECURITY_CHECKS: "true"
 
 

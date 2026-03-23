@@ -22,6 +22,7 @@ export default function LoginScreen() {
   const [authError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<string>(Role.COMPRADOR);
 
@@ -140,10 +141,23 @@ export default function LoginScreen() {
             label="Senha"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
+            secureTextEntry={!showPassword}
+            right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />}
             style={styles.input}
             testID="password-input"
           />
+
+          <View style={styles.forgotPasswordContainer}>
+            <Button mode="text" onPress={() => navigation.navigate('ForgotPassword')} labelStyle={styles.forgotPasswordText}>
+              Esqueci minha senha
+            </Button>
+          </View>
+
+          <View style={styles.termsContainer}>
+            <Text style={styles.termsText}>
+              Eu concordo com os Termos de Uso e a Política de Privacidade
+            </Text>
+          </View>
 
           <Button mode="contained" onPress={handleLogin} style={styles.button} disabled={loading} testID="login-button">
                       Entrar
@@ -197,6 +211,24 @@ const createStyles = (theme: { colors: any }) =>
   },
   input: {
     marginBottom: 16,
+    backgroundColor: 'transparent',
+  },
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 8,
+  },
+  forgotPasswordText: {
+    color: theme.colors.text.primary,
+    fontSize: 14,
+  },
+  termsContainer: {
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  termsText: {
+    fontSize: 12,
+    color: theme.colors.text.secondary,
+    textAlign: 'center',
   },
   button: {
     marginTop: 8,
