@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { Order, OrderStatus } from '../types/Order';
@@ -37,6 +38,7 @@ export function OrderManagementScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
+  const { isProdutor, isAdmin, isEntregador } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -293,8 +295,8 @@ export function OrderManagementScreen() {
     return <LoadingState message="Carregando pedidos..." />;
   }
 
-  // Verificar se o usuário é administrador ou produtor
-  if (!user?.isAdmin) {
+  // Verificar se o usuário é administrador, produtor ou entregador
+  if (!isAdmin && !isProdutor && !isEntregador) {
     return (
       <ErrorMessage 
         message="Você não tem permissão para acessar esta área" 

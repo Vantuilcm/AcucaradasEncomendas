@@ -256,44 +256,6 @@ const AppNavigator = () => {
                   options={{ title: 'Central de Ajuda' }}
                 />
               </>
-            ) : isProdutor || isAdmin ? (
-              <>
-                <Stack.Screen
-                  name="AdminPanel"
-                  component={AdminPanelScreen}
-                  options={{ title: 'Painel de Administração' }}
-                />
-                <Stack.Screen
-                  name="ProductManagement"
-                  component={ProductManagementScreen}
-                  options={{ title: 'Gerenciar Produtos' }}
-                />
-                <Stack.Screen
-                  name="OrderManagement"
-                  component={OrderManagementScreen}
-                  options={{ title: 'Gerenciar Pedidos' }}
-                />
-                <Stack.Screen
-                  name="AddEditProduct"
-                  component={AddEditProductScreen}
-                  options={{ title: 'Adicionar/Editar Produto' }}
-                />
-                <Stack.Screen
-                  name="OrderDetails"
-                  component={OrderDetailsScreen}
-                  options={{ title: 'Detalhes do Pedido' }}
-                />
-                <Stack.Screen
-                  name="NotificationSettings"
-                  component={NotificationSettingsScreen}
-                  options={{ title: 'Configurações de Notificação' }}
-                />
-                <Stack.Screen
-                  name="EditProfile"
-                  component={EditProfileScreen}
-                  options={{ title: 'Editar Perfil' }}
-                />
-              </>
             ) : (
               <>
                 <Stack.Screen
@@ -301,6 +263,32 @@ const AppNavigator = () => {
                   component={MainTabs}
                   options={{ headerShown: false }}
                 />
+                {/* Telas Administrativas / Produtor */}
+                {(isProdutor || isAdmin) && (
+                  <>
+                    <Stack.Screen
+                      name="AdminPanel"
+                      component={AdminPanelScreen}
+                      options={{ title: 'Painel de Administração' }}
+                    />
+                    <Stack.Screen
+                      name="ProductManagement"
+                      component={ProductManagementScreen}
+                      options={{ title: 'Gerenciar Produtos' }}
+                    />
+                    <Stack.Screen
+                      name="OrderManagement"
+                      component={OrderManagementScreen}
+                      options={{ title: 'Gerenciar Pedidos' }}
+                    />
+                    <Stack.Screen
+                      name="AddEditProduct"
+                      component={AddEditProductScreen}
+                      options={{ title: 'Adicionar/Editar Produto' }}
+                    />
+                  </>
+                )}
+                {/* Telas Comuns */}
                 <Stack.Screen
                   name="ProductDetail"
                   component={ProductDetailScreen}

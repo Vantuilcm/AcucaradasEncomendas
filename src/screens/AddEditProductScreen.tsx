@@ -4,6 +4,7 @@ import { Text, Button, TextInput, Card, Chip, HelperText } from 'react-native-pa
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { ErrorMessage } from '../components/ErrorMessage';
 // Usando o mock local em vez do módulo real
 import * as ImagePicker from '../__mocks__/expo-image-picker';
@@ -37,6 +38,7 @@ export function AddEditProductScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
+  const { isProdutor, isAdmin } = usePermissions();
   
   // Extrair parâmetros da rota
   const { product, isEditing } = route.params as RouteParams || {};
@@ -75,8 +77,8 @@ export function AddEditProductScreen() {
     }
   }, [isEditing, product]);
 
-  // Verificar se o usuário é administrador
-  if (!user?.isAdmin) {
+  // Verificar se o usuário é administrador ou produtor
+  if (!isAdmin && !isProdutor) {
     return (
       <ErrorMessage
         message="Você não tem permissão para acessar esta área"

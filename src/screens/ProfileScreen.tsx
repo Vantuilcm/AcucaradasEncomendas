@@ -72,12 +72,34 @@ export const ProfileScreen = () => {
       </View>
 
       {(isProdutor || isAdmin) && (
-        <TouchableRipple onPress={navigateToAdminPanel}>
-          <View style={styles.adminButton}>
-            <MaterialCommunityIcons name="shield-account" color={theme.colors.background} size={22} />
-            <Text style={styles.adminButtonText}>Painel de Administração</Text>
-          </View>
-        </TouchableRipple>
+        <View style={styles.producerSection}>
+          <Text style={styles.menuSectionTitle}>Área do Produtor</Text>
+          <List.Section>
+            <List.Item
+              title="Minha Loja (Produtos)"
+              description="Adicionar e gerenciar produtos"
+              left={props => <List.Icon {...props} icon="store" />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() => navigation.navigate('ProductManagement' as any)}
+            />
+            <List.Item
+              title="Pedidos Recebidos"
+              description="Gerenciar pedidos dos clientes"
+              left={props => <List.Icon {...props} icon="clipboard-list" />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() => navigation.navigate('OrderManagement' as any)}
+            />
+          </List.Section>
+          
+          {isAdmin && (
+            <TouchableRipple onPress={navigateToAdminPanel}>
+              <View style={styles.adminButton}>
+                <MaterialCommunityIcons name="shield-account" color={theme.colors.background} size={22} />
+                <Text style={styles.adminButtonText}>Painel de Administração</Text>
+              </View>
+            </TouchableRipple>
+          )}
+        </View>
       )}
 
       <View style={styles.menuSection}>
@@ -183,7 +205,7 @@ const createStyles = (theme: { colors: any }) =>
     marginLeft: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: theme.colors.text.primary,
   },
@@ -191,6 +213,10 @@ const createStyles = (theme: { colors: any }) =>
     fontSize: 14,
     lineHeight: 14,
     color: theme.colors.text.secondary,
+  },
+  producerSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   adminButton: {
     backgroundColor: theme.colors.primary,

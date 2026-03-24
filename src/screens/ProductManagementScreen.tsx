@@ -19,6 +19,8 @@ import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { useAppTheme } from '../components/ThemeProvider';
 
+import { usePermissions } from '../hooks/usePermissions';
+
 // Tipo para produtos
 interface Product {
   id: string;
@@ -36,6 +38,7 @@ export function ProductManagementScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { isProdutor, isAdmin } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -239,7 +242,7 @@ export function ProductManagementScreen() {
   }
 
   // Verificar se o usuário é administrador ou produtor
-  if (!user?.isAdmin) {
+  if (!isAdmin && !isProdutor) {
     return (
       <ErrorMessage
         message="Você não tem permissão para acessar esta área"
