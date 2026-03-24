@@ -7,42 +7,29 @@ import { getAnalytics, isSupported } from 'firebase/analytics';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-// Configuração do Firebase com suporte a múltiplos formatos de variáveis de ambiente
+// Helper para validar variáveis críticas de forma segura
+const getEnvVar = (expoKey: string, nodeKey: string, fallbackKey: string, name: string): string => {
+  const value = process.env[expoKey] || process.env[nodeKey] || Constants.expoConfig?.extra?.[fallbackKey];
+  
+  // Se for nulo, vazio, ou o valor padrão (mock), lançamos um erro claro
+  if (!value || value.includes('your-')) {
+    const errorMsg = `CRITICAL ERROR: Variável de ambiente faltando para ${name}. Verifique seu arquivo .env ou segredos do EAS.`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+  
+  return value;
+};
+
+// Configuração do Firebase com suporte a múltiplos formatos de variáveis de ambiente e validação
 const firebaseConfig = {
-  apiKey:
-    process.env.EXPO_PUBLIC_FIREBASE_API_KEY ||
-    process.env.FIREBASE_API_KEY ||
-    Constants.expoConfig?.extra?.firebaseApiKey ||
-    'your-firebase-api-key',
-  authDomain:
-    process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ||
-    process.env.FIREBASE_AUTH_DOMAIN ||
-    Constants.expoConfig?.extra?.firebaseAuthDomain ||
-    'your-firebase-auth-domain',
-  projectId:
-    process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ||
-    process.env.FIREBASE_PROJECT_ID ||
-    Constants.expoConfig?.extra?.firebaseProjectId ||
-    'your-firebase-project-id',
-  storageBucket:
-    process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET ||
-    process.env.FIREBASE_STORAGE_BUCKET ||
-    Constants.expoConfig?.extra?.firebaseStorageBucket ||
-    'your-firebase-storage-bucket',
-  messagingSenderId:
-    process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ||
-    process.env.FIREBASE_MESSAGING_SENDER_ID ||
-    Constants.expoConfig?.extra?.firebaseMessagingSenderId ||
-    'your-firebase-messaging-sender-id',
-  appId:
-    process.env.EXPO_PUBLIC_FIREBASE_APP_ID ||
-    process.env.FIREBASE_APP_ID ||
-    Constants.expoConfig?.extra?.firebaseAppId ||
-    'your-firebase-app-id',
-  measurementId:
-    process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID ||
-    Constants.expoConfig?.extra?.firebaseMeasurementId ||
-    'your-measurement-id',
+  apiKey: getEnvVar('EXPO_PUBLIC_FIREBASE_API_KEY', 'FIREBASE_API_KEY', 'firebaseApiKey', 'API Key'),
+  authDomain: getEnvVar('EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN', 'FIREBASE_AUTH_DOMAIN', 'firebaseAuthDomain', 'Auth Domain'),
+  projectId: getEnvVar('EXPO_PUBLIC_FIREBASE_PROJECT_ID', 'FIREBASE_PROJECT_ID', 'firebaseProjectId', 'Project ID'),
+  storageBucket: getEnvVar('EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET', 'FIREBASE_STORAGE_BUCKET', 'firebaseStorageBucket', 'Storage Bucket'),
+  messagingSenderId: getEnvVar('EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID', 'FIREBASE_MESSAGING_SENDER_ID', 'firebaseMessagingSenderId', 'Messaging Sender ID'),
+  appId: getEnvVar('EXPO_PUBLIC_FIREBASE_APP_ID', 'FIREBASE_APP_ID', 'firebaseAppId', 'App ID'),
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || Constants.expoConfig?.extra?.firebaseMeasurementId || undefined,
 };
 
 // Declarando variáveis para exportação
@@ -137,35 +124,11 @@ try {
 
   console.log(`Firebase initialized successfully on ${Platform.OS}`);
 } catch (error) {
-  console.error('Firebase initialization error:', error);
+  console.error('CRITICAL: Firebase initialization error:', error);
 
-  // Mock simples para auth e db quando Firebase falha
-  auth = {
-    currentUser: null,
-    onAuthStateChanged: (callback: any) => callback(null),
-    signInWithEmailAndPassword: async () => ({ user: { uid: 'mock-uid' } }),
-    createUserWithEmailAndPassword: async () => ({ user: { uid: 'mock-uid' } }),
-    signOut: async () => {},
-  } as any;
-
-  db = {
-    collection: () => ({
-      doc: () => ({
-        get: async () => ({ exists: true, data: () => ({ userType: 'customer' }) }),
-        set: async () => {},
-        update: async () => {},
-      }),
-      where: () => ({
-        get: async () => ({ docs: [] }),
-      }),
-      add: async () => ({ id: 'mock-id' }),
-    }),
-    doc: () => ({
-      get: async () => ({ exists: true, data: () => ({ userType: 'customer' }) }),
-      set: async () => {},
-      update: async () => {},
-    }),
-  } as any;
+  // Sem fallbacks silenciosos ou mocks de dados.
+  // Se a inicialização falhar, propagamos o erro para impedir que o app rode em estado inconsistente.
+  throw new Error(`Falha crítica ao inicializar o Firebase. Verifique suas variáveis de ambiente. Detalhe: ${error instanceof Error ? error.message : 'Desconhecido'}`);
 }
 
 // Exportar as variáveis após a inicialização
