@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SafeAreaView, StyleSheet, View, Text } from 'react-native';
 import { Appbar, FAB } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -6,6 +6,7 @@ import { ProductGrid } from '../components/ProductGrid';
 import { ProductService } from '../services/ProductService';
 import { loggingService } from '../services/LoggingService';
 import { useCart } from '../contexts/CartContext';
+import { useAppTheme } from '../components/ThemeProvider';
 
 interface Product {
   id: string;
@@ -20,6 +21,8 @@ interface Product {
 }
 
 export default function ProductCatalogScreen() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,17 +100,17 @@ export default function ProductCatalogScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: { colors: any }) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#FF69B4',
+    backgroundColor: theme.colors.primary,
   },
   cartButton: {
     marginRight: 8,
@@ -116,7 +119,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 8,
     top: 8,
-    backgroundColor: '#FF69B4',
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     width: 20,
     height: 20,

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, Image } from 'react-native';
-import { TextInput, Button, Text, SegmentedButtons } from 'react-native-paper';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity } from 'react-native';
+import { TextInput, Button, Text, SegmentedButtons, Checkbox } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +25,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<string>(Role.COMPRADOR);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const validateInputs = () => {
     try {
@@ -34,6 +35,11 @@ export default function LoginScreen() {
       // Validar senha (não vazia)
       if (!password.trim()) {
         throw new Error('Senha é obrigatória');
+      }
+
+      // Validar termos de uso
+      if (!termsAccepted) {
+        throw new Error('Você precisa aceitar os Termos de Uso e Política de Privacidade para continuar');
       }
       
       return true;
@@ -154,12 +160,34 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.termsContainer}>
-            <Text style={styles.termsText}>
-              Eu concordo com os Termos de Uso e a Política de Privacidade
-            </Text>
+            <Checkbox
+              status={termsAccepted ? 'checked' : 'unchecked'}
+              onPress={() => setTermsAccepted(!termsAccepted)}
+              color={theme.colors.primary}
+            />
+            <View style={styles.termsTextContainer}>
+              <TouchableOpacity onPress={() => setTermsAccepted(!termsAccepted)}>
+                <Text style={styles.termsText}>
+                  Marque eu aceito os{' '}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('TermsOfUse')}>
+                <Text style={[styles.termsText, styles.termsLink]}>
+                  Termos de Uso
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.termsText}>
+                {' '}e a{' '}
+              </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('PrivacySettings')}>
+                <Text style={[styles.termsText, styles.termsLink]}>
+                  Política de uso da aplicação
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <Button mode="contained" onPress={handleLogin} style={styles.button} disabled={loading} testID="login-button">
+          <Button mode="contained" onPress={handleLogin} style={styles.button} disabled={loading || !termsAccepted} testID="login-button">
                       Entrar
                     </Button>
 
@@ -186,32 +214,35 @@ const createStyles = (theme: { colors: any }) =>
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 24,
     justifyContent: 'center',
+    backgroundColor: theme.colors.background,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 30, // Aumentado um pouco
   },
   logo: {
-    width: 150,
-    height: 150,
+    width: 160, // Aumentado um pouco
+    height: 160, // Aumentado um pouco
   },
   segmentedButtons: {
-    marginBottom: 24,
+    marginBottom: 30, // Aumentado um pouco
   },
   title: {
     textAlign: 'center',
     marginBottom: 8,
+    color: theme.colors.text.primary,
+    fontWeight: 'bold', // Adicionado bold
   },
   subtitle: {
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 36, // Aumentado um pouco
     color: theme.colors.text.secondary,
   },
   input: {
     marginBottom: 16,
-    backgroundColor: 'transparent',
+    backgroundColor: theme.colors.surface,
   },
   forgotPasswordContainer: {
     alignItems: 'flex-end',
@@ -224,11 +255,22 @@ const createStyles = (theme: { colors: any }) =>
   termsContainer: {
     marginBottom: 24,
     paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  termsTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginLeft: 8,
   },
   termsText: {
     fontSize: 12,
     color: theme.colors.text.secondary,
-    textAlign: 'center',
+  },
+  termsLink: {
+    color: theme.colors.primary,
+    textDecorationLine: 'underline',
   },
   button: {
     marginTop: 8,

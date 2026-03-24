@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Image } from 'react-native';
-import { Text, Button, TextInput, Card, useTheme, Chip, HelperText } from 'react-native-paper';
+import { Text, Button, TextInput, Card, Chip, HelperText } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { ErrorMessage } from '../components/ErrorMessage';
 // Usando o mock local em vez do módulo real
 import * as ImagePicker from '../__mocks__/expo-image-picker';
+
+import { useAppTheme } from '../components/ThemeProvider';
 
 // Categorias disponíveis
 const CATEGORIES = ['Bolos', 'Cupcakes', 'Tortas', 'Doces', 'Salgados', 'Bebidas'];
@@ -30,7 +32,8 @@ interface RouteParams {
 }
 
 export function AddEditProductScreen() {
-  const theme = useTheme();
+  const { theme } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
@@ -267,34 +270,36 @@ export function AddEditProductScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: { colors: any }) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   scrollView: {
     flex: 1,
   },
   header: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: theme.colors.border,
   },
   title: {
-    color: '#333',
+    color: theme.colors.text.primary,
   },
   formCard: {
     margin: 16,
     borderRadius: 12,
     elevation: 2,
+    backgroundColor: theme.colors.card,
   },
   input: {
     marginBottom: 16,
+    backgroundColor: theme.colors.surface,
   },
   label: {
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.text.primary,
     marginTop: 8,
     marginBottom: 8,
   },
@@ -314,10 +319,10 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   availableChip: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.colors.success,
   },
   unavailableChip: {
-    backgroundColor: '#F44336',
+    backgroundColor: theme.colors.error,
   },
   imageContainer: {
     alignItems: 'center',
@@ -333,13 +338,15 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 8,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: theme.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   placeholderText: {
-    color: '#757575',
+    color: theme.colors.text.secondary,
   },
   imageButton: {
     marginTop: 8,

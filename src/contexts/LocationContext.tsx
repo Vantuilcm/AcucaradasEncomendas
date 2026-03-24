@@ -92,7 +92,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
   };
 
   // Busca lojas próximas à localização atual
-  const findNearbyStores = async (radius?: number): Promise<Store[]> => {
+  const findNearbyStores = async (radius?: number, onlyOpen: boolean = false): Promise<Store[]> => {
     if (!currentLocation) {
       return [];
     }
@@ -101,7 +101,8 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
       setIsLoadingStores(true);
       const stores = await locationService.getNearbyStores(
         currentLocation,
-        radius || MAX_PROXIMITY_RADIUS
+        radius || MAX_PROXIMITY_RADIUS,
+        onlyOpen
       );
       setNearbyStores(stores);
       return stores;

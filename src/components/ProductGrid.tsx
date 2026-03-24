@@ -15,6 +15,7 @@ import { Chip, Searchbar, Badge, Button } from 'react-native-paper';
 import { useCart } from '../contexts/CartContext';
 import { Product } from '../types/Product';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from './ThemeProvider';
 
 interface ProductGridProps {
   products: Product[];
@@ -50,11 +51,13 @@ export function ProductGrid({
 }: ProductGridProps) {
   const navigation = useNavigation();
   const { addItem } = useCart();
+  const { theme } = useAppTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialFilter.busca || '');
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
     initialFilter.categoria
   );
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   // Calcular a largura dos cards com base no número de colunas
   const cardWidth = (width - (numColumns + 1) * 16) / numColumns;
@@ -208,7 +211,7 @@ export function ProductGrid({
       {/* Estado de carregamento */}
       {loading && !refreshing && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF69B4" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       )}
 
@@ -234,7 +237,7 @@ export function ProductGrid({
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="basket-outline" size={64} color="#ccc" />
+              <Ionicons name="basket-outline" size={64} color={theme.colors.text.secondary} />
               <Text style={styles.emptyText}>{emptyMessage}</Text>
             </View>
           }
@@ -244,16 +247,17 @@ export function ProductGrid({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: { colors: any }) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   searchBar: {
     marginHorizontal: 16,
     marginVertical: 12,
     elevation: 2,
     borderRadius: 12,
+    backgroundColor: theme.colors.surface,
   },
   categoriesContainer: {
     marginBottom: 12,
@@ -270,7 +274,7 @@ const styles = StyleSheet.create({
   productCard: {
     margin: 8,
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.card,
     overflow: 'hidden',
     elevation: 2,
   },
@@ -284,17 +288,17 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.text.primary,
     marginBottom: 4,
   },
   productPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FF69B4',
+    color: theme.colors.primary,
     marginBottom: 8,
   },
   addButton: {
-    backgroundColor: '#FF69B4',
+    backgroundColor: theme.colors.primary,
     padding: 8,
     borderRadius: 20,
     flexDirection: 'row',
@@ -312,7 +316,7 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     zIndex: 1,
-    backgroundColor: '#FF69B4',
+    backgroundColor: theme.colors.primary,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -321,11 +325,11 @@ const styles = StyleSheet.create({
   tag: {
     marginRight: 4,
     marginBottom: 4,
-    backgroundColor: '#FFE6F2',
+    backgroundColor: theme.colors.surface,
   },
   tagText: {
     fontSize: 10,
-    color: '#FF69B4',
+    color: theme.colors.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -342,11 +346,11 @@ const styles = StyleSheet.create({
   errorText: {
     textAlign: 'center',
     marginBottom: 16,
-    color: '#666',
+    color: theme.colors.error,
     fontSize: 16,
   },
   retryButton: {
-    backgroundColor: '#FF69B4',
+    backgroundColor: theme.colors.primary,
   },
   emptyContainer: {
     padding: 24,
@@ -355,7 +359,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: 16,
-    color: '#666',
+    color: theme.colors.text.secondary,
     fontSize: 16,
     textAlign: 'center',
   },

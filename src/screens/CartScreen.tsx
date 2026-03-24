@@ -6,10 +6,13 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useCart } from '../contexts/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Divider } from 'react-native-paper';
+import { useAppTheme } from '../components/ThemeProvider';
 
 type CartScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 export default function CartScreen() {
+  const { theme } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<CartScreenNavigationProp>();
   const { cart, removeItem, updateQuantity, cartTotal } = useCart() as any;
 
@@ -37,7 +40,7 @@ export default function CartScreen() {
               <Ionicons
                 name="remove-circle"
                 size={24}
-                color={item.quantity <= 1 ? '#ccc' : '#ff69b4'}
+                color={item.quantity <= 1 ? theme.colors.disabled : theme.colors.primary}
               />
             </TouchableOpacity>
 
@@ -47,7 +50,7 @@ export default function CartScreen() {
               onPress={() => updateQuantity(item.id, item.quantity + 1)}
               style={styles.quantityButton}
             >
-              <Ionicons name="add-circle" size={24} color="#ff69b4" />
+              <Ionicons name="add-circle" size={24} color={theme.colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -57,7 +60,7 @@ export default function CartScreen() {
           style={styles.removeButton}
           hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
         >
-          <Ionicons name="trash-outline" size={22} color="#ff4444" />
+          <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
         </TouchableOpacity>
       </Card.Content>
     </Card>
@@ -131,17 +134,17 @@ export default function CartScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: { colors: any }) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
     padding: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    marginBottom: 16,
+    color: theme.colors.text.primary,
   },
   cartList: {
     paddingBottom: 16,
@@ -149,6 +152,7 @@ const styles = StyleSheet.create({
   cartItem: {
     marginBottom: 12,
     borderRadius: 12,
+    backgroundColor: theme.colors.card,
     elevation: 2,
   },
   cartItemContent: {
@@ -157,19 +161,19 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   itemImage: {
-    width: 70,
-    height: 70,
+    width: 80,
+    height: 80,
     borderRadius: 8,
+    backgroundColor: theme.colors.surface,
   },
   placeholderImage: {
-    backgroundColor: '#FFE6F2',
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
-    fontSize: 24,
+    fontSize: 32,
+    color: theme.colors.text.secondary,
     fontWeight: 'bold',
-    color: '#FF69B4',
   },
   itemInfo: {
     flex: 1,
@@ -178,11 +182,11 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.text.primary,
   },
   itemPrice: {
     fontSize: 15,
-    color: '#ff69b4',
+    color: theme.colors.primary,
     marginTop: 4,
     fontWeight: 'bold',
   },
@@ -198,9 +202,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
     minWidth: 25,
     textAlign: 'center',
+    color: theme.colors.text.primary,
   },
   removeButton: {
     padding: 8,
@@ -209,6 +213,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderRadius: 12,
     elevation: 3,
+    backgroundColor: theme.colors.card,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -217,15 +222,15 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 16,
-    color: '#555',
+    color: theme.colors.text.secondary,
   },
   summaryValue: {
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.text.primary,
   },
   divider: {
     marginVertical: 10,
-    backgroundColor: '#ddd',
+    backgroundColor: theme.colors.border,
   },
   totalContainer: {
     flexDirection: 'row',
@@ -235,15 +240,15 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.text.primary,
   },
   totalValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ff69b4',
+    color: theme.colors.primary,
   },
   checkoutButton: {
-    backgroundColor: '#ff69b4',
+    backgroundColor: theme.colors.primary,
     marginVertical: 16,
     borderRadius: 30,
     paddingVertical: 8,
@@ -251,6 +256,7 @@ const styles = StyleSheet.create({
   checkoutButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#fff',
   },
   emptyCart: {
     flex: 1,
@@ -259,18 +265,18 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#666',
+    color: theme.colors.text.secondary,
     marginVertical: 20,
   },
   button: {
-    backgroundColor: '#ff69b4',
+    backgroundColor: theme.colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 30,
   },
   scheduleInfo: {
     textAlign: 'center',
-    color: '#777',
+    color: theme.colors.text.secondary,
     fontSize: 13,
     fontStyle: 'italic',
   },

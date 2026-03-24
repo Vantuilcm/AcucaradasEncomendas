@@ -2,14 +2,14 @@ import React from 'react';
 import { LogBox, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Provider as PaperProvider } from 'react-native-paper';
+import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import AppNavigator from './navigation/AppNavigator';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { LocationProvider } from './contexts/LocationContext';
-import { ThemeProvider } from './components/ThemeProvider';
+import { ThemeProvider, useAppTheme } from './components/ThemeProvider';
 
-// Ignorar warnings especÃ­ficos durante desenvolvimento
+// Ignorar warnings específicos durante desenvolvimento
 if (LogBox) {
   LogBox.ignoreLogs([
     'Non-serializable values were found in the navigation state',
@@ -17,23 +17,37 @@ if (LogBox) {
   ]);
 }
 
+function ThemedApp() {
+  const { isDark, theme } = useAppTheme();
+  
+  // Mesclar o tema do Paper com o nosso tema customizado
+  const paperTheme = isDark 
+    ? { ...MD3DarkTheme, colors: { ...MD3DarkTheme.colors, primary: theme.colors.primary, secondary: theme.colors.secondary, background: theme.colors.background, surface: theme.colors.surface, error: theme.colors.error, onSurface: theme.colors.text.primary, onBackground: theme.colors.text.primary } } 
+    : { ...MD3LightTheme, colors: { ...MD3LightTheme.colors, primary: theme.colors.primary, secondary: theme.colors.secondary, background: theme.colors.background, surface: theme.colors.surface, error: theme.colors.error, onSurface: theme.colors.text.primary, onBackground: theme.colors.text.primary } };
+
+  return (
+    <PaperProvider theme={paperTheme}>
+      <View style={{ flex: 1, backgroundColor: theme.colors.background }} testID="app-container">
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <AppNavigator />
+      </View>
+    </PaperProvider>
+  );
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
-      <PaperProvider>
+      <ThemeProvider>
         <AuthProvider>
           <LocationProvider>
             <CartProvider>
-              <ThemeProvider>
-                <View style={{ flex: 1 }} testID="app-container">
-                  <StatusBar style="auto" />
-                  <AppNavigator />
-                </View>
-              </ThemeProvider>
+              <ThemedApp />
             </CartProvider>
           </LocationProvider>
         </AuthProvider>
-      </PaperProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
+

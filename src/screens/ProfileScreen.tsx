@@ -8,9 +8,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { useAppTheme } from '../components/ThemeProvider';
+import { usePermissions } from '../hooks/usePermissions';
 
 export const ProfileScreen = () => {
   const { user, logout } = useAuth();
+  const { isProdutor, isAdmin } = usePermissions();
   const navigation = useNavigation<MainTabNavigationProp<'Profile'>>();
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
   const { theme } = useAppTheme();
@@ -69,7 +71,7 @@ export const ProfileScreen = () => {
         </View>
       </View>
 
-      {user?.isAdmin && (
+      {(isProdutor || isAdmin) && (
         <TouchableRipple onPress={navigateToAdminPanel}>
           <View style={styles.adminButton}>
             <MaterialCommunityIcons name="shield-account" color={theme.colors.background} size={22} />

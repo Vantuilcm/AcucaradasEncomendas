@@ -194,11 +194,13 @@ export class LocationService {
    * Busca lojas próximas à localização fornecida dentro do raio especificado
    * @param location Coordenadas de referência
    * @param radiusInKm Raio máximo de busca em quilômetros (padrão: 15km)
+   * @param onlyOpen Se verdadeiro, retorna apenas lojas abertas (padrão: false)
    * @returns Lista de lojas ordenadas por distância
    */
   public async getNearbyStores(
     location: GeoCoordinates,
-    radiusInKm: number = MAX_PROXIMITY_RADIUS
+    radiusInKm: number = MAX_PROXIMITY_RADIUS,
+    onlyOpen: boolean = false
   ): Promise<Store[]> {
     try {
       // Buscar todas as lojas (em uma implementação real, usaríamos uma consulta geoespacial do Firestore)
@@ -211,6 +213,11 @@ export class LocationService {
       // Para cada loja, calcular a distância e adicionar se estiver dentro do raio
       querySnapshot.docs.forEach(doc => {
         const storeData = doc.data() as unknown as Omit<Store, 'id'>;
+
+        // Se onlyOpen for verdadeiro e a loja estiver fechada, ignorar
+        if (onlyOpen && !storeData.isOpen) {
+          return;
+        }
 
         // Calcular distância
         const distance = this.calculateDistance(location, storeData.coordinates);

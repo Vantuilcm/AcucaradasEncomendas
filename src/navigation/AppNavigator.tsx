@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
+import { useAppTheme } from '../components/ThemeProvider';
+import { NavigationContainer, NavigatorScreenParams, DefaultTheme as NavigationDefaultTheme, DarkTheme as NavigationDarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -91,6 +92,7 @@ const DriverTab = createBottomTabNavigator<DriverTabParamList>();
 
 // Navegador de abas principal
 const MainTabs = () => {
+  const { theme } = useAppTheme();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => {
@@ -112,8 +114,16 @@ const MainTabs = () => {
 
             return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: '#FF6B6B',
-          tabBarInactiveTintColor: 'gray',
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarInactiveTintColor: theme.colors.text.disabled,
+          tabBarStyle: {
+            backgroundColor: theme.colors.card,
+            borderTopColor: theme.colors.border,
+          },
+          headerStyle: {
+            backgroundColor: theme.colors.card,
+          },
+          headerTintColor: theme.colors.text.primary,
         };
       }}
     >
@@ -127,6 +137,7 @@ const MainTabs = () => {
 };
 
 const DriverTabs = () => {
+  const { theme } = useAppTheme();
   return (
     <DriverTab.Navigator
       screenOptions={({ route }) => {
@@ -142,8 +153,16 @@ const DriverTabs = () => {
 
             return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: '#FF6B6B',
-          tabBarInactiveTintColor: 'gray',
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarInactiveTintColor: theme.colors.text.disabled,
+          tabBarStyle: {
+            backgroundColor: theme.colors.card,
+            borderTopColor: theme.colors.border,
+          },
+          headerStyle: {
+            backgroundColor: theme.colors.card,
+          },
+          headerTintColor: theme.colors.text.primary,
         };
       }}
     >
@@ -164,8 +183,14 @@ const DriverTabs = () => {
 // Navegador principal do aplicativo
 const AppNavigator = () => {
   const { user, loading } = useAuth();
-  const { isEntregador, loading: permissionsLoading } = usePermissions();
+  const { isEntregador, isProdutor, isAdmin, loading: permissionsLoading } = usePermissions();
   const [isReady, setIsReady] = useState(false);
+  const { isDark, theme } = useAppTheme();
+  
+  // Mesclar o tema da navegação com o nosso tema customizado
+  const navigationTheme = isDark 
+    ? { ...NavigationDarkTheme, colors: { ...NavigationDarkTheme.colors, primary: theme.colors.primary, background: theme.colors.background, card: theme.colors.card, text: theme.colors.text.primary, border: theme.colors.border, notification: theme.colors.notification } } 
+    : { ...NavigationDefaultTheme, colors: { ...NavigationDefaultTheme.colors, primary: theme.colors.primary, background: theme.colors.background, card: theme.colors.card, text: theme.colors.text.primary, border: theme.colors.border, notification: theme.colors.notification } };
   
   // Inicializar notificações
   useNotifications();
@@ -188,13 +213,13 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#FF6B6B',
+            backgroundColor: theme.colors.card,
           },
-          headerTintColor: '#fff',
+          headerTintColor: theme.colors.text.primary,
           headerTitleStyle: {
             fontWeight: 'bold',
           },
@@ -219,6 +244,54 @@ const AppNavigator = () => {
                   name="DeliveryDriverRegistration"
                   component={DeliveryDriverRegistration}
                   options={{ title: 'Cadastro de Entregador' }}
+                />
+                <Stack.Screen
+                  name="NotificationSettings"
+                  component={NotificationSettingsScreen}
+                  options={{ title: 'Configurações de Notificação' }}
+                />
+                <Stack.Screen
+                  name="HelpCenter"
+                  component={HelpCenterScreen}
+                  options={{ title: 'Central de Ajuda' }}
+                />
+              </>
+            ) : isProdutor || isAdmin ? (
+              <>
+                <Stack.Screen
+                  name="AdminPanel"
+                  component={AdminPanelScreen}
+                  options={{ title: 'Painel de Administração' }}
+                />
+                <Stack.Screen
+                  name="ProductManagement"
+                  component={ProductManagementScreen}
+                  options={{ title: 'Gerenciar Produtos' }}
+                />
+                <Stack.Screen
+                  name="OrderManagement"
+                  component={OrderManagementScreen}
+                  options={{ title: 'Gerenciar Pedidos' }}
+                />
+                <Stack.Screen
+                  name="AddEditProduct"
+                  component={AddEditProductScreen}
+                  options={{ title: 'Adicionar/Editar Produto' }}
+                />
+                <Stack.Screen
+                  name="OrderDetails"
+                  component={OrderDetailsScreen}
+                  options={{ title: 'Detalhes do Pedido' }}
+                />
+                <Stack.Screen
+                  name="NotificationSettings"
+                  component={NotificationSettingsScreen}
+                  options={{ title: 'Configurações de Notificação' }}
+                />
+                <Stack.Screen
+                  name="EditProfile"
+                  component={EditProfileScreen}
+                  options={{ title: 'Editar Perfil' }}
                 />
               </>
             ) : (
@@ -279,31 +352,6 @@ const AppNavigator = () => {
                   options={{ title: 'Editar Perfil' }}
                 />
                 <Stack.Screen
-                  name="AdminPanel"
-                  component={AdminPanelScreen}
-                  options={{ title: 'Painel de Administração' }}
-                />
-                <Stack.Screen
-                  name="ProductManagement"
-                  component={ProductManagementScreen}
-                  options={{ title: 'Gerenciar Produtos' }}
-                />
-                <Stack.Screen
-                  name="OrderManagement"
-                  component={OrderManagementScreen}
-                  options={{ title: 'Gerenciar Pedidos' }}
-                />
-                <Stack.Screen
-                  name="AddEditProduct"
-                  component={AddEditProductScreen}
-                  options={{ title: 'Adicionar/Editar Produto' }}
-                />
-                <Stack.Screen
-                  name="NotificationSettings"
-                  component={NotificationSettingsScreen}
-                  options={{ title: 'Configurações de Notificação' }}
-                />
-                <Stack.Screen
                   name="NotificationSettingsV2"
                   component={NotificationSettingsScreenV2}
                   options={{ title: 'Configurações de Notificação V2' }}
@@ -344,6 +392,16 @@ const AppNavigator = () => {
               name="ForgotPassword"
               component={ForgotPasswordScreen}
               options={{ title: 'Recuperar Senha' }}
+            />
+            <Stack.Screen
+              name="TermsOfUse"
+              component={TermsOfUseScreen}
+              options={{ title: 'Termos de Uso' }}
+            />
+            <Stack.Screen
+              name="PrivacySettings"
+              component={PrivacySettingsScreen}
+              options={{ title: 'Privacidade' }}
             />
           </>
         )}

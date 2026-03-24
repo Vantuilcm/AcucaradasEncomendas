@@ -17,7 +17,7 @@ import { DeliveryDriver, DeliveryDriverStats, DeliveryDriverUpdate } from '../ty
 import { formatCurrency } from '../utils/formatters';
 
 export function DeliveryDriverProfileScreen() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const driverService = useMemo(() => new DeliveryDriverService(), []);
   const [driver, setDriver] = useState<DeliveryDriver | null>(null);
   const [stats, setStats] = useState<DeliveryDriverStats | null>(null);
@@ -259,6 +259,24 @@ export function DeliveryDriverProfileScreen() {
             description={driver.vehicle.color}
             left={props => <List.Icon {...props} icon="palette" />}
           />
+        </Card.Content>
+      </Card>
+
+      <Card style={styles.card}>
+        <Card.Content>
+          <Button
+            mode="contained"
+            buttonColor="#FF3B30"
+            onPress={async () => {
+              try {
+                await logout();
+              } catch (error) {
+                Alert.alert('Erro', 'Não foi possível fazer logout. Tente novamente.');
+              }
+            }}
+          >
+            Sair
+          </Button>
         </Card.Content>
       </Card>
 

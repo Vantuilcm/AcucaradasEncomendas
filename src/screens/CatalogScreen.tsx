@@ -7,6 +7,7 @@ import { ProductGrid } from '../components/ProductGrid';
 import { ProductService } from '../services/ProductService';
 import { loggingService } from '../services/LoggingService';
 import { useCart } from '../contexts/CartContext';
+import { useAppTheme } from '../components/ThemeProvider';
 import type { MainTabNavigationProp } from '../types/navigation';
 
 const sampleProducts = [
@@ -63,6 +64,7 @@ export default function CatalogScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { itemCount } = useCart();
+  const { theme } = useAppTheme();
 
   const loadProducts = async () => {
     try {
@@ -95,17 +97,18 @@ export default function CatalogScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Appbar.Header>
-        <Appbar.Content title="Catálogo" />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Appbar.Header style={{ backgroundColor: theme.colors.card }}>
+        <Appbar.Content title="Catálogo" titleStyle={{ color: theme.colors.text.primary }} />
         <Appbar.Action
           icon="cart"
+          color={theme.colors.text.primary}
           onPress={() => navigation.navigate('Cart')}
           style={styles.cartButton}
           size={24}
         />
         {itemCount > 0 && (
-          <View style={styles.cartBadge}>
+          <View style={[styles.cartBadge, { backgroundColor: theme.colors.primary }]}>
             <Text style={styles.cartBadgeText}>{itemCount > 99 ? '99+' : itemCount}</Text>
           </View>
         )}
@@ -124,7 +127,7 @@ export default function CatalogScreen() {
         emptyMessage="Nenhum produto disponível no momento"
       />
 
-      <FAB icon="refresh" style={styles.fab} onPress={loadProducts} color="#fff" />
+      <FAB icon="refresh" style={[styles.fab, { backgroundColor: theme.colors.primary }]} onPress={loadProducts} color="#fff" />
     </SafeAreaView>
   );
 }
@@ -132,14 +135,12 @@ export default function CatalogScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#FF69B4',
   },
   cartButton: {
     marginRight: 8,
@@ -148,7 +149,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 8,
     top: 8,
-    backgroundColor: '#FF69B4',
     borderRadius: 10,
     width: 20,
     height: 20,

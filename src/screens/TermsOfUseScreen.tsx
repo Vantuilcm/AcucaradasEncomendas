@@ -2,11 +2,13 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, List, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppTheme } from '../components/ThemeProvider';
 
 export function TermsOfUseScreen() {
+  const { theme } = useAppTheme();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView testID="terms-scroll-view" style={styles.scrollView}>
         <View style={styles.content}>
           <Text variant="headlineMedium" style={styles.title}>
@@ -147,7 +149,7 @@ export function TermsOfUseScreen() {
             />
           </List.Section>
 
-          <Text variant="bodySmall" style={styles.footer}>
+          <Text variant="bodySmall" style={[styles.footer, { color: theme.colors.text.secondary }]}>
             Última atualização: {new Date().toLocaleDateString('pt-BR')}
           </Text>
         </View>
@@ -159,7 +161,6 @@ export function TermsOfUseScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   scrollView: {
     flex: 1,
@@ -174,7 +175,6 @@ const styles = StyleSheet.create({
   subtitle: {
     textAlign: 'center',
     marginBottom: 24,
-    color: '#666',
   },
   intro: {
     marginBottom: 24,
@@ -186,6 +186,5 @@ const styles = StyleSheet.create({
   footer: {
     textAlign: 'center',
     marginTop: 24,
-    color: '#666',
   },
 });

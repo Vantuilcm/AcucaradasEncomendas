@@ -1,467 +1,121 @@
--plugins": "*",
-    "metro": "^0.76.8",
-    "metro-resolver": "^0.76.8",
-    "@types/react": "~18.2.14",
-    "expo-router": "~2.0.0",
-    "metro-core": "^0.76.8",
-    "@react-native-async-storage/async-storage": "~1.18.2",
-    "metro-config": "^0.76.8",
-    "metro-runtime": "^0.76.8",
-    "@react-native-community/cli": "^11.3.8",
-    "react-dom": "18.2.0",
-    "react-native-svg": "~13.9.0",
-    "firebase": "^10.7.1",
-    "semver": "^7.5.4",
-    "undici": "^6.22.1"
-  }
-}
-[INSTALL_DEPENDENCIES] Running "npm install --include=dev" in /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build directory
-[INSTALL_DEPENDENCIES] npm warn deprecated watchman@1.0.0: Package no longer supported. Contact support@npmjs.com for more info.
-[INSTALL_DEPENDENCIES] npm warn deprecated osenv@0.1.5: This package is no longer supported.
-[INSTALL_DEPENDENCIES] npm warn deprecated @npmcli/move-file@1.0.1: This functionality has been moved to @npmcli/fs
-[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-optional-catch-binding@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-optional-catch-binding instead.
-[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-numeric-separator@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-numeric-separator instead.
-[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-nullish-coalescing-operator@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-nullish-coalescing-operator instead.
-[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-class-properties@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-class-properties instead.
-[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-export-namespace-from@7.18.9: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-export-namespace-from instead.
-[INSTALL_DEPENDENCIES] npm warn deprecated rimraf@2.4.5: Rimraf versions prior to v4 are no longer supported
-[INSTALL_DEPENDENCIES] npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
-[INSTALL_DEPENDENCIES] npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
-[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-optional-chaining@7.21.0: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-optional-chaining instead.
-[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-async-generator-functions@7.20.7: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-async-generator-functions instead.
-[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-[INSTALL_DEPENDENCIES] npm warn deprecated glob@6.0.4: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-[INSTALL_DEPENDENCIES] npm warn deprecated sudo-prompt@9.2.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
-[INSTALL_DEPENDENCIES] npm warn deprecated glob@7.1.6: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-[INSTALL_DEPENDENCIES] npm warn deprecated @babel/plugin-proposal-object-rest-spread@7.20.7: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-object-rest-spread instead.
-[INSTALL_DEPENDENCIES] npm warn deprecated sudo-prompt@9.1.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
-[INSTALL_DEPENDENCIES] npm warn deprecated metro-react-native-babel-preset@0.76.8: Use @react-native/babel-preset instead
-[INSTALL_DEPENDENCIES] npm warn deprecated metro-react-native-babel-preset@0.76.9: Use @react-native/babel-preset instead
-[INSTALL_DEPENDENCIES] npm warn deprecated metro-react-native-babel-preset@0.76.9: Use @react-native/babel-preset instead
-[INSTALL_DEPENDENCIES] npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
-[INSTALL_DEPENDENCIES] npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
-[INSTALL_DEPENDENCIES] npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
-[INSTALL_DEPENDENCIES] npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
-[INSTALL_DEPENDENCIES] npm warn deprecated uglify-es@3.3.10: support for ECMAScript is superseded by `uglify-js` as of v3.13.0
-[INSTALL_DEPENDENCIES] npm warn deprecated @react-native-voice/voice@3.1.5: This package is deprecated. Use expo-speech-recognition instead.
-[INSTALL_DEPENDENCIES] > acucaradas-encomendas@1.0.1 postinstall
-[INSTALL_DEPENDENCIES] > patch-package
-[INSTALL_DEPENDENCIES] patch-package 8.0.0
-[INSTALL_DEPENDENCIES] Applying patches...
-[INSTALL_DEPENDENCIES] No patch files found
-[INSTALL_DEPENDENCIES] added 1692 packages in 36s
-[READ_APP_CONFIG] Using app configuration:
-[READ_APP_CONFIG] {
-  "name": "Açucaradas Encomendas",
-  "slug": "acucaradas-encomendas",
-  "version": "1.0.1",
-  "platforms": [
-    "ios",
-    "android",
-    "web"
-  ],
-  "orientation": "portrait",
-  "icon": "./assets/app-icon.png",
-  "userInterfaceStyle": "light",
-  "splash": {
-    "image": "./assets/splash.png",
-    "resizeMode": "contain",
-    "backgroundColor": "#ffffff"
-  },
-  "assetBundlePatterns": [
-    "**/*"
-  ],
-  "ios": {
-    "supportsTablet": true,
-    "bundleIdentifier": "com.acucaradas.encomendas",
-    "buildNumber": "362",
-    "infoPlist": {
-      "NSCameraUsageDescription": "Este aplicativo usa a câmera para escanear códigos QR e tirar fotos dos produtos.",
-      "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar sua galeria para selecionar imagens para os produtos.",
-      "NSMicrophoneUsageDescription": "Este aplicativo usa o microfone para gravar notas de voz para os pedidos.",
-      "NSLocationWhenInUseUsageDescription": "Este aplicativo usa sua localização para encontrar confeitarias próximas e calcular o tempo de entrega.",
-      "UIBackgroundModes": [
-        "remote-notification"
-      ],
-      "ITSAppUsesNonExemptEncryption": false
-    },
-    "googleServicesFile": "./GoogleService-Info.prod.plist"
-  },
-  "android": {
-    "adaptiveIcon": {
-      "foregroundImage": "./assets/app-icon.png",
-      "backgroundColor": "#ffffff"
-    },
-    "package": "com.acucaradas.encomendas",
-    "versionCode": 1,
-    "permissions": [
-      "CAMERA",
-      "READ_EXTERNAL_STORAGE",
-      "WRITE_EXTERNAL_STORAGE",
-      "ACCESS_FINE_LOCATION",
-      "RECORD_AUDIO"
-    ],
-    "googleServicesFile": "./google-services.prod.json"
-  },
-  "web": {
-    "favicon": "./assets/app-icon.png",
-    "bundler": "metro"
-  },
-  "scheme": "acucaradas-encomendas",
-  "plugins": [
-    "./plugins/withSentryCppExceptions",
-    [
-      "expo-build-properties",
-      {
-        "ios": {
-          "deploymentTarget": "15.0"
-        }
-      }
-    ],
-    [
-      "expo-notifications",
-      {
-        "icon": "./assets/notification-icon.png",
-        "color": "#ffffff"
-      }
-    ]
-  ],
-  "updates": {
-    "url": "https://u.expo.dev/acucaradas-encomendas",
-    "fallbackToCacheTimeout": 0
-  },
-  "extra": {
-    "hostUri": "177.192.13.46:8081",
-    "eas": {
-      "projectId": "6090106b-e327-4744-bce5-9ddb0d037045"
-    }
-  },
-  "owner": "acucaradaencomendas",
-  "runtimeVersion": {
-    "policy": "sdkVersion"
-  },
-  "sdkVersion": "49.0.0"
-}
-[RUN_EXPO_DOCTOR] Running "expo doctor"
-[RUN_EXPO_DOCTOR] Running 15 checks on your project...
-[RUN_EXPO_DOCTOR] 4 checks failed, indicating possible issues with the project.
-[RUN_EXPO_DOCTOR] 11/15 checks passed. 4 checks failed. Possible issues detected:
-[RUN_EXPO_DOCTOR] Use the --verbose flag to see more details about passed checks.
-[RUN_EXPO_DOCTOR] Command "expo doctor" failed.
-[RUN_EXPO_DOCTOR] ✖ Check that required peer dependencies are installed
-Error: npx -y expo-doctor exited with non-zero code: 1
-[RUN_EXPO_DOCTOR] Missing peer dependency: expo-application
-    at ChildProcess.completionListener (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/spawn-async/build/spawnAsync.js:42:23)
-    at Object.onceWrapper (node:events:634:26)
-[RUN_EXPO_DOCTOR] Required by: sentry-expo
-    at ChildProcess.emit (node:events:519:28)
-[RUN_EXPO_DOCTOR] Missing peer dependency: expo-device
-    at maybeClose (node:internal/child_process:1101:16)
-    at Socket.<anonymous> (node:internal/child_process:456:11)
-    at Socket.emit (node:events:519:28)
-    at Pipe.<anonymous> (node:net:346:12)
-    ...
-    at spawnAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/spawn-async/build/spawnAsync.js:7:23)
-    at spawn (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/turtle-spawn/dist/index.js:16:47)
-    at runExpoDoctor (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/common/setup.js:141:52)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async /Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/common/setup.js:120:17
-    at async BuildContext.runBuildPhase (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/context.js:125:28)
-    at async setupAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/common/setup.js:118:9)
-    at async buildAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/builders/ios.js:50:5)
-    at async runBuilderWithHooksAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/builders/common.js:12:13)
-    at async Object.iosBuilder (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/builders/ios.js:37:16)
-[RUN_EXPO_DOCTOR] Required by: sentry-expo
-[RUN_EXPO_DOCTOR] Advice:
-[RUN_EXPO_DOCTOR] Install missing required peer dependencies with "npx expo install expo-application expo-device"
-[RUN_EXPO_DOCTOR] Your app may crash outside of Expo Go without these dependencies. Native module peer dependencies must be installed directly.
-[RUN_EXPO_DOCTOR] ✖ Check that native modules use compatible support package versions for installed Expo SDK
-[RUN_EXPO_DOCTOR] Expected package @expo/config-plugins@~7.2.2
-[RUN_EXPO_DOCTOR] Found invalid:
-[RUN_EXPO_DOCTOR]   @expo/config-plugins@55.0.6
-[RUN_EXPO_DOCTOR]   (for more info, run: npm why @expo/config-plugins)
-[RUN_EXPO_DOCTOR] Advice:
-[RUN_EXPO_DOCTOR] Upgrade dependencies that are using the invalid package versions and remove resolutions from package.json that are pinning @expo/config-plugins to an invalid version.
-[RUN_EXPO_DOCTOR] 
-[RUN_EXPO_DOCTOR] ✖ Check if the project meets version requirements for submission to app stores
-[RUN_EXPO_DOCTOR] This project is using an SDK version that by default targets Android API level 33 or lower. To submit your app to the Google Play Store after August 31 2024, you must target Android API level 34 or higher.
-[RUN_EXPO_DOCTOR] Advice:
-[RUN_EXPO_DOCTOR] Upgrade to Expo SDK 50 or later, which by default supports Android API level 34 Learn more: https://support.google.com/googleplay/android-developer/answer/11926878?hl=en
-[RUN_EXPO_DOCTOR] 
-[RUN_EXPO_DOCTOR] ✖ Check that packages match versions required by installed Expo SDK
-[RUN_EXPO_DOCTOR] Some dependencies are incompatible with the installed expo version:
-[RUN_EXPO_DOCTOR]   @react-native-community/datetimepicker@8.6.0 - expected version: 7.2.0
-[RUN_EXPO_DOCTOR]   @react-native-community/netinfo@12.0.1 - expected version: 9.3.10
-[RUN_EXPO_DOCTOR]   expo-sharing@55.0.10 - expected version: ~11.5.0
-[RUN_EXPO_DOCTOR]   sentry-expo@7.2.0 - expected version: ~7.1.0
-[RUN_EXPO_DOCTOR] Your project may not work correctly until you install the correct versions of the packages.
-[RUN_EXPO_DOCTOR] Fix with: npx expo install --fix
-[RUN_EXPO_DOCTOR] Found outdated dependencies
-[RUN_EXPO_DOCTOR] Advice:
-[RUN_EXPO_DOCTOR] Use 'npx expo install --check' to review and upgrade your dependencies.
-[RUN_EXPO_DOCTOR] To ignore specific packages, add them to "expo.install.exclude" in package.json. Learn more: https://expo.fyi/dependency-validation
-[PREPARE_CREDENTIALS] Preparing credentials
-[PREPARE_CREDENTIALS] Creating keychain
-[PREPARE_CREDENTIALS] Preparing credentials for target 'AucaradasEncomendas'
-[PREPARE_CREDENTIALS] Getting distribution certificate fingerprint and common name
-[PREPARE_CREDENTIALS] Fingerprint = "0D792E86BE065B7CF99EE5EC1134F5B36CC043E0", common name = iPhone Distribution: VANTUIL CARAMEZ MORAES PORTAIS E SERVICOS DE INFORMACAO LTDA (4G75MX4TPA)
-[PREPARE_CREDENTIALS] Writing distribution certificate to /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/ef6ec5a5-1369-411f-b2fd-77a37c81724e.p12
-[PREPARE_CREDENTIALS] Importing distribution certificate into the keychain
-[PREPARE_CREDENTIALS] Initializing provisioning profile
-[PREPARE_CREDENTIALS] Validating whether the distribution certificate has been imported successfully
-[PREPARE_CREDENTIALS] Verifying whether the distribution certificate and provisioning profile match
-[PREBUILD] The ios project is malformed, project files will be cleared and reinitialized.
-[PREBUILD] - Clearing ios
-[PREBUILD] ✔ Cleared ios code
-[PREBUILD] - Creating native project directories (./ios and ./android) and updating .gitignore
-[PREBUILD] ✔ Created native project | gitignore skipped
-[PREBUILD] - Updating your package.json scripts, dependencies, and main file
-[PREBUILD] ✔ Updated package.json and added index.js entry point for iOS and Android
-[PREBUILD] - Config syncing
-[PREBUILD] Using node to generate images. This is much slower than using native packages.
-[PREBUILD] › Optionally you can stop the process and try again after successfully running `npm install -g sharp-cli`.
-[PREBUILD] - Config syncing
-[PREBUILD] ✔ Config synced
-[PREBUILD] Running "npm install --include=dev" in /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build directory
-[PREBUILD] > acucaradas-encomendas@1.0.1 postinstall
-[PREBUILD] > patch-package
-[PREBUILD] patch-package 8.0.0
-[PREBUILD] Applying patches...
-[PREBUILD] No patch files found
-[PREBUILD] up to date in 2s
-[RESTORE_CACHE] Local builds do not support restoring cache
-[INSTALL_PODS] Using Expo modules
-[INSTALL_PODS] [Expo] Enabling modular headers for pod ExpoModulesCore
-[INSTALL_PODS] [Expo] Enabling modular headers for pod React-Core
-[INSTALL_PODS] [Expo] Enabling modular headers for pod React-RCTAppDelegate
-[INSTALL_PODS] [Expo] Enabling modular headers for pod expo-dev-menu-interface
-[INSTALL_PODS] [Expo] Enabling modular headers for pod EXManifests
-[INSTALL_PODS] [Expo] Enabling modular headers for pod EXUpdatesInterface
-[INSTALL_PODS] [Expo] Enabling modular headers for pod expo-dev-menu
-[INSTALL_PODS] [Expo] Enabling modular headers for pod RCT-Folly
-[INSTALL_PODS] [Expo] Enabling modular headers for pod expo-dev-launcher
-[INSTALL_PODS] [Expo] Enabling modular headers for pod EXStructuredHeaders
-[INSTALL_PODS] [Expo] Enabling modular headers for pod EASClient
-[INSTALL_PODS] [Expo] Enabling modular headers for pod ReachabilitySwift
-[INSTALL_PODS] [Expo] Enabling modular headers for pod ASN1Decoder
-[INSTALL_PODS] Auto-generating `.xcode.env.local` with $NODE_BINARY=/Users/runner/hostedtoolcache/node/22.22.0/arm64/bin/node
-[INSTALL_PODS] Auto-linking React Native modules for target `AucaradasEncomendas`: RNCAsyncStorage, RNDateTimePicker, RNGestureHandler, RNReanimated, RNSVG, RNScreens, RNSentry, react-native-netinfo, react-native-onesignal, react-native-safe-area-context, and react-native-voice
-[INSTALL_PODS] Framework build type is static library
-[INSTALL_PODS] [Hermes] Downloading Hermes source code for commit 813b2def12bc9df02654b3e3653ae4a68d0572e0
-[INSTALL_PODS] % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-[INSTALL_PODS] Dload  Upload   Total   Spent    Left  Speed
-[INSTALL_PODS] 0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-[INSTALL_PODS] 100  1917    0  1917    0     0   2116      0 --:--:-- --:--:-- --:--:--  2116
-100 5128k    0 5128k    0     0  2946k      0 --:--:--  0:00:01 --:--:-- 6139k
-100 9775k    0 9775k    0     0  4270k      0 --:--:--  0:00:02 --:--:-- 7066k
-[INSTALL_PODS] [Hermes] Expanding Hermes tarball for commit 813b2def12bc9df02654b3e3653ae4a68d0572e0
-[INSTALL_PODS] [Hermes] Using pre-built HermesC
-[INSTALL_PODS] [Codegen] Generating ./build/generated/ios/React-Codegen.podspec.json
-[INSTALL_PODS] Analyzing dependencies
-[INSTALL_PODS] Fetching podspec for `DoubleConversion` from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`
-[INSTALL_PODS] [Codegen] Found FBReactNativeSpec
-[INSTALL_PODS] Fetching podspec for `RCT-Folly` from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`
-[INSTALL_PODS] [Codegen] Found rncore
-[INSTALL_PODS] Fetching podspec for `boost` from `../node_modules/react-native/third-party-podspecs/boost.podspec`
-[INSTALL_PODS] Fetching podspec for `glog` from `../node_modules/react-native/third-party-podspecs/glog.podspec`
-[INSTALL_PODS] Fetching podspec for `hermes-engine` from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`
-[INSTALL_PODS] [Hermes] Using the release tarball from Maven Central
-[INSTALL_PODS] Adding spec repo `trunk` with CDN `https://cdn.cocoapods.org/`
-[INSTALL_PODS] Downloading dependencies
-[INSTALL_PODS] Installing ASN1Decoder (1.10.0)
-[INSTALL_PODS] Installing DoubleConversion (1.1.6)
-[INSTALL_PODS] Installing EASClient (0.6.0)
-[INSTALL_PODS] Installing EXApplication (5.3.1)
-[INSTALL_PODS] Installing EXConstants (14.4.2)
-[INSTALL_PODS] Installing EXFileSystem (15.4.5)
-[INSTALL_PODS] Installing EXFont (11.4.0)
-[INSTALL_PODS] Installing EXJSONUtils (0.7.1)
-[INSTALL_PODS] Installing EXManifests (0.7.2)
-[INSTALL_PODS] Installing EXNotifications (0.20.1)
-[INSTALL_PODS] Installing EXSplashScreen (0.20.5)
-[INSTALL_PODS] Installing EXStructuredHeaders (3.3.0)
-[INSTALL_PODS] Installing EXUpdates (0.18.19)
-[INSTALL_PODS] Installing EXUpdatesInterface (0.10.1)
-[INSTALL_PODS] Installing Expo (49.0.23)
-[INSTALL_PODS] Installing ExpoCrypto (12.4.1)
-[INSTALL_PODS] Installing ExpoHaptics (12.4.0)
-[INSTALL_PODS] Installing ExpoHead (0.0.20)
-[INSTALL_PODS] Installing ExpoImagePicker (14.3.2)
-[INSTALL_PODS] Installing ExpoKeepAwake (12.3.0)
-[INSTALL_PODS] Installing ExpoModulesCore (1.5.13)
-[INSTALL_PODS] Installing ExpoSecureStore (12.3.1)
-[INSTALL_PODS] Installing ExpoWebBrowser (12.3.2)
-[INSTALL_PODS] Installing FBLazyVector (0.72.10)
-[INSTALL_PODS] Installing FBReactNativeSpec (0.72.10)
-[INSTALL_PODS] Installing OneSignalXCFramework (5.4.1)
-[INSTALL_PODS] Installing RCT-Folly (2021.07.22.00)
-[INSTALL_PODS] Installing RCTRequired (0.72.10)
-[INSTALL_PODS] Installing RCTTypeSafety (0.72.10)
-[INSTALL_PODS] Installing RNCAsyncStorage (1.18.2)
-[INSTALL_PODS] Installing RNDateTimePicker (8.6.0)
-[INSTALL_PODS] Installing RNGestureHandler (2.12.0)
-[INSTALL_PODS] Installing RNReanimated (3.3.0)
-[INSTALL_PODS] Installing RNSVG (13.9.0)
-[INSTALL_PODS] Installing RNScreens (3.22.0)
-[INSTALL_PODS] Installing RNSentry (5.10.0)
-[INSTALL_PODS] Installing ReachabilitySwift (5.2.4)
-[INSTALL_PODS] Installing React (0.72.10)
-[INSTALL_PODS] Installing React-Codegen (0.72.10)
-[INSTALL_PODS] Installing React-Core (0.72.10)
-[INSTALL_PODS] Installing React-CoreModules (0.72.10)
-[INSTALL_PODS] Installing React-NativeModulesApple (0.72.10)
-[INSTALL_PODS] Installing React-RCTActionSheet (0.72.10)
-[INSTALL_PODS] Installing React-RCTAnimation (0.72.10)
-[INSTALL_PODS] Installing React-RCTAppDelegate (0.72.10)
-[INSTALL_PODS] Installing React-RCTBlob (0.72.10)
-[INSTALL_PODS] Installing React-RCTImage (0.72.10)
-[INSTALL_PODS] Installing React-RCTLinking (0.72.10)
-[INSTALL_PODS] Installing React-RCTNetwork (0.72.10)
-[INSTALL_PODS] Installing React-RCTSettings (0.72.10)
-[INSTALL_PODS] Installing React-RCTText (0.72.10)
-[INSTALL_PODS] Installing React-RCTVibration (0.72.10)
-[INSTALL_PODS] Installing React-callinvoker (0.72.10)
-[INSTALL_PODS] Installing React-cxxreact (0.72.10)
-[INSTALL_PODS] Installing React-debug (0.72.10)
-[INSTALL_PODS] Installing React-hermes (0.72.10)
-[INSTALL_PODS] Installing React-jsi (0.72.10)
-[INSTALL_PODS] Installing React-jsiexecutor (0.72.10)
-[INSTALL_PODS] Installing React-jsinspector (0.72.10)
-[INSTALL_PODS] Installing React-logger (0.72.10)
-[INSTALL_PODS] Installing React-perflogger (0.72.10)
-[INSTALL_PODS] Installing React-rncore (0.72.10)
-[INSTALL_PODS] Installing React-runtimeexecutor (0.72.10)
-[INSTALL_PODS] Installing React-runtimescheduler (0.72.10)
-[INSTALL_PODS] Installing React-utils (0.72.10)
-[INSTALL_PODS] Installing ReactCommon (0.72.10)
-[INSTALL_PODS] Installing Sentry (8.11.0)
-[INSTALL_PODS] Installing SentryPrivate (8.11.0)
-[INSTALL_PODS] Installing SocketRocket (0.6.1)
-[INSTALL_PODS] Installing Yoga (1.14.0)
-[INSTALL_PODS] Installing boost (1.76.0)
-[INSTALL_PODS] Installing expo-dev-client (2.4.13)
-[INSTALL_PODS] Installing expo-dev-launcher (2.4.15)
-[INSTALL_PODS] Installing expo-dev-menu (3.2.4)
-[INSTALL_PODS] Installing expo-dev-menu-interface (1.3.0)
-[INSTALL_PODS] Installing fmt (6.2.1)
-[INSTALL_PODS] Installing glog (0.3.5)
-[INSTALL_PODS] Installing hermes-engine (0.72.10)
-[INSTALL_PODS] Installing libevent (2.1.12)
-[INSTALL_PODS] Installing react-native-netinfo (12.0.1)
-[INSTALL_PODS] Installing react-native-onesignal (5.3.1)
-[INSTALL_PODS] Installing react-native-safe-area-context (4.6.3)
-[INSTALL_PODS] Installing react-native-voice (3.1.5)
-[INSTALL_PODS] Generating Pods project
-[INSTALL_PODS] Setting REACT_NATIVE build settings
-[INSTALL_PODS] Setting CLANG_CXX_LANGUAGE_STANDARD to c++17 on /private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/ios/AucaradasEncomendas.xcodeproj
-[INSTALL_PODS] Pod install took 288 [s] to run
-[INSTALL_PODS] Integrating client project
-[INSTALL_PODS] [!] Please close any current Xcode sessions and use `AucaradasEncomendas.xcworkspace` for this project from now on.
-[INSTALL_PODS] [Expo] Installing the build script for target AucaradasEncomendas
-[INSTALL_PODS] Patching imports for file: /private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/node_modules/react-native-onesignal/ios/RCTOneSignal/RCTOneSignal.m
-[INSTALL_PODS] Patching imports for file: /private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/node_modules/react-native-onesignal/ios/RCTOneSignal/RCTOneSignalEventEmitter.h
-[INSTALL_PODS] Patching imports for file: /private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/node_modules/@sentry/react-native/ios/RNSentry.h
-[INSTALL_PODS] Patching imports for file: /private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/node_modules/@sentry/react-native/ios/RNSentry.mm
-[INSTALL_PODS] expo_patch_react_imports! took 0.2172 seconds to transform files.
-[INSTALL_PODS] [!] `<PBXResourcesBuildPhase UUID=`13B07F8E1A680F5B00A75B9A`>` attempted to initialize an object with an unknown UUID. `FBAB7038902042629BF56A90` for attribute: `files`. This can be the result of a merge and the unknown UUID is being discarded.
-[INSTALL_PODS] Pod installation complete! There are 77 dependencies from the Podfile and 83 total pods installed.
-[INSTALL_PODS] [!] Can't merge pod_target_xcconfig for pod targets: ["expo-dev-menu", "Main", "SafeAreaView", "Vendored"]. Singular build setting DEFINES_MODULE has different values.
-[INSTALL_PODS] [!] Can't merge pod_target_xcconfig for pod targets: ["expo-dev-menu", "Main", "SafeAreaView", "Vendored"]. Singular build setting DEFINES_MODULE has different values.
-[CALCULATE_EXPO_UPDATES_RUNTIME_VERSION] Resolved runtime version: exposdk:49.0.0
-[CONFIGURE_XCODE_PROJECT] Configuring Xcode project
-[CONFIGURE_XCODE_PROJECT] Assigning provisioning profile '*[expo] com.acucaradas.encomendas AppStore 2026-02-07T18:57:26.033Z' (Apple Team ID: 4G75MX4TPA) to target 'AucaradasEncomendas'
-[CONFIGURE_EXPO_UPDATES] Setting the update request headers in 'Expo.plist' to '{"expo-channel-name":"production"}'
-[RUN_FASTLANE] Creating Gymfile
-[RUN_FASTLANE] Gymfile created
-[RUN_FASTLANE] Successfully loaded '/private/var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/build/ios/Gymfile' 📄
-[RUN_FASTLANE] +---------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-[RUN_FASTLANE] |                                                                  Detected Values from './Gymfile'                                                                   |
-[RUN_FASTLANE] +-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-[RUN_FASTLANE] | suppress_xcode_output | true                                                                                                                                        |
-[RUN_FASTLANE] | clean                 | false                                                                                                                                       |
-[RUN_FASTLANE] | scheme                | AucaradasEncomendas                                                                                                                         |
-[RUN_FASTLANE] | configuration         | Release                                                                                                                                     |
-[RUN_FASTLANE] | export_options        |                                                                                                                                             |
-[RUN_FASTLANE] | export_xcargs         | OTHER_CODE_SIGN_FLAGS="--keychain /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-f79be2a9-9f48-4300-b568-a40061b04502.keychain" |
-[RUN_FASTLANE] | disable_xcpretty      | true                                                                                                                                        |
-[RUN_FASTLANE] | buildlog_path         | /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/logs                           |
-[RUN_FASTLANE] | output_directory      | ./build                                                                                                                                     |
-[RUN_FASTLANE] +-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-[RUN_FASTLANE] Resolving Swift Package Manager dependencies...
-[RUN_FASTLANE] $ xcodebuild -resolvePackageDependencies -workspace ./AucaradasEncomendas.xcworkspace -scheme AucaradasEncomendas -configuration Release
-[RUN_FASTLANE] ▸ Command line invocation:
-[RUN_FASTLANE] ▸     /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/xcodebuild -resolvePackageDependencies -workspace ./AucaradasEncomendas.xcworkspace -scheme AucaradasEncomendas -configuration Release
-[RUN_FASTLANE] ▸ resolved source packages:
-[RUN_FASTLANE] $ xcodebuild -showBuildSettings -workspace ./AucaradasEncomendas.xcworkspace -scheme AucaradasEncomendas -configuration Release 2>&1
-[RUN_FASTLANE] Command timed out after 3 seconds on try 1 of 4, trying again with a 6 second timeout...
-[RUN_FASTLANE] Detected provisioning profile mapping: {:"com.acucaradas.encomendas"=>"169d3eec-07e2-429f-b08a-8d9ed6a9ccf5"}
+[RUN_FASTLANE] › Compiling Pods/Sentry » SentryThreadMetadataCache.cpp
 [RUN_FASTLANE] 
-[RUN_FASTLANE] +-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-[RUN_FASTLANE] |                                                                                           Summary for gym 2.232.2                                                                                           |
-[RUN_FASTLANE] +---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-[RUN_FASTLANE] | workspace                                                     | ./AucaradasEncomendas.xcworkspace                                                                                                           |
-[RUN_FASTLANE] | scheme                                                        | AucaradasEncomendas                                                                                                                         |
-[RUN_FASTLANE] | clean                                                         | false                                                                                                                                       |
-[RUN_FASTLANE] | output_directory                                              | ./build                                                                                                                                     |
-[RUN_FASTLANE] | output_name                                                   | AucaradasEncomendas                                                                                                                         |
-[RUN_FASTLANE] | configuration                                                 | Release                                                                                                                                     |
-[RUN_FASTLANE] | silent                                                        | false                                                                                                                                       |
-[RUN_FASTLANE] | skip_package_ipa                                              | false                                                                                                                                       |
-[RUN_FASTLANE] | skip_package_pkg                                              | false                                                                                                                                       |
-[RUN_FASTLANE] | export_options.method                                         | app-store                                                                                                                                   |
-[RUN_FASTLANE] | export_options.provisioningProfiles.com.acucaradas.encomendas | 169d3eec-07e2-429f-b08a-8d9ed6a9ccf5                                                                                                        |
-[RUN_FASTLANE] | export_xcargs                                                 | OTHER_CODE_SIGN_FLAGS="--keychain /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-f79be2a9-9f48-4300-b568-a40061b04502.keychain" |
-[RUN_FASTLANE] | build_path                                                    | /Users/runner/Library/Developer/Xcode/Archives/2026-03-19                                                                                   |
-[RUN_FASTLANE] | result_bundle                                                 | false                                                                                                                                       |
-[RUN_FASTLANE] | buildlog_path                                                 | /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/logs                           |
-[RUN_FASTLANE] | destination                                                   | generic/platform=iOS                                                                                                                        |
-[RUN_FASTLANE] | suppress_xcode_output                                         | true                                                                                                                                        |
-[RUN_FASTLANE] | xcodebuild_formatter                                          | xcbeautify                                                                                                                                  |
-[RUN_FASTLANE] | build_timing_summary                                          | false                                                                                                                                       |
-[RUN_FASTLANE] | disable_xcpretty                                              | true                                                                                                                                        |
-[RUN_FASTLANE] | skip_profile_detection                                        | false                                                                                                                                       |
-[RUN_FASTLANE] | xcodebuild_command                                            | xcodebuild                                                                                                                                  |
-[RUN_FASTLANE] | skip_package_dependencies_resolution                          | false                                                                                                                                       |
-[RUN_FASTLANE] | disable_package_automatic_updates                             | false                                                                                                                                       |
-[RUN_FASTLANE] | skip_package_repository_fetches                               | false                                                                                                                                       |
-[RUN_FASTLANE] | use_system_scm                                                | false                                                                                                                                       |
-[RUN_FASTLANE] | generate_appstore_info                                        | false                                                                                                                                       |
-[RUN_FASTLANE] | xcode_path                                                    | /Applications/Xcode_16.4.app                                                                                                                |
-[RUN_FASTLANE] +---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-[RUN_FASTLANE] $ set -o pipefail && xcodebuild -workspace ./AucaradasEncomendas.xcworkspace -scheme AucaradasEncomendas -configuration Release -destination 'generic/platform=iOS' -archivePath /Users/runner/Library/Developer/Xcode/Archives/2026-03-19/AucaradasEncomendas\ 2026-03-19\ 00.19.23.xcarchive archive | tee /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/bcbf754b-a9b1-451d-bd28-898c4a8fa962/logs/AucaradasEncomendas-AucaradasEncomendas.log > /dev/null
-[RUN_FASTLANE]     Run script build phase '[CP-User] Generate app.config for prebuilt Constants.manifest' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'EXConstants' from project 'Pods')
+❌  (/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.5.sdk/usr/include/c++/v1/__memory/allocator.h:95:17)
+
+  93 | template <class _Tp>
+  94 | class _LIBCPP_TEMPLATE_VIS allocator : private __non_trivial_if<!is_void<_Tp>::value, allocator<_Tp> > {
+> 95 |   static_assert(!is_const<_Tp>::value, "std::allocator does not support const types");
+     |                 ^ static assertion failed due to requirement '!is_const<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>::value': std::allocator does not support const types
+  96 |   static_assert(!is_volatile<_Tp>::value, "std::allocator does not support volatile types");
+  97 |
+  98 | public:
+
+[RUN_FASTLANE] 
+❌  (/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.5.sdk/usr/include/c++/v1/__memory/allocator_traits.h:378:17)
+
+  376 | struct __check_valid_allocator : true_type {
+  377 |   using _Traits = std::allocator_traits<_Alloc>;
+> 378 |   static_assert(is_same<_Alloc, __rebind_alloc<_Traits, typename _Traits::value_type> >::value,
+      |                 ^ static assertion failed due to requirement 'is_same<std::allocator<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>, std::allocator<int>>::value': [allocator.requirements] states that rebinding an allocator to the same type should result in the original allocator
+  379 |                 "[allocator.requirements] states that rebinding an allocator to the same type should result in the "
+  380 |                 "original allocator");
+  381 | };
+
+[RUN_FASTLANE] 
+❌  (/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.5.sdk/usr/include/c++/v1/vector:427:50)
+
+  425 |
+  426 |   static_assert(__check_valid_allocator<allocator_type>::value, "");
+> 427 |   static_assert(is_same<typename allocator_type::value_type, value_type>::value,
+      |                                                  ^ no type named 'value_type' in 'std::allocator<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>'
+  428 |                 "Allocator::value_type must be same type as value_type");
+  429 |
+  430 |   _LIBCPP_CONSTEXPR_SINCE_CXX20 _LIBCPP_HIDE_FROM_ABI vector()
+
+[RUN_FASTLANE] 
+❌  (/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.5.sdk/usr/include/c++/v1/__type_traits/enable_if.h:28:58)
+
+  26 |
+  27 | template <bool _Bp, class _Tp = void>
+> 28 | using __enable_if_t _LIBCPP_NODEBUG = typename enable_if<_Bp, _Tp>::type;
+     |                                                          ^ no type named 'type' in 'std::enable_if<false, int>'; 'enable_if' cannot be used to disable this declaration
+  29 |
+  30 | #if _LIBCPP_STD_VER >= 14
+  31 | template <bool _Bp, class _Tp = void>
+
+[RUN_FASTLANE] 
+❌  (/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.5.sdk/usr/include/c++/v1/__memory/allocator.h:95:17)
+
+  93 | template <class _Tp>
+  94 | class _LIBCPP_TEMPLATE_VIS allocator : private __non_trivial_if<!is_void<_Tp>::value, allocator<_Tp> > {
+> 95 |   static_assert(!is_const<_Tp>::value, "std::allocator does not support const types");
+     |                 ^ static assertion failed due to requirement '!is_const<const sentry::profiling::QueueMetadata>::value': std::allocator does not support const types
+  96 |   static_assert(!is_volatile<_Tp>::value, "std::allocator does not support volatile types");
+  97 |
+  98 | public:
+
+[RUN_FASTLANE] 
+❌  (/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.5.sdk/usr/include/c++/v1/__memory/allocator_traits.h:378:17)
+
+  376 | struct __check_valid_allocator : true_type {
+  377 |   using _Traits = std::allocator_traits<_Alloc>;
+> 378 |   static_assert(is_same<_Alloc, __rebind_alloc<_Traits, typename _Traits::value_type> >::value,
+      |                 ^ static assertion failed due to requirement 'is_same<std::allocator<const sentry::profiling::QueueMetadata>, std::allocator<int>>::value': [allocator.requirements] states that rebinding an allocator to the same type should result in the original allocator
+  379 |                 "[allocator.requirements] states that rebinding an allocator to the same type should result in the "
+  380 |                 "original allocator");
+  381 | };
+
+[RUN_FASTLANE] 
+❌  (/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.5.sdk/usr/include/c++/v1/vector:427:50)
+
+  425 |
+  426 |   static_assert(__check_valid_allocator<allocator_type>::value, "");
+> 427 |   static_assert(is_same<typename allocator_type::value_type, value_type>::value,
+      |                                                  ^ no type named 'value_type' in 'std::allocator<const sentry::profiling::QueueMetadata>'
+  428 |                 "Allocator::value_type must be same type as value_type");
+  429 |
+  430 |   _LIBCPP_CONSTEXPR_SINCE_CXX20 _LIBCPP_HIDE_FROM_ABI vector()
+
+[RUN_FASTLANE] 
+❌  (/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.5.sdk/usr/include/c++/v1/__type_traits/enable_if.h:28:58)
+
+  26 |
+  27 | template <bool _Bp, class _Tp = void>
+> 28 | using __enable_if_t _LIBCPP_NODEBUG = typename enable_if<_Bp, _Tp>::type;
+     |                                                          ^ no type named 'type' in 'std::enable_if<false, int>'; 'enable_if' cannot be used to disable this declaration
+  29 |
+  30 | #if _LIBCPP_STD_VER >= 14
+  31 | template <bool _Bp, class _Tp = void>
+
+[RUN_FASTLANE] › Compiling Pods/Sentry » SentryThreadHandle.cpp
 [RUN_FASTLANE]     Run script build phase 'Start Packager' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'AucaradasEncomendas' from project 'AucaradasEncomendas')
 [RUN_FASTLANE]     Run script build phase 'Bundle React Native code and images' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'AucaradasEncomendas' from project 'AucaradasEncomendas')
 [RUN_FASTLANE]     Run script build phase '[CP-User] Generate app.manifest for expo-updates' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'EXUpdates' from project 'Pods')
+[RUN_FASTLANE]     Run script build phase '[CP-User] Generate app.config for prebuilt Constants.manifest' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'EXConstants' from project 'Pods')
 [RUN_FASTLANE] ▸ ** ARCHIVE FAILED **
 [RUN_FASTLANE] ▸ The following build commands failed:
+[RUN_FASTLANE] ▸ 	CompileC /Users/runner/Library/Developer/Xcode/DerivedData/AucaradasEncomendas-djxnwfszjhweandblyoausomssrb/Build/Intermediates.noindex/ArchiveIntermediates/AucaradasEncomendas/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Sentry.build/Objects-normal/arm64/SentryThreadMetadataCache.o /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-local-nodejs/c9c90505-63ab-4c05-88a9-32c5981bd1e5/build/ios/Pods/Sentry/Sources/Sentry/SentryThreadMetadataCache.cpp normal arm64 c++ com.apple.compilers.llvm.clang.1_0.compiler (in target 'Sentry' from project 'Pods')
 [RUN_FASTLANE] ▸ 	Archiving workspace AucaradasEncomendas with scheme AucaradasEncomendas
-[RUN_FASTLANE] ▸ (1 failure)
+[RUN_FASTLANE] ▸ (2 failures)
 [RUN_FASTLANE] Exit status: 65
 [RUN_FASTLANE] 
 [RUN_FASTLANE] Maybe the error shown is caused by using the wrong version of Xcode
 [RUN_FASTLANE] Found multiple versions of Xcode in '/Applications/'
-[RUN_FASTLANE] Make sure you selected the right version for your project
 [RUN_FASTLANE] [!] Error building the application - see the log above
+[RUN_FASTLANE] Make sure you selected the right version for your project
 [RUN_FASTLANE] This build process was executed using '/Applications/Xcode_16.4.app'
 [RUN_FASTLANE] If you want to update your Xcode path, either
 [RUN_FASTLANE] 
 [RUN_FASTLANE] - Specify the Xcode version in your Fastfile
 [RUN_FASTLANE] ▸ xcversion(version: "8.1") # Selects Xcode 8.1.0
+[RUN_FASTLANE] 
 [RUN_FASTLANE] - Specify an absolute path to your Xcode installation in your Fastfile
 [RUN_FASTLANE] ▸ xcode_select "/Applications/Xcode8.app"
 [RUN_FASTLANE] 
 [RUN_FASTLANE] - Manually update the path using
-[RUN_FASTLANE] Error: The "Run fastlane" step failed because of an error in the Xcode build process. We automatically detected following errors in your Xcode build logs:
 [RUN_FASTLANE] ▸ sudo xcode-select -s /Applications/Xcode.app
-- Signing certificate is invalid. Signing certificate "iPhone Distribution: VANTUIL CARAMEZ MORAES PORTAIS E SERVICOS DE INFORMACAO LTDA (4G75MX4TPA)", serial number "57A1E8E4625A4807C2CA9C3ADCEFC549", is not valid for code signing. It may have been revoked or expired. (in target 'AucaradasEncomendas' from project 'AucaradasEncomendas')
 [RUN_FASTLANE] 
-Refer to "Xcode Logs" below for additional, more detailed logs.
+[RUN_FASTLANE] 
 [RUN_FASTLANE] +--------------------------------------------+
 [RUN_FASTLANE] |             Build environment              |
 [RUN_FASTLANE] +-------------+------------------------------+
@@ -469,6 +123,7 @@ Refer to "Xcode Logs" below for additional, more detailed logs.
 [RUN_FASTLANE] | gym_version | 2.232.2                      |
 [RUN_FASTLANE] | sdk         | iPhoneOS18.5.sdk             |
 [RUN_FASTLANE] +-------------+------------------------------+
+[RUN_FASTLANE] 
 [RUN_FASTLANE] Looks like fastlane ran into a build/archive error with your project
 [RUN_FASTLANE] It's hard to tell what's causing the error, so we wrote some guides on how
 [RUN_FASTLANE] to troubleshoot build and signing issues: https://docs.fastlane.tools/codesigning/getting-started/
@@ -477,15 +132,39 @@ Refer to "Xcode Logs" below for additional, more detailed logs.
 [RUN_FASTLANE] fastlane uses `xcodebuild` commands to generate your binary, you can see the
 [RUN_FASTLANE] the full commands printed out in yellow in the above log.
 [RUN_FASTLANE] Make sure to inspect the output above, as usually you'll find more error information there
-[RUN_FASTLANE] 
-[CLEAN_UP_CREDENTIALS] Destroying keychain - /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-f79be2a9-9f48-4300-b568-a40061b04502.keychain
+[RUN_FASTLANE] Error: The "Run fastlane" step failed because of an error in the Xcode build process. We automatically detected following errors in your Xcode build logs:
+- static assertion failed due to requirement '!is_const<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>::value': std::allocator does not support const types
+- static assertion failed due to requirement 'is_same<std::allocator<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>, std::allocator<int>>::value': [allocator.requirements] states that rebinding an allocator to the same type should result in the original allocator
+- no type named 'value_type' in 'std::allocator<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>'
+- no type named 'type' in 'std::enable_if<false, int>'; 'enable_if' cannot be used to disable this declaration
+- static assertion failed due to requirement '!is_const<const sentry::profiling::QueueMetadata>::value': std::allocator does not support const types
+- static assertion failed due to requirement 'is_same<std::allocator<const sentry::profiling::QueueMetadata>, std::allocator<int>>::value': [allocator.requirements] states that rebinding an allocator to the same type should result in the original allocator
+- no type named 'value_type' in 'std::allocator<const sentry::profiling::QueueMetadata>'
+- no type named 'type' in 'std::enable_if<false, int>'; 'enable_if' cannot be used to disable this declaration
+Refer to "Xcode Logs" below for additional, more detailed logs.
+[CLEAN_UP_CREDENTIALS] Destroying keychain - /var/folders/t5/f77_gwnj6p95qxy9py3fckx00000gn/T/eas-build-ca617fa7-8cb6-4244-a211-6a870dbd489a.keychain
 [CLEAN_UP_CREDENTIALS] Removing provisioning profile
+
 Build failed
 The "Run fastlane" step failed because of an error in the Xcode build process. We automatically detected following errors in your Xcode build logs:
-- Signing certificate is invalid. Signing certificate "iPhone Distribution: VANTUIL CARAMEZ MORAES PORTAIS E SERVICOS DE INFORMACAO LTDA (4G75MX4TPA)", serial number "57A1E8E4625A4807C2CA9C3ADCEFC549", is not valid for code signing. It may have been revoked or expired. (in target 'AucaradasEncomendas' from project 'AucaradasEncomendas')
-Refer to "Xcode Logs" below for additional, more detailed logs.
 Error: The "Run fastlane" step failed because of an error in the Xcode build process. We automatically detected following errors in your Xcode build logs:
-- Signing certificate is invalid. Signing certificate "iPhone Distribution: VANTUIL CARAMEZ MORAES PORTAIS E SERVICOS DE INFORMACAO LTDA (4G75MX4TPA)", serial number "57A1E8E4625A4807C2CA9C3ADCEFC549", is not valid for code signing. It may have been revoked or expired. (in target 'AucaradasEncomendas' from project 'AucaradasEncomendas')
+- static assertion failed due to requirement '!is_const<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>::value': std::allocator does not support const types
+- static assertion failed due to requirement 'is_same<std::allocator<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>, std::allocator<int>>::value': [allocator.requirements] states that rebinding an allocator to the same type should result in the original allocator
+- no type named 'value_type' in 'std::allocator<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>'
+- no type named 'type' in 'std::enable_if<false, int>'; 'enable_if' cannot be used to disable this declaration
+- static assertion failed due to requirement '!is_const<const sentry::profiling::QueueMetadata>::value': std::allocator does not support const types
+- static assertion failed due to requirement 'is_same<std::allocator<const sentry::profiling::QueueMetadata>, std::allocator<int>>::value': [allocator.requirements] states that rebinding an allocator to the same type should result in the original allocator
+- no type named 'value_type' in 'std::allocator<const sentry::profiling::QueueMetadata>'
+- no type named 'type' in 'std::enable_if<false, int>'; 'enable_if' cannot be used to disable this declaration
+Refer to "Xcode Logs" below for additional, more detailed logs.
+- static assertion failed due to requirement '!is_const<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>::value': std::allocator does not support const types
+- static assertion failed due to requirement 'is_same<std::allocator<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>, std::allocator<int>>::value': [allocator.requirements] states that rebinding an allocator to the same type should result in the original allocator
+- no type named 'value_type' in 'std::allocator<const sentry::profiling::ThreadMetadataCache::ThreadHandleMetadataPair>'
+- no type named 'type' in 'std::enable_if<false, int>'; 'enable_if' cannot be used to disable this declaration
+- static assertion failed due to requirement '!is_const<const sentry::profiling::QueueMetadata>::value': std::allocator does not support const types
+- static assertion failed due to requirement 'is_same<std::allocator<const sentry::profiling::QueueMetadata>, std::allocator<int>>::value': [allocator.requirements] states that rebinding an allocator to the same type should result in the original allocator
+- no type named 'value_type' in 'std::allocator<const sentry::profiling::QueueMetadata>'
+- no type named 'type' in 'std::enable_if<false, int>'; 'enable_if' cannot be used to disable this declaration
 Refer to "Xcode Logs" below for additional, more detailed logs.
     at resolveBuildPhaseErrorAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/buildErrors/detectError.js:61:12)
     at async BuildContext.handleBuildPhaseErrorAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/@expo/build-tools/dist/context.js:192:28)
@@ -496,6 +175,6 @@ Refer to "Xcode Logs" below for additional, more detailed logs.
     at async buildIosAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/eas-cli-local-build-plugin/dist/ios.js:43:12)
     at async buildAsync (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/eas-cli-local-build-plugin/dist/build.js:58:29)
     at async main (/Users/runner/.npm/_npx/7c5cb04dd06e9766/node_modules/eas-cli-local-build-plugin/dist/main.js:16:9)
-npx -y eas-cli-local-build-plugin@18.4.0 eyJqb2IiOnsidHlwZSI6Im1hbmFnZWQiLCJwbGF0Zm9ybSI6ImlvcyIsInByb2plY3RBcmNoaXZlIjp7InR5cGUiOiJQQVRIIiwicGF0aCI6Ii92YXIvZm9sZGVycy90NS9mNzdfZ3duajZwOTVxeHk5cHkzZmNreDAwMDAwZ24vVC9lYXMtY2xpLW5vZGVqcy81Mzg5MGVlOS00YWEzLTQzM2MtYTg3NC0zNmNjYjVhNGEyM2UudGFyLmd6In0sInByb2plY3RSb290RGlyZWN0b3J5IjoiLiIsImJ1aWxkZXJFbnZpcm9ubWVudCI6eyJlbnYiOnsiQVBQX0VOViI6InByb2R1Y3Rpb24iLCJFWFBPX1BVQkxJQ19BUFBfRU5WIjoicHJvZHVjdGlvbiIsIkVYUE9fUFVCTElDX0FQUF9OQU1FIjoiQcOndWNhcmFkYXMgRW5jb21lbmRhcyIsIkVYUE9fUFVCTElDX0FQUF9WRVJTSU9OIjoiMS4wLjEiLCJFWFBPX1BVQkxJQ19QUk9KRUNUX0lEIjoiNjA5MDEwNmItZTMyNy00NzQ0LWJjZTUtOWRkYjBkMDM3MDQ1In19LCJjYWNoZSI6eyJkaXNhYmxlZCI6ZmFsc2UsInBhdGhzIjpbXSwiY2xlYXIiOmZhbHNlfSwic2VjcmV0cyI6eyJidWlsZENyZWRlbnRpYWxzIjp7IkF1Y2FyYWRhc0VuY29tZW5kYXMiOnsicHJvdmlzaW9uaW5nUHJvZmlsZUJhc2U2NCI6Ik1JSXhmQVlKS29aSWh2Y05BUWNDb0lJeGJUQ0NNV2tDQVFFeEN6QUpCZ1VyRGdNQ0dnVUFNSUloaVFZSktvWklodmNOQVFjQm9JSWhlZ1NDSVhZOFAzaHRiQ0IyWlhKemFXOXVQU0l4TGpBaUlHVnVZMjlrYVc1blBTSlZWRVl0T0NJL1BnbzhJVVJQUTFSWlVFVWd
+npx -y eas-cli-local-build-plugin@18.4.0 eyJqb2IiOnsidHlwZSI6Im1hbmFnZWQiLCJwbGF0Zm9ybSI6ImlvcyIsInByb2plY3RBcmNoaXZlIjp7InR5cGUiOiJQQVRIIiwicGF0aCI6Ii92YXIvZm9sZGVycy90NS9mNzdfZ3duajZwOTVxeHk5cHkzZmNreDAwMDAwZ24vVC9lYXMtY2xpLW5vZGVqcy80NjBhZTUwMy0wNzI5LTQ0Y2YtODA0YS0xZWM1YzQ4YzI4MjEudGFyLmd6In0sInByb2plY3RSb290RGlyZWN0b3J5IjoiLiIsImJ1aWxkZXJFbnZpcm9ubWVudCI6eyJpbWFnZSI6Im1hY29zLXNvbm9tYS0xNC41LXhjb2RlLTE1LjQiLCJlbnYiOnsiQVBQX0VOViI6InByb2R1Y3Rpb24iLCJFWFBPX1BVQkxJQ19BUFBfRU5WIjoicHJvZHVjdGlvbiIsIkVYUE9fUFVCTElDX0FQUF9OQU1FIjoiQcOndWNhcmFkYXMgRW5jb21lbmRhcyIsIkVYUE9fUFVCTElDX0FQUF9WRVJTSU9OIjoiMS4wLjEiLCJFWFBPX1BVQkxJQ19QUk9KRUNUX0lEIjoiNjA5MDEwNmItZTMyNy00NzQ0LWJjZTUtOWRkYjBkMDM3MDQ1In19LCJjYWNoZSI6eyJkaXNhYmxlZCI6ZmFsc2UsInBhdGhzIjpbXSwiY2xlYXIiOmZhbHNlfSwic2VjcmV0cyI6eyJidWlsZENyZWRlbnRpYWxzIjp7IkF1Y2FyYWRhc0VuY29tZW5kYXMiOnsicHJvdmlzaW9uaW5nUHJvZmlsZUJhc2U2NCI6Ik1JSXlKQVlKS29aSWh2Y05BUWNDb0lJeUZUQ0NNaEVDQVFFeEN6QUpCZ1VyRGdNQ0dnVUFNSUlpTVFZSktvWklodmNOQVFjQm9JSWlJZ1NDSWg0OFAzaHRiQ0IyWlhKemFXOXVQU0l4TGpBaUlHVnVZMjlrYVc1blBTSlZWRVl0T0NJL1BnbzhJVVJQUTFSWlVFVWdjR3hwYzNRZ1VGVkNURWxESUNJdEx5OUJjSEJzWlM4dlJGUkVJRkJNU1ZOVUlERXVNQzh2UlU0aUlDSm9kSFJ3T2k4dmQzZDNMbUZ3Y0d4bExtTnZiUzlFVkVSekwxQnliM0JsY25SNVRHbHpkQzB4TGpBdVpIUmtJajRLUEhCc2FYTjBJSFpsY25OcGIyNDlJakV1TUNJK0NqeGthV04wUGdvSlBHdGxlVDVCY0hCSlJFNWhiV1U4TDJ0bGVUNEtDVHh6ZEhKcGJtYytRV04xWTJGeVlXUmhjeUJGYm1OdmJXVnVaR0Z6SURBM09HVmpZV1poWkRJNU9ETmhOR0k0WXpRek5UaGlORE0wTm1FeFl6UTVQQzl6ZEhKcGJtYytDZ2s4YTJWNVBrRndjR3hwWTJGMGFXOXVTV1JsYm5ScFptbGxjbEJ5WldacGVEd3ZhMlY1UGdvSlBHRnljbUY1UGdvSlBITjBjbWx1Wno0MFJ6YzFUVmcwVkZCQlBDOXpkSEpwYm1jK0NnazhMMkZ5Y21GNVBnb0pQR3RsZVQ1RGNtVmhkR2x2YmtSaGRHVThMMnRsZVQ0S0NUeGtZWFJsUGpJd01qWXRNRE10TVRoVU1UTTZNemM2TXpCYVBDOWtZWFJsUGdvSlBHdGxlVDVRYkdGMFptOXliVHd2YTJWNVBnb0pQR0Z5Y21GNVBnb0pDVHh6ZEhKcGJtYythVTlUUEM5emRISnBibWMrQ2drSlBITjBjbWx1Wno1NGNrOVRQQzl6ZEhKcGJtYytDZ2tKUEhOMGNtbHVaejUyYVhOcGIyNVBVend2YzNSeWFXNW5QZ29KUEM5aGNuSmhlVDRLQ1R4clpYaytTWE5ZWTI5a1pVMWhibUZuWldROEwydGxlVDRLQ1R4bVlXeHpaUzgrQ2drOGEyVjVQa1JsZG1Wc2IzQmxja05sY25ScFptbGpZWFJsY3p3dmEyVjVQZ29KUEdGeWNtRjVQZ29KQ1R4a1lYUmhQazFKU1VkRmVrTkRRbEIxWjBGM1NVSkJaMGxSUkdSU2R6TXpMek5NZG5Kc1EwUjJhVTVqZDNodFZFRk9RbWRyY1docmFVYzVkekJDUVZGelJrRkVRakZOVlZGM1VXZFpSRlpSVVVSRVJIUkNZMGhDYzFwVFFsaGlNMHB6V2toa2NGcEhWV2RTUjFZeVdsZDRkbU5IVm5sSlJrcHNZa2RHTUdGWE9YVmplVUpFV2xoS01HRlhXbkJaTWtZd1lWYzVkVWxGUmpGa1IyaDJZMjFzTUdWVVJVeE5RV3RIUVRGVlJVTjNkME5TZWsxNFJYcEJVa0puVGxaQ1FXOU5RMnRHZDJOSGVHeEpSV3gxV1hrMGVFTjZRVXBDWjA1V1FrRlpWRUZzVmxSTlFqUllSRlJKTWsxRVRYaFBSRVYzVFhwamQwMVdiMWhFVkVrelRVUk5lRTlFUlhkTmVtTjNUVVp2ZDJkbE5IaEhha0ZaUW1kdlNtdHBZVXByTDBseldrRkZRa1JCYnpCU2VtTXhWRlpuTUZaR1FrSk5WMk4zV2xGWlJGWlJVVVJFUmpWd1ZVZG9kbUp0VldkU1IyeDZaRWhLY0ZsdVZqQmhWemwxVDJsQ1YxRlZOVlZXVld4TlNVVk9RbFZyUms1U1ZtOW5WRlU1VTFGVlZsUkpSa0pRVld4U1FsTldUV2RTVTBKVVVsWktWMU5WVGxCVmVVSkZVbE5DU2xScldsQlZhekZDVVRCR1VFbEZlRlZTUlVWblMwUlNTRTU2Vms1WFJGSlZWVVZGY0UxU1RYZEZVVmxFVmxGUlRFUkJiekJTZW1NeFZGWm5NRlpHUWtKTlZWVjNVWGRaUkZaUlVVdEVSSGhYVVZVMVZWWlZiRTFKUlU1Q1ZXdEdUbEpXYjJkVVZUbFRVVlZXVkVsR1FsQlZiRkpDVTFaTloxSlRRbFJTVmtwWFUxVk9VRlY1UWtWU1UwSktWR3RhVUZWck1VSlJNRVpRU1VWNFZWSkZSWGhEZWtGS1FtZE9Wa0pCV1ZSQmJGWlVUVWxKUWtscVFVNUNaMnR4YUd0cFJ6bDNNRUpCVVVWR1FVRlBRMEZST0VGTlNVbENRMmRMUTBGUlJVRjBNMVkzYlhKcWNISllXV2x3U201V1RtNDJVamx1VDNveFVrWTJTa2xNUnpNcmVUbHZNa2xKWlVoclF6SjRTU3RyUkZWd1kzSmpZazkwVDJvd2JtUXhNbVZXUTJoaVlrUlVhWFZYYkdwR1JGSk5OVlZNZDI4MGNrTk5PWHBDZUdaSVRraFZSV3hwU2pSRGVuWm9OVGxMWlRObFUyWlBUMjF3VEVzdlJqWXlWMVpqY1hRMlIyNWhiR3R6Wkc1eFRIbE1Ra1JpZEc1TVZITmhSWE5GVVROaVprWkliRTl3U1VKM1ZDdEtSVnBxVURKSk5ESTNZM2gzV2tOUWFISjRTSEZITXpsTFIyczFRalIxVEU5RFZrbDFWV3B2TVhVMVNVcFhhMGhXV1hSVU1FWmhkSGx4Tml0UFYwdHlSbFY0TUVwaFVpOVVPV2d2VEdvMFJIaHNNa1JEVTJ4WWRrUTBiMnh1Tm10bWVrbGhNMFJJTTFGQlRHbzFWM2xVYVZCeWVHeGtZelJOYUhsTlkwOUtWM0kyTjFWMk9VdElZV28xUVRaWU1XdFZWbU14WjNFeGEzTnhjU3REVlZvcmRYRnVhMUJKZWpoM2JYZEpSRUZSUVVKdk5FbERTWHBEUTBGb09IZEVRVmxFVmxJd1ZFRlJTQzlDUVVsM1FVUkJaa0puVGxaSVUwMUZSMFJCVjJkQ1VVb3ZjMEZXYTFCdGRscEJjVk5GY210dFMwZE5UV3dyZVc1emFrSjNRbWRuY2tKblJVWkNVV05DUVZGU2EwMUhTWGRNVVZsSlMzZFpRa0pSVlVoTlFVdEhTVmRvTUdSSVFUWk1lVGxxV2xoS01HTjVOV2hqU0VKeldsTTFhbUl5TUhaa00yUnJZMjFqZWt4dFVteGpha0Y0UW1kbmNrSm5SVVpDVVdOM1FWbFpiR0ZJVWpCalJHOTJUREk1YW1NelFYVlpXRUozWWtkVmRWa3lPWFJNTWpscVl6TkJkMDE1TVROa01sSjVXbnBOZDAxcVEwTkJValJIUVRGVlpFbEJVME5CVWxWM1oyZEZVazFKU1VKRVVWbEtTMjlhU1doMlpHcGFRVlZDVFVsSUwwMUpTRVJDWjJkeVFtZEZSa0pSWTBOQmFrTkNkR2Q1UW5NeFNteGlSMnhvWW0xT2JFbEhPWFZKU0ZKdllWaE5aMWt5Vm5sa1IyeHRZVmRPYUdSSFZXZFpibXRuV1ZjMU5VbElRbWhqYmxJMVNVZEdlbU16Vm5SYVdFMW5XVmRPYWxwWVFqQlpWelZxV2xOQ2RscHBRakJoUjFWblpFZG9iR0pwUW1oalNFSnpZVmRPYUZsdGVHeEpTRTR3V1ZjMWExbFlTbXRKU0ZKc1kyMHhla2xIUm5WYVEwSnFZakkxYTJGWVVuQmlNalY2U1VjNWJVbElWbnBhVTNkbldUSldlV1JIYkcxaFYwNW9aRWRWWjJOSE9YTmhWMDQxU1VkR2RWcERRbXBhV0Vvd1lWZGFjRmt5UmpCaFZ6bDFTVWhDZVZsWFRqQmhWMDVzU1VoT01GbFlVbXhpVjFaMVpFaE5kVTFFWTBkRFEzTkhRVkZWUmtKM1NVSkdhWFJ2WkVoU2QyTjZiM1pNTTJRelpIazFhR05JUW5OYVV6VnFZakl3ZGxreVZubGtSMnh0WVZkT2FHUkhWbWhrV0ZKdllqTktjR1JJYTNaTlFsbEhRVEZWWkVwUlJVSXZkMUZOVFVGdlIwTkRjMGRCVVZWR1FuZE5SRTFDTUVkQk1WVmtSR2RSVjBKQ1UySlVaRmRpWmtWUWFrSkJLMkpqWWtKUFIwWnFjR0pLVnpseWFrRlBRbWRPVmtoUk9FSkJaamhGUWtGTlEwSTBRWGRGZDFsTFMyOWFTV2gyWkdwYVFWbENRa0ZGUWk5M1VVTkNVVUYzUkZGWlNrdHZXa2xvZG1OT1FWRkZURUpSUVVSblowVkNRVTFNYkdkYVUzZENSVk5LZGs5cVRXSmFVR0V3WkdOMVpub3hiMUEyYnpKbGJubDVXWE52Y0hVME1rYzBlRkJZUmxSQ09WSXpUSEp3Y1doWE1sTm9hMUpEYm1GcGVHaFlPV0kyWm5Sb1pXbHpSR001UlZwQ2IyRXpNbmx0UXl0cllWZGtSWGhKVmtrd09HcDVjblJVVlRjdk0ycFVVV055Y1hKcVR6VmFka2c1TDBWb09WTnJXbkZ3SzNGWlNFTnliR1puVDFOTmVIVnZkMGhsTDBOQlFVcERPRGx3ZFZWVVMwSlZkV0puUkdGamJGVlZSVWRLT1VSS1FrOVlSbHBhVkV4d09HaDFiMWswTm1aMmJ6ZHplRTFFSzFGaFFVaElUMUJrYW5sR2RDOVpSaTlHYXpSelZrb3hSMVpzV25GdWNsazJSM2R3Y0dwV2FtODBlR05hVm5Wak1uSlpMMnRTT1hoSWJGTlJVVVZZVFc1WFNHdEpPQzluUjFoMFYwOXdObG93VkdKeFZXd3JSbWxhVW5ONU1IZEJkVFZqWmxBeFJWbFlSVXh4VFhKTFdIaHJORFZxWTB4bmNUUkpiMU5RY1dSeGVYWnhWVDA4TDJSaGRHRStDZ2s4TDJGeWNtRjVQZ29LQ1R4clpYaytSRVZTTFVWdVkyOWtaV1F0VUhKdlptbHNaVHd2YTJWNVBnb0pQR1JoZEdFK1RVbEpUaTlCV1VwTGIxcEphSFpqVGtGUlkwTnZTVWxPTjFSRFEwUmxhME5CVVVWNFJGUkJURUpuYkdkb2EyZENXbEZOUlVGblJYZG5aMDgzUW1kcmNXaHJhVWM1ZHpCQ1FuZEhaMmRuVDNOQ1NVbEVjVVJIUTBFMlVYZEVRWGRJVm0xV2VXTXliSFppWjBsQ1FWUkJUa1JCYUZGVlJrWkVZVWRXYW1GM1JVSkJSRUZSUkVGd1ZXRlhNV3hXUnpsTllWaGFiRUZuU1VKaVJFRlVSRUUxU21NeGFHcGlNbEpzVkZkR2RWbFhaR3hhUVVWQ1FVUkJaRVJCZUVSamJWWm9aRWRzZG1KclVtaGtSMVZZUkZSSk1rMUVUWGhQUkVWNlRYcGplazFHYjNkSVozZFBWa2RXYUdKVmJHdGFWelV3WVZkYWNGcFlTWGRFUVhkTFRrVmpNMDVWTVZsT1JsSlJVVlJCWmtSQk5VWmxTRUp3WTIxR01HRlhPWFZTUjBZd1dsSmpUazFxWTNkTmVrVTBUVlJCZWs1NlFYZFhha0ZuUkVKa1VXTnRPVzFoVjNoc1VrZHNlbVJJU25CWmJsWXdZVmM1ZFZaSWJIZGFVWGRHVlRGU1VGVnJWWGRKVVhkSlZVZDRhR1JIV25aamJUQjNSbEYzUkdGVk9WUkVRVkkwWTJzNVZFUkJhREpoV0U1d1lqSTFVRlY2UVhKRVFuUkNZMGhDYzJGWFRtaGtSMngyWW10c2ExcFhOVEJoVjFwd1dsaEtVV050Vm0xaFdHZDNSRUYzUzA1Rll6Tk9WVEZaVGtaU1VWRlVRWE5FUVZKV1ZsVnNSVVJEVW1sT1JHY3lXVlJCZVUxNU1IbGFWRlY2VEZSUmVVNHlXWFJQUkVreldrTXdNbGw2UVhoYVYxVXdUMGRKTTFsVVVYZFBkM2RXVWtkV01scFhlSFpqUjFaNVVUSldlV1JIYkcxaFYwNW9aRWRXZWsxRFNVVkpTelZKYUdoQlZERXdUbkpzVDNGeFZVRnpTV3BNWVdsdVpFVnFielZ4YmxCNk4xWklZeklyTUZjemEwMUZUVTFEVlVaM1kwVnNSVlJ0Um5SYVVYY3lVVmRPTVZreVJubFpWMUpvWTNsQ1JtSnRUblppVjFaMVdrZEdla2xFUVROUFIxWnFXVmRhYUZwRVNUVlBSRTVvVGtkSk5GbDZVWHBPVkdocFRrUk5NRTV0UlhoWmVsRTFUVVZuVFVOR1VteFpWekZQV1ZjeGJFUkVlRmRSVlRWVlZsVnNUVWxGVGtKVmEwWk9VbFp2WjFSVk9WTlJWVlpVU1VaQ1VGVnNVa0pUVmsxblVsTkNWRkpXU2xkVFZVNVFWWGxDUlZKVFFrcFVhMXBRVldzeFFsRXdSbEJKUlhoVlVrVkZkMU4zZDBWVWJVWjBXbEY0UkV0c2RHeGxTRUoyV0ZOQ2FtSXlNSFZaVjA0eFdUSkdlVmxYVW1oamVUVnNZbTFPZG1KWFZuVmFSMFo2U1VWR2QyTkdUakJpTTBwc1NVUkpkMDFxV1hSTlJFbDBUVVJrVlUxVVp6Wk9WR00yVFdwWmRVMUVUWHBYYWtORFFWVk5UVVJGVm5Wa1Iyd3dZa2RXZEZwWE5UQmpNME5EUVZSRlEwRlJSM2RuWjBWeFRVUTBUVVp0Um5kalIzaHdXVEpHTUdGWE9YVk1WMnhyV2xjMU1HRlhXbkJhV0VsTlNrUlNTRTU2Vms1WFJGSlZWVVZGZFZreU9YUk1iVVpxWkZkT2FHTnRSbXRaV0UxMVdsYzFhbUl5TVd4aWJWSm9ZM3BCWkVSQk9XaGpTRTEwV2xjMU1tRllTblppYlRGc1ltNVJUVU51UW5saU1sSXhXVE5TY0dJeU5IZEhRWGRVV1cxV01GbFRNWGxhV0VKMlkyNVNla3hYUm1wa1Iyd3lXbEZGUWk5NlFYTkVRamxxWWpJd2RWbFlRbmRpUjFWMVdrZFdNbHBYZUhaalIxWjVURzFHZDJOSGVHeGpNbXh1WW0xc2RVMUJhMDFDTUZKc1dtMUdNV0pJVVhkTlVYZHFXVEk1ZEV4dFJuZGpSM2hzVEcxU2JHUnRWbk5pTTBKc1kyazFNRnBYUm5STVYyeHJXbGMxTUdGWFduQmFXRWxOUTJwU1NFNTZWazVYUkZKVlZVVkZkMFYzZDA5YU1sWXdURmhTYUdNeWMzUlpWM2h6WWpOalFrRlJRWGRQVVhkWFlUSldOVmt5YUdoaFZ6UjBXVmRPYWxwWVRucE1WMlI1WWpOV2QyTjZRV1pFUVhjd1VucGpNVlJXWnpCV1JrSkNUR2x2VFVReVRuWmlVelZvWTBoQ2MxcFROVEJpTW5Sc1luRkRRME5FZDNkblowcEVUVWxKUW5saFFVUkJaMFZEUVdkbmRIaG1lVWt3YzFaTWJGUkJTMEpuWjNGb2EycFBVRkZSUkVGNlFtNU5Vbk4zUjFGWlJGWlJVVVJFUWtwQ1kwaENjMXBUUWxOaU1qa3dTVVZPUWtsRE1HZFNlazE0U21wQmEwSm5UbFpDUVhOTlNGVkdkMk5IZUd4SlJVNXNZMjVTY0ZwdGJHcFpXRkp3WWpJMFoxRllWakJoUnpsNVlWaFNOVTFTVFhkRlVWbEVWbEZSUzBSQmNFSmpTRUp6V2xOQ1NtSnRUWFZOVVhOM1ExRlpSRlpSVVVkRmQwcFdWWHBCWlVaM01IaE9SRUV3VFhwQmVFOUVSVFZOUkZwaFJuY3dlazlVUVRCTmVrRjRUMFJGTlUxRVdtRk5SMk40UjNwQldrSm5UbFpDUVUxTlJXdEdkMk5IZUd4SlJrcDJZak5SWjFFd1JXZE1VMEpJVFhwRmJVMURVVWRCTVZWRlEzZDNaRkZZUW5kaVIxVm5VVEpXZVdSSGJHMWhWMDVvWkVkc2RtSnBRa0prV0ZKdllqTktjR1JJYTNoRmVrRlNRbWRPVmtKQmIwMURhMFozWTBkNGJFbEZiSFZaZVRSNFEzcEJTa0puVGxaQ1FWbFVRV3hXVkUxSVdYZEZRVmxJUzI5YVNYcHFNRU5CVVZsR1N6UkZSVUZEU1VSWlowRkZiVTlyZGxCVlFubHdUekpVU1c1TFFrVjRlbVJGU2xoNGVHRk9UMk5rZDFWR2RHdFBOV0ZaUmt0dVpHdGxNVGxQVDA1UE4waEZVekZtTDFWbWRHcEthVmhqYm5Cb1JuUlFUVVU0VWxkblJEbFhSbWROY0daVlVFeEZNRWhTZUU0eE1uQmxXR3d5T0hoWVR6QnlibGh6WjA4NWFUVldUbXhsYldGUk5sVlJiM2h2TUVsM1VVUkJaRUpuVGxaSVVUUkZSbWRSVlhVM1JHVnZWbWQ2YVVweGEybHdibVYyY2pOeWNqbHlURXBMYzNkRWQxbEVWbEl3VkVGUlNDOUNRVlYzUVhkRlFpOTZRVTlDWjA1V1NGRTRRa0ZtT0VWQ1FVMURRVkZaZDBObldVbExiMXBKZW1vd1JVRjNUVVJoUVVGM1dsRkplRUZKVUhCM1kxRlhXR2h3WkU1Q2FsbzNaUzh3WWtFMFFWSnJkVFF6TjBwSFJXTlZVQzlsV2pacVMwZHRZVGczUTBFNVUyTTVXbEJIWkV4b2NUTTJiMnBHVVVsM1lsZGhTMFZOY2xWRVpGSlFlbGt4UkZCeVUwdFpObFY2WW5WT2RESm9aVE5hUWk5SlZYbGlOV2xIU2pCUFVYTllWemgwVW5GQmVtOUhRVkJ1YjNKSmIwMUpTVU0xYWtORFFXMHlaMEYzU1VKQlowbEpUWGN6ZFN0TU9VMWhRelIzUTJkWlNVdHZXa2w2YWpCRlFYZE5kMXA2UldKTlFtdEhRVEZWUlVGM2QxTlJXRUozWWtkVloxVnRPWFprUTBKRVVWTkJkRWxGWTNwTlUxbDNTa0ZaUkZaUlVVeEVRakZDWTBoQ2MxcFRRa1JhV0Vvd1lWZGFjRmt5UmpCaFZ6bDFTVVZHTVdSSGFIWmpiV3d3WlZSRlZFMUNSVWRCTVZWRlEyZDNTMUZZUW5kaVIxVm5VMWMxYWt4cVJVeE5RV3RIUVRGVlJVSm9UVU5XVmsxM1NHaGpUazFVWTNkTmFrbDVUV3BKZVUxNlNYbFhhR05PVFhwSmQwMXFSVFJOUkVGM1RVUkJkMWRxUW5sTlUxbDNTa0ZaUkZaUlVVUkVRakZDWTBoQ2MxcFRRbFJsV0U0d1dsY3daMU5YTlRCYVYyUjVXVmhTY0dJeU5HZFJNRVZuVGtSRmJVMURVVWRCTVZWRlEzZDNaRkZZUW5kaVIxVm5VVEpXZVdSSGJHMWhWMDVvWkVkc2RtSnBRa0prV0ZKdllqTktjR1JJYTNoRmVrRlNRbWRPVmtKQmIwMURhMFozWTBkNGJFbEZiSFZaZVRSNFEzcEJTa0puVGxaQ1FWbFVRV3hXVkUxR2EzZEZkMWxJUzI5YVNYcHFNRU5CVVZsSlMyOWFTWHBxTUVSQlVXTkVVV2RCUlVKdGRXdFdiVGs1Ym5sbVVucHFZVTlyYUhSWGVsWlJNbHBGY2twc1IybGFLM05yWjJaMVRERlhRUzlqTkcxeWNrZFZZM1pNZFRnM2NFRkhNRUZTVGtWbVJtOXRjbUZEWTB0VFYwczFaVmxIWWpBNU9GZHhUMEk1ZWtOQ09VUkJVRUpuVGxaSVVrMUNRV1k0UlVKVVFVUkJVVWd2VFVJNFIwRXhWV1JKZDFGWlRVSmhRVVpNZFhjemNVWlpUVFJwWVhCSmNWb3pjalk1TmpZdllYbDVVM0pOUlZsSFEwTnpSMEZSVlVaQ2QwVkNRa1J2ZDA5RVFUSkNaMmR5UW1kRlJrSlJZM2RCV1ZseFlVaFNNR05FYjNaTU1qbHFZek5CZFZsWVFuZGlSMVYxV1RJNWRFd3lPV3BqTTBGM1RYa3hhR05JUW5OYVdFcDJZak5TYWxsWFkzcE5SR05IUVRGVlpFaDNVWGROUXpSM1RFdEJjVzlEYVVkS2JXZ3daRWhCTmt4NU9XcGpiWGQxV1ZoQ2QySkhWWFZaTWpsMFRESkdkMk5IZUd4amJUbDJaRWRPYUZwNlRYVlpNMHB6VFVJd1IwRXhWV1JFWjFGWFFrSlNObEkzYnpScGFGVnJVME5LUjNwaU5sQkhhVkkzVGtGTmNXRlVRVTlDWjA1V1NGRTRRa0ZtT0VWQ1FVMURRVkZaZDBWQldVdExiMXBKYUhaa2FscEJXVU5GVVZGRFFsRkJkME5uV1VsTGIxcEplbW93UlVGM1RVUmFkMEYzV2tGSmQwWlJlWEJxYzJGMmJHMXNjbkExTDJSWVRsRkVWMWQ1ZFZWMFVtZDRiM1F5TkV4bVJtOTJSVXBtVDBOaE5ESjFlRFF6ZDNoNFEyUTJjRFEyU2k5aGRETkJha0pvVFhsRWVFdG1MelZvZWt0MVMyTm9hMUJZV2pkVllWUlRRV2s1TW5adFFXbHJaa2hXVDI1WVkzUlBURWRMY0dJcmVHZHVZMU5yTDFaS1VFUTRlWEpKZDJkblRVaE5TVWxEY21GQlJFRm5SVU5CWjJkWVowdG5NRnB0VkhGNWVrRkxRbWRuY1docmFrOVFVVkZFUVdwQ2VVMVRXWGRLUVZsRVZsRlJSRVJDTVVKalNFSnpXbE5DVkdWWVRqQmFWekJuVTFjMU1GcFhaSGxaV0ZKd1lqSTBaMUV3UldkT1JFVnRUVU5SUjBFeFZVVkRkM2RrVVZoQ2QySkhWV2RSTWxaNVpFZHNiV0ZYVG1oa1IyeDJZbWxDUW1SWVVtOWlNMHB3WkVocmVFVjZRVkpDWjA1V1FrRnZUVU5yUm5kalIzaHNTVVZzZFZsNU5IaERla0ZLUW1kT1ZrSkJXVlJCYkZaVVRVSTBXRVJVU1RCTlZFVjVUVVJCZWsxcVFUQk9WbTlZUkZSSk5FMVVTWGhPUkVVMFRVUkJlazFHYjNkVWFrVnhUVU5uUjBFeFZVVkJkM2RvVmpGa1JWVnBRbEZqYlRreVlWaE9jR0l5TlhCaWJXTm5WVWhLZGxwdGJITmFVMEpVWVZka2RXRlhOVzVOVWsxM1JWRlpSRlpSVVV0RVFYQkNZMGhDYzFwVFFrcGliVTExVFZGemQwTlJXVVJXVVZGSFJYZEtWbFY2UWxwTlFrMUhRbmx4UjFOTk5EbEJaMFZIUTBOeFIxTk5ORGxCZDBWSVFUQkpRVUpRVjFWWGR6ZENNVVpSTDBka05VZFpRMVptVUc4MGNIb3llRkJyT1ZWamRETXlNbFZzT0dZMFpuUnFRV0pMUTBjMmFXaFVjbFJVTjJVNVYzVlNabFZ0VFRGbmREZzFUM0ZpWXpaV00xcFVOa1JPUkhJek1tcG5aMFpRVFVsSlFsTjZRVTFDWjA1V1NGSk5Ra0ZtT0VWQmFrRkJUVUk0UjBFeFZXUkpkMUZaVFVKaFFVWkljRWgxYW1sTFJsTlNTVWxyWWs1MmJ6aGhTa2h6TUVGNWNIQk5SVVZIUTBOelIwRlJWVVpDZDBWQ1FrUlZkMDE2UVhoQ1oyZHlRbWRGUmtKUlkzZEJXVmxzWVVoU01HTkViM1pNTWpscVl6TkJkVmxZUW5kaVIxVjFXVEk1ZEV3eU9XcGpNMEYzVFhreGFHTXliR3BaVkZGM1RYcERRbXhuV1VSV1VqQm5Ra2xIVDAxSlIweE5TVWRKUW1kcmNXaHJhVWM1TWs1clFsRkZkMlY2UWpWQ1oyZHlRbWRGUmtKUlkwTkJha0owUkVkMFZXRkhiSHBKUjA1c1kyNVNjRnB0YkdwWldGSnNTVWRzZWtsSVVuWkpSMHBzU1VoV2VscFhVV2RhV0docVlraFdlbUZZV214aVNHdG5XbTA1ZVVsSFdqRmliVTR3WVZjNWRXTjVRbkJpYmxKc1kyMDFhR0pEUWpCaWVVSkNZMGhDYzFwVFFsRmpiVGxyWkZkT01HTjVRbWhpYlZGMllqTkpaMUZZUW5kaVIxVm5ZMGhLZGxreVZucGpNbFo2VEdwQlpFSm5UbFpJVVRSRlJtZFJWVFpXVEU5RVlrUkhhVUp3YkZOeWFXSkZXUzk0TTBJMVNFWklkM2RFWjFsRVZsSXdVRUZSU0M5Q1FWRkVRV2RsUVUxQk9FZERVM0ZIVTBsaU0xa3lVVTFGZDFGRFFsRkJkME5uV1VsTGIxcEplbW93UlVGM1NVUlRRVUYzVWxGSmFFRlBLMkYyUmpKblYyMWFjMXBNYms1T05VOXdWVGRSTTNoalpITTBXVkEyUm5oeVpVTjZNMWR4TW1odFFXbENORWs1YmtScFFXUktVR1pZTjJsWksxRmliR3BuVmpVNWFpOHhhbWd4YnpsamJVZFFWMDlxTkM5dVZFZERRV1JSZDJkblNGRkJaMFZDVFVnMGQyTnFSVzFOUTFGSFFURlZSVUYzZDJSUldFSjNZa2RWWjFVemJIcGtSMVowU1VWc2RXUkhWbTVqYlVZd1lWYzVkVWxGVGtKSlJGRjRTbXBCYTBKblRsWkNRWE5OU0ZWR2QyTkhlR3hKUlU1c1kyNVNjRnB0YkdwWldGSndZakkwWjFGWVZqQmhSemw1WVZoU05VMVNUWGRGVVZsRVZsRlJTMFJCY0VKalNFSnpXbE5DU21KdFRYVk5VWE4zUTFGWlJGWlJVVWRGZDBwV1ZYZEpTVVkwUTI5T1IxcHJObk56ZDBOM1dVcFpTVnBKUVZkVlJFSkJTVUp2U1VodVRVSm5SME5UY1VkVFNXSXpSRkZGU2tGNlJVeENaMnR4YUd0cFJ6bDNNRUpDZDBWM1NFRlpTa3R2V2tsb2RtTk9RVkZyUmsxUk9GaEVWRWt5VFVSTmVFOUVSWHBOZW1ONlRVWnZkMHRCV1VwTGIxcEphSFpqVGtGUmF6Qk5Vbk4zUjFSQlRFSm5iR2RvYTJkQ1dsRk5SVUZuUjJoRFoxbEpTMjlhU1hwcU1FVkJkMGwzVEhkWlNrdHZXa2xvZG1OT1FWRnJSVTFUU1VWSlNGbExjbVpHZWtoTmN6QkNkRU5vWnk5alRIWmlhMXB4YzBoVk5qZFZhbTlNUWl0Nk1IVm5WRmw1UWsxR1NVZERVM0ZIVTBsaU0wUlJSVXBFZWtaR1RVVk5kME5uV1VsTGIxcEphSFpqVGtGM1kzZEVaMWxKUzI5YVNXaDJZMDVCZDBsRFFXZERRVTFCTUVkRFEzRkhVMGxpTTBSUlRVTkJaMFpCVFVGalIwSlRjMDlCZDBsSVRVRXdSME5EY1VkVFNXSXpSRkZOUTBGblJXOU5RVzlIUTBOeFIxTk5ORGxDUVUxRFFrVm5kMUpuU1doQlRuTTBPQzl6YkhkTlVWRmpkbTlRYUZRclVXNHJSM3B6ZFd0blVVUlFVRzB4WjFSTmEwUmlTVk5TU1VGcFJVRjNNemxYZVVJcmMxQXZObGxTUVhwVGJWWTBia2ROV1hsRU5ISnZielpEYUVOSWF6SXpTRlUzVm1rd1BUd3ZaR0YwWVQ0S0NRa0pDUWtKQ1FrSkNRa0pDUWtKQ1FvSkNRazhhMlY1UGxCUVVVTm9aV05yUEM5clpYaytDZ2s4Wm1Gc2MyVXZQZ29LQ1R4clpYaytSVzUwYVhSc1pXMWxiblJ6UEM5clpYaytDZ2s4WkdsamRENEtDUWs4YTJWNVBtSmxkR0V0Y21Wd2IzSjBjeTFoWTNScGRtVThMMnRsZVQ0S0NRazhkSEoxWlM4K0Nna0pDUWtLQ1FrSkNUeHJaWGsrWVhCekxXVnVkbWx5YjI1dFpXNTBQQzlyWlhrK0Nna0pQSE4wY21sdVp6NXdjbTlrZFdOMGFXOXVQQzl6ZEhKcGJtYytDZ2tKQ1FrS0NRa0pDVHhyWlhrK1lYQndiR2xqWVhScGIyNHRhV1JsYm5ScFptbGxjand2YTJWNVBnb0pDVHh6ZEhKcGJtYytORWMzTlUxWU5GUlFRUzVqYjIwdVlXTjFZMkZ5WVdSaGN5NWxibU52YldWdVpHRnpQQzl6ZEhKcGJtYytDZ2tKQ1FrS0NRa0pDVHhyWlhrK2EyVjVZMmhoYVc0dFlXTmpaWE56TFdkeWIzVndjend2YTJWNVBnb0pDVHhoY25KaGVUNEtDUWtKQ1R4emRISnBibWMrTkVjM05VMVlORlJRUVM0cVBDOXpkSEpwYm1jK0Nna0pDUWs4YzNSeWFXNW5QbU52YlM1aGNIQnNaUzUwYjJ0bGJqd3ZjM1J5YVc1blBnb0pDVHd2WVhKeVlYaytDZ2tKQ1FrS0NRa0pDVHhyWlhrK1oyVjBMWFJoYzJzdFlXeHNiM2M4TDJ0bGVUNEtDUWs4Wm1Gc2MyVXZQZ29KQ1FrSkNna0pDUWs4YTJWNVBtTnZiUzVoY0hCc1pTNWtaWFpsYkc5d1pYSXVkR1ZoYlMxcFpHVnVkR2xtYVdWeVBDOXJaWGsrQ2drSlBITjBjbWx1Wno0MFJ6YzFUVmcwVkZCQlBDOXpkSEpwYm1jK0Nna0pDUWtLQ1FrSkNUeHJaWGsrWTI5dExtRndjR3hsTG1SbGRtVnNiM0JsY2k1aGNIQnNaWE5wWjI1cGJqd3ZhMlY1UGdvSkNUeGhjbkpoZVQ0S0NRa0pDVHh6ZEhKcGJtYytSR1ZtWVhWc2REd3ZjM1J5YVc1blBnb0pDVHd2WVhKeVlYaytDZ2tKQ2drOEwyUnBZM1ErQ2drOGEyVjVQa1Y0Y0dseVlYUnBiMjVFWVhSbFBDOXJaWGsrQ2drOFpHRjBaVDR5TURJM0xUQXpMVEU0VkRFd09qTTNPakF3V2p3dlpHRjBaVDRLQ1R4clpYaytUbUZ0WlR3dmEyVjVQZ29KUEhOMGNtbHVaejRxVzJWNGNHOWRJR052YlM1aFkzVmpZWEpoWkdGekxtVnVZMjl0Wlc1a1lYTWdRWEJ3VTNSdmNtVWdNakF5Tmkwd01pMHdOMVF4T0RvMU56b3lOaTR3TXpOYVBDOXpkSEpwYm1jK0NnazhhMlY1UGxSbFlXMUpaR1Z1ZEdsbWFXVnlQQzlyWlhrK0NnazhZWEp5WVhrK0Nna0pQSE4wY21sdVp6NDBSemMxVFZnMFZGQkJQQzl6ZEhKcGJtYytDZ2s4TDJGeWNtRjVQZ29KUEd0bGVUNVVaV0Z0VG1GdFpUd3ZhMlY1UGdvSlBITjBjbWx1Wno1V1FVNVVWVWxNSUVOQlVrRk5SVm9nVFU5U1FVVlRJRkJQVWxSQlNWTWdSU0JUUlZKV1NVTlBVeUJFUlNCSlRrWlBVazFCUTBGUElFeFVSRUU4TDNOMGNtbHVaejRLQ1R4clpYaytWR2x0WlZSdlRHbDJaVHd2YTJWNVBnb0pQR2x1ZEdWblpYSStNelkwUEM5cGJuUmxaMlZ5UGdvSlBHdGxlVDVWVlVsRVBDOXJaWGsrQ2drOGMzUnlhVzVuUG1JME9EWmhNREl6TFRKbE5UTXROREkzWmkwNE1qZGtMVFpqTURGbFpUUTRZamRoTkR3dmMzUnlhVzVuUGdvSlBHdGxlVDVXWlhKemFXOXVQQzlyWlhrK0NnazhhVzUwWldkbGNqNHhQQzlwYm5SbFoyVnlQZ284TDJScFkzUStDand2Y0d4cGMzUStvSUlOUHpDQ0JEUXdnZ01jb0FNQ0FRSUNDRDFaK0RmcTBkaWZNQTBHQ1NxR1NJYjNEUUVCQ3dVQU1ITXhMVEFyQmdOVkJBTU1KRUZ3Y0d4bElHbFFhRzl1WlNCRFpYSjBhV1pwWTJGMGFXOXVJRUYxZEdodmNtbDBlVEVnTUI0R0ExVUVDd3dYUTJWeWRHbG1hV05oZEdsdmJpQkJkWFJvYjNKcGRIa3hFekFSQmdOVkJBb01Da0Z3Y0d4bElFbHVZeTR4Q3pBSkJnTlZCQVlUQWxWVE1CNFhEVEkwTVRJeE5qRTVNakV3TVZvWERUSTVNVEl4TVRFNE1UTTFPVm93V1RFMU1ETUdBMVVFQXd3c1FYQndiR1VnYVZCb2IyNWxJRTlUSUZCeWIzWnBjMmx2Ym1sdVp5QlFjbTltYVd4bElGTnBaMjVwYm1jeEV6QVJCZ05WQkFvTUNrRndjR3hsSUVsdVl5NHhDekFKQmdOVkJBWVRBbFZUTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUEwSk14cS9oVEh0K3RIaTlrOThsTjE1YStYMHM5ZVdSY1ErNHB3MERTK2k4Y29MYThFWFB2OENLdzM5NzUrYzVWNC9WQ0FiVWpaVUVTTy9kOFJuMkpFMFdWUk95V2xXSm1sNUFEQU5uZ3JzWFpzWndnTFpiZ2hlMXZhOU5TMDRNODFBRWpKZW5seHRRUjJIbXFDTUxkRlZqMTc0cVRTdzFMN2cyMmg1TjFFUkJWeXd4NEI5czNjRVk3bC9yRTYzZ3A0UFRzZU9OaDJrQlhnQWU3aUp5bHgwbHR5Q2JUbFI5TklhS05hSE9ESHVaWldvV1dWVlN3bFM0bDNIY05ZWWVCallta0EzczhBSGNzaVdwWjAyUkUyWFNsVzRxeFVtRmZiZ1F3MVBQaUVEUU1sWXhMNFh2V0s0V0Q4aWM1alhBSUkrSVVpUCtUOUMxdFRDYmlpemVHTFFJREFRQUJvNEhsTUlIaU1Bd0dBMVVkRXdFQi93UUNNQUF3SHdZRFZSMGpCQmd3Rm9BVWIvR1ZHR0pjNE1qeHhlMXNHTW5nMDJSU21DQXdRQVlJS3dZQkJRVUhBUUVFTkRBeU1EQUdDQ3NHQVFVRkJ6QUJoaVJvZEhSd09pOHZiMk56Y0M1aGNIQnNaUzVqYjIwdmIyTnpjREF6TFdGcGNHTmhNRGN3THdZRFZSMGZCQ2d3SmpBa29DS2dJSVllYUhSMGNEb3ZMMk55YkM1aGNIQnNaUzVqYjIwdllXbHdZMkV1WTNKc01CMEdBMVVkRGdRV0JCUzh0Y1hwdmZ6TDBKN2NsTEFlK0NHVVhQOEpMakFPQmdOVkhROEJBZjhFQkFNQ0I0QXdEd1lKS29aSWh2ZGpaQVk2QkFJRkFEQU5CZ2txaGtpRzl3MEJBUXNGQUFPQ0FRRUFNalRDNlhlcVgrREd5cUx6ZDFubmltZTQ4Vkh6KzdEMmw3K3hFYVBob1R5N0k1THBFcE9pY1IyODhacHhiNlE4YnphU3R1QkhncUtUNCtlNGo3dmZKVVJpQXMvTnZQZjdqWW9KY0hobHdobE5KY3R5WWlIa3FXajVFSm91ZWc4b3ZxWURCdEZWWVIrdmZQaVUxSEVPNHRNbFZJdk9yZFZvQjF1OUxYdkhZa1Y1dWFtSFRQZ1lPNEN1RUV0eDJIZ3I1Z3F2bXVmWlRjenFXN2VqbDFWcjdBMmdlTWZBc00vTDNCQk1NSklUY1pUV3IrRHN5ZW5KbTg0bE11NFJEU0VYSkl2eGxTNGlZa1pGZitEYjF4WlV3YmsrMDlxS3VXWDJ0TFFqZjNoZDJYSjJaR09uQ0ZYSDJiZVUyeU8vODVPbjFBUkVRdzNLNGxheUs1UW9wRDF5aHpDQ0JFUXdnZ01zb0FNQ0FRSUNDRnhqeXVSS04xUEpNQTBHQ1NxR1NJYjNEUUVCQ3dVQU1HSXhDekFKQmdOVkJBWVRBbFZUTVJNd0VRWURWUVFLRXdwQmNIQnNaU0JKYm1NdU1TWXdKQVlEVlFRTEV4MUJjSEJzWlNCRFpYSjBhV1pwWTJGMGFXOXVJRUYxZEdodmNtbDBlVEVXTUJRR0ExVUVBeE1OUVhCd2JHVWdVbTl2ZENCRFFUQWVGdzB4TnpBMU1UQXlNVEkzTXpCYUZ3MHpNREV5TXpFd01EQXdNREJhTUhNeExUQXJCZ05WQkFNTUpFRndjR3hsSUdsUWFHOXVaU0JEWlhKMGFXWnBZMkYwYVc5dUlFRjFkR2h2Y21sMGVURWdNQjRHQTFVRUN3d1hRMlZ5ZEdsbWFXTmhkR2x2YmlCQmRYUm9iM0pwZEhreEV6QVJCZ05WQkFvTUNrRndjR3hsSUVsdVl5NHhDekFKQmdOVkJBWVRBbFZUTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF5VVZxQVE4K2d3U0d4L3kvM0Y3d0hvSHVGekJ6WXlZdTNqMTZKTTJUUGs4NVI3cDF2dlBBMHZGWm9xc2YvZ3FHUE5rdG1nZnlEbXU1S1pFYVh5SUtpL0Z5V0FXdVRFdEV4WG1uZ0R5d2lPQ01EQ2VFWFJubGh4azJ5K1BGZHJldzlFRnlVZlFGWElOTG9tMm1VYmp4SnQ5N1hxMWxETWF5bUZHTXUzMGJUTUZPeUFqSDB1MWtDN1RkRzQxUFFIMGJqMGlXa2x2ejBKaCsyYnlrR1E2WllidEJYUUhNVzNkNmZTVFEzTk5ULzhQY3haUXN0bHBOamhnak9iM1p4bEkrMGZMMEpZcWhLb2Y5MkF4R0tWSC83UmRzaVNWcmg3K0thUlNmZDUvREZiZG9zNGhGdllUbUJnSkJaQSt0S2lpNEZjbmdyS2VLdW5JRU5MSjRqUGl5aFFJREFRQUJvNEhzTUlIcE1BOEdBMVVkRXdFQi93UUZNQU1CQWY4d0h3WURWUjBqQkJnd0ZvQVVLOUJwUjVSMkNmNzBhNDB1UUtiM1IwMS9DRjR3UkFZSUt3WUJCUVVIQVFFRU9EQTJNRFFHQ0NzR0FRVUZCekFCaGlob2RIUndPaTh2YjJOemNDNWhjSEJzWlM1amIyMHZiMk56Y0RBekxXRndjR3hsY205dmRHTmhNQzRHQTFVZEh3UW5NQ1V3STZBaG9CK0dIV2gwZEhBNkx5OWpjbXd1WVhCd2JHVXVZMjl0TDNKdmIzUXVZM0pzTUIwR0ExVWREZ1FXQkJSdjhaVVlZbHpneVBIRjdXd1l5ZURUWkZLWUlEQU9CZ05WSFE4QkFmOEVCQU1DQVFZd0VBWUtLb1pJaHZkalpBWUNFZ1FDQlFBd0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFEclBySmlOdnBJZ0lRbXRsZk94WENINk5pMVhJRVIwYzJTU0NMT1dyUGR0bC9wYk5EZ256eEpHMHp3UjhBZkptWkN4MGVnUkNhWGpwV3RzWXdnL25pWDYxWm1jVE9ibHpvNnlUV2pzaTZ1am9rK0tFUlUrM0JRckhNWkV0bTlueFZ0UGxTa3RoMXcvM0lNZWQwL3QybFNuTGVjVGdjRmp4RlFMRzBzS2FpZ2lDTlEza254L1p5aGZyejAvdDZ4WkhUZzBaRnJ1TTBvWlFrUXB4TW9ZYStIQlV5MHQ5RTNDRmZZek1oaDQ4U1p2aWszcmxFeWo2UDhQc3dPTFpkcnJMdGhsVUovY240cmZNYWlFVk54U1VrSFNzaE1kTVVaSGlGOCs3c1B5akNNRWxldXNpajZDYkFhZkx1T0xRNXBpV3pRTjlKblBMTzY2Y29ZWkk2WDhqclV3Z2dTN01JSURvNkFEQWdFQ0FnRUNNQTBHQ1NxR1NJYjNEUUVCQlFVQU1HSXhDekFKQmdOVkJBWVRBbFZUTVJNd0VRWURWUVFLRXdwQmNIQnNaU0JKYm1NdU1TWXdKQVlEVlFRTEV4MUJjSEJzWlNCRFpYSjBhV1pwWTJGMGFXOXVJRUYxZEdodmNtbDBlVEVXTUJRR0ExVUVBeE1OUVhCd2JHVWdVbTl2ZENCRFFUQWVGdzB3TmpBME1qVXlNVFF3TXpaYUZ3MHpOVEF5TURreU1UUXdNelphTUdJeEN6QUpCZ05WQkFZVEFsVlRNUk13RVFZRFZRUUtFd3BCY0hCc1pTQkpibU11TVNZd0pBWURWUVFMRXgxQmNIQnNaU0JEWlhKMGFXWnBZMkYwYVc5dUlFRjFkR2h2Y21sMGVURVdNQlFHQTFVRUF4TU5RWEJ3YkdVZ1VtOXZkQ0JEUVRDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBT1NScVFrZmtkc2VSMURyQmUxZWVZUXQ2emFpVjB4VjdJc1ppZDc1UzJ6MUI2c2lNQUxvR0Q3NFVBblRmMEdvbVBuUnltYWNKR3NSMEtPNzVCc3F3eCtWbm5vTXBFZUxXOVFXTnpQTHhBOU56aFJwMGNrWmN2VmREdFYvWDV2eUpRTzZWWTlOWFEzeFpEVWpGVXNWV1IyemxQZjJuSjdQVUxyQldGQm5qd2kwSVBmTHJDd2diM0MyUHdFd2pMZER6dytkUGZNclNTZ2F5UDdPdGJrTzJWNGMxc3M5dFRxdDlBOE9BSklMc1NFV0xuVFZQQTNiWWhhcm8zR1NSMU5Wd2E4dlFiUDQrK053emVhalRFVitIMHhyVUpaQmljUjBZZ3NRZzBHSE00cUJzVEJZN0ZvRU1veG9zNDhkM21Wei8yZGVaYnhKMkhhZk14UmxvWGVVeVMwQ0F3RUFBYU9DQVhvd2dnRjJNQTRHQTFVZER3RUIvd1FFQXdJQkJqQVBCZ05WSFJNQkFmOEVCVEFEQVFIL01CMEdBMVVkRGdRV0JCUXIwR2xIbEhZSi92UnJqUzVBcHZkSFRYOElYakFmQmdOVkhTTUVHREFXZ0JRcjBHbEhsSFlKL3ZScmpTNUFwdmRIVFg4SVhqQ0NBUkVHQTFVZElBU0NBUWd3Z2dFRU1JSUJBQVlKS29aSWh2ZGpaQVVCTUlIeU1Db0dDQ3NHQVFVRkJ3SUJGaDVvZEhSd2N6b3ZMM2QzZHk1aGNIQnNaUzVqYjIwdllYQndiR1ZqWVM4d2djTUdDQ3NHQVFVRkJ3SUNNSUcyR29HelVtVnNhV0Z1WTJVZ2IyNGdkR2hwY3lCalpYSjBhV1pwWTJGMFpTQmllU0JoYm5rZ2NHRnlkSGtnWVhOemRXMWxjeUJoWTJObGNIUmhibU5sSUc5bUlIUm9aU0IwYUdWdUlHRndjR3hwWTJGaWJHVWdjM1JoYm1SaGNtUWdkR1Z5YlhNZ1lXNWtJR052Ym1ScGRHbHZibk1nYjJZZ2RYTmxMQ0JqWlhKMGFXWnBZMkYwWlNCd2IyeHBZM2tnWVc1a0lHTmxjblJwWm1sallYUnBiMjRnY0hKaFkzUnBZMlVnYzNSaGRHVnRaVzUwY3k0d0RRWUpLb1pJaHZjTkFRRUZCUUFEZ2dFQkFGdzJtVXd0ZUxmdGpKdmM4M2ViOG5iU2R6QlB3UitGZzRVYm1UMUhOL0twbTBDT0xOU3hrQkxZdnZSem0rN1NaQS9MZVU4MDJLSSsrWGovYThnSDdIMDVnNHRUSU5NNHhMRy9tazhLYS84ci9GbW5CUWw4RjBCV0VSNTAwN2VMSXp0SG85VnZKT0xyMGJkdzN3OUY0U2ZLOFcxNDdlZTFGeGVvM0g0aU5jb2wxZGtQMW12VW9pUWpFZmVockk5emdXREdHMXNKTDVLeStFUkk4R0E0bmhYMVBTWm5JSW96YXZjTmdzL2U2Nk12K1ZOcVcyVEFZek4zOXpvSExGYnIyZzhoRHRxNmN4bFB0ZGsyZjhHSFZkbW5tYmt5UXZ2WTFYR2VmcUZTdHh1OWswSWtFaXJIRHgyMlRaeGVZOGhMZ0JkUXFvclYydVQ4MEFrSE43QjFkU0V4Z2dLRk1JSUNnUUlCQVRCL01ITXhMVEFyQmdOVkJBTU1KRUZ3Y0d4bElHbFFhRzl1WlNCRFpYSjBhV1pwWTJGMGFXOXVJRUYxZEdodmNtbDBlVEVnTUI0R0ExVUVDd3dYUTJWeWRHbG1hV05oZEdsdmJpQkJkWFJvYjNKcGRIa3hFekFSQmdOVkJBb01Da0Z3Y0d4bElFbHVZeTR4Q3pBSkJnTlZCQVlUQWxWVEFnZzlXZmczNnRIWW56QUpCZ1VyRGdNQ0dnVUFvSUhjTUJnR0NTcUdTSWIzRFFFSkF6RUxCZ2txaGtpRzl3MEJCd0V3SEFZSktvWklodmNOQVFrRk1ROFhEVEkyTURNeE9ERXpNemN6TUZvd0l3WUpLb1pJaHZjTkFRa0VNUllFRk56S0JQWlNoUHIzNHBtRHliMXFkR2pRZXRjVk1Da0dDU3FHU0liM0RRRUpOREVjTUJvd0NRWUZLdzREQWhvRkFLRU5CZ2txaGtpRzl3MEJBUUVGQURCU0Jna3Foa2lHOXcwQkNROHhSVEJETUFvR0NDcUdTSWIzRFFNSE1BNEdDQ3FHU0liM0RRTUNBZ0lBZ0RBTkJnZ3Foa2lHOXcwREFnSUJRREFIQmdVckRnTUNCekFOQmdncWhraUc5dzBEQWdJQktEQU5CZ2txaGtpRzl3MEJBUUVGQUFTQ0FRQVl0emRWUUt6bkxLS1A0Y01GQmZLdGRqQmZlMkVBMkpsRE1Oamg1aVZROTE0SWY1SDZaKzFXY1BhVSsyaWMrc0w0Sk8xQW9QTDJSaDVhRXlzNjNDSmZ3RzdSNE8zZEtKdGFoaVdaQXBZL3huTTVpL0RHak9XNlNPUStaREYrMWg4clBDOU1DOXBLRE5vNzUxa3plZUNhaHk1RW5BVUNyc25GYjFJMEFUTERSUUxUT3VmM05Oc1B0ejZwUXhsSzBhM3VRcDk2SUEyWFhnWGRCd1NCY3NqeDN0cjdCTGV0QnNJV3lEbWRLOEo2RVNBaHh4ZzBzYy9nYXBwUGphcTFIdHVxSzM5S053U1NVNlBvd2R5Q2ZONVQ5NWV6eWNNQW5QNkI4a2ZJZDRycGd2NjhBMkpZSkpralRLeENueUlndEVKZVowTkM3V0NRbW8xakk2S0xGWW9rIiwiZGlzdHJpYnV0aW9uQ2VydGlmaWNhdGUiOnsiZGF0YUJhc2U2NCI6Ik1JSU1TZ0lCQXpDQ0RCQUdDU3FHU0liM0RRRUhBYUNDREFFRWdndjlNSUlMK1RDQ0Jwa0dDU3FHU0liM0RRRUhBYUNDQm9vRWdnYUdNSUlHZ2pDQ0JuNEdDeXFHU0liM0RRRU1DZ0VEb0lJR0x6Q0NCaXNHQ2lxR1NJYjNEUUVKRmdHZ2dnWWJCSUlHRnpDQ0JoTXdnZ1Q3b0FNQ0FRSUNFQTNVY045Lzl5NzY1UWc3NGpYTU1aa3dEUVlKS29aSWh2Y05BUUVMQlFBd2RURkVNRUlHQTFVRUF3dzdRWEJ3YkdVZ1YyOXliR1IzYVdSbElFUmxkbVZzYjNCbGNpQlNaV3hoZEdsdmJuTWdRMlZ5ZEdsbWFXTmhkR2x2YmlCQmRYUm9iM0pwZEhreEN6QUpCZ05WQkFzTUFrY3pNUk13RVFZRFZRUUtEQXBCY0hCc1pTQkpibU11TVFzd0NRWURWUVFHRXdKVlV6QWVGdzB5TmpBek1UZ3hNRE0zTURGYUZ3MHlOekF6TVRneE1ETTNNREJhTUlIdU1Sb3dHQVlLQ1pJbWlaUHlMR1FCQVF3S05FYzNOVTFZTkZSUVFURm5NR1VHQTFVRUF3eGVhVkJvYjI1bElFUnBjM1J5YVdKMWRHbHZiam9nVmtGT1ZGVkpUQ0JEUVZKQlRVVmFJRTFQVWtGRlV5QlFUMUpVUVVsVElFVWdVMFZTVmtsRFQxTWdSRVVnU1U1R1QxSk5RVU5CVHlCTVZFUkJJQ2cwUnpjMVRWZzBWRkJCS1RFVE1CRUdBMVVFQ3d3S05FYzNOVTFZTkZSUVFURkZNRU1HQTFVRUNndzhWa0ZPVkZWSlRDQkRRVkpCVFVWYUlFMVBVa0ZGVXlCUVQxSlVRVWxUSUVVZ1UwVlNWa2xEVDFNZ1JFVWdTVTVHVDFKTlFVTkJUeUJNVkVSQk1Rc3dDUVlEVlFRR0V3SlZVekNDQVNJd0RRWUpLb1pJaHZjTkFRRUJCUUFEZ2dFUEFEQ0NBUW9DZ2dFQkFMZDFlNXE0NmExMklxU1oxVFora2ZaenM5VVJlaVNDeHQvc3ZhTmlDSGg1QXRzU1BwQTFLWEszR3pyVG85SjNkZG5sUW9XMncwNHJscFl4UTBUT1ZDOEtPS3dqUGN3Y1h4elIxQkpZaWVBczc0ZWZTbnQza256anBxU3l2eGV0bGxYS3JlaHAycFpMSFo2aThpd1EyN1p5MDdHaExCRU4yM3hSNVRxU0FjRS9pUkdZejlpT051M01jR1FqNGE4UjZodC9TaHBPUWVMaXpnbFNMbEk2TmJ1U0NWcEIxV0xVOUJXcmNxdXZqbGlxeFZNZENXa2YwL1lmeTQrQThaZGd3a3BWN3crS0paK3BIOHlHdHd4OTBBQzQrVnNrNGo2OFpYWE9ESWNqSERpVnErdTFML1NoMm8rUU9sOVpGRlhOWUt0WkxLcXZnbEdmcnFwNUR5TS9NSnNDQXdFQUFhT0NBaU13Z2dJZk1Bd0dBMVVkRXdFQi93UUNNQUF3SHdZRFZSMGpCQmd3Rm9BVUNmN0FGWkQ1cjJRS2toSzVKaWhqREpmc3A3SXdjQVlJS3dZQkJRVUhBUUVFWkRCaU1DMEdDQ3NHQVFVRkJ6QUNoaUZvZEhSd09pOHZZMlZ5ZEhNdVlYQndiR1V1WTI5dEwzZDNaSEpuTXk1a1pYSXdNUVlJS3dZQkJRVUhNQUdHSldoMGRIQTZMeTl2WTNOd0xtRndjR3hsTG1OdmJTOXZZM053TURNdGQzZGtjbWN6TURJd2dnRWVCZ05WSFNBRWdnRVZNSUlCRVRDQ0FRMEdDU3FHU0liM1kyUUZBVENCL3pDQnd3WUlLd1lCQlFVSEFnSXdnYllNZ2JOU1pXeHBZVzVqWlNCdmJpQjBhR2x6SUdObGNuUnBabWxqWVhSbElHSjVJR0Z1ZVNCd1lYSjBlU0JoYzNOMWJXVnpJR0ZqWTJWd2RHRnVZMlVnYjJZZ2RHaGxJSFJvWlc0Z1lYQndiR2xqWVdKc1pTQnpkR0Z1WkdGeVpDQjBaWEp0Y3lCaGJtUWdZMjl1WkdsMGFXOXVjeUJ2WmlCMWMyVXNJR05sY25ScFptbGpZWFJsSUhCdmJHbGplU0JoYm1RZ1kyVnlkR2xtYVdOaGRHbHZiaUJ3Y21GamRHbGpaU0J6ZEdGMFpXMWxiblJ6TGpBM0JnZ3JCZ0VGQlFjQ0FSWXJhSFIwY0hNNkx5OTNkM2N1WVhCd2JHVXVZMjl0TDJObGNuUnBabWxqWVhSbFlYVjBhRzl5YVhSNUx6QVdCZ05WSFNVQkFmOEVEREFLQmdnckJnRUZCUWNEQXpBZEJnTlZIUTRFRmdRVW0wM1ZtM3hENHdRUG0zR3dUaGhZNld5VnZhNHdEZ1lEVlIwUEFRSC9CQVFEQWdlQU1CTUdDaXFHU0liM1kyUUdBUVFCQWY4RUFnVUFNQTBHQ1NxR1NJYjNEUUVCQ3dVQUE0SUJBUURDNVlHVXNBUkVpYnpvekcyVDJ0SFhMbjg5YUQrcU5ucDhzbUxLS2J1Tmh1TVQxeFV3ZlVkeTY2YW9WdGtvWkVRcDJvc1lWL1crbjdZWG9yQTNQUkdRYUd0OXNwZ3ZwR2xuUk1TRlNOUEk4cTdVMU8vOTQwMEhLNnE0enVXYngvZnhJZlVwR2FxZnFtQndxNVg0RGtqTWJxTUIzdndnQUNRdlBhYmxFeWdWTG00QTJuSlZGQkJpZlF5UVRseFdXVXk2ZklicUdPT243Nk83TVRBL2tHZ0J4emozWThoYmYyQmZ4Wk9MRlNkUmxaV2FwNjJPaHNLYVkxWTZPTVhHVmJuTnEyUDVFZmNSNVVrRUJGekoxaDVDUFA0Qmw3VmpxZW1kRTI2bEpmaFltVWJNdE1BTHVYSHo5UkdGeEM2akt5bDhaT09ZM0M0S3VDS0VqNm5hc3I2bE1Ud3dJd1lKS29aSWh2Y05BUWtWTVJZRUZLd3FMYVlXWTFxUWYwYVI2R3hTVW9sanNRVlJNQlVHQ1NxR1NJYjNEUUVKRkRFSUhnWUFhd0JsQUhrd2dnVllCZ2txaGtpRzl3MEJCd0dnZ2dWSkJJSUZSVENDQlVFd2dnVTlCZ3NxaGtpRzl3MEJEQW9CQXFDQ0JPNHdnZ1RxTUJ3R0NpcUdTSWIzRFFFTUFRTXdEZ1FJRytmMjNGSDRKcWNDQWdnQUJJSUV5SXZSZzY4WFpUTVJHN0J0UzFkUHlrNEZVY2E0TGFzS3hXNTBXMnRSamFzK3hpOWw3MFN1V3MyV3RQK1RWd3F4SFN6L0QzNHNnT2M4elRua1hsSjZ3cy91OHZDT21BWU5WQ0ZmKzI0djNTVjNWdkt2ZkJGWE1lV3NzU0ZhWlp1NFFvZFdWS2g5a3duV04zVGYwKzlHYmRmOUY4Mm12dk4zdXMrcW9NSzRuTHcvK2o5bkVWMWhac3VxYVhOb3ozRTZvSDgzU1B4Q0lhZmtBL3hEVFZnVXN1VW04UkljOUREK2x3RFRXdm51Y0tNK0puaW1PcnF3bVJvcGxOYkI1eVRRaVZTY3NKbXRFZ01mQnVsSEVMYVlPWStVK1pCRG9VSG42MHVGTzA3WUExdjNkUnRFampIR0MvZFVIWWhtTTBvQTRPODc2aXJkbURpcUtQT1NVQkU5dlBSaGlGZTZhdEE5blZnTEtETm9sS0daS2s5RXdlWlNsU25Id2xVR2c1K1lzc08yY3E5STk3TjVVbnpGZGowOHJZeHZIeU9PcFB6QTl0ellKK05PcEJWZGhMQTExQ1VnZ2p5Q2VZR1ZPSTZWUWNsM2tGTEUwUWxtWVZLaUduenZFZmNzaGppZU1DUFp2T2k0QnA1aXZxTWYvaHRRQ2xEOWNnWDRuTVlGd2xwWDlBM2F5UmNHemU0UHp6aWNub3ZsL1JHQUVUS0RuUCs2VkVJajFnbEswVHA3UGpoOG82eGhnVi9PU2RRQUlPOGg2TnpyM213bnh5RUJJMi9KaHlmVTdmbW5GejJDdHB4amRYMHhrR3JaR1VpU2JVdHYwejJYSjJkOUZkUGJ1bkQ0M3pmQnZtR3B3TytiUDFUNUw4Y2kweEJoaHA0SWhreHphdkRJZlMyUjVDZ0MwcTNydDZBYzdnL0FyVzMzcXJKWUxKQ0UvR2o2RjBIQ1RhYjQxYm5xdHhYVUg1YlRGdzlmRGF2ZkJDLzJ0T1hSQ2pzTERLdHdTQzAvT3NSUUlzYUI1aFBiMVBrdmtNMzRsZ2NBaXpiaEErTTZSVmJNSG94UTNWM0RHc1hMd21GV3VORlpVYW9zRjlIanF2ZXJjUEd6QTJXalhTbHVRcm9iaGFmc2YwYnJFWDEwbHF3RHNNYlNmQVVjRWFYRjIvbmVqYTN2cjlaWGlWRkltZDNGWHRWSVIwb3dWV1duczc3czhISnp4WkUvUzBYZXJmZDJvMjNqNVdSdWZablpMNTNBVVFPeDFNTGs1bzVCYi9KM1BtdHdzTnFROFQ0Q3BBck1GYTh3eERlUERVbVdWa1hmbUwxaDIxZ0tmYU9xTkI0TEZoaXI5dm1ONmt1c3VpZ1lOTzhOaWRjUnZXQm4wc1l2UHR5L2N2aHdUWmEyRGZGVVhXTitlaDZ6b25hVFFYVWJnWElTUUdXZklwUW9HZ2tyS3Ayc3Z6ekY1OHRtZzZXTCtrSS92WWJtS2YrS3QwNEZ6bmx3dzM0elFvU2JRNEdUOE1tYjRrYVB1Mm12U0xia3ZZbFIzTndpWlhOckRUcG9iUWQ5cnNpRzlJaWUvTWVkM3VYczQ2U0FiTk5UcTRLRmY1OGRVWlRBcEUvb1pTOFhUNEluS0dYdkp3M1hlV0M3ZUtlVXF0aWFzWFZoT0REbkJRVXdjLzFHSW9ja3JlNldPRTV4OWVSNDRIdDJObnJSUlh4WmZZZFhvNU00dmMvcXRtb2QrWTFPa2ZFZVJnejJIa2s5bUl1a3dvSytXcFRkcDJlL0ZMRDJXb2pDNFBNa1FsVVArV2NtNjRkMTd5RzdNaktFUnE2RGR1YzNLTjBvNGtUTHdkMWpnZm13UnJmaTVieVNOV0ZYMjJodDBucXB2Qkt0dE5oWnJ5eFV3U1lWb01WWGVrMm1lcUkwbnFFTlhIQ0ZmQlZFUkpCbS9ZYkNocmNtUEJ4WmZkcVB5Y3F4amhpM1pzVGcrUEdJRUluakswRGxCQi9adFFhc2N4dk13V3o4djBpWmh0UHJMQ1hieG9UbHBnY1dLNnBrcys2UG92ZnNDWjVEQVdycWJ5amxmODNPZmJka20yd0hJZWdHNVBjM3VNVE9IanlhaE9iQVJkUnVKNlFnUFoxdXhDZUJhOXV2c1pYMEdOd0E5dWNLTVRPY1R2WG9OQ2RpREFxamxxZTZaVEU4TUNNR0NTcUdTSWIzRFFFSkZURVdCQlNzS2kybUZtTmFrSDlHa2Voc1VsS0pZN0VGVVRBVkJna3Foa2lHOXcwQkNSUXhDQjRHQUdzQVpRQjVNREV3SVRBSkJnVXJEZ01DR2dVQUJCU2F2eS8xdTlVTFlOOXpzTzNPK0RQc0NUZncxUVFJQTRHSTNtVWczVVVDQWdnQSIsInBhc3N3b3JkIjoiSnVqdzFzK090ajhyZ1lOYnVBTlhBQT09In19fX0sInVwZGF0ZXMiOnsiY2hhbm5lbCI6InByb2R1Y3Rpb24ifSwic2NoZW1lIjoiQXVjYXJhZGFzRW5jb21lbmRhcyIsImJ1aWxkQ29uZmlndXJhdGlvbiI6IlJlbGVhc2UiLCJ1c2VybmFtZSI6ImFjdWNhcmFkYWVuY29tZW5kYXMiLCJleHBlcmltZW50YWwiOnt9LCJtb2RlIjoiYnVpbGQiLCJ0cmlnZ2VyZWRCeSI6IkVBU19DTEkiLCJhcHBJZCI6IjYwOTAxMDZiLWUzMjctNDc0NC1iY2U1LTlkZGIwZDAzNzA0NSIsImluaXRpYXRpbmdVc2VySWQiOiI3NGI5ZTA3Ny05NDFmLTRmZTYtOGE0Yi05ZjdkNzJjZDQyNGMifSwibWV0YWRhdGEiOnsidHJhY2tpbmdDb250ZXh0Ijp7InRyYWNraW5nX2lkIjoiZDRkMWIwNjItMzMxYy00MzI0LWIzYjAtODFkYWRkNjc5N2E5IiwicGxhdGZvcm0iOiJpb3MiLCJzZGtfdmVyc2lvbiI6IjQ5LjAuMCIsImFjY291bnRfaWQiOiI2NDMzZmI4Mi1iMzYzLTRmOTctYWVjZC0xOGQyYThlMjI1ZDYiLCJwcm9qZWN0X2lkIjoiNjA5MDEwNmItZTMyNy00NzQ0LWJjZTUtOWRkYjBkMDM3MDQ1IiwicHJvamVjdF90eXBlIjoibWFuYWdlZCIsImRldl9jbGllbnQiOmZhbHNlLCJkZXZfY2xpZW50X3ZlcnNpb24iOiIyLjQuMTMiLCJub193YWl0IjpmYWxzZSwicnVuX2Zyb21fY2kiOnRydWUsImxvY2FsIjp0cnVlfSwiYXBwQnVpbGRWZXJzaW9uIjoiMzYyIiwiYXBwVmVyc2lvbiI6IjEuMC4xIiwiY2xpVmVyc2lvbiI6IjE4LjQuMCIsIndvcmtmbG93IjoibWFuYWdlZCIsImNyZWRlbnRpYWxzU291cmNlIjoicmVtb3RlIiwic2RrVmVyc2lvbiI6IjQ5LjAuMCIsInJ1bnRpbWVWZXJzaW9uIjoiZXhwb3Nkazo0OS4wLjAiLCJyZWFjdE5hdGl2ZVZlcnNpb24iOiIwLjcyLjEwIiwiY2hhbm5lbCI6InByb2R1Y3Rpb24iLCJkaXN0cmlidXRpb24iOiJzdG9yZSIsImFwcE5hbWUiOiJBw6d1Y2FyYWRhcyBFbmNvbWVuZGFzIiwiYXBwSWRlbnRpZmllciI6ImNvbS5hY3VjYXJhZGFzLmVuY29tZW5kYXMiLCJidWlsZFByb2ZpbGUiOiJwcm9kdWN0aW9uIiwiZ2l0Q29tbWl0SGFzaCI6IjY3MGI5ZGM4NzNjYjI1ODljYjdhYmIwNWZiMzNmNzg2OGZmYjU4ZGMiLCJnaXRDb21taXRNZXNzYWdlIjoiZml4X3AxMl9lcnJvcl9tc2ciLCJpc0dpdFdvcmtpbmdUcmVlRGlydHkiOnRydWUsInVzZXJuYW1lIjoiYWN1Y2FyYWRhZW5jb21lbmRhcyIsInJ1bldpdGhOb1dhaXRGbGFnIjpmYWxzZSwicnVuRnJvbUNJIjp0cnVlLCJkZXZlbG9wbWVudENsaWVudCI6ZmFsc2UsInJlcXVpcmVkUGFja2FnZU1hbmFnZXIiOiJucG0iLCJzZWxlY3RlZEltYWdlIjoibWFjb3Mtc29ub21hLTE0LjUteGNvZGUtMTUuNCIsInNpbXVsYXRvciI6ZmFsc2V9fQ== exited with non-zero code: 1
     Error: build command failed.
 Error: Process completed with exit code 1.

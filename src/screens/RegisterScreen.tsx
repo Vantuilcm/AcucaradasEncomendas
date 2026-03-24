@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { TextInput, Button, Text, Checkbox } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +22,7 @@ export function RegisterScreen({ route }: { route?: any }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const validateForm = () => {
     try {
@@ -39,6 +40,11 @@ export function RegisterScreen({ route }: { route?: any }) {
       // Verificar se as senhas coincidem
       if (password !== confirmPassword) {
         throw new Error('As senhas não coincidem');
+      }
+
+      // Validar termos de uso
+      if (!termsAccepted) {
+        throw new Error('Você precisa aceitar os Termos de Uso e Política de Privacidade para continuar');
       }
       
       return true;
@@ -150,11 +156,37 @@ export function RegisterScreen({ route }: { route?: any }) {
               style={styles.input}
             />
 
+            <View style={styles.termsContainer}>
+              <Checkbox
+                status={termsAccepted ? 'checked' : 'unchecked'}
+                onPress={() => setTermsAccepted(!termsAccepted)}
+                color={theme.colors.primary}
+              />
+              <View style={styles.termsTextContainer}>
+                <Text style={styles.termsText}>
+                  Eu concordo com os{' '}
+                </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('TermsOfUse' as never)}>
+                  <Text style={[styles.termsText, styles.termsLink]}>
+                    Termos de Uso
+                  </Text>
+                </TouchableOpacity>
+                <Text style={styles.termsText}>
+                  {' '}e a{' '}
+                </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('PrivacySettings' as never)}>
+                  <Text style={[styles.termsText, styles.termsLink]}>
+                    Política de Privacidade
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <Button
               mode="contained"
               onPress={handleRegister}
               style={styles.button}
-              disabled={loading}
+              disabled={loading || !termsAccepted}
             >
               Criar Conta
             </Button>
@@ -181,7 +213,7 @@ const createStyles = (theme: { colors: any }) =>
   StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
   },
   keyboardAvoid: {
     flex: 1,
@@ -191,12 +223,15 @@ const createStyles = (theme: { colors: any }) =>
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 24,
     justifyContent: 'center',
+    backgroundColor: theme.colors.surface,
   },
   title: {
     textAlign: 'center',
     marginBottom: 8,
+    color: theme.colors.text.primary,
+    fontWeight: 'bold',
   },
   subtitle: {
     textAlign: 'center',
@@ -205,6 +240,26 @@ const createStyles = (theme: { colors: any }) =>
   },
   input: {
     marginBottom: 16,
+    backgroundColor: theme.colors.background,
+  },
+  termsContainer: {
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  termsTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginLeft: 8,
+  },
+  termsText: {
+    fontSize: 12,
+    color: theme.colors.text.secondary,
+  },
+  termsLink: {
+    color: theme.colors.primary,
+    textDecorationLine: 'underline',
   },
   button: {
     marginTop: 8,

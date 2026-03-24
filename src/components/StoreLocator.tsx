@@ -9,10 +9,11 @@ import {
   RefreshControl,
   Switch,
 } from 'react-native';
-import { useTheme } from 'react-native-paper';
 import { useLocation } from '../contexts/LocationContext';
 import { Store } from '../services/LocationService';
 import { loggingService } from '../services/LoggingService';
+
+import { useAppTheme } from './ThemeProvider';
 
 interface StoreLocatorProps {
   onSelectStore?: (store: Store) => void;
@@ -20,7 +21,8 @@ interface StoreLocatorProps {
 }
 
 export const StoreLocator: React.FC<StoreLocatorProps> = ({ onSelectStore, productId }) => {
-  const theme = useTheme();
+  const { theme } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   const {
     currentLocation,
     currentAddress,
@@ -37,6 +39,13 @@ export const StoreLocator: React.FC<StoreLocatorProps> = ({ onSelectStore, produ
 
   const [refreshing, setRefreshing] = useState(false);
 
+  // Atualiza as lojas próximas quando a configuração de proximidade muda
+  React.useEffect(() => {
+    if (currentLocation && isProximityEnabled) {
+      findNearbyStores(undefined);
+    }
+  }, [isProximityEnabled, currentLocation]);
+
   // Atualiza a lista de lojas
   const handleRefresh = async () => {
     try {
@@ -47,7 +56,8 @@ export const StoreLocator: React.FC<StoreLocatorProps> = ({ onSelectStore, produ
         if (productId) {
           await findStoresWithProduct(productId);
         } else {
-          await findNearbyStores();
+          // Find all stores, not just open ones, so users can see all nearby options
+          await findNearbyStores(undefined);
         }
       }
     } catch (error) {
@@ -61,15 +71,22 @@ export const StoreLocator: React.FC<StoreLocatorProps> = ({ onSelectStore, produ
   const renderStoreItem = ({ item }: { item: Store }) => {
     return (
       <TouchableOpacity
-        style={styles.storeItem}
+        style={[styles.storeItem, !item.isOpen && styles.storeItemClosed]}
         onPress={() => onSelectStore && onSelectStore(item)}
       >
-        <View style={styles.storeIcon}>
+        <View style={[styles.storeIcon, !item.isOpen && styles.storeIconClosed]}>
           <Text style={styles.storeIconText}>{item.name.substring(0, 1).toUpperCase()}</Text>
         </View>
 
         <View style={styles.storeInfo}>
-          <Text style={styles.storeName}>{item.name}</Text>
+          <View style={styles.storeNameContainer}>
+            <Text style={styles.storeName}>{item.name}</Text>
+            {!item.isOpen && (
+              <View style={styles.closedBadge}>
+                <Text style={styles.closedBadgeText}>Fechado</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.storeAddress}>{item.address}</Text>
 
           <View style={styles.storeDetails}>
@@ -77,7 +94,7 @@ export const StoreLocator: React.FC<StoreLocatorProps> = ({ onSelectStore, produ
               {item.distance ? `${item.distance} km de distância` : 'Distância não disponível'}
             </Text>
 
-            {item.estimatedDeliveryTime && (
+            {item.estimatedDeliveryTime && item.isOpen && (
               <Text style={styles.deliveryTime}>
                 {item.estimatedDeliveryTime.min}-{item.estimatedDeliveryTime.max} min
               </Text>
@@ -163,7 +180,7 @@ export const StoreLocator: React.FC<StoreLocatorProps> = ({ onSelectStore, produ
         <Switch
           value={isProximityEnabled}
           onValueChange={setProximityEnabled}
-          trackColor={{ false: '#767577', true: theme.colors.primaryContainer }}
+          trackColor={{ false: '#767577', true: theme.colors.primary + '80' }}
           thumbColor={isProximityEnabled ? theme.colors.primary : '#f4f3f4'}
         />
       </View>
@@ -186,123 +203,158 @@ export const StoreLocator: React.FC<StoreLocatorProps> = ({ onSelectStore, produ
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: { colors: any }) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: theme.colors.border,
   },
   addressContainer: {
     flex: 1,
   },
   addressLabel: {
     fontSize: 12,
-    color: '#757575',
+    color: theme.colors.text.secondary,
     marginBottom: 4,
   },
   addressText: {
     fontSize: 14,
     fontWeight: '500',
+    color: theme.colors.text.primary,
   },
   refreshButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    padding: 8,
   },
   refreshButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   filterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   filterTextContainer: {
     flex: 1,
   },
   filterTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
+    fontWeight: '500',
+    color: theme.colors.text.primary,
   },
   filterSubtitle: {
-    fontSize: 14,
-    color: '#757575',
+    fontSize: 12,
+    color: theme.colors.text.secondary,
+    marginTop: 2,
   },
   listContent: {
     flexGrow: 1,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
   },
   storeItem: {
     flexDirection: 'row',
-    paddingVertical: 16,
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: theme.colors.border,
+  },
+  storeItemClosed: {
+    opacity: 0.6,
   },
   storeIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
+  storeIconClosed: {
+    backgroundColor: theme.colors.disabled,
+  },
   storeIconText: {
-    fontSize: 20,
+    color: theme.colors.surface,
+    fontSize: 24,
     fontWeight: 'bold',
   },
   storeInfo: {
     flex: 1,
   },
+  storeNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   storeName: {
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: 'bold',
+    color: theme.colors.text.primary,
+    flex: 1,
+  },
+  closedBadge: {
+    backgroundColor: theme.colors.error,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  closedBadgeText: {
+    color: theme.colors.surface,
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   storeAddress: {
     fontSize: 14,
-    color: '#757575',
-    marginBottom: 6,
+    color: theme.colors.text.secondary,
+    marginBottom: 8,
   },
   storeDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   storeDistance: {
     fontSize: 12,
-    color: '#757575',
+    color: theme.colors.primary,
+    fontWeight: '500',
   },
   deliveryTime: {
     fontSize: 12,
-    fontWeight: '500',
+    color: theme.colors.text.secondary,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
   },
   emptyContainer: {
-    padding: 24,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 32,
   },
   emptyText: {
     fontSize: 16,
+    color: theme.colors.text.secondary,
     textAlign: 'center',
-    color: '#757575',
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: 16,
+    lineHeight: 24,
   },
   errorText: {
     fontSize: 16,
+    color: theme.colors.error,
     textAlign: 'center',
-    color: '#d32f2f',
-    marginTop: 8,
     marginBottom: 16,
+    lineHeight: 24,
   },
   retryButton: {
     paddingHorizontal: 24,
@@ -310,7 +362,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#fff',
+    color: theme.colors.surface,
+    fontSize: 16,
     fontWeight: '600',
   },
 });
