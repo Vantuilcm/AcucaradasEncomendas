@@ -27,13 +27,13 @@ WebBrowser.maybeCompleteAuthSession();
 
 // Configurações baseadas no ambiente
 export const GOOGLE_CLIENT_ID = {
-  expo: 'SEU_GOOGLE_EXPO_CLIENT_ID',
-  ios: 'SEU_GOOGLE_IOS_CLIENT_ID',
-  android: 'SEU_GOOGLE_ANDROID_CLIENT_ID',
-  web: 'SEU_GOOGLE_WEB_CLIENT_ID',
+  expo: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID || 'SEU_GOOGLE_EXPO_CLIENT_ID',
+  ios: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || 'SEU_GOOGLE_IOS_CLIENT_ID',
+  android: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'SEU_GOOGLE_ANDROID_CLIENT_ID',
+  web: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'SEU_GOOGLE_WEB_CLIENT_ID',
 };
 
-export const FACEBOOK_APP_ID = 'SEU_FACEBOOK_APP_ID';
+export const FACEBOOK_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || 'SEU_FACEBOOK_APP_ID';
 
 export interface SocialAuthResult {
   success: boolean;
