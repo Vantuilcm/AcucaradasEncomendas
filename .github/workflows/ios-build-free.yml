@@ -19,15 +19,6 @@ on:
         required: false
         default: 'fix-build-sdk-52'
         type: string
-      profile:
-        description: 'EAS Build Profile'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - preview
-          - development
       mode:
         description: 'Modo de execucao'
         required: true
@@ -48,7 +39,6 @@ on:
 env:
   # Using safe access to inputs
   INPUT_REF: ${{ inputs.ref || github.event.client_payload.ref || github.ref_name }}
-  INPUT_PROFILE: ${{ inputs.profile || github.event.client_payload.profile || 'production' }}
   INPUT_MODE: ${{ inputs.mode || github.event.client_payload.mode || 'github_macos' }}
   INPUT_PUBLISH_UPDATE: ${{ inputs.publish_update || github.event.client_payload.publish_update || false }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -68,11 +58,6 @@ jobs:
         with:
           ref: ${{ env.INPUT_REF }}
 
-      - name: Validate profile
-        run: |
-          echo "Perfil selecionado: ${INPUT_PROFILE}"
-
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -86,11 +71,6 @@ jobs:
         env:
           NODE_ENV: development
           NO_SENTRY_VALIDATE: 1
-
-      - name: Prepare environment
-        run: npm run prepare:ios
-        env:
-          APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
 
       - name: Setup Expo
         uses: expo/expo-github-action@v8
@@ -119,25 +99,6 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: Install dependencies
-        run: |
-          npm install --legacy-peer-deps --no-audit --fund=false
-          # Forçamos a execução do script node que remenda o código e do patch-package
-          node fix-rn-xcode16.js || echo "Script not found, ignoring"
-          npx patch-package
-        env:
-          NODE_ENV: development
-
-      - name: Prepare iOS Environment
-        run: |
-          npm run prepare:ios
-          # AQUI É O PONTO CRÍTICO: Expo pode re-baixar pacotes, então forçamos NOVAMENTE antes do build final!
-          node fix-rn-xcode16.js || echo "Script not found, ignoring"
-        env:
-          ONESIGNAL_CERT_BASE64: ${{ secrets.ONESIGNAL_CERT_BASE64 }}
-          ONESIGNAL_PROVISION_BASE64: ${{ secrets.ONESIGNAL_PROVISION_BASE64 }}
-          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
-
       - name: Setup Expo
         uses: expo/expo-github-action@v8
         with:
@@ -145,9 +106,25 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
           packager: npm
+        env:
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+          EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
 
-      - name: Install xcbeautify
-        run: brew install xcbeautify || true
+      - name: Repair iOS credentials (revoke + sync)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+          EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
+        run: |
+          set -e
+          for i in 1 2 3 4 5; do
+            eas credentials:revoke -p ios --dist-cert --non-interactive || true
+          done
+          eas credentials:sync -p ios --non-interactive
 
       - name: Generate .env file
         run: |
@@ -180,32 +157,13 @@ jobs:
         run: |
           set -o pipefail
           
-          # EAS Build limpa e copia os arquivos para uma pasta temporária (ex: /var/folders/t5/...).
-          # Para consertar o bug do Yoga no Xcode 16 de forma agressiva, vamos criar um script "postinstall"
-          # customizado que o EAS será OBRIGADO a rodar logo após instalar os pods/dependências na pasta temporária.
-          
-          echo "const fs = require('fs');" > fix-yoga.js
-          echo "const p = require('path');" >> fix-yoga.js
-          echo "const files = ['node_modules/react-native/Libraries/Text/TextInput/RCTBaseTextInputShadowView.m', 'node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.m'];" >> fix-yoga.js
-          echo "files.forEach(f => {" >> fix-yoga.js
-          echo "  try {" >> fix-yoga.js
-          echo "    let c = fs.readFileSync(f, 'utf8');" >> fix-yoga.js
-          echo "    c = c.replace(/YGNodeSetMeasureFunc\\\(\s*self\\.yogaNode\s*,\s*RCTBaseTextInputShadowViewMeasure\s*\\\);/g, 'YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTBaseTextInputShadowViewMeasure);');" >> fix-yoga.js
-          echo "    c = c.replace(/YGNodeSetBaselineFunc\\\(\s*self\\.yogaNode\s*,\s*RCTTextInputShadowViewBaseline\s*\\\);/g, 'YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextInputShadowViewBaseline);');" >> fix-yoga.js
-          echo "    c = c.replace(/YGNodeSetMeasureFunc\\\(\s*self\\.yogaNode\s*,\s*RCTTextShadowViewMeasure\s*\\\);/g, 'YGNodeSetMeasureFunc(self.yogaNode, (YGMeasureFunc)RCTTextShadowViewMeasure);');" >> fix-yoga.js
-          echo "    c = c.replace(/YGNodeSetBaselineFunc\\\(\s*self\\.yogaNode\s*,\s*RCTTextShadowViewBaseline\s*\\\);/g, 'YGNodeSetBaselineFunc(self.yogaNode, (YGBaselineFunc)RCTTextShadowViewBaseline);');" >> fix-yoga.js
-          echo "    fs.writeFileSync(f, c, 'utf8');" >> fix-yoga.js
-          echo "  } catch(e) {}" >> fix-yoga.js
-          echo "});" >> fix-yoga.js
-          
-          # Injetamos o comando diretamente no package.json temporário ANTES do build começar
-          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json')); pkg.scripts.postinstall = (pkg.scripts.postinstall ? pkg.scripts.postinstall + ' && ' : '') + 'node fix-yoga.js'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
-
-          # Passamos para o EAS
-          eas build --platform ios --profile production --local --non-interactive --output="./Acucaradas.ipa"
+          eas build --platform ios --profile production --non-interactive --clear-cache
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+          EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
           NODE_ENV: production
           NO_SENTRY_VALIDATE: 1
           # Firebase Configuration (Restored original correct values)
@@ -240,18 +198,12 @@ jobs:
 
 
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Acucaradas-iOS-IPA
-          path: Acucaradas.ipa
-          if-no-files-found: error
-          retention-days: 7
+      # Removido: Upload de IPA local (não aplicável em EAS Cloud)
 
       - name: Submit to TestFlight (App Store)
         run: |
           echo "Iniciando upload para o TestFlight..."
-          eas submit --platform ios --path ./Acucaradas.ipa --non-interactive
+          eas submit --platform ios --latest --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
