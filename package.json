@@ -8,6 +8,7 @@
     "pnpm": ">=8.0.0"
   },
   "scripts": {
+    "prebuild": "node scripts/validate-env.js",
     "prepare:ios": "node ./scripts/prepare-ios-build.js",
     "postinstall": "patch-package",
     "build:ios": "node -e \"require('fs').mkdirSync('build-artifacts',{recursive:true})\" && eas build --platform ios --profile production_local --local --non-interactive --output ./build-artifacts/Acucaradas.ipa",
