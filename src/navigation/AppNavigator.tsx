@@ -364,6 +364,11 @@ const AppNavigator = () => {
                   component={TermsOfUseScreen}
                   options={{ title: 'Termos de Uso' }}
                 />
+                <Stack.Screen
+                  name="DeliveryDriverRegistration"
+                  component={DeliveryDriverRegistration}
+                  options={{ title: 'Cadastro de Entregador' }}
+                />
               </>
             )}
           </>

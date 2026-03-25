@@ -19,10 +19,10 @@
         }
       ],
       "api_key": [
-          {
-            "current_key": "AIzaSyBdQNnbxctBigX_nynUvy0Jghh62gzUYak"
-          }
-        ],
+        {
+          "current_key": "SUBSTITUIR_POR_API_KEY_SEGURA"
+        }
+      ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [

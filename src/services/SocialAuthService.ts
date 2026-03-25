@@ -118,6 +118,7 @@ export class SocialAuthService {
         const newUser: Omit<User, 'id'> = {
           email: userData.email,
           nome: userData.name,
+          role: 'comprador', // Segurança: Força o papel como comprador
           dataCriacao: new Date(),
           ultimoLogin: new Date(),
           perfil: {
@@ -222,9 +223,10 @@ export class SocialAuthService {
 
       // Se for a primeira vez que o usuário acessa, salvar dados adicionais
       if (additionalUserInfo?.isNewUser) {
-        await this.setupNewUser(user, role);
-      } else if (role) {
-        await this.updateUserRole(user, role);
+        await this.setupNewUser(user);
+      } else {
+        // Apenas atualizar os dados básicos sem tocar na role (que só deve ser alterada pelo backend/admin)
+        await this.updateUserBasicInfo(user);
       }
 
       secureLoggingService.security('Login social realizado com sucesso', {
@@ -257,7 +259,7 @@ export class SocialAuthService {
   /**
    * Configura um novo usuário no sistema
    */
-  private async setupNewUser(user: any, role?: string): Promise<void> {
+  private async setupNewUser(user: any): Promise<void> {
     try {
       // Se o usuário não tiver um nome de exibição, usar o email
       if (!user.displayName && user.email) {
@@ -265,7 +267,15 @@ export class SocialAuthService {
         await updateProfile(user, { displayName });
       }
 
-      await this.updateUserRole(user, role || 'comprador');
+      // Novos usuários sempre recebem papel de comprador por segurança
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, {
+        email: user.email,
+        nome: user.displayName || user.email?.split('@')[0] || '',
+        role: 'comprador',
+        dataCriacao: new Date(),
+        ultimoLogin: new Date()
+      }, { merge: true });
     } catch (error: any) {
       secureLoggingService.security('Erro ao configurar novo usuário', { 
         userId: user.uid,
@@ -277,20 +287,18 @@ export class SocialAuthService {
     }
   }
 
-  private async updateUserRole(user: any, role: string): Promise<void> {
+  private async updateUserBasicInfo(user: any): Promise<void> {
     try {
       const userRef = doc(db, 'users', user.uid);
+      // Atualiza apenas dados básicos como login, sem tocar no papel (role)
       await setDoc(userRef, {
         email: user.email,
         nome: user.displayName || user.email?.split('@')[0] || '',
-        role: role,
-        dataCriacao: new Date(),
         ultimoLogin: new Date()
       }, { merge: true });
     } catch (error: any) {
-      secureLoggingService.security('Erro ao atualizar papel do usuário', {
+      secureLoggingService.security('Erro ao atualizar info basica do usuario', {
         userId: user.uid,
-        role: role,
         errorMessage: error.message || 'Erro desconhecido',
         timestamp: new Date().toISOString()
       });

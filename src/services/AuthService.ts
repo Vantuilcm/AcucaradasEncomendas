@@ -340,7 +340,7 @@ export class AuthService {
         dataCriacao: serverTimestamp(),
         emailVerificado: false,
         ultimoLogin: serverTimestamp(),
-        role: dadosUsuario.role || 'comprador',
+        role: 'comprador', // Força papel inicial seguro, ignorando role enviada pelo frontend
       };
 
       await setDoc(doc(db, 'users', user.uid), userData);

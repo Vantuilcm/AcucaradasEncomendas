@@ -204,3 +204,11 @@ web-build/
 
 expo-env.d.ts
 # @end expo-cli
+
+# Extra Security
+credentials/
+google-services*.json
+GoogleService-Info*.plist
+*service-account*.json
+*firebase-admin*.json
+.env.*

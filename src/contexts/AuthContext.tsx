@@ -143,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Método de login
-  const login = async (email: string, password: string, role?: string) => {
+  const login = async (email: string, password: string, _role?: string) => {
     try {
       console.log('AuthContext: login started', email);
       setLoading(true);
@@ -203,18 +203,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userDoc.exists()) {
            let userData = userDoc.data() as unknown as User;
-           
-           // Se o papel for fornecido e for diferente, atualize no banco de dados para permitir testes de papéis diferentes
-           if (role && userData.role !== role) {
-             await updateDoc(userRef, { role });
-             // Também atualizar na coleção usuarios se existir
-             const usuariosRef = doc(db, 'usuarios', authUser.id);
-             const usuariosDoc = await getDoc(usuariosRef);
-             if (usuariosDoc.exists()) {
-               await updateDoc(usuariosRef, { role });
-             }
-             userData = { ...userData, role };
-           }
            
            setUser(userData);
 
@@ -462,24 +450,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     SecurityService.updateLastActivity();
   };
 
-  const handlePostSocialLogin = async (authUser: any, role: string) => {
+  const handlePostSocialLogin = async (authUser: any, _role: string) => {
     const userRef = doc(db, 'users', authUser.uid);
     const usuariosRef = doc(db, 'usuarios', authUser.uid);
     const userDoc = await getDoc(userRef);
     if (userDoc.exists()) {
-      // Se já existe, atualiza o papel se for diferente
+      // O usuário já existe, não alteramos a role via frontend por segurança.
+      // O app apenas lê os dados existentes.
       const existingData = userDoc.data() || {};
-      if (existingData.role !== role) {
-        await setDoc(userRef, { role }, { merge: true });
-        await setDoc(usuariosRef, { role }, { merge: true });
-      }
-      setUser({ id: authUser.uid, ...existingData, role } as unknown as User);
+      setUser({ id: authUser.uid, ...existingData } as unknown as User);
     } else {
-      // Cria o registro no Firestore se não existir
+      // Cria o registro no Firestore se não existir. A role inicial é sempre de segurança (comprador),
+      // ou se necessário forçar o fallback seguro.
+      const defaultRole = 'comprador';
       const newUser = {
         email: authUser.email || '',
         nome: authUser.displayName || 'Usuário Social',
-        role: role,
+        role: defaultRole,
         dataCriacao: new Date(),
         ultimoLogin: new Date(),
       };

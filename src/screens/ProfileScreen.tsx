@@ -146,6 +146,17 @@ export const ProfileScreen = () => {
         </List.Section>
 
         <List.Section>
+          <Text style={styles.menuSectionTitle}>Trabalhe Conosco</Text>
+          <List.Item
+            title="Seja um Entregador"
+            description="Cadastre-se para realizar entregas"
+            left={props => <List.Icon {...props} icon="motorbike" />}
+            right={props => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => navigation.navigate('DeliveryDriverRegistration' as any)}
+          />
+        </List.Section>
+
+        <List.Section>
           <Text style={styles.menuSectionTitle}>Suporte</Text>
           <List.Item
             title="Central de Ajuda"

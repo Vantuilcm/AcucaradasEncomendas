@@ -5,14 +5,14 @@ const { initializeApp } = require('firebase/app');
 const { getAuth, signInWithEmailAndPassword } = require('firebase/auth');
 const { getFunctions, httpsCallable } = require('firebase/functions');
 
-// Configuração do Firebase - Valores reais do projeto
+// Configuração do Firebase - Valores devem vir do ambiente
 const firebaseConfig = {
-  apiKey: 'AIzaSyDZtvP51yQzFZQjJJMAXJ-aRmmN-__p1-Y',
-  authDomain: 'acucaradas-encomendas.firebaseapp.com',
-  projectId: 'acucaradas-encomendas',
-  storageBucket: 'acucaradas-encomendas.appspot.com',
-  messagingSenderId: '398756107192',
-  appId: '1:398756107192:web:a76b8d2af2b2e6e86a6fa7',
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 // Inicializa Firebase

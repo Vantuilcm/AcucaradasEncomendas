@@ -37,7 +37,7 @@ export function AddEditProductScreen() {
   const styles = React.useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const route = useRoute();
-  const { user } = useAuth();
+  // Removed unused useAuth hook
   const { isProdutor, isAdmin } = usePermissions();
   
   // Extrair parâmetros da rota

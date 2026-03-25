@@ -37,7 +37,7 @@ export function OrderManagementScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { user } = useAuth();
+  // Removed unused useAuth hook
   const { isProdutor, isAdmin, isEntregador } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

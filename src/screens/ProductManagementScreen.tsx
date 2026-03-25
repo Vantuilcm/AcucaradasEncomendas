@@ -37,7 +37,7 @@ export function ProductManagementScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
-  const { user } = useAuth();
+  // Removed unused useAuth hook
   const { isProdutor, isAdmin } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

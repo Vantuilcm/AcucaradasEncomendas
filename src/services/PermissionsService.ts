@@ -397,13 +397,23 @@ export class PermissionsService {
   }
 
   /**
-   * Define o papel do usuário
+   * Define o papel do usuário (Apenas Admin)
    * @param userId ID do usuário
    * @param role Novo papel
    * @returns Confirmação da operação
    */
   public async setUserRole(userId: string, role: Role): Promise<void> {
     try {
+      // Verificar se o usuário atual tem permissão para gerenciar usuários
+      const hasPermission = await this.hasPermission(Permission.GERENCIAR_USUARIOS);
+      if (!hasPermission) {
+        loggingService.warn('Tentativa não autorizada de definir papel de usuário via setUserRole', {
+          targetUserId: userId,
+          requestedRole: role,
+        });
+        throw new Error('Acesso negado: Apenas administradores podem alterar papéis.');
+      }
+
       // Validar ID do usuário
       if (!userId) {
         throw new Error('ID do usuário não informado');
