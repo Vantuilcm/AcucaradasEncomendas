@@ -100,6 +100,15 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      - name: Install dependencies
+        run: |
+          npm install --legacy-peer-deps --no-audit --fund=false
+          npm install expo-apple-authentication
+          npx patch-package
+        env:
+          NODE_ENV: development
+          NO_SENTRY_VALIDATE: 1
+
       - name: Setup Expo
         uses: expo/expo-github-action@v8
         with:
@@ -107,7 +116,6 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
           packager: npm
-        env:
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
