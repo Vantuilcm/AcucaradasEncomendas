@@ -13,8 +13,9 @@ jobs:
     name: RellBuild Validation & Build
     runs-on: macos-latest
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      ACTIONS_STEP_DEBUG: true # Enable debug logging to find the exact failure
+        FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+        ACTIONS_STEP_DEBUG: true # Enable debug logging to find the exact failure
+        CI: 1 # Ensure non-interactive mode for all commands
 
     steps:
       - name: 🏗 Checkout repository
@@ -42,8 +43,16 @@ jobs:
           EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
           EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
         run: |
+          echo "🔍 Verificando presença de secrets..."
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then echo "✅ GOOGLE_SERVICES_JSON está presente"; else echo "⚠️ GOOGLE_SERVICES_JSON está vazio"; fi
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then echo "✅ GOOGLE_SERVICES_JSON_BASE64 está presente"; else echo "⚠️ GOOGLE_SERVICES_JSON_BASE64 está vazio"; fi
+          
           chmod +x scripts/rellbuild-prebuild.sh
           ./scripts/rellbuild-prebuild.sh
+          
+          echo "🔍 Verificando se os arquivos foram criados..."
+          if [ -f "google-services.json" ]; then echo "✅ google-services.json criado com sucesso"; else echo "❌ google-services.json NÃO foi criado"; fi
+          if [ -f "GoogleService-Info.plist" ]; then echo "✅ GoogleService-Info.plist criado com sucesso"; else echo "❌ GoogleService-Info.plist NÃO foi criado"; fi
 
       - name: 🏗 Setup Expo and EAS
         uses: expo/expo-github-action@v8
@@ -52,10 +61,10 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🩺 Expo Doctor Check
-        run: npx expo-doctor --non-interactive || echo "Expo Doctor found issues but continuing..."
+        run: npx expo-doctor || echo "Expo Doctor found issues but continuing..."
 
       - name: ⚙️ Expo Prebuild (Optional/Sanity)
-        run: npx expo prebuild --clean --non-interactive
+        run: npx expo prebuild --clean
 
       - name: 🤖 Build Android Beta (APK)
         env:
