@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import { PaymentService } from '../services/PaymentService';
+import * as Sentry from '@sentry/react-native';
 
 export class StripeController {
   private paymentService: PaymentService;
@@ -49,19 +50,28 @@ export class StripeController {
 
   createPaymentIntent = async (req: Request, res: Response) => {
     try {
-      const { amount, currency = 'brl', metadata, customerId } = req.body;
+      const { amount, currency = 'brl', metadata, customerId, orderId } = req.body;
       const userId = req.user?.id;
+
+      if (!orderId) {
+        return res.status(400).json({ error: 'orderId é obrigatório para o transfer_group' });
+      }
 
       const paymentIntent = await this.stripe.paymentIntents.create({
         amount: Math.round(amount),
         currency,
-        metadata: { userId, ...(metadata || {}) },
+        metadata: { userId, orderId, ...(metadata || {}) },
         customer: customerId,
+        transfer_group: orderId, // Crucial para o modelo Separate Charges and Transfers
       });
 
       return res.json({ id: paymentIntent.id, clientSecret: paymentIntent.client_secret });
     } catch (error) {
-      console.error('Erro ao criar PaymentIntent:', error);
+      console.error('Erro ao processar pagamento:', error);
+      Sentry.captureException(error, {
+        tags: { service: 'Stripe', action: 'createPaymentIntent' },
+        extra: { body: req.body, user: req.user }
+      });
       return res.status(500).json({ error: 'Erro ao processar pagamento', details: error instanceof Error ? error.message : String(error) });
     }
   };
@@ -223,6 +233,65 @@ export class StripeController {
     } catch (error) {
       console.error('Erro ao remover método de pagamento:', error);
       return res.status(500).json({ error: 'Erro ao remover método de pagamento' });
+    }
+  };
+
+  createConnectedAccount = async (req: Request, res: Response) => {
+    try {
+      const { email, type = 'express' } = req.body;
+      
+      const account = await this.stripe.accounts.create({
+        type: type as Stripe.AccountCreateParams.Type,
+        country: 'BR',
+        email: email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+      });
+      
+      return res.json({ accountId: account.id });
+    } catch (error) {
+      console.error('Erro ao criar Connected Account:', error);
+      return res.status(500).json({ error: 'Erro ao criar conta conectada' });
+    }
+  };
+
+  createAccountLink = async (req: Request, res: Response) => {
+    try {
+      const { accountId, refreshUrl, returnUrl } = req.body;
+      
+      const accountLink = await this.stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: refreshUrl,
+        return_url: returnUrl,
+        type: 'account_onboarding',
+      });
+      
+      return res.json({ url: accountLink.url });
+    } catch (error) {
+      console.error('Erro ao criar Account Link:', error);
+      return res.status(500).json({ error: 'Erro ao gerar link de onboarding' });
+    }
+  };
+
+  reverseTransfer = async (req: Request, res: Response) => {
+    try {
+      const { transferId, amount, reason } = req.body;
+      
+      const params: any = {
+        description: reason || 'Reversão solicitada',
+      };
+      
+      if (amount) {
+        params.amount = Math.round(amount);
+      }
+      
+      const reversal = await this.stripe.transfers.createReversal(transferId, params);
+      return res.json({ reversalId: reversal.id });
+    } catch (error) {
+      console.error('Erro ao reverter transferência:', error);
+      return res.status(500).json({ error: 'Erro ao reverter transferência' });
     }
   };
 }

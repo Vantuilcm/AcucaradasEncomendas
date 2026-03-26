@@ -7,6 +7,7 @@ import {
   TextStyle,
   AccessibilityProps,
   Pressable,
+  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -62,8 +63,8 @@ export function Button({
     switch (variant) {
       case 'secondary':
         return {
-          backgroundColor: theme.colors.secondary,
-          borderColor: theme.colors.secondary,
+          backgroundColor: theme.colors.accent,
+          borderColor: theme.colors.accent,
         };
       case 'outline':
         return {
@@ -85,18 +86,21 @@ export function Button({
           paddingVertical: theme.spacing.xs,
           paddingHorizontal: theme.spacing.sm,
           minHeight: 32,
+          borderRadius: 10,
         };
       case 'large':
         return {
           paddingVertical: theme.spacing.lg,
           paddingHorizontal: theme.spacing.xl,
           minHeight: 56,
+          borderRadius: 16,
         };
       default:
         return {
           paddingVertical: theme.spacing.md,
           paddingHorizontal: theme.spacing.lg,
-          minHeight: 44,
+          minHeight: 48,
+          borderRadius: 14,
         };
     }
   };
@@ -104,7 +108,7 @@ export function Button({
   const getTextColor = () => {
     if (disabled) return theme.colors.text.disabled;
     if (variant === 'outline') return theme.colors.primary;
-    return '#FFFFFF'; // Garantir alto contraste usando branco puro
+    return '#FFFFFF'; // Always use white for text on solid primary/secondary/accent backgrounds
   };
 
   const getFontSize = () => {
@@ -141,7 +145,7 @@ export function Button({
       >
         {loading ? (
           <ActivityIndicator
-            color={variant === 'outline' ? theme.colors.primary : '#FFFFFF'}
+            color={variant === 'outline' ? theme.colors.primary : theme.colors.background}
             size={size === 'small' ? 'small' : 'small'}
           />
         ) : (
@@ -152,6 +156,7 @@ export function Button({
                 color: getTextColor(),
                 fontSize: getFontSize(),
                 fontWeight: '700',
+                letterSpacing: 0.5,
               },
               textStyle,
             ]}
@@ -166,15 +171,20 @@ export function Button({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 8,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   text: {
     fontSize: 16,

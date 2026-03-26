@@ -7,6 +7,7 @@ import {
   Text,
   ViewStyle,
   TextStyle,
+  Platform,
 } from 'react-native';
 import { useAppTheme } from '../ThemeProvider';
 
@@ -85,10 +86,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   content: {
-    width: '90%',
+    width: '92%',
     maxWidth: 500,
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',

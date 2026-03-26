@@ -42,6 +42,8 @@ import { HelpCenterScreen } from '../screens/HelpCenterScreen';
 import { PrivacySettingsScreen } from '../screens/PrivacySettingsScreen';
 import { TermsOfUseScreen } from '../screens/TermsOfUseScreen';
 import { CreateReviewScreen } from '../screens/CreateReviewScreen';
+import { ChatScreen } from '../screens/ChatScreen';
+import { PremiumTestScreen } from '../screens/PremiumTestScreen';
 import type { DeliverySchedule, Order } from '../types/Order';
 
 export type MainTabParamList = {
@@ -80,6 +82,8 @@ export type RootStackParamList = {
   PrivacySettings: undefined;
   TermsOfUse: undefined;
   CreateReview: { orderId: string };
+  Chat: { orderId: string, targetName?: string };
+  PremiumTest: undefined;
   DeliveryDriverRegistration: undefined;
   Login: undefined;
   Register: undefined;
@@ -272,6 +276,11 @@ const AppNavigator = () => {
                       options={{ title: 'Painel de Administração' }}
                     />
                     <Stack.Screen
+                      name="PremiumTest"
+                      component={PremiumTestScreen}
+                      options={{ title: 'Testes Premium' }}
+                    />
+                    <Stack.Screen
                       name="ProductManagement"
                       component={ProductManagementScreen}
                       options={{ title: 'Gerenciar Produtos' }}
@@ -363,6 +372,11 @@ const AppNavigator = () => {
                   name="TermsOfUse"
                   component={TermsOfUseScreen}
                   options={{ title: 'Termos de Uso' }}
+                />
+                <Stack.Screen
+                  name="Chat"
+                  component={ChatScreen}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="DeliveryDriverRegistration"

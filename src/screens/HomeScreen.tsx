@@ -10,7 +10,7 @@ import { useLocation } from '../contexts/LocationContext';
 import { StoreLocationButton } from '../components/StoreLocationButton';
 import { loggingService } from '../services/LoggingService';
 import type { Product } from '../types/Product';
-import { useAppTheme } from '../components/ThemeProvider';
+import { useAppTheme, type ThemeType } from '../components/ThemeProvider';
 
 export function HomeScreen() {
   const navigation = useNavigation<MainTabNavigationProp<'Home'>>();
@@ -141,7 +141,7 @@ export function HomeScreen() {
   );
 }
 
-const createStyles = (theme: { colors: any }) =>
+const createStyles = (theme: ThemeType) =>
   StyleSheet.create({
   container: {
     flex: 1,
@@ -184,9 +184,10 @@ const createStyles = (theme: { colors: any }) =>
     backgroundColor: theme.colors.card,
     borderColor: theme.colors.border,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: theme.borderRadius?.md || 14,
     padding: 16,
     marginBottom: 16,
+    ...theme.shadows?.light,
   },
   productName: {
     color: theme.colors.text.primary,

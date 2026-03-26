@@ -79,6 +79,18 @@
           "icon": "./assets/notification-icon.png",
           "color": "#ffffff"
         }
+      ],
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.acucaradas.encomendas"
+        }
       ]
     ],
     "updates": {

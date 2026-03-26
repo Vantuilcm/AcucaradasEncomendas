@@ -21,6 +21,19 @@ export function RegisterScreen({ route }: { route?: any }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Campos Comuns
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  
+  // Campos Produtor
+  const [documentNumber, setDocumentNumber] = useState(''); // CPF/CNPJ
+  const [storeName, setStoreName] = useState('');
+  
+  // Campos Entregador
+  const [transportType, setTransportType] = useState('bike'); // 'ape', 'bike', 'moto', 'carro'
+  const [cnh, setCnh] = useState('');
+  
   const [error, setError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
@@ -45,6 +58,23 @@ export function RegisterScreen({ route }: { route?: any }) {
       // Validar termos de uso
       if (!termsAccepted) {
         throw new Error('Você precisa aceitar os Termos de Uso e Política de Privacidade para continuar');
+      }
+
+      // Validações Específicas por Role
+      if (!phone.trim()) throw new Error('Telefone é obrigatório');
+      
+      if (role === 'produtor') {
+        if (!documentNumber.trim()) throw new Error('CPF/CNPJ é obrigatório para produtores');
+        if (!storeName.trim()) throw new Error('Nome da loja é obrigatório');
+        if (!address.trim()) throw new Error('Endereço da loja é obrigatório');
+      } else if (role === 'entregador') {
+        if (!documentNumber.trim()) throw new Error('CPF é obrigatório para entregadores');
+        if (['moto', 'carro'].includes(transportType) && !cnh.trim()) {
+          throw new Error('CNH é obrigatória para este tipo de transporte');
+        }
+      } else {
+        // Comprador
+        if (!address.trim()) throw new Error('Endereço é obrigatório');
       }
       
       return true;
@@ -83,7 +113,38 @@ export function RegisterScreen({ route }: { route?: any }) {
         type: 'email'
       });
 
-      await register({ email: sanitizedEmail, nome: sanitizedName, role } as any, password);
+      // Preparar dados adicionais com base na role
+      let additionalData: any = { phone };
+      
+      if (role === 'produtor') {
+        additionalData = {
+          ...additionalData,
+          documentNumber,
+          storeName,
+          address,
+          storeStatus: 'pending_approval'
+        };
+      } else if (role === 'entregador') {
+        additionalData = {
+          ...additionalData,
+          documentNumber,
+          transportType,
+          cnh: ['moto', 'carro'].includes(transportType) ? cnh : null,
+          courierStatus: 'pending_approval'
+        };
+      } else {
+        additionalData = {
+          ...additionalData,
+          address
+        };
+      }
+
+      await register({ 
+        email: sanitizedEmail, 
+        nome: sanitizedName, 
+        role,
+        ...additionalData
+      } as any, password);
       
       // Registrar registro bem-sucedido
       secureLoggingService.security('Registro de conta bem-sucedido', { 
@@ -139,6 +200,75 @@ export function RegisterScreen({ route }: { route?: any }) {
               keyboardType="email-address"
               style={styles.input}
             />
+            
+            <TextInput
+              label="Telefone"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              style={styles.input}
+            />
+
+            {role === 'produtor' && (
+              <>
+                <TextInput
+                  label="Nome da Loja"
+                  value={storeName}
+                  onChangeText={setStoreName}
+                  style={styles.input}
+                />
+                <TextInput
+                  label="CPF/CNPJ"
+                  value={documentNumber}
+                  onChangeText={setDocumentNumber}
+                  keyboardType="numeric"
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Endereço da Loja"
+                  value={address}
+                  onChangeText={setAddress}
+                  style={styles.input}
+                />
+              </>
+            )}
+
+            {role === 'entregador' && (
+              <>
+                <TextInput
+                  label="CPF"
+                  value={documentNumber}
+                  onChangeText={setDocumentNumber}
+                  keyboardType="numeric"
+                  style={styles.input}
+                />
+                <Text style={styles.subtitle}>Tipo de Transporte</Text>
+                {/* Simplified input for MVP - ideally a picker/dropdown */}
+                <TextInput
+                  label="Tipo de Transporte (a pé, bike, moto, carro)"
+                  value={transportType}
+                  onChangeText={setTransportType}
+                  style={styles.input}
+                />
+                {['moto', 'carro'].includes(transportType.toLowerCase()) && (
+                  <TextInput
+                    label="CNH"
+                    value={cnh}
+                    onChangeText={setCnh}
+                    style={styles.input}
+                  />
+                )}
+              </>
+            )}
+
+            {role === 'comprador' && (
+              <TextInput
+                label="Endereço Completo"
+                value={address}
+                onChangeText={setAddress}
+                style={styles.input}
+              />
+            )}
 
             <TextInput
               label="Senha"

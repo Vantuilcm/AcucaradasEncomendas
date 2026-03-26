@@ -51,11 +51,11 @@ export function Input({
           {
             backgroundColor: theme.colors.surface,
             color: theme.colors.text.primary,
-            borderColor: error ? theme.colors.error : theme.colors.text.secondary,
+            borderColor: error ? theme.colors.error : theme.colors.outline,
           },
           inputStyle,
         ]}
-        placeholderTextColor={theme.colors.text.secondary}
+        placeholderTextColor={theme.colors.text.disabled}
         {...props}
       />
       {error && (
@@ -84,8 +84,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 48,
-    borderRadius: 8,
+    height: 52,
+    borderRadius: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
     fontSize: 16,

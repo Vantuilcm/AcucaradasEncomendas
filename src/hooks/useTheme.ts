@@ -11,25 +11,27 @@ type ThemeActions = { setMode: (newMode: ThemeMode) => Promise<void>; toggleThem
 export function getThemeStyles(isDark: boolean) {
   return {
     colors: {
-      primary: '#FF4FD8',
-      secondary: '#8A5CFF',
-      tertiary: '#3B82F6',
-      success: '#2DD4BF',
-      warning: '#F59E0B',
-      error: '#EF4444',
-      info: '#3B82F6',
-      background: isDark ? '#0F0B1A' : '#F9F7FF',
-      card: isDark ? '#1A1526' : '#FFFFFF',
-      surface: isDark ? '#1F1A2E' : '#FFFFFF',
-      outline: isDark ? '#3A304D' : '#D4CCE8',
-      disabled: isDark ? '#514A68' : '#C9C4D8',
+      primary: '#5B21B6', // Roxo profundo mais premium (Violet 800)
+      secondary: '#7C3AED', // Roxo vibrante (Violet 600)
+      accent: '#8B5CF6', // Violet 500
+      tertiary: '#4C1D95', // Violet 900 para contrastes fortes
+      success: '#059669', // Verde esmeralda premium (Emerald 600)
+      warning: '#D97706', // Amber 600
+      error: '#DC2626', // Red 600
+      info: '#4F46E5', // Indigo 600
+      background: isDark ? '#0F0F1A' : '#F5F3FF', // Fundo levemente mais frio/roxo
+      card: isDark ? '#1A1A2E' : '#FFFFFF',
+      surface: isDark ? '#1F1F35' : '#FFFFFF',
+      outline: isDark ? '#3F3F5A' : '#DDD6FE', // Outline com tom de violeta claro
+      disabled: isDark ? '#4B4B6A' : '#E5E7EB',
       text: {
-        primary: isDark ? '#F6F3FF' : '#1B1230',
-        secondary: isDark ? '#C8C2DD' : '#5D5475',
-        disabled: isDark ? '#7B7393' : '#B5ADC9',
+        primary: isDark ? '#F9FAFB' : '#1E1B4B', // Texto primário azul escuro profundo
+        secondary: isDark ? '#D1D5DB' : '#475569', // Slate 600
+        disabled: isDark ? '#9CA3AF' : '#94A3B8',
       },
-      border: isDark ? '#2C243B' : '#E6E0F2',
-      notification: '#FF3D9A',
+      border: isDark ? '#2D2D44' : '#E5E7EB',
+      notification: '#7C3AED',
+      surfaceVariant: isDark ? '#2D2D44' : '#F3F4F6',
     },
     spacing: {
       xs: 4,
@@ -38,6 +40,28 @@ export function getThemeStyles(isDark: boolean) {
       lg: 24,
       xl: 32,
     },
+    borderRadius: {
+      sm: 8, // Bordas levemente mais arredondadas
+      md: 14, // Look premium
+      lg: 22,
+      xl: 32,
+    },
+    shadows: {
+      light: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
+      },
+      medium: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 8,
+      },
+    }
   };
 }
 

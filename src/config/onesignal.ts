@@ -1,15 +1,12 @@
-import OneSignal from 'react-native-onesignal';
+import { OneSignal } from 'react-native-onesignal';
 import { Platform } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 
 // Determinar ambiente (desenvolvimento ou produção)
 const isDevelopment = __DEV__;
-const ENV = isDevelopment ? 'development' : 'production';
 
 // IDs do OneSignal para diferentes ambientes
-const ONESIGNAL_APP_ID = {
-  development: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID || 'seu_id_de_desenvolvimento_onesignal',
-  production: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID || 'seu_id_de_producao_onesignal',
-};
+const ONESIGNAL_APP_ID = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID || '2df9c7f0-6fb7-4cbe-87e9-c6fb116203f7';
 
 // Tipos de notificação suportados pelo OneSignal
 export enum OneSignalNotificationType {
@@ -47,53 +44,43 @@ export interface OneSignalNotificationData {
 }
 
 /**
- * Inicializa o OneSignal com as configurações apropriadas
+ * Inicializa o OneSignal com as configurações apropriadas (SDK v5)
  */
 export const initOneSignal = (): boolean => {
   try {
+    if (Platform.OS === 'web') return false;
+
+    // Inicializar OneSignal com o App ID (Sintaxe v5)
+    OneSignal.initialize(ONESIGNAL_APP_ID);
+
     // Configurar nível de log para debug em desenvolvimento
     if (isDevelopment) {
-      // @ts-ignore
-      OneSignal.setLogLevel(6, 0); // DEBUG level
-    } else {
-      // @ts-ignore
-      OneSignal.setLogLevel(0, 0); // No logs in production
+      OneSignal.Debug.setLogLevel(6); // VERBOSE
     }
 
-    // Inicializar OneSignal com o App ID
-    // @ts-ignore
-    OneSignal.setAppId(ONESIGNAL_APP_ID[ENV]);
-
     // Habilitar notificações in-app
-    // @ts-ignore
-    OneSignal.setInAppMessageClickHandler((event: any) => {
+    OneSignal.InAppMessages.addEventListener('click', (event: any) => {
       console.log('OneSignal IAM clicked:', event);
     });
 
-    // Configurar manipulador de notificações
-    // @ts-ignore
-    OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent: any) => {
-      console.log('OneSignal: notification will show in foreground:', notificationReceivedEvent);
-      // Complete o evento para mostrar a notificação
-      notificationReceivedEvent.complete(notificationReceivedEvent.getNotification());
+    // Configurar manipulador de notificações em primeiro plano
+    OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event: any) => {
+      console.log('OneSignal: notification will show in foreground:', event);
+      // No v5, as notificações são exibidas por padrão se as configurações do OneSignal permitirem
     });
 
     // Configurar manipulador de cliques em notificações
-    // @ts-ignore
-    OneSignal.setNotificationOpenedHandler((openedEvent: any) => {
-      console.log('OneSignal: notification opened:', openedEvent);
-      // const { action, notification } = openedEvent;
-
-      // Aqui você pode adicionar lógica para lidar com diferentes ações
-      // Por exemplo, navegar para uma tela específica com base nos dados da notificação
+    OneSignal.Notifications.addEventListener('click', (event: any) => {
+      console.log('OneSignal: notification clicked:', event);
     });
 
-    console.log(`OneSignal inicializado com App ID: ${ONESIGNAL_APP_ID[ENV]}`);
-    console.log(`Ambiente: ${isDevelopment ? 'Desenvolvimento' : 'Produção'}`);
-    
+    console.log(`OneSignal v5 inicializado com App ID: ${ONESIGNAL_APP_ID}`);
     return true;
   } catch (error) {
     console.error('Erro ao inicializar OneSignal:', error);
+    Sentry.captureException(error, {
+      tags: { service: 'OneSignal', action: 'init' }
+    });
     return false;
   }
 };
@@ -103,29 +90,12 @@ export const initOneSignal = (): boolean => {
  */
 export const requestOneSignalPermission = async () => {
   try {
-    // Verificar se o app está sendo executado em um dispositivo físico
-    if (Platform.OS === 'web') {
-      console.log('Push notifications are not supported on web');
-      return false;
-    }
+    if (Platform.OS === 'web') return false;
 
-    // Solicitar permissão para notificações
-    // @ts-ignore
-    const deviceState = await OneSignal.getDeviceState();
+    const hasPermission = OneSignal.Notifications.hasPermission();
+    if (hasPermission) return true;
 
-    if (deviceState?.hasNotificationPermission) {
-      console.log('Notification permission already granted');
-      return true;
-    }
-
-    // Solicitar permissão
-    // @ts-ignore
-    OneSignal.promptForPushNotificationsWithUserResponse((response: any) => {
-      console.log('OneSignal: User response to notification permission:', response);
-      return response;
-    });
-
-    return true;
+    return await OneSignal.Notifications.requestPermission(true);
   } catch (error) {
     console.error('Error requesting OneSignal permission:', error);
     return false;
@@ -133,13 +103,11 @@ export const requestOneSignalPermission = async () => {
 };
 
 /**
- * Obtém o ID do usuário do OneSignal
+ * Obtém o ID do usuário do OneSignal (Subscription ID no v5)
  */
-export const getOneSignalUserId = async () => {
+export const getOneSignalUserId = () => {
   try {
-    // @ts-ignore
-    const deviceState = await OneSignal.getDeviceState();
-    return deviceState?.userId || null;
+    return OneSignal.User.pushSubscription.getPushSubscriptionId() || null;
   } catch (error) {
     console.error('Error getting OneSignal user ID:', error);
     return null;
@@ -148,13 +116,10 @@ export const getOneSignalUserId = async () => {
 
 /**
  * Define tags para segmentação de usuários
- * @param tags Objeto com pares chave-valor para as tags
  */
-export const setOneSignalTags = async (tags: Record<string, string | number | boolean>) => {
+export const setOneSignalTags = (tags: Record<string, string>) => {
   try {
-    // @ts-ignore
-    await OneSignal.sendTags(tags);
-    console.log('OneSignal: Tags set successfully', tags);
+    OneSignal.User.addTags(tags);
     return true;
   } catch (error) {
     console.error('Error setting OneSignal tags:', error);
@@ -164,13 +129,10 @@ export const setOneSignalTags = async (tags: Record<string, string | number | bo
 
 /**
  * Remove tags do usuário
- * @param keys Array de chaves de tags para remover
  */
-export const deleteOneSignalTags = async (keys: string[]) => {
+export const deleteOneSignalTags = (keys: string[]) => {
   try {
-    // @ts-ignore
-    await OneSignal.deleteTags(keys);
-    console.log('OneSignal: Tags deleted successfully', keys);
+    OneSignal.User.removeTags(keys);
     return true;
   } catch (error) {
     console.error('Error deleting OneSignal tags:', error);

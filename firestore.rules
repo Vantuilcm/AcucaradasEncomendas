@@ -9,18 +9,39 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
+
+    // Pega os dados do usuário atual (com cache)
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Verifica se o usuário está bloqueado (deny total)
+    function isNotBlocked() {
+      return !isAuthenticated() || getUserData().status != 'blocked';
+    }
+
+    // Verifica se o usuário está em quarentena (suspicious)
+    // Permite leitura, mas restringe ações críticas (escrita de pedidos/produtos)
+    function isNotSuspicious() {
+      return !isAuthenticated() || getUserData().status != 'suspicious';
+    }
     
     function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return isAuthenticated() && isNotBlocked() && request.auth.uid == userId;
+    }
+
+    // Ações críticas exigem que o usuário NÃO seja suspeito (Soft Block)
+    function canPerformCriticalAction(userId) {
+      return isOwner(userId) && isNotSuspicious();
     }
     
     function isAdmin() {
-      return isAuthenticated()
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isAuthenticated() && isNotBlocked()
+        && getUserData().role == 'admin';
     }
 
     function isProducer() {
-      return isAuthenticated() && (
+      return isAuthenticated() && isNotBlocked() && (
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'producer' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'produtor'
       );
@@ -87,11 +108,12 @@ service cloud.firestore {
     // Usuários
     // ================================
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      // Apenas o dono ou admin pode ler todos os dados. Para perfil público, seria melhor uma coleção separada.
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
       // O usuário pode atualizar o próprio documento, MAS não pode alterar o campo "role"
       // Apenas admins podem atualizar qualquer campo, incluindo o "role"
-      allow update: if (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) || isAdmin();
+      allow update: if (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status', 'riskScore'])) || isAdmin();
       allow delete: if isAdmin();
     }
     

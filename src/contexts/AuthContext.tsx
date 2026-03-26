@@ -5,7 +5,7 @@ import { Alert, TouchableWithoutFeedback } from 'react-native';
 import { User } from '../models/User';
 import { AuthService } from '../services/AuthService';
 import { SecurityService } from '../services/SecurityService';
-// import { loggingService } from '../services/LoggingService';
+import { LoggingService } from '../services/LoggingService';
 import { DeviceSecurityService } from '../services/DeviceSecurityService';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { SecureStorageService } from '../services/SecureStorageService';
@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
 
   const [, , googlePromptAsync] = Google.useAuthRequest({
-    expoClientId: GOOGLE_CLIENT_ID.expo,
+    clientId: GOOGLE_CLIENT_ID.expo,
     iosClientId: GOOGLE_CLIENT_ID.ios,
     androidClientId: GOOGLE_CLIENT_ID.android,
     webClientId: GOOGLE_CLIENT_ID.web,
@@ -110,6 +110,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (userDoc.exists()) {
               const userData = userDoc.data() as unknown as User;
               setUser(userData);
+
+              // Configurar contexto do Sentry
+              LoggingService.getInstance().setUser(userData.id, {
+                email: userData.email,
+                role: userData.role,
+                name: userData.nome,
+              });
 
               // Iniciar monitoramento de inatividade
               SecurityService.startActivityMonitor(() => logout());
@@ -385,9 +392,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } as any);
 
       // Atualizar estado local
-      setUser({
+      const updatedUser = {
         ...user,
         ...sanitizedData,
+      };
+      setUser(updatedUser);
+
+      // Atualizar contexto do Sentry
+      LoggingService.getInstance().setUser(updatedUser.id, {
+        email: updatedUser.email,
+        role: updatedUser.role,
+        name: updatedUser.nome,
       });
 
       secureLoggingService.security('Dados do usuário atualizados', { 

@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF69B4',
+    color: '#6C2BD9',
     marginBottom: 16,
   },
   descriptionContainer: {
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   addToCartButton: {
-    backgroundColor: '#FF69B4',
+    backgroundColor: '#6C2BD9',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',

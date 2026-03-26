@@ -2,10 +2,11 @@ import React, { createContext, useContext } from 'react';
 import { getThemeStyles, useTheme } from '../hooks/useTheme';
 
 // Definindo a interface do tema para garantir compatibilidade com os componentes existentes
-interface ThemeType {
+export interface ThemeType {
   colors: {
     primary: string;
     secondary: string;
+    accent: string;
     tertiary: string;
     success: string;
     warning: string;
@@ -23,6 +24,7 @@ interface ThemeType {
     };
     border: string;
     notification: string;
+    surfaceVariant: string;
   };
   spacing: {
     xs: number;
@@ -30,6 +32,16 @@ interface ThemeType {
     md: number;
     lg: number;
     xl: number;
+  };
+  borderRadius: {
+    sm: number;
+    md: number;
+    lg: number;
+    xl: number;
+  };
+  shadows: {
+    light: any;
+    medium: any;
   };
 }
 

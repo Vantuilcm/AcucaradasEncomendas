@@ -20,12 +20,14 @@ import usePermissions from '../hooks/usePermissions';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { PermissionsService } from '../services/PermissionsService';
 import { UserProfileService } from '../services/UserProfileService';
+import { useAppTheme } from '../components/ThemeProvider';
 
 const USUARIOS_POR_PAGINA = 10;
 
 const UserManagementScreen: React.FC = () => {
   const navigation = useNavigation();
   const { isAdmin } = usePermissions();
+  const { theme } = useAppTheme();
   const permissionsService = (PermissionsService as any).getInstance();
   const profileService = UserProfileService.getInstance();
 
@@ -215,35 +217,35 @@ const UserManagementScreen: React.FC = () => {
 
   const renderItem = ({ item }: { item: User }) => {
     const role = ((item as any).role as string) || 'cliente';
-    let roleColor = '#757575'; // Default cinza para 'cliente'
+    let roleColor = theme.colors.disabled;
 
     switch (role) {
       case 'admin':
-        roleColor = '#D32F2F'; // Vermelho
+        roleColor = theme.colors.error;
         break;
       case 'gerente':
-        roleColor = '#7B1FA2'; // Roxo
+        roleColor = theme.colors.tertiary;
         break;
       case 'atendente':
-        roleColor = '#1976D2'; // Azul
+        roleColor = theme.colors.info;
         break;
       case 'entregador':
-        roleColor = '#388E3C'; // Verde
+        roleColor = theme.colors.success;
         break;
     }
 
     return (
-      <View style={styles.userCard}>
+      <View style={[styles.userCard, { backgroundColor: theme.colors.card }]}>
         <View style={styles.userInfo}>
-          <View style={styles.userImagePlaceholder}>
+          <View style={[styles.userImagePlaceholder, { backgroundColor: theme.colors.primary }]}>
             <Text style={styles.userInitials}>
               {item.nome ? item.nome.charAt(0).toUpperCase() : 'U'}
             </Text>
           </View>
 
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>{item.nome || 'Usuário'}</Text>
-            <Text style={styles.userEmail}>{item.email}</Text>
+            <Text style={[styles.userName, { color: theme.colors.text.primary }]}>{item.nome || 'Usuário'}</Text>
+            <Text style={[styles.userEmail, { color: theme.colors.text.secondary }]}>{item.email}</Text>
             <View style={[styles.roleBadge, { backgroundColor: roleColor }]}>
               <Text style={styles.roleText}>
                 {role === 'admin'
@@ -260,13 +262,16 @@ const UserManagementScreen: React.FC = () => {
           </View>
         </View>
 
-        <View style={styles.userActions}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => editarUsuario(item)}>
-            <Ionicons name="create-outline" size={22} color="#1976D2" />
+        <View style={[styles.userActions, { borderTopColor: theme.colors.border }]}>
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: theme.colors.surface }]} 
+            onPress={() => editarUsuario(item)}
+          >
+            <Ionicons name="create-outline" size={22} color={theme.colors.info} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, { backgroundColor: theme.colors.surface }]}
             onPress={() =>
               mudarPapelUsuario(
                 item.id,
@@ -282,11 +287,14 @@ const UserManagementScreen: React.FC = () => {
               )
             }
           >
-            <Ionicons name="swap-vertical" size={22} color="#7B1FA2" />
+            <Ionicons name="swap-vertical" size={22} color={theme.colors.tertiary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={() => resetarPermissoes(item.id)}>
-            <Ionicons name="refresh" size={22} color="#FF9800" />
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: theme.colors.surface }]} 
+            onPress={() => resetarPermissoes(item.id)}
+          >
+            <Ionicons name="refresh" size={22} color={theme.colors.warning} />
           </TouchableOpacity>
         </View>
       </View>
@@ -295,8 +303,8 @@ const UserManagementScreen: React.FC = () => {
 
   return (
     <ProtectedRoute requiredPermissions={['manageUsers'] as any}>
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
           <Text style={styles.title}>Gerenciamento de Usuários</Text>
 
           <TouchableOpacity
@@ -307,12 +315,13 @@ const UserManagementScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <Ionicons name="search" size={20} color="#757575" style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
+          <View style={[styles.searchInputContainer, { backgroundColor: theme.colors.surface }]}>
+            <Ionicons name="search" size={20} color={theme.colors.text.secondary} style={styles.searchIcon} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: theme.colors.text.primary }]}
               placeholder="Buscar usuários..."
+              placeholderTextColor={theme.colors.text.disabled}
               value={termoBusca}
               onChangeText={setTermoBusca}
               onSubmitEditing={buscarUsuario}
@@ -326,7 +335,7 @@ const UserManagementScreen: React.FC = () => {
                 }}
                 style={styles.clearButton}
               >
-                <Ionicons name="close-circle" size={20} color="#757575" />
+                <Ionicons name="close-circle" size={20} color={theme.colors.text.secondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -334,7 +343,11 @@ const UserManagementScreen: React.FC = () => {
           <View style={styles.filterContainer}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <TouchableOpacity
-                style={[styles.filterButton, filtroPapel === 'todos' && styles.filterButtonActive]}
+                style={[
+                  styles.filterButton,
+                  { backgroundColor: theme.colors.surface },
+                  filtroPapel === 'todos' && { backgroundColor: theme.colors.primary },
+                ]}
                 onPress={() => {
                   setFiltroPapel('todos');
                   setUltimoUsuario(null);
@@ -342,14 +355,22 @@ const UserManagementScreen: React.FC = () => {
                 }}
               >
                 <Text
-                  style={[styles.filterText, filtroPapel === 'todos' && styles.filterTextActive]}
+                  style={[
+                    styles.filterText,
+                    { color: theme.colors.text.secondary },
+                    filtroPapel === 'todos' && { color: '#FFF' },
+                  ]}
                 >
                   Todos
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.filterButton, filtroPapel === 'admin' && styles.filterButtonActive]}
+                style={[
+                  styles.filterButton,
+                  { backgroundColor: theme.colors.surface },
+                  filtroPapel === 'admin' && { backgroundColor: theme.colors.primary },
+                ]}
                 onPress={() => {
                   setFiltroPapel('admin');
                   setUltimoUsuario(null);
@@ -357,7 +378,11 @@ const UserManagementScreen: React.FC = () => {
                 }}
               >
                 <Text
-                  style={[styles.filterText, filtroPapel === 'admin' && styles.filterTextActive]}
+                  style={[
+                    styles.filterText,
+                    { color: theme.colors.text.secondary },
+                    filtroPapel === 'admin' && { color: '#FFF' },
+                  ]}
                 >
                   Admins
                 </Text>
@@ -366,7 +391,8 @@ const UserManagementScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  filtroPapel === 'gerente' && styles.filterButtonActive,
+                  { backgroundColor: theme.colors.surface },
+                  filtroPapel === 'gerente' && { backgroundColor: theme.colors.primary },
                 ]}
                 onPress={() => {
                   setFiltroPapel('gerente');
@@ -375,7 +401,11 @@ const UserManagementScreen: React.FC = () => {
                 }}
               >
                 <Text
-                  style={[styles.filterText, filtroPapel === 'gerente' && styles.filterTextActive]}
+                  style={[
+                    styles.filterText,
+                    { color: theme.colors.text.secondary },
+                    filtroPapel === 'gerente' && { color: '#FFF' },
+                  ]}
                 >
                   Gerentes
                 </Text>
@@ -384,7 +414,8 @@ const UserManagementScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  filtroPapel === 'atendente' && styles.filterButtonActive,
+                  { backgroundColor: theme.colors.surface },
+                  filtroPapel === 'atendente' && { backgroundColor: theme.colors.primary },
                 ]}
                 onPress={() => {
                   setFiltroPapel('atendente');
@@ -395,7 +426,8 @@ const UserManagementScreen: React.FC = () => {
                 <Text
                   style={[
                     styles.filterText,
-                    filtroPapel === 'atendente' && styles.filterTextActive,
+                    { color: theme.colors.text.secondary },
+                    filtroPapel === 'atendente' && { color: '#FFF' },
                   ]}
                 >
                   Atendentes
@@ -405,7 +437,8 @@ const UserManagementScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  filtroPapel === 'entregador' && styles.filterButtonActive,
+                  { backgroundColor: theme.colors.surface },
+                  filtroPapel === 'entregador' && { backgroundColor: theme.colors.primary },
                 ]}
                 onPress={() => {
                   setFiltroPapel('entregador');
@@ -416,7 +449,8 @@ const UserManagementScreen: React.FC = () => {
                 <Text
                   style={[
                     styles.filterText,
-                    filtroPapel === 'entregador' && styles.filterTextActive,
+                    { color: theme.colors.text.secondary },
+                    filtroPapel === 'entregador' && { color: '#FFF' },
                   ]}
                 >
                   Entregadores
@@ -426,7 +460,8 @@ const UserManagementScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  filtroPapel === 'cliente' && styles.filterButtonActive,
+                  { backgroundColor: theme.colors.surface },
+                  filtroPapel === 'cliente' && { backgroundColor: theme.colors.primary },
                 ]}
                 onPress={() => {
                   setFiltroPapel('cliente');
@@ -435,7 +470,11 @@ const UserManagementScreen: React.FC = () => {
                 }}
               >
                 <Text
-                  style={[styles.filterText, filtroPapel === 'cliente' && styles.filterTextActive]}
+                  style={[
+                    styles.filterText,
+                    { color: theme.colors.text.secondary },
+                    filtroPapel === 'cliente' && { color: '#FFF' },
+                  ]}
                 >
                   Clientes
                 </Text>
@@ -446,8 +485,8 @@ const UserManagementScreen: React.FC = () => {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FE6B8B" />
-            <Text style={styles.loadingText}>Carregando usuários...</Text>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>Carregando usuários...</Text>
           </View>
         ) : (
           <FlatList
@@ -456,12 +495,12 @@ const UserManagementScreen: React.FC = () => {
             renderItem={renderItem}
             contentContainerStyle={styles.listContainer}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FE6B8B']} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Ionicons name="people" size={60} color="#CCCCCC" />
-                <Text style={styles.emptyText}>
+                <Ionicons name="people" size={60} color={theme.colors.text.disabled} />
+                <Text style={[styles.emptyText, { color: theme.colors.text.secondary }]}>
                   {termoBusca ? 'Nenhum usuário encontrado' : 'Não há usuários cadastrados'}
                 </Text>
               </View>
@@ -475,8 +514,8 @@ const UserManagementScreen: React.FC = () => {
             ListFooterComponent={
               carregandoMais ? (
                 <View style={styles.footerLoading}>
-                  <ActivityIndicator size="small" color="#FE6B8B" />
-                  <Text style={styles.footerText}>Carregando mais usuários...</Text>
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <Text style={[styles.footerText, { color: theme.colors.text.secondary }]}>Carregando mais usuários...</Text>
                 </View>
               ) : null
             }
@@ -490,104 +529,97 @@ const UserManagementScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FE6B8B',
-    padding: 16,
-    paddingTop: 20,
+    padding: 20,
+    paddingTop: 60,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '800',
     color: '#FFF',
+    letterSpacing: 0.5,
   },
   addButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   searchContainer: {
-    backgroundColor: '#FFF',
-    padding: 10,
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    marginTop: -10,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F0F0',
-    borderRadius: 8,
-    paddingHorizontal: 10,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    height: 48,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
-    height: 40,
+    height: 48,
     fontSize: 16,
   },
   clearButton: {
-    padding: 5,
+    padding: 8,
   },
   filterContainer: {
-    marginTop: 10,
+    marginTop: 12,
   },
   filterButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F0F0F0',
-    marginRight: 8,
-  },
-  filterButtonActive: {
-    backgroundColor: '#FE6B8B',
+    marginRight: 10,
   },
   filterText: {
-    color: '#757575',
-    fontWeight: '500',
-  },
-  filterTextActive: {
-    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
   listContainer: {
-    padding: 10,
-    paddingBottom: 20,
+    padding: 16,
+    paddingBottom: 40,
   },
   userCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
     elevation: 2,
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   userImagePlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FE6B8B',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 12,
   },
   userInitials: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFF',
   },
@@ -595,41 +627,39 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 18,
+    fontWeight: '700',
   },
   userEmail: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
+    marginBottom: 6,
+    opacity: 0.8,
   },
   roleBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 12,
   },
   roleText: {
     color: '#FFF',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   userActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    paddingTop: 10,
   },
   actionButton: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
   },
   loadingContainer: {
     flex: 1,
@@ -639,17 +669,16 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#666',
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 30,
+    marginTop: 50,
   },
   emptyText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#757575',
     textAlign: 'center',
   },
   footerLoading: {
@@ -659,7 +688,6 @@ const styles = StyleSheet.create({
   footerText: {
     marginTop: 5,
     fontSize: 14,
-    color: '#666',
   },
 });
 

@@ -10,6 +10,7 @@ export type OrderStatus =
 export interface OrderItem {
   id: string;
   productId: string;
+  producerId?: string; // ID do produtor/loja deste item
   name: string;
   quantity: number;
   unitPrice: number;

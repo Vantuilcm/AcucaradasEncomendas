@@ -1,3 +1,6 @@
+import { configService } from './ConfigService';
+import { LoggingService } from './LoggingService';
+
 /**
  * Serviço de Previsão de Demanda
  *
@@ -60,6 +63,7 @@ export class DemandForecastService {
   private static instance: DemandForecastService;
   private config: DemandForecastConfig;
   private productTrends: Map<string, ProductTrend>;
+  private logger = LoggingService.getInstance();
 
   private constructor() {
     // Configuração padrão
@@ -75,6 +79,7 @@ export class DemandForecastService {
     };
 
     this.productTrends = new Map<string, ProductTrend>();
+    this.logger.info('DemandForecastService inicializado');
   }
 
   /**
@@ -88,10 +93,53 @@ export class DemandForecastService {
   }
 
   /**
+   * Verifica se o serviço está ativo via feature flag
+   */
+  public isEnabled(): boolean {
+    return configService.getFlag('enableDemandForecast');
+  }
+
+  /**
+   * Executa a previsão de demanda para um produto
+   */
+  public async forecastDemand(productId: string, history: SalesHistoryPoint[]): Promise<DemandForecast | null> {
+    if (!this.isEnabled()) {
+      this.logger.warn(`DemandForecastService: Previsão ignorada para ${productId} (Desativado)`);
+      return null;
+    }
+
+    this.logger.info(`DemandForecastService: Calculando previsão para ${productId}`, { historyPoints: history.length });
+
+    try {
+      if (history.length < this.config.minimumDataPoints) {
+        this.logger.warn(`DemandForecastService: Dados insuficientes para ${productId} (${history.length} < ${this.config.minimumDataPoints})`);
+        return null;
+      }
+
+      // Lógica de previsão real aqui (simulada para este exemplo)
+      const forecast: DemandForecast = {
+        productId,
+        forecastPoints: [], // Pontos calculados
+        confidenceScore: 0.85,
+        influencingFactors: [
+          { factor: 'Sazonalidade', impact: 0.2 }
+        ]
+      };
+
+      this.logger.info(`DemandForecastService: Previsão concluída para ${productId}`, { confidence: forecast.confidenceScore });
+      return forecast;
+    } catch (error) {
+      this.logger.error(`DemandForecastService: Erro ao calcular previsão para ${productId}`, error as Error);
+      return null;
+    }
+  }
+
+  /**
    * Atualiza a configuração do serviço
    */
   public updateConfig(newConfig: Partial<DemandForecastConfig>): void {
     this.config = { ...this.config, ...newConfig };
+    this.logger.info('DemandForecastService: Configuração atualizada', this.config);
   }
 
   /**

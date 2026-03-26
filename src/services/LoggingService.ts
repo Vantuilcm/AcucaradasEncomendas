@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '../config/sentry';
 
 // Níveis de log disponíveis
 export enum LogLevel {
@@ -87,16 +88,19 @@ export class LoggingService {
 
     console.error(`[FATAL] ${message}`, errorContext || '', error?.stack || '');
 
+    // Propagar para o Sentry se ativo como erro fatal
+    Sentry.captureException(error || new Error(`FATAL: ${message}`), { ...errorContext, fatal: true });
+
     // Armazenar log localmente
     this.storeLog(LogLevel.FATAL, message, errorContext, error?.stack);
   }
 
-  setUser(_userId: string, _userData?: Record<string, any>): void {
-    // Sentry removido
+  setUser(userId: string, userData?: Record<string, any>): void {
+    Sentry.setUser(userId, userData?.email, userData);
   }
 
   clearUser(): void {
-    // Sentry removido
+    Sentry.clearUser();
   }
 
   /**

@@ -2,7 +2,7 @@
   "cli": {
     "version": ">= 5.9.0",
     "requireCommit": false,
-    "appVersionSource": "local"
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -24,40 +24,48 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "autoIncrement": true,
       "env": {
+        "APP_ENV": "preview",
+        "EXPO_PUBLIC_APP_ENV": "preview",
         "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045"
       },
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "buildType": "apk"
+      },
+      "ios": {
+        "resourceClass": "m-medium",
+        "image": "macos-sequoia-15.3-xcode-16.2"
       }
     },
     "production": {
+      "distribution": "store",
       "credentialsSource": "remote",
+      "autoIncrement": true,
       "env": {
         "APP_ENV": "production",
         "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_APP_NAME": "Açucaradas Encomendas",
-        "EXPO_PUBLIC_APP_VERSION": "1.0.1",
         "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045"
       },
       "channel": "production",
-      "autoIncrement": false,
       "ios": {
         "resourceClass": "m-medium",
         "buildConfiguration": "Release",
         "image": "macos-sequoia-15.3-xcode-16.2"
       },
       "android": {
-        "buildType": "app-bundle",
-        "gradleCommand": ":app:bundleRelease"
+        "buildType": "app-bundle"
       }
     },
-    "internal": {
+    "beta": {
+      "extends": "production",
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
       }
     }
   },
@@ -68,6 +76,12 @@
         "ascAppId": "6478954215",
         "appleTeamId": "7L9P9U9Z9R"
       },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "production"
+      }
+    },
+    "preview": {
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
         "track": "internal"

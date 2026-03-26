@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Image, Dimensions } from 'react-native';
-import { Text, Button, Card, Chip, IconButton, useTheme, Snackbar } from 'react-native-paper';
+import { Text, Button, Card, Chip, IconButton, useTheme, Snackbar, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -90,6 +90,7 @@ export default function ProductDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [observations, setObservations] = useState('');
 
   // Simular carregamento do produto
   useEffect(() => {
@@ -220,6 +221,21 @@ export default function ProductDetailScreen() {
             </Card.Content>
           </Card>
         )}
+
+        <Card style={styles.sectionCard}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>Personalização</Text>
+            <TextInput
+              mode="outlined"
+              label="Observações para o pedido"
+              placeholder="Ex: Tirar cebola, menos açúcar, etc..."
+              value={observations}
+              onChangeText={setObservations}
+              multiline
+              numberOfLines={3}
+            />
+          </Card.Content>
+        </Card>
       </ScrollView>
 
       {product.available ? (

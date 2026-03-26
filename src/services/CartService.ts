@@ -4,6 +4,7 @@ import { loggingService } from './LoggingService';
 export interface CartItem {
   id: string;
   productId: string;
+  producerId?: string; // ID do produtor/loja deste item
   name: string;
   price: number;
   quantity: number;

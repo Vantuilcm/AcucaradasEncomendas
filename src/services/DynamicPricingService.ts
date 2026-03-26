@@ -1,4 +1,5 @@
-import { loggingService } from './LoggingService';
+import { loggingService, LoggingService } from './LoggingService';
+import { configService } from './ConfigService';
 
 /**
  * Interface para representar um produto com informações de preço
@@ -88,18 +89,19 @@ export class DynamicPricingService {
   private static instance: DynamicPricingService;
   private config: DynamicPricingConfig;
   private seasonalEvents: SeasonalEvent[] = [];
+  private logger = LoggingService.getInstance();
 
   /**
    * Configuração padrão para o serviço
    */
   private readonly DEFAULT_CONFIG: DynamicPricingConfig = {
     enabled: true,
-    maxAutoAdjustment: 0.05, // 5% de ajuste máximo automático
+    maxAutoAdjustment: 0.02, // Limite de 2% conforme requisito premium
     minDataPoints: 10, // Mínimo de 10 pontos de dados para análise
-    demandWeight: 0.5, // 50% de peso para demanda
-    seasonalWeight: 0.3, // 30% de peso para sazonalidade
-    competitionWeight: 0.2, // 20% de peso para competição
-    historyDays: 90, // 90 dias de histórico
+    demandWeight: 0.4,
+    seasonalWeight: 0.3,
+    competitionWeight: 0.3,
+    historyDays: 30, // 30 dias de histórico
     updateFrequency: 24, // Atualização diária
   };
 
@@ -108,6 +110,7 @@ export class DynamicPricingService {
    */
   private constructor() {
     this.config = { ...this.DEFAULT_CONFIG };
+    this.logger.info('DynamicPricingService inicializado');
   }
 
   /**
@@ -121,11 +124,42 @@ export class DynamicPricingService {
   }
 
   /**
+   * Verifica se o serviço está ativo via feature flag
+   */
+  public isEnabled(): boolean {
+    return configService.getFlag('enableDynamicPricing');
+  }
+
+  /**
+   * Sugere um preço dinâmico com base na demanda
+   * Regra: Máximo 2% de aumento (conforme especificação premium)
+   */
+  public async calculateDynamicPrice(productId: string, basePrice: number, demandFactor: number): Promise<number> {
+    if (!this.isEnabled()) {
+      this.logger.warn(`DynamicPricingService: Cálculo ignorado para ${productId} (Desativado)`);
+      return basePrice;
+    }
+
+    const MAX_INCREASE = 0.02; // 2%
+    const increase = Math.min(demandFactor * 0.01, MAX_INCREASE);
+    const dynamicPrice = basePrice * (1 + increase);
+
+    this.logger.info(`DynamicPricingService: Preço dinâmico calculado para ${productId}`, {
+      basePrice,
+      dynamicPrice,
+      increase: `${(increase * 100).toFixed(2)}%`
+    });
+
+    return dynamicPrice;
+  }
+
+  /**
    * Atualiza a configuração do serviço
    * @param newConfig Nova configuração parcial ou completa
    */
   public updateConfig(newConfig: Partial<DynamicPricingConfig>): void {
     this.config = { ...this.config, ...newConfig };
+    this.logger.info('DynamicPricingService: Configuração atualizada', this.config);
   }
 
   /**

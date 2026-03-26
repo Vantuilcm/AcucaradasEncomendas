@@ -288,6 +288,13 @@ export class AuthService {
       telefone?: string;
       senha?: string;
       role?: string;
+      documentNumber?: string;
+      address?: string;
+      storeName?: string;
+      transportType?: string;
+      cnh?: string | null;
+      storeStatus?: string;
+      courierStatus?: string;
     },
     senha?: string
   ): Promise<{
@@ -340,7 +347,16 @@ export class AuthService {
         dataCriacao: serverTimestamp(),
         emailVerificado: false,
         ultimoLogin: serverTimestamp(),
-        role: 'comprador', // Força papel inicial seguro, ignorando role enviada pelo frontend
+        role: dadosUsuario.role || 'comprador', // Aqui deve aceitar a role, porém em produção deveria passar por uma aprovação do admin
+        
+        // Dados adicionais baseados no perfil
+        documentNumber: dadosUsuario.documentNumber || null,
+        address: dadosUsuario.address || null,
+        storeName: dadosUsuario.storeName || null,
+        transportType: dadosUsuario.transportType || null,
+        cnh: dadosUsuario.cnh || null,
+        storeStatus: dadosUsuario.storeStatus || null,
+        courierStatus: dadosUsuario.courierStatus || null,
       };
 
       await setDoc(doc(db, 'users', user.uid), userData);

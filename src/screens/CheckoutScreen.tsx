@@ -20,6 +20,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { OrderItem } from '../types/Order';
 import { OrderService } from '../services/OrderService';
 import { PaymentService } from '../services/PaymentService';
+import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
+import { StoreService } from '../services/StoreService';
 
 type CheckoutScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Checkout'>;
 type CheckoutScreenRouteProp = RouteProp<RootStackParamList, 'Checkout'>;
@@ -32,6 +34,7 @@ export default function CheckoutScreen() {
   const validationService = ValidationService.getInstance();
   const orderService = OrderService.getInstance();
   const paymentService = PaymentService.getInstance();
+  const storeService = new StoreService();
 
   const [address, setAddress] = useState({
     street: '',
@@ -157,6 +160,40 @@ export default function CheckoutScreen() {
 
     try {
       setIsProcessing(true);
+
+      // Validação de Disponibilidade da Loja
+      const producerId = cart.items[0]?.producerId;
+      const store = producerId 
+        ? await storeService.getStoreByProducerId(producerId)
+        : await storeService.getDefaultStore();
+
+      if (store) {
+        let requestedDate: Date | undefined;
+        if (scheduledDelivery && scheduledDelivery.date) {
+          requestedDate = new Date(scheduledDelivery.date);
+          if (scheduledDelivery.type === 'scheduled' && scheduledDelivery.timeSlot) {
+            // Ex: "09:00 - 11:00" -> Pega o início "09:00"
+            const startTime = scheduledDelivery.timeSlot.split(' - ')[0];
+            if (startTime) {
+              const [hours, minutes] = startTime.split(':').map(Number);
+              requestedDate.setHours(hours, minutes, 0, 0);
+            }
+          } else if (scheduledDelivery.type === 'custom' && scheduledDelivery.customTime) {
+            const [hours, minutes] = scheduledDelivery.customTime.split(':').map(Number);
+            requestedDate.setHours(hours, minutes, 0, 0);
+          }
+        }
+
+        const availability = StoreAvailabilityService.validateOrderTiming(store, requestedDate);
+        if (!availability.isValid) {
+          Alert.alert(
+            'Loja Indisponível', 
+            availability.message || 'A loja não pode aceitar pedidos neste horário.'
+          );
+          setIsProcessing(false);
+          return;
+        }
+      }
 
       const userId = (user as any)?.id || (user as any)?.uid;
       if (!userId) {
@@ -286,7 +323,7 @@ export default function CheckoutScreen() {
                   <Ionicons
                     name="calendar-outline"
                     size={20}
-                    color="#FF69B4"
+                    color="#6C2BD9"
                     style={styles.infoIcon}
                   />
                   <Text style={styles.infoText}>
@@ -299,7 +336,7 @@ export default function CheckoutScreen() {
                 </View>
 
                 <View style={styles.scheduleInfo}>
-                  <Ionicons name="time-outline" size={20} color="#FF69B4" style={styles.infoIcon} />
+                  <Ionicons name="time-outline" size={20} color="#6C2BD9" style={styles.infoIcon} />
                   <Text style={styles.infoText}>
                     {scheduledDelivery.type === 'scheduled'
                       ? `Entre ${scheduledDelivery.timeSlot?.replace(' - ', ' e ')}`
@@ -311,7 +348,7 @@ export default function CheckoutScreen() {
                   <Ionicons
                     name="hourglass-outline"
                     size={20}
-                    color="#FF69B4"
+                    color="#6C2BD9"
                     style={styles.infoIcon}
                   />
                   <Text style={styles.infoText}>
@@ -325,7 +362,7 @@ export default function CheckoutScreen() {
                     <Ionicons
                       name="document-text-outline"
                       size={20}
-                      color="#FF69B4"
+                      color="#6C2BD9"
                       style={styles.infoIcon}
                     />
                     <Text style={styles.infoText}>
@@ -632,7 +669,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   selectedPaymentOption: {
-    backgroundColor: '#FF69B4',
+    backgroundColor: '#6C2BD9',
   },
   paymentOptionText: {
     marginLeft: 6,
@@ -672,14 +709,14 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FF69B4',
+    color: '#6C2BD9',
   },
   divider: {
     marginVertical: 16,
     backgroundColor: '#ddd',
   },
   finishButton: {
-    backgroundColor: '#FF69B4',
+    backgroundColor: '#6C2BD9',
     borderRadius: 30,
     marginBottom: 16,
   },
@@ -705,11 +742,11 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   emptyButton: {
-    backgroundColor: '#FF69B4',
+    backgroundColor: '#6C2BD9',
     marginTop: 16,
   },
   scheduledDelivery: {
-    backgroundColor: '#fff9fa',
+    backgroundColor: '#f8f7ff',
     padding: 16,
     borderRadius: 8,
     marginBottom: 16,
@@ -729,7 +766,7 @@ const styles = StyleSheet.create({
   },
   changeScheduleButton: {
     marginTop: 8,
-    borderColor: '#FF69B4',
+    borderColor: '#6C2BD9',
     borderWidth: 1,
   },
 });

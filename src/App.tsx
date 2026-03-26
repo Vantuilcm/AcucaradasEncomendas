@@ -8,6 +8,10 @@ import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { LocationProvider } from './contexts/LocationContext';
 import { ThemeProvider, useAppTheme } from './components/ThemeProvider';
+import { initSentry } from './config/sentry';
+
+// Inicializar Sentry (protegido por variáveis de ambiente)
+initSentry();
 
 // Ignorar warnings específicos durante desenvolvimento
 if (LogBox) {
@@ -22,8 +26,40 @@ function ThemedApp() {
   
   // Mesclar o tema do Paper com o nosso tema customizado
   const paperTheme = isDark 
-    ? { ...MD3DarkTheme, colors: { ...MD3DarkTheme.colors, primary: theme.colors.primary, secondary: theme.colors.secondary, background: theme.colors.background, surface: theme.colors.surface, error: theme.colors.error, onSurface: theme.colors.text.primary, onBackground: theme.colors.text.primary } } 
-    : { ...MD3LightTheme, colors: { ...MD3LightTheme.colors, primary: theme.colors.primary, secondary: theme.colors.secondary, background: theme.colors.background, surface: theme.colors.surface, error: theme.colors.error, onSurface: theme.colors.text.primary, onBackground: theme.colors.text.primary } };
+    ? { 
+        ...MD3DarkTheme, 
+        colors: { 
+          ...MD3DarkTheme.colors, 
+          primary: theme.colors.primary, 
+          secondary: theme.colors.secondary, 
+          tertiary: theme.colors.tertiary,
+          background: theme.colors.background, 
+          surface: theme.colors.surface, 
+          error: theme.colors.error, 
+          onSurface: theme.colors.text.primary, 
+          onBackground: theme.colors.text.primary,
+          surfaceVariant: theme.colors.surfaceVariant,
+          outline: theme.colors.outline,
+        },
+        roundness: 3.5, // 3.5 * 4 = 14px (md borderRadius)
+      } 
+    : { 
+        ...MD3LightTheme, 
+        colors: { 
+          ...MD3LightTheme.colors, 
+          primary: theme.colors.primary, 
+          secondary: theme.colors.secondary, 
+          tertiary: theme.colors.tertiary,
+          background: theme.colors.background, 
+          surface: theme.colors.surface, 
+          error: theme.colors.error, 
+          onSurface: theme.colors.text.primary, 
+          onBackground: theme.colors.text.primary,
+          surfaceVariant: theme.colors.surfaceVariant,
+          outline: theme.colors.outline,
+        },
+        roundness: 3.5,
+      };
 
   return (
     <PaperProvider theme={paperTheme}>

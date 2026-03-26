@@ -153,6 +153,7 @@ export class StripeService {
         currency: STRIPE_CONFIG.currency.toLowerCase(),
         metadata: { orderId },
         customerId,
+        orderId, // Adicionado para transfer_group no backend
       });
       const data = response.data;
 

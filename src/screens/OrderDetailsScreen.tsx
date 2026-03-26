@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Text, Card, Chip, useTheme, Divider, Button, Modal, Portal } from 'react-native-paper';
+import { Text, Card, Chip, Divider, Button, Modal, Portal } from 'react-native-paper';
+import { useAppTheme } from '../components/ThemeProvider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -21,7 +22,7 @@ type OrderDetailsNavigationProp = StackNavigationProp<RootStackParamList, 'Order
 type OrderDetailsRouteProp = RouteProp<RootStackParamList, 'OrderDetails'>;
 
 export function OrderDetailsScreen() {
-  const theme = useTheme();
+  const { theme } = useAppTheme();
   const navigation = useNavigation<OrderDetailsNavigationProp>();
   const route = useRoute<OrderDetailsRouteProp>();
   const { user } = useAuth();
@@ -88,7 +89,7 @@ export function OrderDetailsScreen() {
       case 'delivering':
         return theme.colors.secondary;
       case 'delivered':
-        return theme.colors.primary;
+        return theme.colors.success || '#10B981';
       case 'cancelled':
         return theme.colors.error;
       default:
@@ -179,16 +180,26 @@ export function OrderDetailsScreen() {
                 {new Date(order.createdAt).toLocaleDateString('pt-BR')}
               </Text>
 
-              {order.status === 'delivering' && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+                {order.status === 'delivering' && (
+                  <Button
+                    mode="contained"
+                    icon="map-marker-radius"
+                    onPress={() => setIsTrackingVisible(true)}
+                    style={[styles.trackButton, { backgroundColor: theme.colors.primary, flex: 1, marginRight: 5 }]}
+                  >
+                    Rastrear
+                  </Button>
+                )}
                 <Button
-                  mode="contained"
-                  icon="map-marker-radius"
-                  onPress={() => setIsTrackingVisible(true)}
-                  style={[styles.trackButton, { backgroundColor: theme.colors.primary }]}
+                  mode="outlined"
+                  icon="chat"
+                  onPress={() => navigation.navigate('Chat', { orderId: order.id, targetName: 'Atendimento da Loja' })}
+                  style={{ flex: order.status === 'delivering' ? 1 : undefined, marginLeft: order.status === 'delivering' ? 5 : 0 }}
                 >
-                  Rastrear Entrega
+                  Falar com Loja
                 </Button>
-              )}
+              </View>
 
               <Divider style={styles.divider} />
 

@@ -96,7 +96,7 @@ export const StoreLocator: React.FC<StoreLocatorProps> = ({ onSelectStore, produ
 
             {item.estimatedDeliveryTime && item.isOpen && (
               <Text style={styles.deliveryTime}>
-                {item.estimatedDeliveryTime.min}-{item.estimatedDeliveryTime.max} min
+                Preparo: {item.estimatedDeliveryTime.min}-{item.estimatedDeliveryTime.max} min
               </Text>
             )}
           </View>
