@@ -8,6 +8,8 @@ jobs:
   validate-and-build:
     name: RellBuild Validation & Build
     runs-on: macos-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: 🏗 Checkout repository
@@ -44,10 +46,10 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🩺 Expo Doctor Check
-        run: npx expo doctor
+        run: npx expo-doctor
 
       - name: ⚙️ Expo Prebuild (Optional/Sanity)
-        run: npx expo prebuild --clean
+        run: npx expo prebuild --clean --non-interactive
 
       - name: 🤖 Build Android Beta (APK)
         env:
