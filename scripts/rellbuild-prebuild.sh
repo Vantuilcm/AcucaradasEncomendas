@@ -21,25 +21,19 @@ if ! npx expo config --json > /dev/null 2>&1; then
 fi
 echo "✅ Configuração do Expo válida."
 
-echo "3️⃣ Injetando Secrets do Firebase..."
-if [ ! -z "$GOOGLE_SERVICES_JSON" ]; then
-  echo "$GOOGLE_SERVICES_JSON" > google-services.json
-  echo "✅ google-services.json injetado."
-elif [ ! -z "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-  echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
-  echo "✅ google-services.json injetado via base64."
+echo "3️⃣ Validando Arquivos do Firebase..."
+if [ -f "google-services.json" ]; then
+  echo "✅ google-services.json encontrado."
 else
-  echo "⚠️ GOOGLE_SERVICES_JSON ausente. Build Android pode falhar se necessário."
+  echo "❌ google-services.json não encontrado!"
+  exit 1
 fi
 
-if [ ! -z "$GOOGLE_SERVICE_INFO_PLIST" ]; then
-  echo "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
-  echo "✅ GoogleService-Info.plist injetado."
-elif [ ! -z "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
-  echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > GoogleService-Info.plist
-  echo "✅ GoogleService-Info.plist injetado via base64."
+if [ -f "GoogleService-Info.plist" ]; then
+  echo "✅ GoogleService-Info.plist encontrado."
 else
-  echo "⚠️ GOOGLE_SERVICE_INFO_PLIST ausente. Build iOS pode falhar se necessário."
+  echo "❌ GoogleService-Info.plist não encontrado!"
+  exit 1
 fi
 
 echo "4️⃣ Validando Dependências Críticas..."
