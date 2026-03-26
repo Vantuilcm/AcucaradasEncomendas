@@ -2,6 +2,10 @@ name: RellBuild Beta Pipeline
 
 on:
   push:
+    branches:
+      - main
+      - master
+      - upgrade/sdk-52-rn-076
   workflow_dispatch:
 
 jobs:
