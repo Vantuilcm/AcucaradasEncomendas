@@ -1,10 +1,8 @@
-name: RellBuild - Automated CI/CD Pipeline
+name: RellBuild Beta Pipeline
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [ "*" ]
   workflow_dispatch:
 
 jobs:
