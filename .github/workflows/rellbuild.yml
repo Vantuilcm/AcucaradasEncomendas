@@ -95,7 +95,7 @@ jobs:
         run: npx expo-doctor || echo "Expo Doctor found issues but continuing..."
 
       - name: Expo Prebuild (Android)
-        run: npx expo prebuild --platform android --clean --non-interactive --verbose
+        run: npx expo prebuild --platform android --clean
 
       - name: Build Android Beta (APK)
         env:
@@ -105,7 +105,7 @@ jobs:
           eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
 
       - name: Expo Prebuild (iOS)
-        run: npx expo prebuild --platform ios --clean --non-interactive --verbose
+        run: npx expo prebuild --platform ios --clean
 
       - name: Build iOS Release (IPA)
         env:
