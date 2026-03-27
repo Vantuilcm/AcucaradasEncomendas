@@ -128,6 +128,7 @@ jobs:
         run: npx expo-doctor . --fix-dependencies
 
       - name: Build Android Beta (APK)
+        id: android_beta
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -136,11 +137,12 @@ jobs:
           ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Arquivos Firebase não encontrados no root!"
           
           echo "Iniciando build local do Android (Beta)..."
-          # Adicionando --non-interactive explicitamente para evitar prompts
+          echo "NOTA: Este build roda no GitHub Actions, não aparecerá no dashboard do EAS Cloud."
           eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
 
       - name: Build iOS Release (IPA)
-        if: success()
+        id: ios_release
+        continue-on-error: true
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
@@ -151,19 +153,23 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Iniciando build local do iOS (Release)..."
+          echo "NOTA: Este build roda no GitHub Actions, não aparecerá no dashboard do EAS Cloud."
           eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
 
       - name: Build Android Release (AAB)
-        if: success()
+        id: android_release
+        if: always() && !cancelled()
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Iniciando build local do Android (Release)..."
+          echo "NOTA: Este build roda no GitHub Actions, não aparecerá no dashboard do EAS Cloud."
           eas build --platform android --profile production --local --non-interactive --output app-release.aab
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
+        if: always() && !cancelled()
         with:
           name: rellbuild-artifacts
           path: |
