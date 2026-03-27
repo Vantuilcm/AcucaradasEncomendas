@@ -15,15 +15,19 @@ ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Alguns arqu
 
 if [ -f "google-services.json" ]; then
   echo "✅ google-services.json encontrado."
+elif [ -n "$GOOGLE_SERVICES_JSON" ] || [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+  echo "⚠️ google-services.json ausente fisicamente, mas presente via ENV var. Prosseguindo..."
 else
-  echo "❌ google-services.json não encontrado!"
+  echo "❌ google-services.json não encontrado (nem arquivo, nem ENV var)!"
   exit 1
 fi
 
 if [ -f "GoogleService-Info.plist" ]; then
   echo "✅ GoogleService-Info.plist encontrado."
+elif [ -n "$GOOGLE_SERVICE_INFO_PLIST" ] || [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
+  echo "⚠️ GoogleService-Info.plist ausente fisicamente, mas presente via ENV var. Prosseguindo..."
 else
-  echo "❌ GoogleService-Info.plist não encontrado!"
+  echo "❌ GoogleService-Info.plist não encontrado (nem arquivo, nem ENV var)!"
   exit 1
 fi
 
