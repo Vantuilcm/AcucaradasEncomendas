@@ -57,29 +57,8 @@ jobs:
         run: |
           echo "Injetando segredos e configurando ambiente..."
           
-          # Injecao google-services.json
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            printf "%s" "$GOOGLE_SERVICES_JSON" > google-services.json
-            echo "google-services.json injetado via raw JSON"
-          elif [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
-            echo "google-services.json injetado via base64"
-          else
-            echo "GOOGLE_SERVICES_JSON nao encontrado. Usando fallback via ENV vars no app.json..."
-          fi
-
-          # Injecao GoogleService-Info.plist
-          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
-            printf "%s" "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
-            echo "GoogleService-Info.plist injetado via raw content"
-          elif [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
-            echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > GoogleService-Info.plist
-            echo "GoogleService-Info.plist injetado via base64"
-          else
-            echo "GoogleService-Info.plist nao encontrado."
-          fi
-          
-          # Criar .env para o build
+          # Criar .env para o build (Expo SDK 52 usa EXPO_PUBLIC_*)
+          # Nota: Usamos sed depois para garantir que nao ha espacos de indentacao do YAML
           cat <<EOF > .env
           EXPO_PUBLIC_FIREBASE_API_KEY=$EXPO_PUBLIC_FIREBASE_API_KEY
           EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=$EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
@@ -92,9 +71,10 @@ jobs:
           EXPO_PUBLIC_SENTRY_DSN=$EXPO_PUBLIC_SENTRY_DSN
           EXPO_PUBLIC_SENTRY_ENABLED=$EXPO_PUBLIC_SENTRY_ENABLED
           EXPO_PUBLIC_PROJECT_ID=$EXPO_PUBLIC_PROJECT_ID
+          SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
           EOF
           
-          # Remover espacos extras do .env (causados pela indentacao do EOF)
+          # Remover espacos extras do .env (causados pela indentacao do EOF no run block)
           sed -i '' 's/^[[:space:]]*//' .env || sed -i 's/^[[:space:]]*//' .env
           
           echo "Arquivo .env gerado para o build."
@@ -102,7 +82,7 @@ jobs:
           chmod +x scripts/*.sh 2>/dev/null || true
           chmod +x scripts/*.js 2>/dev/null || true
           
-          # Rodar validacao
+          # Rodar validacao (que agora tambem injeta os arquivos se faltarem)
           bash ./scripts/rellbuild-prebuild.sh || echo "Prebuild validation reportou avisos, mas prosseguindo..."
 
       - name: Setup Expo and EAS
@@ -115,7 +95,7 @@ jobs:
         run: npx expo-doctor || echo "Expo Doctor found issues but continuing..."
 
       - name: Expo Prebuild (Android)
-        run: npx expo prebuild --platform android --clean --non-interactive
+        run: npx expo prebuild --platform android --clean --non-interactive --verbose
 
       - name: Build Android Beta (APK)
         env:
@@ -125,7 +105,7 @@ jobs:
           eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
 
       - name: Expo Prebuild (iOS)
-        run: npx expo prebuild --platform ios --clean --non-interactive
+        run: npx expo prebuild --platform ios --clean --non-interactive --verbose
 
       - name: Build iOS Release (IPA)
         env:

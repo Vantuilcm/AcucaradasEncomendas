@@ -43,7 +43,16 @@ requiredVars.forEach(varName => {
 requiredFiles.forEach(fileName => {
   const filePath = path.resolve(__dirname, '../', fileName);
   if (!fs.existsSync(filePath)) {
-    missingFiles.push(fileName);
+    // No CI, podemos aceitar se as variáveis equivalentes existirem (serão injetadas pelo pipeline)
+    const isCI = process.env.CI === '1' || process.env.GITHUB_ACTIONS === 'true';
+    const hasEnvFallback = (fileName === 'google-services.json' && (process.env.GOOGLE_SERVICES_JSON || process.env.GOOGLE_SERVICES_JSON_BASE64)) ||
+                           (fileName === 'GoogleService-Info.plist' && (process.env.GOOGLE_SERVICE_INFO_PLIST || process.env.GOOGLE_SERVICE_INFO_PLIST_BASE64));
+
+    if (!isCI || !hasEnvFallback) {
+      missingFiles.push(fileName);
+    } else {
+      console.log(`⚠️  [RellBuild] Arquivo ${fileName} ausente, mas será injetado via segredos do CI.`);
+    }
   }
 });
 

@@ -15,8 +15,12 @@ ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Alguns arqu
 
 if [ -f "google-services.json" ]; then
   echo "✅ google-services.json encontrado."
-elif [ -n "$GOOGLE_SERVICES_JSON" ] || [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-  echo "⚠️ google-services.json ausente fisicamente, mas presente via ENV var. Prosseguindo..."
+elif [ -n "$GOOGLE_SERVICES_JSON" ]; then
+  echo "⚠️ google-services.json ausente, mas injetando via raw JSON..."
+  printf "%s" "$GOOGLE_SERVICES_JSON" > google-services.json
+elif [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+  echo "⚠️ google-services.json ausente, mas injetando via base64..."
+  echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
 else
   echo "❌ google-services.json não encontrado (nem arquivo, nem ENV var)!"
   exit 1
@@ -24,8 +28,12 @@ fi
 
 if [ -f "GoogleService-Info.plist" ]; then
   echo "✅ GoogleService-Info.plist encontrado."
-elif [ -n "$GOOGLE_SERVICE_INFO_PLIST" ] || [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
-  echo "⚠️ GoogleService-Info.plist ausente fisicamente, mas presente via ENV var. Prosseguindo..."
+elif [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+  echo "⚠️ GoogleService-Info.plist ausente, mas injetando via raw content..."
+  printf "%s" "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
+elif [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
+  echo "⚠️ GoogleService-Info.plist ausente, mas injetando via base64..."
+  echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > GoogleService-Info.plist
 else
   echo "❌ GoogleService-Info.plist não encontrado (nem arquivo, nem ENV var)!"
   exit 1
