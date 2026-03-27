@@ -1,39 +1,7 @@
-# .easignore - Configuração para o EAS Build
-# Baseado no .gitignore, mas permitindo arquivos injetados pelo CI
+# .easignore - Configuração simplificada para o EAS Build Local
+# Este arquivo substitui o .gitignore durante o build local do EAS.
 
-# Herdando regras do .gitignore
-*
-
-# Permitindo arquivos essenciais para o build
-!package.json
-!package-lock.json
-!app.json
-!app.config.js
-!eas.json
-!babel.config.js
-!metro.config.js
-!index.js
-!App.js
-!src/**
-!assets/**
-!plugins/**
-!scripts/**
-!hooks/**
-!constants/**
-!components/**
-!navigation/**
-!screens/**
-!utils/**
-!services/**
-!context/**
-!types/**
-!store/**
-
-# PERMITIR ARQUIVOS FIREBASE (Injetados pelo RellBuild no CI)
-!google-services.json
-!GoogleService-Info.plist
-
-# Bloquear node_modules e outros pesados
+# Pastas pesadas e geradas
 node_modules/
 .expo/
 dist/
@@ -41,6 +9,19 @@ web-build/
 build/
 ios/
 android/
+
+# Artefatos de build
 *.ipa
 *.apk
 *.aab
+
+# Logs e arquivos temporários
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+*.zip
+
+# NÃO ignorar google-services.json e GoogleService-Info.plist aqui,
+# pois eles são necessários para o build mas estão no .gitignore.
+# Ao NÃO listá-los aqui, o EAS irá incluí-los no build local.
