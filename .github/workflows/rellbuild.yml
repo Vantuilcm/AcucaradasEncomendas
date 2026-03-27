@@ -124,7 +124,7 @@ jobs:
         run: npx expo config --json
 
       - name: Expo Doctor Check
-        run: npx expo-doctor --fix-dependencies
+        run: npx expo-doctor --fix-dependencies .
 
       - name: Build Android Beta (APK)
         env:
