@@ -28,6 +28,10 @@ allprojects {
         resolutionStrategy {
             force 'androidx.versionedparcelable:versionedparcelable:1.1.1'
             force 'androidx.annotation:annotation:1.2.0'
+            force 'androidx.core:core:1.13.1'
+            force 'androidx.appcompat:appcompat:1.6.1'
+            force 'androidx.vectordrawable:vectordrawable:1.1.0'
+            force 'androidx.vectordrawable:vectordrawable-animated:1.1.0'
         }
     }
 }
@@ -37,8 +41,35 @@ allprojects {
 }
 
 function fixNamespaces(contents) {
-  // Isso é mais complexo pois precisa ser aplicado a cada módulo que falha.
-  // Uma alternativa é forçar o namespace no build do app se o conflito for lá.
+  // Adiciona ferramentas de manifest no início do arquivo
+  if (!contents.includes('xmlns:tools="http://schemas.android.com/tools"')) {
+    contents = contents.replace(
+      /android \{/,
+      'android {\n    namespace "com.acucaradas.encomendas"'
+    );
+  }
+
+  // Adiciona a regra de substituição do appComponentFactory para evitar o conflito com Support Library
+  const manifestFix = `
+android.applicationVariants.all { variant ->
+    variant.outputs.all { output ->
+        output.processManifestProvider.get().doLast { manifest ->
+            def manifestFile = manifest.outputs.files.first()
+            if (manifestFile.exists()) {
+                def content = manifestFile.text
+                if (!content.contains('tools:replace="android:appComponentFactory"')) {
+                    content = content.replace('<application', '<application tools:replace="android:appComponentFactory" xmlns:tools="http://schemas.android.com/tools"')
+                    manifestFile.text = content
+                }
+            }
+        }
+    }
+}
+`;
+
+  if (!contents.includes('tools:replace="android:appComponentFactory"')) {
+    return contents + manifestFix;
+  }
   return contents;
 }
 
