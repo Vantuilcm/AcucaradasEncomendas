@@ -53,7 +53,6 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: 'gradle'
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
