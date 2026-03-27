@@ -38,9 +38,17 @@ function audit() {
 
   // 2. Verificar Config Plugins
   const plugins = appJson.expo.plugins || [];
+  const hasSentry = plugins.some(p => Array.isArray(p) ? p[0] === '@sentry/react-native/expo' : p === '@sentry/react-native/expo');
   const hasOneSignal = plugins.some(p => Array.isArray(p) ? p[0] === 'onesignal-expo-plugin' : p === 'onesignal-expo-plugin');
   const hasRemoveAppGroups = plugins.some(p => p === './scripts/withRemoveAppGroups.js');
   const profileEnv = easJson.build?.[easProfile]?.env || {};
+
+  if (!hasSentry) {
+    console.error('❌ ERRO: Plugin do Sentry (@sentry/react-native/expo) ausente no app.json!');
+    issues++;
+  } else {
+    console.log('✅ Plugin do Sentry detectado.');
+  }
 
   if (hasOneSignal && !hasRemoveAppGroups) {
     console.error('❌ ERRO: OneSignal detectado mas withRemoveAppGroups.js não está configurado!');
@@ -143,13 +151,13 @@ function audit() {
     }
   });
 
-  const googlePlistRoot = fs.existsSync('GoogleService-Info.prod.plist');
-  const googlePlistIos = fs.existsSync(path.join('ios', 'GoogleService-Info.prod.plist'));
-  if (!googlePlistRoot || !googlePlistIos) {
-    console.error('❌ ERRO: GoogleService-Info.prod.plist ausente (raiz ou ios/).');
+  const googlePlistRoot = fs.existsSync('GoogleService-Info.plist');
+  const googlePlistIos = fs.existsSync(path.join('ios', 'GoogleService-Info.plist'));
+  if (!googlePlistRoot) {
+    console.error('❌ ERRO: GoogleService-Info.plist ausente na raiz.');
     issues++;
   } else {
-    console.log('✅ GoogleService-Info.prod.plist presente na raiz e em ios/.');
+    console.log('✅ GoogleService-Info.plist presente na raiz.');
   }
 
   // 5. Verificar credenciais (somente quando build local requer credenciais locais)

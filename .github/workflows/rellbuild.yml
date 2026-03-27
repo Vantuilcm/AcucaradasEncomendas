@@ -46,6 +46,7 @@ jobs:
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
           EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
           EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "🔍 Verificando presença de secrets..."
           
@@ -90,39 +91,36 @@ jobs:
       - name: 🩺 Expo Doctor Check
         run: npx expo-doctor || echo "Expo Doctor found issues but continuing..."
 
-      - name: ⚙️ Expo Prebuild (Optional/Sanity)
-        run: npx expo prebuild --clean --non-interactive
+      - name: ⚙️ Expo Prebuild (Android)
+        run: npx expo prebuild --platform android --clean --non-interactive
 
       - name: 🤖 Build Android Beta (APK)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          # Tentativa 1: Local (Preferencial para gratuidade total)
-          if ! eas build --platform android --profile beta --local --non-interactive --output app-beta.apk; then
-            echo "⚠️ Build local falhou ou não suportado. Tentando via EAS Cloud (Grátis se configurado)..."
-            # Tentativa 2: EAS Cloud (apenas se o local falhar)
-            eas build --platform android --profile beta --non-interactive --no-wait
-          fi
+          # Força build local para garantir gratuidade
+          eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
 
-      - name: 🤖 Build Android Release (AAB)
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          if ! eas build --platform android --profile production --local --non-interactive --output app-release.aab; then
-            echo "⚠️ Build local falhou. Tentando via EAS Cloud..."
-            eas build --platform android --profile production --non-interactive --no-wait
-          fi
+      - name: ⚙️ Expo Prebuild (iOS)
+        run: npx expo prebuild --platform ios --clean --non-interactive
 
       - name: 🍎 Build iOS Release (IPA)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
         run: |
-          if ! eas build --platform ios --profile production --local --non-interactive --output app-release.ipa; then
-            echo "⚠️ Build local falhou. Tentando via EAS Cloud..."
-            eas build --platform ios --profile production --non-interactive --no-wait
-          fi
+          # Força build local para garantir gratuidade
+          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
+
+      - name: 🤖 Build Android Release (AAB)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          # Prebuild já foi feito, apenas builda
+          eas build --platform android --profile production --local --non-interactive --output app-release.aab
 
       - name: 📦 Upload Artifacts
         uses: actions/upload-artifact@v4

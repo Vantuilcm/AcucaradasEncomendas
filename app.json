@@ -64,6 +64,7 @@
     },
     "scheme": "acucaradas-encomendas",
     "plugins": [
+      "@sentry/react-native/expo",
       "expo-apple-authentication",
       [
         "expo-build-properties",
