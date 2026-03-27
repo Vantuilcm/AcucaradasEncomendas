@@ -75,15 +75,10 @@
         "appleId": "vantuilcaramez@gmail.com",
         "ascAppId": "6478954215",
         "appleTeamId": "7L9P9U9Z9R"
-      },
-      "android": {
-        "serviceAccountKeyPath": "./google-service-account.json",
-        "track": "production"
       }
     },
     "preview": {
       "android": {
-        "serviceAccountKeyPath": "./google-service-account.json",
         "track": "internal"
       }
     }

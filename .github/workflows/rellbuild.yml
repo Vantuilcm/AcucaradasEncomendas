@@ -241,13 +241,15 @@ jobs:
             
             # Criar arquivo de credenciais temporario se o segredo existir
             if [ ! -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
+              echo "Configurando credenciais locais via GOOGLE_SERVICE_ACCOUNT_JSON..."
               echo "$GOOGLE_SERVICE_ACCOUNT_JSON" > google-service-account.json
               eas submit -p android --path app-release.aab --non-interactive --profile preview
             else
-              echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado. Tentando via credenciais remotas..."
+              echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado no GitHub Secrets."
+              echo "Tentando submissão usando credenciais já configuradas no EAS Cloud..."
+              # Removemos a referência ao arquivo local para que o EAS use as credenciais remotas
               eas submit -p android --path app-release.aab --non-interactive --profile preview
             fi
           else
             echo "⚠️ Arquivo app-release.aab não encontrado. Pulando submissão Android."
-            echo "Para submeter manualmente: Upload manual do app-release.aab no Play Console."
           fi
