@@ -131,9 +131,11 @@ jobs:
           ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Arquivos Firebase não encontrados no root!"
           
           echo "Iniciando build local do Android (Beta)..."
+          # Adicionando --non-interactive explicitamente para evitar prompts
           eas build --platform android --profile beta --local --non-interactive --verbose --output app-beta.apk
 
       - name: Build iOS Release (IPA)
+        if: success()
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
@@ -146,6 +148,7 @@ jobs:
           eas build --platform ios --profile production --local --non-interactive --verbose --output app-release.ipa
 
       - name: Build Android Release (AAB)
+        if: success()
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
