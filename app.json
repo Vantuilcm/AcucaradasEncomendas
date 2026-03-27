@@ -3,11 +3,6 @@
     "name": "Açucaradas Encomendas",
     "slug": "acucaradas-encomendas",
     "version": "1.0.1",
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
@@ -24,7 +19,9 @@
       "bundleIdentifier": "com.acucaradas.encomendas",
       "buildNumber": "384",
       "entitlements": {
-        "com.apple.developer.applesignin": ["Default"]
+        "com.apple.developer.applesignin": [
+          "Default"
+        ]
       },
       "usesAppleSignIn": true,
       "infoPlist": {
