@@ -4,11 +4,16 @@ set -ex # Fail fast and verbose
 echo "🚀 Iniciando RellBuild Prebuild Checks..."
 
 echo "1️⃣ Validando Variáveis de Ambiente..."
+if [ -n "$EXPO_TOKEN" ]; then echo "✅ EXPO_TOKEN está presente."; else echo "❌ EXPO_TOKEN ausente."; fi
+if [ -n "$GOOGLE_SERVICES_JSON" ]; then echo "✅ GOOGLE_SERVICES_JSON está presente."; fi
+if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then echo "✅ GOOGLE_SERVICES_JSON_BASE64 está presente."; fi
+if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then echo "✅ GOOGLE_SERVICE_INFO_PLIST está presente."; fi
+if [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then echo "✅ GOOGLE_SERVICE_INFO_PLIST_BASE64 está presente."; fi
+
 if [ -z "$EXPO_TOKEN" ]; then
-  echo "❌ EXPO_TOKEN ausente."
+  echo "❌ Erro Crítico: EXPO_TOKEN ausente. O build não pode continuar sem o token da Expo."
   exit 1
 fi
-echo "✅ EXPO_TOKEN validado."
 
 echo "2️⃣ Validando Arquivos do Firebase..."
 # Listar arquivos existentes para debug
