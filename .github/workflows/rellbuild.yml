@@ -129,6 +129,7 @@ jobs:
 
       - name: Build Android Beta (APK)
         id: android_beta
+        if: "!contains(github.event.head_commit.message, '[skip-android]') && !contains(github.event.head_commit.message, '[ios-only]')"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -148,6 +149,7 @@ jobs:
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID || '7L9P9U9Z9R' }}
+          # Segredos ASC API Key (pode ser um JSON ou os campos individuais)
           EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
           EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -155,17 +157,36 @@ jobs:
           echo "Iniciando build local do iOS (Release)..."
           echo "NOTA: Este build roda no GitHub Actions, não aparecerá no dashboard do EAS Cloud."
           
+          # Verificar se a ASC API Key e um JSON e extrair se necessario
+          if [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
+            echo "Detectada ASC API Key em formato JSON. Extraindo..."
+            echo "$EXPO_ASC_API_KEY" > asc-key.json
+            
+            # Tentar extrair campos se o jq estiver disponivel
+            if command -v jq >/dev/null 2>&1; then
+              export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key.json)
+              export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key.json)
+              # O arquivo .p8 pode estar codificado em base64 no JSON ou ser o proprio conteudo
+              jq -r '.key' asc-key.json > AuthKey.p8
+              export EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKey.p8
+              echo "ASC Key ID: $EXPO_ASC_KEY_ID"
+              echo "ASC Issuer ID: $EXPO_ASC_ISSUER_ID"
+            else
+              # Se nao tiver jq, tentar usar o arquivo JSON diretamente (o EAS as vezes aceita)
+              export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json
+            fi
+          fi
+          
           # Tentar login preventivo se as credenciais estiverem disponiveis
           if [ ! -z "$EXPO_APPLE_ID" ] && [ ! -z "$EXPO_APPLE_APP_SPECIFIC_PASSWORD" ]; then
-            echo "Tentando configurar credenciais iOS..."
-            # O EAS local as vezes precisa do Apple ID e App Specific Password no env
+            echo "Tentando configurar credenciais iOS via Apple ID..."
           fi
           
           eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
 
       - name: Build Android Release (AAB)
         id: android_release
-        if: always() && !cancelled()
+        if: "always() && !cancelled() && !contains(github.event.head_commit.message, '[skip-android]') && !contains(github.event.head_commit.message, '[ios-only]')"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
