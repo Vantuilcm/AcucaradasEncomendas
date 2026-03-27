@@ -8,16 +8,18 @@ export default ({ config }) => {
 
   return {
     ...config,
-    version: "1.0.1", // Mantendo fixo conforme solicitado ou pode ser dinâmico
+    version: "1.0.1",
     ios: {
       ...config.ios,
       buildNumber: buildNumber.toString(),
-      googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || config.ios?.googleServicesFile || "./GoogleService-Info.plist"
+      // Sempre usar o caminho do arquivo, não o conteúdo da env var
+      googleServicesFile: "./GoogleService-Info.plist"
     },
     android: {
       ...config.android,
       versionCode: versionCode,
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON || config.android?.googleServicesFile || "./google-services.json"
+      // Sempre usar o caminho do arquivo, não o conteúdo da env var
+      googleServicesFile: "./google-services.json"
     },
     extra: {
       ...config.extra,

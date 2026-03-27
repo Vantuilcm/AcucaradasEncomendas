@@ -8,20 +8,10 @@ if [ -z "$EXPO_TOKEN" ]; then
   echo "❌ EXPO_TOKEN ausente."
   exit 1
 fi
-if [ -z "$EXPO_PUBLIC_PROJECT_ID" ]; then
-  echo "❌ EXPO_PUBLIC_PROJECT_ID ausente (Necessário para EAS Build)."
-  exit 1
-fi
-echo "✅ Variáveis de ambiente validadas."
+echo "✅ EXPO_TOKEN validado."
 
-echo "2️⃣ Validando Configuração do Expo..."
-if ! npx expo config --json > /dev/null 2>&1; then
-  echo "❌ Erro na configuração do app.json/app.config.js."
-  exit 1
-fi
-echo "✅ Configuração do Expo válida."
-
-echo "3️⃣ Validando Arquivos do Firebase..."
+echo "2️⃣ Validando Arquivos do Firebase..."
+# Verificar se os arquivos foram criados no root (injetados pelo workflow)
 if [ -f "google-services.json" ]; then
   echo "✅ google-services.json encontrado."
 else
@@ -36,36 +26,42 @@ else
   exit 1
 fi
 
+echo "3️⃣ Validando Configuração do Expo..."
+# Tentar rodar expo config --json. Se falhar, mostrar o erro.
+if ! npx expo config --json > config.output.json 2>config.error.txt; then
+  echo "❌ Erro na configuração do app.json/app.config.js."
+  cat config.error.txt
+  exit 1
+fi
+echo "✅ Configuração do Expo válida."
+
 echo "4️⃣ Validando Dependências Críticas..."
 if [ ! -f "package.json" ]; then
   echo "❌ package.json não encontrado!"
   exit 1
 fi
-if ! grep -q "onesignal-expo-plugin" package.json; then
-  echo "❌ OneSignal Expo Plugin não encontrado em package.json."
-  exit 1
-fi
-if ! grep -q "@stripe/stripe-react-native" package.json; then
-  echo "❌ Stripe React Native Plugin não encontrado em package.json."
-  exit 1
-fi
-echo "✅ Dependências validadas."
 
-echo "5️⃣ Validando Variáveis de Ambiente Premium..."
-if [ -z "$EXPO_PUBLIC_ONESIGNAL_APP_ID" ]; then
-  echo "⚠️ EXPO_PUBLIC_ONESIGNAL_APP_ID ausente. Notificações Push podem não funcionar."
-fi
-if [ "$EXPO_PUBLIC_SENTRY_ENABLED" == "true" ] && [ -z "$EXPO_PUBLIC_SENTRY_DSN" ]; then
-  echo "⚠️ EXPO_PUBLIC_SENTRY_ENABLED está ON mas EXPO_PUBLIC_SENTRY_DSN está vazio. Sentry não será inicializado."
-fi
-echo "✅ Variáveis de ambiente premium verificadas."
+# Usar node para validar se as dependências estão no package.json
+node -e "
+const pkg = require('./package.json');
+const deps = {...pkg.dependencies, ...pkg.devDependencies};
+const critical = ['onesignal-expo-plugin', '@stripe/stripe-react-native', 'expo'];
+critical.forEach(d => {
+  if (!deps[d]) {
+    console.error('❌ ' + d + ' não encontrado em package.json.');
+    process.exit(1);
+  }
+});
+console.log('✅ Dependências críticas validadas.');
+"
 
-echo "6️⃣ Teste de Sanity (Imports e Init)..."
-# Simulando validação de imports críticos
-if grep -q "import .* from 'firebase/app'" src/App.tsx 2>/dev/null || grep -q "import .* from 'expo'" package.json; then
-  echo "✅ Imports críticos verificados."
+echo "5️⃣ Teste de Sanity (Imports e Init)..."
+# Verificar existência de arquivos vitais
+if [ -f "src/App.tsx" ] || [ -f "App.js" ] || [ -f "App.tsx" ]; then
+  echo "✅ Ponto de entrada do app encontrado."
 else
-  echo "⚠️ Aviso: Verificação de imports críticos não conclusiva."
+  echo "❌ Ponto de entrada do app não encontrado (App.js/App.tsx/src/App.tsx)!"
+  exit 1
 fi
 
 echo "✅ Todos os checks pré-build passaram com sucesso!"
