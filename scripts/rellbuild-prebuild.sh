@@ -1,9 +1,8 @@
 #!/bin/bash
-set -ex # Fail fast and verbose
+set -e # Fail fast
 
 echo "🚀 Iniciando RellBuild Prebuild Checks..."
-pwd
-ls -la
+# Removido ls -la excessivo para limpar logs CI
 
 echo "1️⃣ Validando Variáveis de Ambiente..."
 if [ -n "$EXPO_TOKEN" ]; then echo "✅ EXPO_TOKEN está presente."; else echo "❌ EXPO_TOKEN ausente."; fi
@@ -18,8 +17,9 @@ if [ -z "$EXPO_TOKEN" ]; then
 fi
 
 echo "2️⃣ Validando Arquivos do Firebase..."
-# Listar arquivos existentes para debug
-ls -la google-services.json GoogleService-Info.plist 2>/dev/null || echo "⚠️ Arquivos do Firebase não encontrados no diretório root."
+# Listar arquivos existentes apenas se existirem
+[ -f "google-services.json" ] && echo "✅ google-services.json encontrado localmente."
+[ -f "GoogleService-Info.plist" ] && echo "✅ GoogleService-Info.plist encontrado localmente."
 
 # Função para validar arquivo gerado
 validate_file() {
@@ -46,7 +46,8 @@ elif [ -n "$GOOGLE_SERVICES_JSON" ]; then
   printf "%s" "$GOOGLE_SERVICES_JSON" > google-services.json
   validate_file "google-services.json"
 else
-  echo "❌ google-services.json não encontrado (nem arquivo, nem ENV var)!"
+  echo "❌ ERRO CRÍTICO: google-services.json não encontrado!"
+  echo "DICA: Certifique-se de que a secret GOOGLE_SERVICES_JSON (ou GOOGLE_SERVICES_JSON_BASE64) está configurada no GitHub Actions."
   exit 1
 fi
 
