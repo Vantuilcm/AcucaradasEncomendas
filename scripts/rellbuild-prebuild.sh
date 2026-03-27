@@ -2,6 +2,8 @@
 set -ex # Fail fast and verbose
 
 echo "🚀 Iniciando RellBuild Prebuild Checks..."
+pwd
+ls -la
 
 echo "1️⃣ Validando Variáveis de Ambiente..."
 if [ -n "$EXPO_TOKEN" ]; then echo "✅ EXPO_TOKEN está presente."; else echo "❌ EXPO_TOKEN ausente."; fi
@@ -69,8 +71,8 @@ else
 fi
 
 echo "3️⃣ Validando Configuração do Expo..."
-# Tentar rodar expo config --json. Se falhar, mostrar o erro.
-npx expo config --json || { echo "❌ Erro crítico na configuração do Expo!"; exit 1; }
+# Tentar rodar expo config. Se falhar, mostrar o erro.
+npx expo config --json --verbose || { echo "❌ Erro crítico na configuração do Expo!"; npx expo config --json; exit 1; }
 echo "✅ Configuração do Expo válida."
 
 echo "4️⃣ Validando Dependências Críticas..."
