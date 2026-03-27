@@ -97,13 +97,21 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
+          # Tentativa 1: Local (Preferencial para gratuidade total)
+          if ! eas build --platform android --profile beta --local --non-interactive --output app-beta.apk; then
+            echo "⚠️ Build local falhou ou não suportado. Tentando via EAS Cloud (Grátis se configurado)..."
+            # Tentativa 2: EAS Cloud (apenas se o local falhar)
+            eas build --platform android --profile beta --non-interactive --no-wait
+          fi
 
       - name: 🤖 Build Android Release (AAB)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          eas build --platform android --profile production --local --non-interactive --output app-release.aab
+          if ! eas build --platform android --profile production --local --non-interactive --output app-release.aab; then
+            echo "⚠️ Build local falhou. Tentando via EAS Cloud..."
+            eas build --platform android --profile production --non-interactive --no-wait
+          fi
 
       - name: 🍎 Build iOS Release (IPA)
         env:
@@ -111,7 +119,10 @@ jobs:
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
+          if ! eas build --platform ios --profile production --local --non-interactive --output app-release.ipa; then
+            echo "⚠️ Build local falhou. Tentando via EAS Cloud..."
+            eas build --platform ios --profile production --non-interactive --no-wait
+          fi
 
       - name: 📦 Upload Artifacts
         uses: actions/upload-artifact@v4
