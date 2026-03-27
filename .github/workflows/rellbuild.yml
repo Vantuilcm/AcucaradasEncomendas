@@ -154,6 +154,13 @@ jobs:
         run: |
           echo "Iniciando build local do iOS (Release)..."
           echo "NOTA: Este build roda no GitHub Actions, não aparecerá no dashboard do EAS Cloud."
+          
+          # Tentar login preventivo se as credenciais estiverem disponiveis
+          if [ ! -z "$EXPO_APPLE_ID" ] && [ ! -z "$EXPO_APPLE_APP_SPECIFIC_PASSWORD" ]; then
+            echo "Tentando configurar credenciais iOS..."
+            # O EAS local as vezes precisa do Apple ID e App Specific Password no env
+          fi
+          
           eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
 
       - name: Build Android Release (AAB)
