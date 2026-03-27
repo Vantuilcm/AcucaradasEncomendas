@@ -1,15 +1,19 @@
 SECURITY_NOTES
 
 Contexto
-Projeto Expo SDK 49 com decisão explícita de não migrar SDK apenas por npm audit.
+Projeto atualizado para Expo SDK 52 com foco em segurança, estabilidade e builds automatizados via RellBuild Pipeline.
 
-Vulnerabilidades remanescentes aceitas temporariamente
-- send e tar provenientes de @expo/cli (build-time)
-- Mitigações: CI efêmero, sem expo start exposto, PR obrigatório e checks de build
+Status de Segurança
+- Dependências: Atualizadas para versões compatíveis com SDK 52, mitigando vulnerabilidades críticas.
+- Gestão de Segredos: Centralizada no GitHub Secrets. Nenhuma chave hardcoded no repositório.
+- Pipeline: RellBuild Beta Pipeline configurado para builds gratuitos via GitHub Actions (macOS).
 
-Mitigações aplicadas sem mexer no SDK
-- Override de undici para ^6.22.1 via Firebase
-- Override de semver para ^7.5.4 via @expo/image-utils / expo-notifications
+Mitigações Aplicadas
+- Injeção dinâmica de arquivos do Firebase (google-services.json / GoogleService-Info.plist) em tempo de build.
+- Validação automática de ambiente antes de cada build.
+- Hardening do .gitignore para evitar vazamento de credenciais.
 
-Plano de upgrade
-- Migração por etapas (49 → 50 → 51 → 52) quando houver necessidade real de runtime
+Histórico de Upgrades
+- SDK 49 -> SDK 52 (Concluído em Março/2026)
+- Sentry reativado e configurado via CI.
+- OneSignal e Stripe integrados com suporte a prebuild.

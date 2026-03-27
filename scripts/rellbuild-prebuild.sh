@@ -11,29 +11,53 @@ fi
 echo "✅ EXPO_TOKEN validado."
 
 echo "2️⃣ Validando Arquivos do Firebase..."
-ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Alguns arquivos do Firebase podem estar ausentes no root."
+# Listar arquivos existentes para debug
+ls -la google-services.json GoogleService-Info.plist 2>/dev/null || echo "⚠️ Arquivos do Firebase não encontrados no diretório root."
 
-if [ -f "google-services.json" ]; then
-  echo "✅ google-services.json encontrado."
-elif [ -n "$GOOGLE_SERVICES_JSON" ]; then
-  echo "⚠️ google-services.json ausente, mas injetando via raw JSON..."
-  printf "%s" "$GOOGLE_SERVICES_JSON" > google-services.json
+# Função para validar arquivo gerado
+validate_file() {
+  if [ ! -s "$1" ]; then
+    echo "❌ Erro: Arquivo $1 está vazio ou não foi gerado corretamente!"
+    exit 1
+  fi
+  echo "✅ Arquivo $1 validado com sucesso (Tamanho: $(wc -c < "$1") bytes)."
+}
+
+# Injeção de google-services.json (Android)
+if [ -f "google-services.json" ] && [ -s "google-services.json" ]; then
+  echo "✅ google-services.json já existe e não está vazio."
 elif [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-  echo "⚠️ google-services.json ausente, mas injetando via base64..."
-  echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
+  echo "⚠️ Injetando google-services.json via base64..."
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 -D > google-services.json
+  else
+    echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
+  fi
+  validate_file "google-services.json"
+elif [ -n "$GOOGLE_SERVICES_JSON" ]; then
+  echo "⚠️ Injetando google-services.json via raw JSON..."
+  printf "%s" "$GOOGLE_SERVICES_JSON" > google-services.json
+  validate_file "google-services.json"
 else
   echo "❌ google-services.json não encontrado (nem arquivo, nem ENV var)!"
   exit 1
 fi
 
-if [ -f "GoogleService-Info.plist" ]; then
-  echo "✅ GoogleService-Info.plist encontrado."
-elif [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
-  echo "⚠️ GoogleService-Info.plist ausente, mas injetando via raw content..."
-  printf "%s" "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
+# Injeção de GoogleService-Info.plist (iOS)
+if [ -f "GoogleService-Info.plist" ] && [ -s "GoogleService-Info.plist" ]; then
+  echo "✅ GoogleService-Info.plist já existe e não está vazio."
 elif [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
-  echo "⚠️ GoogleService-Info.plist ausente, mas injetando via base64..."
-  echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > GoogleService-Info.plist
+  echo "⚠️ Injetando GoogleService-Info.plist via base64..."
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 -D > GoogleService-Info.plist
+  else
+    echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > GoogleService-Info.plist
+  fi
+  validate_file "GoogleService-Info.plist"
+elif [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+  echo "⚠️ Injetando GoogleService-Info.plist via raw content..."
+  printf "%s" "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
+  validate_file "GoogleService-Info.plist"
 else
   echo "❌ GoogleService-Info.plist não encontrado (nem arquivo, nem ENV var)!"
   exit 1
