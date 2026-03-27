@@ -225,10 +225,10 @@ jobs:
         run: |
           if [ -f "app-release.ipa" ]; then
             echo "🚀 Iniciando submissão iOS para TestFlight..."
-            npx eas submit -p ios --path app-release.ipa --non-interactive
+            eas submit -p ios --path app-release.ipa --non-interactive
           else
             echo "⚠️ Arquivo app-release.ipa não encontrado. Pulando submissão iOS."
-            echo "Para submeter manualmente: npx eas submit -p ios --latest"
+            echo "Para submeter manualmente: eas submit -p ios --latest"
           fi
 
       - name: Submit Android to Play Store
@@ -242,10 +242,10 @@ jobs:
             # Criar arquivo de credenciais temporario se o segredo existir
             if [ ! -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
               echo "$GOOGLE_SERVICE_ACCOUNT_JSON" > google-service-account.json
-              npx eas submit -p android --path app-release.aab --non-interactive --profile preview
+              eas submit -p android --path app-release.aab --non-interactive --profile preview
             else
               echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado. Tentando via credenciais remotas..."
-              npx eas submit -p android --path app-release.aab --non-interactive --profile preview
+              eas submit -p android --path app-release.aab --non-interactive --profile preview
             fi
           else
             echo "⚠️ Arquivo app-release.aab não encontrado. Pulando submissão Android."
