@@ -8,7 +8,7 @@ export default ({ config }) => {
 
   return {
     ...config,
-    version: "1.0.1",
+    version: config.version || "1.1.1",
     ios: {
       ...config.ios,
       buildNumber: buildNumber.toString(),

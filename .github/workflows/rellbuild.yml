@@ -117,18 +117,16 @@ jobs:
       - name: Expo Doctor Check (Non-blocking)
         run: npx expo-doctor || echo "⚠️ Expo Doctor detectou problemas não críticos. Continuando..."
 
-      - name: Expo Prebuild (Android)
-        run: npx expo prebuild --platform android --clean
-
       - name: Build Android Beta (APK)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
-
-      - name: Expo Prebuild (iOS)
-        run: npx expo prebuild --platform ios --clean
+          echo "Verificando arquivos Firebase..."
+          ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Arquivos Firebase não encontrados no root!"
+          
+          echo "Iniciando build local do Android (Beta)..."
+          eas build --platform android --profile beta --local --non-interactive --verbose --output app-beta.apk
 
       - name: Build iOS Release (IPA)
         env:
@@ -139,14 +137,16 @@ jobs:
           EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
+          echo "Iniciando build local do iOS (Release)..."
+          eas build --platform ios --profile production --local --non-interactive --verbose --output app-release.ipa
 
       - name: Build Android Release (AAB)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          eas build --platform android --profile production --local --non-interactive --output app-release.aab
+          echo "Iniciando build local do Android (Release)..."
+          eas build --platform android --profile production --local --non-interactive --verbose --output app-release.aab
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
