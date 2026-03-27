@@ -68,6 +68,10 @@
         {
           "ios": {
             "deploymentTarget": "15.1"
+          },
+          "android": {
+            "enableJetifier": true,
+            "newArchEnabled": false
           }
         }
       ],
@@ -89,7 +93,8 @@
         {
           "merchantIdentifier": "merchant.com.acucaradas.encomendas"
         }
-      ]
+      ],
+      "./plugins/withAndroidNamespaceFix"
     ],
     "updates": {
       "url": "https://u.expo.dev/6090106b-e327-4744-bce5-9ddb0d037045",
