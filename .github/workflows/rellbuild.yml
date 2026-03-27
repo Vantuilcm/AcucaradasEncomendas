@@ -14,8 +14,8 @@ jobs:
     runs-on: macos-latest
     env:
         FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-        ACTIONS_STEP_DEBUG: true # Enable debug logging to find the exact failure
-        CI: 1 # Ensure non-interactive mode for all commands
+        ACTIONS_STEP_DEBUG: true
+        CI: 1
 
     steps:
       - name: 🏗 Checkout repository
@@ -24,9 +24,7 @@ jobs:
       - name: ⚙️ Setup Node.js (LTS)
         uses: actions/setup-node@v4
         with:
-          node-version: '24' # Use Node 24 to avoid deprecation warnings
-          # Cache removed temporarily to avoid GitHub Cache Service 503/400 errors
-          # cache: 'npm'
+          node-version: '24'
 
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
@@ -45,7 +43,7 @@ jobs:
         run: |
           echo "🔍 Verificando presença de secrets..."
           
-          # Injeção direta no step para maior confiabilidade
+          # Injeção direta
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf "%s" "$GOOGLE_SERVICES_JSON" > google-services.json
             echo "✅ google-services.json injetado via raw JSON"
@@ -53,7 +51,7 @@ jobs:
             echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
             echo "✅ google-services.json injetado via base64"
           else
-            echo "⚠️ GOOGLE_SERVICES_JSON não encontrado. Criando placeholder para evitar falha no prebuild..."
+            echo "⚠️ GOOGLE_SERVICES_JSON não encontrado. Criando placeholder..."
             echo '{"project_info":{"project_number":"0","project_id":"placeholder","storage_bucket":"placeholder"},"client":[{"client_info":{"mobilesdk_app_id":"0","android_client_info":{"package_name":"com.acucaradas.encomendas"}},"api_key":[{"current_key":"placeholder"}]}]}' > google-services.json
           fi
 
@@ -68,14 +66,14 @@ jobs:
             echo '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CLIENT_ID</key><string>placeholder</string></dict></plist>' > GoogleService-Info.plist
           fi
           
-          # Garantir que scripts têm permissão de execução
           chmod +x scripts/*.sh 2>/dev/null || true
           chmod +x scripts/*.js 2>/dev/null || true
           
-          ./scripts/rellbuild-prebuild.sh
-          
-          echo "🔍 Verificação final de arquivos:"
+          # DEBUG: Verificando arquivos antes do script
           ls -la google-services.json GoogleService-Info.plist
+          
+          # Rodar o script com bash -x para ver cada linha
+          bash -x ./scripts/rellbuild-prebuild.sh
 
       - name: 🏗 Setup Expo and EAS
         uses: expo/expo-github-action@v8
@@ -87,38 +85,26 @@ jobs:
         run: npx expo-doctor || echo "Expo Doctor found issues but continuing..."
 
       - name: ⚙️ Expo Prebuild (Optional/Sanity)
-        run: npx expo prebuild --clean
+        run: npx expo prebuild --clean --non-interactive
 
       - name: 🤖 Build Android Beta (APK)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED || 'true' }}
-          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
-          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
         run: |
-          # Build APK para testes internos
           eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
 
       - name: 🤖 Build Android Release (AAB)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED || 'true' }}
-          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
-          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
         run: |
-          # Build AAB para Play Store
           eas build --platform android --profile production --local --non-interactive --output app-release.aab
 
       - name: 🍎 Build iOS Release (IPA)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED || 'true' }}
-          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
-          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          # Build IPA para App Store/TestFlight
           eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
 
       - name: 📦 Upload Artifacts

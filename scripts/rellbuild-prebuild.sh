@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e # Fail fast
+set -ex # Fail fast and verbose
 
 echo "🚀 Iniciando RellBuild Prebuild Checks..."
 
@@ -11,7 +11,8 @@ fi
 echo "✅ EXPO_TOKEN validado."
 
 echo "2️⃣ Validando Arquivos do Firebase..."
-# Verificar se os arquivos foram criados no root (injetados pelo workflow)
+ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Alguns arquivos do Firebase podem estar ausentes no root."
+
 if [ -f "google-services.json" ]; then
   echo "✅ google-services.json encontrado."
 else
@@ -28,11 +29,7 @@ fi
 
 echo "3️⃣ Validando Configuração do Expo..."
 # Tentar rodar expo config --json. Se falhar, mostrar o erro.
-if ! npx expo config --json > config.output.json 2>config.error.txt; then
-  echo "❌ Erro na configuração do app.json/app.config.js."
-  cat config.error.txt
-  exit 1
-fi
+npx expo config --json || { echo "❌ Erro crítico na configuração do Expo!"; exit 1; }
 echo "✅ Configuração do Expo válida."
 
 echo "4️⃣ Validando Dependências Críticas..."
