@@ -18,24 +18,24 @@ jobs:
       CI: 1
 
     steps:
-      - name: 🏗 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Node.js (LTS)
+      - name: Setup Node.js (LTS)
         uses: actions/setup-node@v4
         with:
           node-version: '24'
 
-      - name: ☕ Setup Java 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: 🛡️ RellBuild Prebuild Validation
+      - name: RellBuild Prebuild Validation
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -55,28 +55,28 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
         run: |
-          echo "🔍 Injetando segredos e configurando ambiente..."
+          echo "Injetando segredos e configurando ambiente..."
           
-          # Injeção google-services.json
+          # Injecao google-services.json
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf "%s" "$GOOGLE_SERVICES_JSON" > google-services.json
-            echo "✅ google-services.json injetado via raw JSON"
+            echo "google-services.json injetado via raw JSON"
           elif [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
             echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
-            echo "✅ google-services.json injetado via base64"
+            echo "google-services.json injetado via base64"
           else
-            echo "⚠️ GOOGLE_SERVICES_JSON não encontrado. Usando fallback via ENV vars no app.json..."
+            echo "GOOGLE_SERVICES_JSON nao encontrado. Usando fallback via ENV vars no app.json..."
           fi
 
-          # Injeção GoogleService-Info.plist
+          # Injecao GoogleService-Info.plist
           if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
             printf "%s" "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
-            echo "✅ GoogleService-Info.plist injetado via raw content"
+            echo "GoogleService-Info.plist injetado via raw content"
           elif [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
             echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > GoogleService-Info.plist
-            echo "✅ GoogleService-Info.plist injetado via base64"
+            echo "GoogleService-Info.plist injetado via base64"
           else
-            echo "⚠️ GoogleService-Info.plist não encontrado."
+            echo "GoogleService-Info.plist nao encontrado."
           fi
           
           # Criar .env para o build (Expo SDK 52 usa EXPO_PUBLIC_*)
@@ -93,55 +93,52 @@ EXPO_PUBLIC_SENTRY_DSN=$EXPO_PUBLIC_SENTRY_DSN
 EXPO_PUBLIC_SENTRY_ENABLED=$EXPO_PUBLIC_SENTRY_ENABLED
 EXPO_PUBLIC_PROJECT_ID=$EXPO_PUBLIC_PROJECT_ID
 EOF
-          echo "✅ Arquivo .env gerado para o build."
+          echo "Arquivo .env gerado para o build."
 
           chmod +x scripts/*.sh 2>/dev/null || true
           chmod +x scripts/*.js 2>/dev/null || true
           
-          # Rodar validação (permitir falha em arquivos se as env vars existirem)
-          bash ./scripts/rellbuild-prebuild.sh || echo "⚠️ Prebuild validation reportou avisos, mas prosseguindo..."
+          # Rodar validacao
+          bash ./scripts/rellbuild-prebuild.sh || echo "Prebuild validation reportou avisos, mas prosseguindo..."
 
-      - name: 🏗 Setup Expo and EAS
+      - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 🩺 Expo Doctor Check
+      - name: Expo Doctor Check
         run: npx expo-doctor || echo "Expo Doctor found issues but continuing..."
 
-      - name: ⚙️ Expo Prebuild (Android)
+      - name: Expo Prebuild (Android)
         run: npx expo prebuild --platform android --clean --non-interactive
 
-      - name: 🤖 Build Android Beta (APK)
+      - name: Build Android Beta (APK)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          # Força build local para garantir gratuidade
           eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
 
-      - name: ⚙️ Expo Prebuild (iOS)
+      - name: Expo Prebuild (iOS)
         run: npx expo prebuild --platform ios --clean --non-interactive
 
-      - name: 🍎 Build iOS Release (IPA)
+      - name: Build iOS Release (IPA)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
         run: |
-          # Força build local para garantir gratuidade
           eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
 
-      - name: 🤖 Build Android Release (AAB)
+      - name: Build Android Release (AAB)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          # Prebuild já foi feito, apenas builda
           eas build --platform android --profile production --local --non-interactive --output app-release.aab
 
-      - name: 📦 Upload Artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: rellbuild-artifacts
@@ -151,7 +148,7 @@ EOF
             app-release.ipa
           if-no-files-found: warn
 
-      - name: 📊 RellBuild Final Report
+      - name: RellBuild Final Report
         if: always()
         run: |
           echo "### RellBuild Status"
