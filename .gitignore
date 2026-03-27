@@ -66,38 +66,39 @@ google-services*.json
 GoogleService-Info*.plist
 credentials/
 *.p12
-*.mobileprovision
-google-service-account*.json
-.runtimeconfig.json
-firebase-adminsdk-*.json
-
-# Certificados e chaves
+*.jks
+*.keystore
 *.pem
 *.key
 *.crt
 *.cer
 *.p8
-
-# Native
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
 *.mobileprovision
-*.orig.*
-web-build/
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# local env files
+google-service-account*.json
+.runtimeconfig.json
+firebase-adminsdk-*.json
+.env
+.env.local
+.env.*
 .env*.local
+
+# Temporários e Backups
+backup-protecao/
+temp_install/
+*.backup
+*.bak
+*.temp
+*.tmp
+package.json.backup*
+package.json.bak*
+package-minimal.json
+pkg.json
+ts_errors.txt
+diff.txt
+job_log.txt
+original_login_screen_master.txt
+apns.csr
+job-68418771497.zip
 
 # typescript
 *.tsbuildinfo

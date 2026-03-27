@@ -18,7 +18,7 @@ export const STRIPE_PUBLISHABLE_KEY =
 export const STRIPE_SECRET_KEY =
   ENV === 'production'
     ? process.env.STRIPE_SECRET_KEY_PROD || ''
-    : process.env.EXPO_PUBLIC_STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY || '';
+    : process.env.STRIPE_SECRET_KEY || '';
 
 // Configurações do Stripe
 export const STRIPE_CONFIG = {

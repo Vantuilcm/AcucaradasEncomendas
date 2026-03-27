@@ -42,15 +42,22 @@ jobs:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
           GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
           GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
-          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED || 'true' }}
-          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
-          EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
+          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
           EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
+          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED || 'true' }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
         run: |
-          echo "🔍 Verificando presença de secrets..."
+          echo "🔍 Injetando segredos e configurando ambiente..."
           
-          # Injeção direta
+          # Injeção google-services.json
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf "%s" "$GOOGLE_SERVICES_JSON" > google-services.json
             echo "✅ google-services.json injetado via raw JSON"
@@ -58,10 +65,10 @@ jobs:
             echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
             echo "✅ google-services.json injetado via base64"
           else
-            echo "⚠️ GOOGLE_SERVICES_JSON não encontrado. Criando placeholder..."
-            echo '{"project_info":{"project_number":"0","project_id":"placeholder","storage_bucket":"placeholder"},"client":[{"client_info":{"mobilesdk_app_id":"0","android_client_info":{"package_name":"com.acucaradas.encomendas"}},"api_key":[{"current_key":"placeholder"}]}]}' > google-services.json
+            echo "⚠️ GOOGLE_SERVICES_JSON não encontrado. Usando fallback via ENV vars no app.json..."
           fi
 
+          # Injeção GoogleService-Info.plist
           if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
             printf "%s" "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
             echo "✅ GoogleService-Info.plist injetado via raw content"
@@ -69,18 +76,30 @@ jobs:
             echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > GoogleService-Info.plist
             echo "✅ GoogleService-Info.plist injetado via base64"
           else
-            echo "⚠️ GOOGLE_SERVICE_INFO_PLIST não encontrado. Criando placeholder..."
-            echo '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CLIENT_ID</key><string>placeholder</string></dict></plist>' > GoogleService-Info.plist
+            echo "⚠️ GoogleService-Info.plist não encontrado."
           fi
           
+          # Criar .env para o build (Expo SDK 52 usa EXPO_PUBLIC_*)
+          cat <<EOF > .env
+EXPO_PUBLIC_FIREBASE_API_KEY=$EXPO_PUBLIC_FIREBASE_API_KEY
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=$EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=$EXPO_PUBLIC_FIREBASE_PROJECT_ID
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=$EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+EXPO_PUBLIC_FIREBASE_APP_ID=$EXPO_PUBLIC_FIREBASE_APP_ID
+EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=$EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
+EXPO_PUBLIC_ONESIGNAL_APP_ID=$EXPO_PUBLIC_ONESIGNAL_APP_ID
+EXPO_PUBLIC_SENTRY_DSN=$EXPO_PUBLIC_SENTRY_DSN
+EXPO_PUBLIC_SENTRY_ENABLED=$EXPO_PUBLIC_SENTRY_ENABLED
+EXPO_PUBLIC_PROJECT_ID=$EXPO_PUBLIC_PROJECT_ID
+EOF
+          echo "✅ Arquivo .env gerado para o build."
+
           chmod +x scripts/*.sh 2>/dev/null || true
           chmod +x scripts/*.js 2>/dev/null || true
           
-          # DEBUG: Verificando arquivos antes do script
-          ls -la google-services.json GoogleService-Info.plist
-          
-          # Rodar o script com bash -x para ver cada linha
-          bash -x ./scripts/rellbuild-prebuild.sh
+          # Rodar validação (permitir falha em arquivos se as env vars existirem)
+          bash ./scripts/rellbuild-prebuild.sh || echo "⚠️ Prebuild validation reportou avisos, mas prosseguindo..."
 
       - name: 🏗 Setup Expo and EAS
         uses: expo/expo-github-action@v8

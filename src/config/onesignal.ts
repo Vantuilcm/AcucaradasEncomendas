@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/react-native';
 const isDevelopment = __DEV__;
 
 // IDs do OneSignal para diferentes ambientes
-const ONESIGNAL_APP_ID = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID || '2df9c7f0-6fb7-4cbe-87e9-c6fb116203f7';
+const ONESIGNAL_APP_ID = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID;
 
 // Tipos de notificação suportados pelo OneSignal
 export enum OneSignalNotificationType {
@@ -47,6 +47,11 @@ export interface OneSignalNotificationData {
  * Inicializa o OneSignal com as configurações apropriadas (SDK v5)
  */
 export const initOneSignal = (): boolean => {
+  if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.includes('placeholder')) {
+    console.log('[OneSignal] App ID ausente ou inválido. Notificações desativadas.');
+    return false;
+  }
+
   try {
     if (Platform.OS === 'web') return false;
 
