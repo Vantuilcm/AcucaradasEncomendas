@@ -132,7 +132,7 @@ jobs:
           
           echo "Iniciando build local do Android (Beta)..."
           # Adicionando --non-interactive explicitamente para evitar prompts
-          eas build --platform android --profile beta --local --non-interactive --verbose --output app-beta.apk
+          eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
 
       - name: Build iOS Release (IPA)
         if: success()
@@ -145,7 +145,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Iniciando build local do iOS (Release)..."
-          eas build --platform ios --profile production --local --non-interactive --verbose --output app-release.ipa
+          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
 
       - name: Build Android Release (AAB)
         if: success()
@@ -154,7 +154,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Iniciando build local do Android (Release)..."
-          eas build --platform android --profile production --local --non-interactive --verbose --output app-release.aab
+          eas build --platform android --profile production --local --non-interactive --output app-release.aab
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
