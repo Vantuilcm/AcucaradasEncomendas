@@ -1,0 +1,27 @@
+# .easignore - Configuração simplificada para o EAS Build Local
+# Este arquivo substitui o .gitignore durante o build local do EAS.
+
+# Pastas pesadas e geradas
+node_modules/
+.expo/
+dist/
+web-build/
+build/
+ios/
+android/
+
+# Artefatos de build
+*.ipa
+*.apk
+*.aab
+
+# Logs e arquivos temporários
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+*.zip
+
+# NÃO ignorar google-services.json e GoogleService-Info.plist aqui,
+# pois eles são necessários para o build mas estão no .gitignore.
+# Ao NÃO listá-los aqui, o EAS irá incluí-los no build local.

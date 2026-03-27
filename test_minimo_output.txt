@@ -1,0 +1,237 @@
+  console.log
+    JEST SETUP STARTING...
+
+      at Object.log (jest.setup.ts:1:9)
+
+  console.log
+    [INFO] ProductService inicializado
+
+      at LoggingService.log [as info] (src/services/LoggingService.ts:45:13)
+
+  console.log
+    Loading manual mock for firebase/auth
+
+      at Object.<anonymous> (__mocks__/firebase/auth.js:2:53)
+
+  console.log
+    AuthContext: useEffect checkDeviceSecurity started
+
+      at log (src/contexts/AuthContext.tsx:42:13)
+
+  console.log
+    AuthContext: calling deviceSecurityService.performSecurityCheck
+
+      at log (src/contexts/AuthContext.tsx:45:17)
+
+  console.log
+    AuthContext: securityCheck result { compromised: false, emulator: false, debugging: false }
+
+      at log (src/contexts/AuthContext.tsx:47:17)
+
+  console.error
+    Warning: An update to AuthProvider inside a test was not wrapped in act(...).
+    
+    When testing, code that causes React state updates should be wrapped into act(...):
+    
+    act(() => {
+      /* fire events that update state */
+    });
+    /* assert on the output */
+    
+    This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\AuthContext.tsx:31:73)
+        at App
+
+    [0m [90m 296 |[39m       })[33m;[39m
+     [90m 297 |[39m     } [36mfinally[39m {
+    [31m[1m>[22m[39m[90m 298 |[39m       setLoading([36mfalse[39m)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 299 |[39m     }
+     [90m 300 |[39m   }[33m;[39m
+     [90m 301 |[39m[0m
+
+      at printWarning (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:72:30)
+      at error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:46:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16677:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14877:5)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7510:7)
+      at setLoading (src/contexts/AuthContext.tsx:298:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.error
+    Warning: An update to CartProvider inside a test was not wrapped in act(...).
+    
+    When testing, code that causes React state updates should be wrapped into act(...):
+    
+    act(() => {
+      /* fire events that update state */
+    });
+    /* assert on the output */
+    
+    This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\CartContext.tsx:19:73)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\jest.setup.ts:63:24)
+        at TouchableWithoutFeedback (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Components\Touchable\TouchableWithoutFeedback.js:118:31)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\AuthContext.tsx:31:73)
+        at App
+
+    [0m [90m 30 |[39m       setIsLoading([36mtrue[39m)[33m;[39m
+     [90m 31 |[39m       [36mconst[39m currentCart [33m=[39m [36mawait[39m cartService[33m.[39mgetCart()[33m;[39m
+    [31m[1m>[22m[39m[90m 32 |[39m       setCart(currentCart)[33m;[39m
+     [90m    |[39m       [31m[1m^[22m[39m
+     [90m 33 |[39m
+     [90m 34 |[39m       [90m// Atualizar contagem de itens[39m
+     [90m 35 |[39m       [36mconst[39m count [33m=[39m currentCart[33m.[39mitems[33m.[39mreduce((total[33m,[39m item) [33m=>[39m total [33m+[39m item[33m.[39mquantity[33m,[39m [35m0[39m)[33m;[39m[0m
+
+      at printWarning (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:72:30)
+      at error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:46:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16677:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14877:5)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7510:7)
+      at setCart (src/contexts/CartContext.tsx:32:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.error
+    Warning: An update to CartProvider inside a test was not wrapped in act(...).
+    
+    When testing, code that causes React state updates should be wrapped into act(...):
+    
+    act(() => {
+      /* fire events that update state */
+    });
+    /* assert on the output */
+    
+    This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\CartContext.tsx:19:73)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\jest.setup.ts:63:24)
+        at TouchableWithoutFeedback (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Components\Touchable\TouchableWithoutFeedback.js:118:31)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\AuthContext.tsx:31:73)
+        at App
+
+    [0m [90m 34 |[39m       [90m// Atualizar contagem de itens[39m
+     [90m 35 |[39m       [36mconst[39m count [33m=[39m currentCart[33m.[39mitems[33m.[39mreduce((total[33m,[39m item) [33m=>[39m total [33m+[39m item[33m.[39mquantity[33m,[39m [35m0[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 36 |[39m       setItemCount(count)[33m;[39m
+     [90m    |[39m       [31m[1m^[22m[39m
+     [90m 37 |[39m
+     [90m 38 |[39m       [90m// Calcular total[39m
+     [90m 39 |[39m       [36mconst[39m total [33m=[39m [36mawait[39m cartService[33m.[39mgetCartTotal()[33m;[39m[0m
+
+      at printWarning (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:72:30)
+      at error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:46:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16677:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14877:5)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7510:7)
+      at setItemCount (src/contexts/CartContext.tsx:36:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.error
+    Warning: An update to AuthProvider inside a test was not wrapped in act(...).
+    
+    When testing, code that causes React state updates should be wrapped into act(...):
+    
+    act(() => {
+      /* fire events that update state */
+    });
+    /* assert on the output */
+    
+    This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\AuthContext.tsx:31:73)
+        at App
+
+    [0m [90m 110 |[39m         [36mawait[39m logout()[33m;[39m
+     [90m 111 |[39m       } [36mfinally[39m {
+    [31m[1m>[22m[39m[90m 112 |[39m         setLoading([36mfalse[39m)[33m;[39m
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 113 |[39m       }
+     [90m 114 |[39m     }[33m;[39m
+     [90m 115 |[39m[0m
+
+      at printWarning (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:72:30)
+      at error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:46:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16677:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14877:5)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7510:7)
+      at setLoading (src/contexts/AuthContext.tsx:112:9)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.error
+    Warning: An update to CartProvider inside a test was not wrapped in act(...).
+    
+    When testing, code that causes React state updates should be wrapped into act(...):
+    
+    act(() => {
+      /* fire events that update state */
+    });
+    /* assert on the output */
+    
+    This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\CartContext.tsx:19:73)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\jest.setup.ts:63:24)
+        at TouchableWithoutFeedback (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Components\Touchable\TouchableWithoutFeedback.js:118:31)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\AuthContext.tsx:31:73)
+        at App
+
+    [0m [90m 38 |[39m       [90m// Calcular total[39m
+     [90m 39 |[39m       [36mconst[39m total [33m=[39m [36mawait[39m cartService[33m.[39mgetCartTotal()[33m;[39m
+    [31m[1m>[22m[39m[90m 40 |[39m       setCartTotal(total)[33m;[39m
+     [90m    |[39m       [31m[1m^[22m[39m
+     [90m 41 |[39m     } [36mcatch[39m (error) {
+     [90m 42 |[39m       console[33m.[39merror([32m'Erro ao carregar carrinho:'[39m[33m,[39m error)[33m;[39m
+     [90m 43 |[39m     } [36mfinally[39m {[0m
+
+      at printWarning (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:72:30)
+      at error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:46:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16677:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14877:5)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7510:7)
+      at setCartTotal (src/contexts/CartContext.tsx:40:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.error
+    Warning: An update to CartProvider inside a test was not wrapped in act(...).
+    
+    When testing, code that causes React state updates should be wrapped into act(...):
+    
+    act(() => {
+      /* fire events that update state */
+    });
+    /* assert on the output */
+    
+    This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\CartContext.tsx:19:73)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\jest.setup.ts:63:24)
+        at TouchableWithoutFeedback (C:\Users\vantu\Downloads\AcucaradasEncomendas\node_modules\react-native\Libraries\Components\Touchable\TouchableWithoutFeedback.js:118:31)
+        at children (C:\Users\vantu\Downloads\AcucaradasEncomendas\src\contexts\AuthContext.tsx:31:73)
+        at App
+
+    [0m [90m 42 |[39m       console[33m.[39merror([32m'Erro ao carregar carrinho:'[39m[33m,[39m error)[33m;[39m
+     [90m 43 |[39m     } [36mfinally[39m {
+    [31m[1m>[22m[39m[90m 44 |[39m       setIsLoading([36mfalse[39m)[33m;[39m
+     [90m    |[39m       [31m[1m^[22m[39m
+     [90m 45 |[39m     }
+     [90m 46 |[39m   }[33m,[39m [])[33m;[39m
+     [90m 47 |[39m[0m
+
+      at printWarning (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:72:30)
+      at error (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:46:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16677:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14877:5)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7510:7)
+      at setIsLoading (src/contexts/CartContext.tsx:44:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS src/__tests__/e2e/test_compra_minimo.test.tsx (168.715 s)
+  Minimal App Test
+    √ should render App without crashing (1946 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        171.691 s
+Ran all test suites matching /src\\__tests__\\e2e\\test_compra_minimo.test.tsx/i.

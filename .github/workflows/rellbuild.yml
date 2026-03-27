@@ -1,0 +1,181 @@
+name: RellBuild Beta Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - upgrade/sdk-52-rn-076
+  workflow_dispatch:
+
+jobs:
+  validate-and-build:
+    name: RellBuild Validation & Build
+    runs-on: macos-latest
+    env:
+      ACTIONS_STEP_DEBUG: true
+      CI: 1
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+      EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+      EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
+      EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+      EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+      EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
+      EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+      GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+      GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+      EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+      EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
+      EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Security Audit (Non-blocking)
+        run: npm audit --audit-level=high || echo "⚠️ Vulnerabilidades encontradas, mas prosseguindo conforme solicitado."
+
+      - name: RellBuild Prebuild Validation
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
+          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
+        run: |
+          echo "Injetando segredos e configurando ambiente..."
+          
+          # Criar .env para o build (Expo SDK 52 usa EXPO_PUBLIC_*)
+          cat <<EOF > .env
+          EXPO_PUBLIC_FIREBASE_API_KEY=$EXPO_PUBLIC_FIREBASE_API_KEY
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=$EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID=$EXPO_PUBLIC_FIREBASE_PROJECT_ID
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=$EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+          EXPO_PUBLIC_FIREBASE_APP_ID=$EXPO_PUBLIC_FIREBASE_APP_ID
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=$EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
+          EXPO_PUBLIC_ONESIGNAL_APP_ID=$EXPO_PUBLIC_ONESIGNAL_APP_ID
+          EXPO_PUBLIC_SENTRY_DSN=$EXPO_PUBLIC_SENTRY_DSN
+          EXPO_PUBLIC_SENTRY_ENABLED=$EXPO_PUBLIC_SENTRY_ENABLED
+          EXPO_PUBLIC_PROJECT_ID=$EXPO_PUBLIC_PROJECT_ID
+          SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
+          EOF
+          
+          # Remover espacos extras do .env
+          sed -i '' 's/^[[:space:]]*//' .env || sed -i 's/^[[:space:]]*//' .env
+          
+          echo "Arquivo .env gerado para o build."
+
+          chmod +x scripts/*.sh 2>/dev/null || true
+          chmod +x scripts/*.js 2>/dev/null || true
+          
+          # Rodar validacao
+          bash ./scripts/rellbuild-prebuild.sh
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Check EAS Status
+        run: |
+          eas whoami
+          eas project:info
+
+      - name: Validate Expo Config
+        run: npx expo config --json
+
+      - name: Expo Doctor Check
+        run: npx expo-doctor . --fix-dependencies
+
+      - name: Build Android Beta (APK)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          echo "Verificando arquivos Firebase..."
+          ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Arquivos Firebase não encontrados no root!"
+          
+          echo "Iniciando build local do Android (Beta)..."
+          # Adicionando --non-interactive explicitamente para evitar prompts
+          eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
+
+      - name: Build iOS Release (IPA)
+        if: success()
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+          EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          echo "Iniciando build local do iOS (Release)..."
+          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
+
+      - name: Build Android Release (AAB)
+        if: success()
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          echo "Iniciando build local do Android (Release)..."
+          eas build --platform android --profile production --local --non-interactive --output app-release.aab
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rellbuild-artifacts
+          path: |
+            app-beta.apk
+            app-release.aab
+            app-release.ipa
+          if-no-files-found: warn
+
+      - name: RellBuild Final Report
+        if: always()
+        run: |
+          echo "### RellBuild Status"
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Build concluído com sucesso!"
+          else
+            echo "❌ Build falhou. Verifique os logs acima."
+          fi
