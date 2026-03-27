@@ -1,4 +1,0 @@
-
-> acucaradas-encomendas@1.0.1 test
-> jest src/__tests__/simple.test.js --forceExit --detectOpenHandles
-

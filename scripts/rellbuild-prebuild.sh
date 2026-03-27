@@ -72,8 +72,7 @@ else
 fi
 
 echo "3️⃣ Validando Configuração do Expo..."
-# Tentar rodar expo config. Se falhar, mostrar o erro.
-npx expo config --json || { echo "❌ Erro crítico na configuração do Expo!"; npx expo config --json; exit 1; }
+npx expo config --json --non-interactive || { echo "❌ Erro crítico na configuração do Expo!"; npx expo config --json; exit 1; }
 echo "✅ Configuração do Expo válida."
 
 echo "4️⃣ Validando Dependências Críticas..."
