@@ -145,5 +145,17 @@
     "metro-cache": "^0.81.0",
     "metro-runtime": "^0.81.0"
   },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false,
+        "exclude": [
+          "react-native-chart-kit",
+          "@react-native-voice/voice",
+          "crypto-js"
+        ]
+      }
+    }
+  },
   "private": true
 }
