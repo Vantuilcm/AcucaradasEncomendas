@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e # Fail fast
 
-echo "🚀 Iniciando RellBuild Prebuild Checks..."
+echo "🚀 Iniciando RellBuild Prebuild Checks... (Build triggered after secret update)"
 # Removido ls -la excessivo para limpar logs CI
 
 echo "1️⃣ Validando Variáveis de Ambiente..."
