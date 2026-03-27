@@ -38,6 +38,8 @@ jobs:
       EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
       EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
       EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
+      SUBMIT_ENABLED: "true"
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
 
     steps:
       - name: Checkout repository
@@ -214,4 +216,38 @@ jobs:
             echo "✅ Build concluído com sucesso!"
           else
             echo "❌ Build falhou. Verifique os logs acima."
+          fi
+
+      - name: Submit iOS to TestFlight
+        if: success() && env.SUBMIT_ENABLED == 'true'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -f "app-release.ipa" ]; then
+            echo "🚀 Iniciando submissão iOS para TestFlight..."
+            npx eas submit -p ios --path app-release.ipa --non-interactive
+          else
+            echo "⚠️ Arquivo app-release.ipa não encontrado. Pulando submissão iOS."
+            echo "Para submeter manualmente: npx eas submit -p ios --latest"
+          fi
+
+      - name: Submit Android to Play Store
+        if: success() && env.SUBMIT_ENABLED == 'true' && !contains(github.event.head_commit.message, '[ios-only]')
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -f "app-release.aab" ]; then
+            echo "🚀 Iniciando submissão Android para Google Play (Internal)..."
+            
+            # Criar arquivo de credenciais temporario se o segredo existir
+            if [ ! -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
+              echo "$GOOGLE_SERVICE_ACCOUNT_JSON" > google-service-account.json
+              npx eas submit -p android --path app-release.aab --non-interactive --profile preview
+            else
+              echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado. Tentando via credenciais remotas..."
+              npx eas submit -p android --path app-release.aab --non-interactive --profile preview
+            fi
+          else
+            echo "⚠️ Arquivo app-release.aab não encontrado. Pulando submissão Android."
+            echo "Para submeter manualmente: Upload manual do app-release.aab no Play Console."
           fi
