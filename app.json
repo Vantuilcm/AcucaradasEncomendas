@@ -106,6 +106,8 @@
       }
     },
     "owner": "acucaradaencomendas",
-    "runtimeVersion": "1.1.1"
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }
