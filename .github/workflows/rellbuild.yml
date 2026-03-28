@@ -257,7 +257,9 @@ EOF
             
             if [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
               echo "Configurando ASC API Key temporária para submissão..."
-              echo "$EXPO_ASC_API_KEY" > asc-key-submit.json
+              cat <<'EOF' > asc-key-submit.json
+${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
+EOF
               if command -v jq >/dev/null 2>&1 && jq . asc-key-submit.json >/dev/null 2>&1; then
                 export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key-submit.json)
                 export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key-submit.json)
@@ -265,8 +267,18 @@ EOF
                 export EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKeySubmit.p8
                 echo "✅ Credenciais ASC extraídas para submissão."
               else
-                echo "⚠️ Usando arquivo bruto para submissão."
-                export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key-submit.json
+                echo "⚠️ Falha no parse do JSON. Tentando via printf..."
+                printf "%s" "$EXPO_ASC_API_KEY" > asc-key-submit.json
+                if jq . asc-key-submit.json >/dev/null 2>&1; then
+                  export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key-submit.json)
+                  export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key-submit.json)
+                  jq -r '.key' asc-key-submit.json > AuthKeySubmit.p8
+                  export EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKeySubmit.p8
+                  echo "✅ Credenciais ASC extraídas via printf."
+                else
+                  echo "⚠️ Usando arquivo bruto para submissão."
+                  export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key-submit.json
+                fi
               fi
             fi
 
