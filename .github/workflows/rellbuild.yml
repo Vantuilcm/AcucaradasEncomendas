@@ -157,10 +157,10 @@ jobs:
         run: |
           echo "Iniciando build local do iOS (Release)..."
           
-          if [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
-            echo "Detectada ASC API Key em formato JSON. Extraindo de forma segura..."
-            printf "%s" "$EXPO_ASC_API_KEY" > asc-key.json
-            # Validar e processar
+          # Injetar ASC API Key via secret direto para evitar escapes do shell
+          if [[ "${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}" == \{* ]]; then
+            echo "Detectada ASC API Key em formato JSON. Extraindo..."
+            echo '${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}' > asc-key.json
             if command -v jq >/dev/null 2>&1 && jq . asc-key.json >/dev/null 2>&1; then
               export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key.json)
               export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key.json)
@@ -168,9 +168,18 @@ jobs:
               export EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKey.p8
               echo "✅ ASC API Key extraída com sucesso."
             else
-              echo "⚠️ Falha crítica no parse da ASC Key."
-              ls -l asc-key.json
-              export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json
+              echo "⚠️ Falha no parse. Tentando via env variable..."
+              printf "%s" "$EXPO_ASC_API_KEY" > asc-key.json
+              if jq . asc-key.json >/dev/null 2>&1; then
+                export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key.json)
+                export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key.json)
+                jq -r '.key' asc-key.json > AuthKey.p8
+                export EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKey.p8
+                echo "✅ ASC API Key extraída com sucesso (v2)."
+              else
+                echo "❌ Falha crítica no parse da ASC Key."
+                export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json
+              fi
             fi
           fi
 
@@ -185,6 +194,12 @@ jobs:
           fi
           
           echo "Iniciando compilação nativa com EAS CLI..."
+          # Usar build-local se necessário, mas o problema pode ser a falta de credenciais remotas prontas
+          # Tentar injetar as variáveis exportadas explicitamente
+          export EXPO_ASC_KEY_ID=$EXPO_ASC_KEY_ID
+          export EXPO_ASC_ISSUER_ID=$EXPO_ASC_ISSUER_ID
+          export EXPO_ASC_API_KEY_PATH=$EXPO_ASC_API_KEY_PATH
+          
           eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
           
           echo "Verificando se o IPA foi gerado..."
@@ -243,9 +258,10 @@ jobs:
           if [ -f "app-release.ipa" ]; then
             echo "🚀 Iniciando submissão iOS para TestFlight..."
             
-            if [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
-              echo "Configurando ASC API Key temporária para submissão..."
-              printf "%s" "$EXPO_ASC_API_KEY" > asc-key-submit.json
+            # Injetar ASC API Key via secret direto para submissão
+            if [[ "${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}" == \{* ]]; then
+              echo "Configurando ASC API Key para submissão..."
+              echo '${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}' > asc-key-submit.json
               if command -v jq >/dev/null 2>&1 && jq . asc-key-submit.json >/dev/null 2>&1; then
                 export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key-submit.json)
                 export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key-submit.json)
@@ -253,8 +269,18 @@ jobs:
                 export EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKeySubmit.p8
                 echo "✅ Credenciais ASC extraídas para submissão."
               else
-                echo "⚠️ Usando arquivo bruto para submissão."
-                export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key-submit.json
+                echo "⚠️ Falha no parse. Tentando via env variable..."
+                printf "%s" "$EXPO_ASC_API_KEY" > asc-key-submit.json
+                if jq . asc-key-submit.json >/dev/null 2>&1; then
+                  export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key-submit.json)
+                  export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key-submit.json)
+                  jq -r '.key' asc-key-submit.json > AuthKeySubmit.p8
+                  export EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKeySubmit.p8
+                  echo "✅ Credenciais ASC extraídas via printf."
+                else
+                  echo "⚠️ Usando arquivo bruto para submissão."
+                  export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key-submit.json
+                fi
               fi
             fi
 
