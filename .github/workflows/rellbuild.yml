@@ -140,8 +140,7 @@ jobs:
           ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Arquivos Firebase não encontrados no root!"
           
           echo "Iniciando build local do Android (Beta)..."
-          echo "NOTA: Este build roda no GitHub Actions, não aparecerá no dashboard do EAS Cloud."
-          eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
+          eas build --platform android --profile beta --local --non-interactive --output $(pwd)/app-beta.apk
 
       - name: Build iOS Release (IPA)
         id: ios_release
@@ -151,40 +150,26 @@ jobs:
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID || '7L9P9U9Z9R' }}
-          # Segredos ASC API Key (pode ser um JSON ou os campos individuais)
           EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
           EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Iniciando build local do iOS (Release)..."
-          echo "NOTA: Este build roda no GitHub Actions, não aparecerá no dashboard do EAS Cloud."
           
-          # Verificar se a ASC API Key e um JSON e extrair se necessario
           if [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
             echo "Detectada ASC API Key em formato JSON. Extraindo..."
             echo "$EXPO_ASC_API_KEY" > asc-key.json
-            
-            # Tentar extrair campos se o jq estiver disponivel
             if command -v jq >/dev/null 2>&1; then
               export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key.json)
               export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key.json)
-              # O arquivo .p8 pode estar codificado em base64 no JSON ou ser o proprio conteudo
               jq -r '.key' asc-key.json > AuthKey.p8
               export EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKey.p8
-              echo "ASC Key ID: $EXPO_ASC_KEY_ID"
-              echo "ASC Issuer ID: $EXPO_ASC_ISSUER_ID"
             else
-              # Se nao tiver jq, tentar usar o arquivo JSON diretamente (o EAS as vezes aceita)
               export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json
             fi
           fi
           
-          # Tentar login preventivo se as credenciais estiverem disponiveis
-          if [ ! -z "$EXPO_APPLE_ID" ] && [ ! -z "$EXPO_APPLE_APP_SPECIFIC_PASSWORD" ]; then
-            echo "Tentando configurar credenciais iOS via Apple ID..."
-          fi
-          
-          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
+          eas build --platform ios --profile production --local --non-interactive --output $(pwd)/app-release.ipa
 
       - name: Build Android Release (AAB)
         id: android_release
@@ -194,8 +179,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Iniciando build local do Android (Release)..."
-          echo "NOTA: Este build roda no GitHub Actions, não aparecerá no dashboard do EAS Cloud."
-          eas build --platform android --profile production --local --non-interactive --output app-release.aab
+          eas build --platform android --profile production --local --non-interactive --output $(pwd)/app-release.aab
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -228,14 +212,15 @@ jobs:
           EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
           EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
         run: |
-          if [ -f "app-release.ipa" ]; then
+          echo "Verificando artefato iOS..."
+          ls -la $(pwd)/app-release.ipa || true
+          
+          if [ -f "$(pwd)/app-release.ipa" ]; then
             echo "🚀 Iniciando submissão iOS para TestFlight..."
             
-            # Preparar ASC Key se for JSON
             if [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
               echo "Configurando ASC API Key temporária para submissão..."
               echo "$EXPO_ASC_API_KEY" > asc-key-submit.json
-              
               if command -v jq >/dev/null 2>&1; then
                 export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key-submit.json)
                 export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key-submit.json)
@@ -246,39 +231,32 @@ jobs:
               fi
             fi
 
-            # Executar submissão com logs detalhados
-            eas submit -p ios --path app-release.ipa --non-interactive
+            eas submit -p ios --path $(pwd)/app-release.ipa --non-interactive
           else
-            echo "⚠️ Arquivo app-release.ipa não encontrado. Pulando submissão iOS."
-            echo "Para submeter manualmente: eas submit -p ios --latest"
+            echo "⚠️ Arquivo app-release.ipa não encontrado em $(pwd). Tentando busca global..."
+            find . -name "app-release.ipa"
+            exit 1
           fi
 
       - name: Submit Android to Play Store
         if: success() && env.SUBMIT_ENABLED == 'true' && !contains(github.event.head_commit.message, '[ios-only]')
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
         run: |
-          if [ -f "app-release.aab" ]; then
+          if [ -f "$(pwd)/app-release.aab" ]; then
             echo "🚀 Iniciando submissão Android para Google Play (Internal)..."
             
-            # Criar arquivo de credenciais temporario se o segredo existir
             if [ ! -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
               echo "Configurando credenciais locais via GOOGLE_SERVICE_ACCOUNT_JSON..."
               echo "$GOOGLE_SERVICE_ACCOUNT_JSON" > google-service-account.json
-              eas submit -p android --path app-release.aab --service-account-key-path google-service-account.json --non-interactive --profile preview
+              eas submit -p android --path $(pwd)/app-release.aab --service-account-key-path google-service-account.json --non-interactive --profile preview
             else
               echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado no GitHub Secrets."
-              echo "Para submissão automática via CI, o Google Service Account JSON é OBRIGATÓRIO."
-              echo "O EAS não permite configurar novas credenciais em modo --non-interactive."
-              echo ""
-              echo "Siga estes passos para corrigir:"
-              echo "1. Gere o JSON no Google Cloud Console (IAM > Service Accounts > Keys)."
-              echo "2. Adicione o conteúdo do JSON no GitHub Secret: GOOGLE_SERVICE_ACCOUNT_JSON"
-              echo ""
-              echo "Alternativa Manual:"
-              echo "npx eas submit -p android --latest"
               exit 1
             fi
           else
-            echo "⚠️ Arquivo app-release.aab não encontrado. Pulando submissão Android."
+            echo "⚠️ Arquivo app-release.aab não encontrado em $(pwd)."
+            find . -name "app-release.aab"
+            exit 1
           fi
