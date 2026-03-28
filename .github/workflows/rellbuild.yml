@@ -159,9 +159,7 @@ jobs:
           
           if [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
             echo "Detectada ASC API Key em formato JSON. Extraindo de forma segura..."
-            cat <<'EOF' > asc-key.json
-            ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
-            EOF
+            echo "$EXPO_ASC_API_KEY" > asc-key.json
             # Validar e processar
             if command -v jq >/dev/null 2>&1 && jq . asc-key.json >/dev/null 2>&1; then
               export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key.json)
@@ -247,9 +245,7 @@ jobs:
             
             if [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
               echo "Configurando ASC API Key temporária para submissão..."
-              cat <<'EOF' > asc-key-submit.json
-              ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
-              EOF
+              echo "$EXPO_ASC_API_KEY" > asc-key-submit.json
               if command -v jq >/dev/null 2>&1 && jq . asc-key-submit.json >/dev/null 2>&1; then
                 export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key-submit.json)
                 export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key-submit.json)
