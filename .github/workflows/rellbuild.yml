@@ -145,7 +145,7 @@ jobs:
 
       - name: Build iOS Release (IPA)
         id: ios_release
-        continue-on-error: true
+        if: "always() && !cancelled() && !contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
@@ -169,9 +169,19 @@ jobs:
               export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json
             fi
           fi
+
+          echo "Executando prebuild para validar config iOS..."
+          npx expo prebuild --platform ios --no-install
           
-          # Tentar build sem o path absoluto no output primeiro, pois o EAS pode ter problemas com o prefixo do runner
-          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
+          if [ -d "ios" ]; then
+            echo "✅ Pasta 'ios' gerada com sucesso!"
+          else
+            echo "❌ Falha ao gerar pasta 'ios'!"
+            exit 1
+          fi
+          
+          echo "Iniciando compilação nativa com EAS CLI..."
+          npx eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
           
           echo "Verificando se o IPA foi gerado..."
           ls -la app-release.ipa || echo "❌ app-release.ipa não encontrado no root!"
