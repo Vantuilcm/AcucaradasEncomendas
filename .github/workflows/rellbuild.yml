@@ -140,7 +140,8 @@ jobs:
           ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Arquivos Firebase não encontrados no root!"
           
           echo "Iniciando build local do Android (Beta)..."
-          eas build --platform android --profile beta --local --non-interactive --output $(pwd)/app-beta.apk
+          eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
+          ls -la app-beta.apk || true
 
       - name: Build iOS Release (IPA)
         id: ios_release
@@ -169,7 +170,16 @@ jobs:
             fi
           fi
           
-          eas build --platform ios --profile production --local --non-interactive --output $(pwd)/app-release.ipa
+          # Tentar build sem o path absoluto no output primeiro, pois o EAS pode ter problemas com o prefixo do runner
+          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
+          
+          echo "Verificando se o IPA foi gerado..."
+          ls -la app-release.ipa || echo "❌ app-release.ipa não encontrado no root!"
+          
+          if [ ! -f "app-release.ipa" ]; then
+            echo "Buscando IPA em subdiretórios..."
+            find . -name "*.ipa"
+          fi
 
       - name: Build Android Release (AAB)
         id: android_release
@@ -179,7 +189,8 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Iniciando build local do Android (Release)..."
-          eas build --platform android --profile production --local --non-interactive --output $(pwd)/app-release.aab
+          eas build --platform android --profile production --local --non-interactive --output app-release.aab
+          ls -la app-release.aab || echo "❌ app-release.aab não encontrado no root!"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -213,9 +224,9 @@ jobs:
           EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
         run: |
           echo "Verificando artefato iOS..."
-          ls -la $(pwd)/app-release.ipa || true
+          ls -la app-release.ipa || true
           
-          if [ -f "$(pwd)/app-release.ipa" ]; then
+          if [ -f "app-release.ipa" ]; then
             echo "🚀 Iniciando submissão iOS para TestFlight..."
             
             if [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
@@ -231,11 +242,17 @@ jobs:
               fi
             fi
 
-            eas submit -p ios --path $(pwd)/app-release.ipa --non-interactive
+            eas submit -p ios --path app-release.ipa --non-interactive
           else
-            echo "⚠️ Arquivo app-release.ipa não encontrado em $(pwd). Tentando busca global..."
-            find . -name "app-release.ipa"
-            exit 1
+            echo "⚠️ Arquivo app-release.ipa não encontrado no root. Buscando..."
+            IPA_PATH=$(find . -name "app-release.ipa" | head -n 1)
+            if [ ! -z "$IPA_PATH" ]; then
+              echo "Encontrado em: $IPA_PATH. Submetendo..."
+              eas submit -p ios --path "$IPA_PATH" --non-interactive
+            else
+              echo "❌ Falha crítica: app-release.ipa não existe em nenhum lugar."
+              exit 1
+            fi
           fi
 
       - name: Submit Android to Play Store
@@ -244,19 +261,25 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
         run: |
-          if [ -f "$(pwd)/app-release.aab" ]; then
+          if [ -f "app-release.aab" ]; then
             echo "🚀 Iniciando submissão Android para Google Play (Internal)..."
             
             if [ ! -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
               echo "Configurando credenciais locais via GOOGLE_SERVICE_ACCOUNT_JSON..."
               echo "$GOOGLE_SERVICE_ACCOUNT_JSON" > google-service-account.json
-              eas submit -p android --path $(pwd)/app-release.aab --service-account-key-path google-service-account.json --non-interactive --profile preview
+              eas submit -p android --path app-release.aab --service-account-key-path google-service-account.json --non-interactive --profile preview
             else
               echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado no GitHub Secrets."
               exit 1
             fi
           else
-            echo "⚠️ Arquivo app-release.aab não encontrado em $(pwd)."
-            find . -name "app-release.aab"
-            exit 1
+            echo "⚠️ Arquivo app-release.aab não encontrado no root. Buscando..."
+            AAB_PATH=$(find . -name "app-release.aab" | head -n 1)
+            if [ ! -z "$AAB_PATH" ]; then
+              echo "Encontrado em: $AAB_PATH. Submetendo..."
+              eas submit -p android --path "$AAB_PATH" --service-account-key-path google-service-account.json --non-interactive --profile preview
+            else
+              echo "❌ Falha crítica: app-release.aab não existe."
+              exit 1
+            fi
           fi
