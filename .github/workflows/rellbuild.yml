@@ -243,12 +243,19 @@ jobs:
             if [ ! -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
               echo "Configurando credenciais locais via GOOGLE_SERVICE_ACCOUNT_JSON..."
               echo "$GOOGLE_SERVICE_ACCOUNT_JSON" > google-service-account.json
-              eas submit -p android --path app-release.aab --non-interactive --profile preview
+              eas submit -p android --path app-release.aab --service-account-key-path google-service-account.json --non-interactive --profile preview
             else
               echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado no GitHub Secrets."
-              echo "Tentando submissão usando credenciais já configuradas no EAS Cloud..."
-              # Removemos a referência ao arquivo local para que o EAS use as credenciais remotas
-              eas submit -p android --path app-release.aab --non-interactive --profile preview
+              echo "Para submissão automática via CI, o Google Service Account JSON é OBRIGATÓRIO."
+              echo "O EAS não permite configurar novas credenciais em modo --non-interactive."
+              echo ""
+              echo "Siga estes passos para corrigir:"
+              echo "1. Gere o JSON no Google Cloud Console (IAM > Service Accounts > Keys)."
+              echo "2. Adicione o conteúdo do JSON no GitHub Secret: GOOGLE_SERVICE_ACCOUNT_JSON"
+              echo ""
+              echo "Alternativa Manual:"
+              echo "npx eas submit -p android --latest"
+              exit 1
             fi
           else
             echo "⚠️ Arquivo app-release.aab não encontrado. Pulando submissão Android."
