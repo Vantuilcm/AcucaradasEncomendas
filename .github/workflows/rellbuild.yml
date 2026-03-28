@@ -159,7 +159,9 @@ jobs:
           
           if [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
             echo "Detectada ASC API Key em formato JSON. Extraindo de forma segura..."
-            echo "$EXPO_ASC_API_KEY" > asc-key.json
+            cat <<'EOF' > asc-key.json
+${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
+EOF
             # Validar e processar
             if command -v jq >/dev/null 2>&1 && jq . asc-key.json >/dev/null 2>&1; then
               export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key.json)
@@ -168,9 +170,19 @@ jobs:
               export EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKey.p8
               echo "✅ ASC API Key extraída com sucesso."
             else
-              echo "⚠️ Falha no parse do JSON. Verificando conteúdo (sem exibir segredos)..."
-              ls -l asc-key.json
-              export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json
+              echo "⚠️ Falha no parse do JSON. Tentando via printf para garantir literalidade..."
+              printf "%s" "$EXPO_ASC_API_KEY" > asc-key.json
+              if jq . asc-key.json >/dev/null 2>&1; then
+                export EXPO_ASC_KEY_ID=$(jq -r '.keyId' asc-key.json)
+                export EXPO_ASC_ISSUER_ID=$(jq -r '.issuerId' asc-key.json)
+                jq -r '.key' asc-key.json > AuthKey.p8
+                export EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKey.p8
+                echo "✅ ASC API Key extraída com sucesso via printf."
+              else
+                echo "❌ Falha crítica no parse da ASC Key."
+                ls -l asc-key.json
+                export EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json
+              fi
             fi
           fi
 
@@ -185,7 +197,7 @@ jobs:
           fi
           
           echo "Iniciando compilação nativa com EAS CLI..."
-          npx eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
+          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
           
           echo "Verificando se o IPA foi gerado..."
           ls -la app-release.ipa || echo "❌ app-release.ipa não encontrado no root!"
