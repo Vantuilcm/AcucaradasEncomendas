@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v25
+# RellBuild: Sync Check [2026-03-29] v26
 
 name: RellBuild Beta Pipeline
 
@@ -131,68 +131,65 @@ jobs:
           cat <<'EOF' > prepare_asc.js
           const fs = require('fs');
           const path = require('path');
-          let rawKey = process.env.EXPO_ASC_API_KEY;
+          const rawKey = process.env.EXPO_ASC_API_KEY;
+          
           if (!rawKey) {
-            console.log('⚠️ Nenhuma ASC API Key encontrada.');
+            console.log('⚠️ EXPO_ASC_API_KEY não definida.');
             process.exit(0);
           }
+
           try {
-            rawKey = rawKey.trim();
+            const trimmedKey = rawKey.trim();
             let keyId, issuerId, keyContent;
-            
-            if (rawKey.startsWith('{')) {
-              console.log('Detectada ASC API Key em formato JSON. Tentando parse...');
+
+            // Tenta como JSON primeiro
+            if (trimmedKey.startsWith('{')) {
               try {
-                const data = JSON.parse(rawKey);
+                const data = JSON.parse(trimmedKey);
                 keyId = data.keyId || data.key_id;
                 issuerId = data.issuerId || data.issuer_id;
-                keyContent = data.key || data.private_key || data.keyContent;
+                keyContent = data.key || data.private_key || data.keyContent || data.content;
               } catch (e) {
-                console.log('⚠️ Falha no JSON.parse. Tentando extração via Regex...');
-                const kIdMatch = rawKey.match(/"(?:keyId|key_id)"\s*:\s*"([^"]+)"/i);
-                const iIdMatch = rawKey.match(/"(?:issuerId|issuer_id)"\s*:\s*"([^"]+)"/i);
-                const kContentMatch = rawKey.match(/"(?:key|private_key|keyContent)"\s*:\s*"((?:[^"\\]|\\.)*)"/is);
-                keyId = kIdMatch ? kIdMatch[1] : null;
-                issuerId = iIdMatch ? iIdMatch[1] : null;
-                keyContent = kContentMatch ? kContentMatch[1] : null;
+                console.log('JSON.parse falhou, tentando Regex...');
               }
-            } else if (rawKey.includes('-----BEGIN')) {
-               console.log('Detectada ASC API Key em formato PEM bruto.');
-               keyContent = rawKey;
+            }
+
+            // Se não funcionou JSON ou não era JSON, tenta Regex
+            if (!keyId || !issuerId || !keyContent) {
+              const kIdMatch = trimmedKey.match(/"?keyId"?\s*[:=]\s*"?([A-Z0-9]+)"?/i);
+              const iIdMatch = trimmedKey.match(/"?issuerId"?\s*[:=]\s*"?([a-f0-9-]+)"?/i);
+              const kContentMatch = trimmedKey.match(/(-----BEGIN [^]+?-----END [^]+?-----)/is) || 
+                                   trimmedKey.match(/"?(?:key|private_key|keyContent)"?\s*[:=]\s*"?((?:[^"\\]|\\.)*)"?/is);
+              
+              keyId = keyId || (kIdMatch ? kIdMatch[1] : null);
+              issuerId = issuerId || (iIdMatch ? iIdMatch[1] : null);
+              keyContent = keyContent || (kContentMatch ? kContentMatch[1] : null);
             }
 
             if (keyId && issuerId && keyContent) {
+              console.log('✅ Dados extraídos com sucesso.');
               let cleanKey = keyContent
                 .replace(/\\n/g, '\n')
                 .replace(/\\r/g, '')
                 .replace(/\\"/g, '"')
                 .replace(/\\\\/g, '\\');
-              
+
               if (!cleanKey.includes('-----BEGIN')) {
-                if (cleanKey.length > 50) {
-                   console.log('⚠️ Chave sem header PEM. Tentando formatar...');
-                   cleanKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
-                } else {
-                   console.log('⚠️ Conteúdo extraído parece curto ou inválido. Usando como está.');
-                }
+                cleanKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
               }
 
               fs.writeFileSync('AuthKey.p8', cleanKey);
-              
-              const envs = [
-                `EXPO_ASC_KEY_ID=${keyId}`,
-                `EXPO_ASC_ISSUER_ID=${issuerId}`,
-                `EXPO_ASC_API_KEY_PATH=${process.cwd()}/AuthKey.p8`
-              ];
-              fs.appendFileSync(process.env.GITHUB_ENV, envs.join('\n') + '\n');
-              console.log(`✅ ASC API Key configurada (ID: ${keyId}).`);
+              fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_KEY_ID=${keyId}\n`);
+              fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_ISSUER_ID=${issuerId}\n`);
+              fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/AuthKey.p8\n`);
+              console.log(`🚀 Configurado: ID=${keyId}, Issuer=${issuerId}`);
             } else {
-              console.log('⚠️ Campos não extraídos. Usando como arquivo bruto.');
-              fs.writeFileSync('asc-key.json', rawKey);
+              console.log('⚠️ Não foi possível extrair campos individuais. Salvando como raw.');
+              fs.writeFileSync('asc-key.json', trimmedKey);
               fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key.json\n`);
             }
-          } catch (e) {
-            console.error('❌ Erro ao processar ASC API Key:', e.message);
+          } catch (err) {
+            console.error('❌ Erro fatal no prepare_asc:', err.message);
             fs.writeFileSync('asc-key.json', rawKey);
             fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key.json\n`);
           }
