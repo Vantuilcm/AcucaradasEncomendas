@@ -58,7 +58,10 @@
       }
     },
     "production_v2": {
-      "extends": "production"
+      "extends": "production",
+      "ios": {
+        "credentialsSource": "local"
+      }
     },
     "beta": {
       "extends": "production",
