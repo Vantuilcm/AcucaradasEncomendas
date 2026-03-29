@@ -57,6 +57,9 @@
         "buildType": "app-bundle"
       }
     },
+    "production_v2": {
+      "extends": "production"
+    },
     "beta": {
       "extends": "production",
       "distribution": "internal",
