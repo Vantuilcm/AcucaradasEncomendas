@@ -14,7 +14,6 @@
       },
       "channel": "development",
       "ios": {
-        "appleTeamId": "7L9P9U9Z9R",
         "resourceClass": "m-medium",
         "image": "macos-sequoia-15.3-xcode-16.2"
       },
@@ -50,27 +49,6 @@
       },
       "channel": "production",
       "ios": {
-        "appleTeamId": "7L9P9U9Z9R",
-        "resourceClass": "m-medium",
-        "buildConfiguration": "Release",
-        "image": "macos-sequoia-15.3-xcode-16.2"
-      },
-      "android": {
-        "buildType": "app-bundle"
-      }
-    },
-    "production_fix": {
-      "distribution": "store",
-      "autoIncrement": true,
-      "env": {
-        "APP_ENV": "production",
-        "EXPO_PUBLIC_APP_ENV": "production",
-        "EXPO_PUBLIC_APP_NAME": "Açucaradas Encomendas",
-        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045"
-      },
-      "channel": "production",
-      "ios": {
-        "appleTeamId": "7L9P9U9Z9R",
         "resourceClass": "m-medium",
         "buildConfiguration": "Release",
         "image": "macos-sequoia-15.3-xcode-16.2"

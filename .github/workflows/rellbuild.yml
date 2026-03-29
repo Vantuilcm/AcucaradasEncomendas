@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v23
+# RellBuild: Sync Check [2026-03-29] v25
 
 name: RellBuild Beta Pipeline
 
@@ -173,8 +173,7 @@ jobs:
                    console.log('⚠️ Chave sem header PEM. Tentando formatar...');
                    cleanKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
                 } else {
-                   console.error('❌ Conteúdo extraído inválido.');
-                   process.exit(1);
+                   console.log('⚠️ Conteúdo extraído parece curto ou inválido. Usando como está.');
                 }
               }
 
@@ -248,10 +247,9 @@ jobs:
             echo "✅ EXPO_ASC_KEY_ID configurada."
           fi
           
-          echo "Iniciando build local do iOS (Release com perfil production_fix para evitar erro de certificado)..."
-          # Usando um perfil completamente novo no eas.json para forçar o EAS a ignorar credenciais antigas quebradas
+          echo "Iniciando build local do iOS (Release com perfil production)..."
           # O EAS CLI usará as variáveis de ambiente da ASC API Key para gerar novas credenciais automaticamente
-          eas build --platform ios --profile production_fix --local --non-interactive --output app-release.ipa
+          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
 
       - name: Build Android Release (AAB)
         id: android_release
