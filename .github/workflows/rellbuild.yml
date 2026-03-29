@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v12
+# RellBuild: Sync Check [2026-03-29] v13
 
 name: RellBuild Beta Pipeline
 
@@ -245,9 +245,9 @@ jobs:
             echo "✅ EXPO_ASC_KEY_ID configurada."
           fi
           
-          # Tentar configurar credenciais para OneSignal target especificamente
-          echo "Configurando credenciais remotas..."
-          eas credentials --platform ios --profile production --non-interactive || echo "Aviso: Falha ao sincronizar credenciais, mas continuando..."
+          # Sincronizar credenciais remotas antes do build
+          echo "Sincronizando credenciais remotas..."
+          eas credentials --platform ios || echo "Aviso: Falha ao sincronizar credenciais, mas continuando..."
           
           echo "Iniciando build local do iOS (Release)..."
           eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
