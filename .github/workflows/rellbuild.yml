@@ -123,25 +123,37 @@ jobs:
         env:
           EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
         run: |
-          if [ ! -z "$EXPO_ASC_API_KEY" ] && [[ "$EXPO_ASC_API_KEY" == \{* ]]; then
+          # Limpar espaços em branco e verificar se parece JSON
+          CLEAN_KEY=$(echo "$EXPO_ASC_API_KEY" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          
+          if [ ! -z "$CLEAN_KEY" ] && [[ "$CLEAN_KEY" == \{* ]]; then
             echo "Detectada ASC API Key em formato JSON. Extraindo..."
-            printf "%s" "$EXPO_ASC_API_KEY" > asc-key.json
+            printf "%s" "$CLEAN_KEY" > asc-key.json
+            
+            # Tentar extrair usando python3 como fallback ao jq
             if command -v jq >/dev/null 2>&1 && jq . asc-key.json >/dev/null 2>&1; then
               KEY_ID=$(jq -r '.keyId' asc-key.json)
               ISSUER_ID=$(jq -r '.issuerId' asc-key.json)
               jq -r '.key' asc-key.json > AuthKey.p8
-              
+            else
+              echo "⚠️ jq falhou ou não encontrado. Tentando python3..."
+              KEY_ID=$(python3 -c "import json; print(json.load(open('asc-key.json'))['keyId'])")
+              ISSUER_ID=$(python3 -c "import json; print(json.load(open('asc-key.json'))['issuerId'])")
+              python3 -c "import json; print(json.load(open('asc-key.json'))['key'])" > AuthKey.p8
+            fi
+            
+            if [ ! -z "$KEY_ID" ] && [ "$KEY_ID" != "null" ]; then
               echo "EXPO_ASC_KEY_ID=$KEY_ID" >> $GITHUB_ENV
               echo "EXPO_ASC_ISSUER_ID=$ISSUER_ID" >> $GITHUB_ENV
               echo "EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKey.p8" >> $GITHUB_ENV
-              echo "✅ ASC API Key preparada com sucesso."
+              echo "✅ ASC API Key preparada com sucesso (ID: $KEY_ID)."
             else
-              echo "⚠️ Falha no parse do JSON. Usando arquivo bruto."
+              echo "❌ Falha ao extrair dados do JSON."
               echo "EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json" >> $GITHUB_ENV
             fi
-          elif [ ! -z "$EXPO_ASC_API_KEY" ]; then
+          elif [ ! -z "$CLEAN_KEY" ]; then
             echo "ASC API Key não parece ser JSON. Usando como arquivo bruto."
-            printf "%s" "$EXPO_ASC_API_KEY" > asc-key.json
+            printf "%s" "$CLEAN_KEY" > asc-key.json
             echo "EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json" >> $GITHUB_ENV
           fi
 
@@ -178,11 +190,19 @@ jobs:
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID || '7L9P9U9Z9R' }}
-          EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
-          EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
+          # Fallback Apple ID variables para o EAS CLI
+          EXPO_APPLE_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Iniciando build local do iOS (Release)..."
+          
+          # Verificar variáveis da ASC API Key injetadas pelo step anterior
+          echo "Verificando credenciais..."
+          if [ -z "$EXPO_ASC_KEY_ID" ]; then
+            echo "⚠️ EXPO_ASC_KEY_ID não encontrada no GITHUB_ENV."
+          else
+            echo "✅ EXPO_ASC_KEY_ID: $EXPO_ASC_KEY_ID"
+          fi
           
           echo "Executando prebuild para validar config iOS..."
           npx expo prebuild --platform ios --no-install
