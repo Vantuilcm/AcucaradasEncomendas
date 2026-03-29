@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v7
+# RellBuild: Sync Check [2026-03-29] v11
 
 name: RellBuild Beta Pipeline
 
@@ -334,17 +334,17 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
         run: |
+          if [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado no GitHub Secrets. Pulando submissão Android."
+            exit 0
+          fi
+
+          echo "Configurando credenciais locais via GOOGLE_SERVICE_ACCOUNT_JSON..."
+          echo "$GOOGLE_SERVICE_ACCOUNT_JSON" > google-service-account.json
+
           if [ -f "app-release.aab" ]; then
             echo "🚀 Iniciando submissão Android para Google Play (Internal)..."
-            
-            if [ ! -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
-              echo "Configurando credenciais locais via GOOGLE_SERVICE_ACCOUNT_JSON..."
-              echo "$GOOGLE_SERVICE_ACCOUNT_JSON" > google-service-account.json
-              eas submit -p android --path app-release.aab --service-account-key-path google-service-account.json --non-interactive --profile preview
-            else
-              echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado no GitHub Secrets."
-              exit 1
-            fi
+            eas submit -p android --path app-release.aab --service-account-key-path google-service-account.json --non-interactive --profile preview
           else
             echo "⚠️ Arquivo app-release.aab não encontrado no root. Buscando..."
             AAB_PATH=$(find . -name "app-release.aab" | head -n 1)
