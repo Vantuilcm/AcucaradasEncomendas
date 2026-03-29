@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v11
+# RellBuild: Sync Check [2026-03-29] v12
 
 name: RellBuild Beta Pipeline
 
@@ -137,7 +137,6 @@ jobs:
             rawKey = rawKey.trim();
             let keyId, issuerId, keyContent;
             
-            // Tentativa 1: Parse como JSON
             if (rawKey.startsWith('{')) {
               console.log('Detectada ASC API Key em formato JSON. Tentando parse...');
               try {
@@ -147,20 +146,19 @@ jobs:
                 keyContent = data.key || data.private_key || data.keyContent;
               } catch (e) {
                 console.log('⚠️ Falha no JSON.parse. Tentando extração via Regex...');
-                // Tentativa 2: Extração via Regex (robusto para JSON malformado ou escapes ruins)
                 const kIdMatch = rawKey.match(/"(?:keyId|key_id)"\s*:\s*"([^"]+)"/i);
                 const iIdMatch = rawKey.match(/"(?:issuerId|issuer_id)"\s*:\s*"([^"]+)"/i);
-                // Regex para capturar o conteúdo da chave, lidando com escapes e novas linhas literais
                 const kContentMatch = rawKey.match(/"(?:key|private_key|keyContent)"\s*:\s*"((?:[^"\\]|\\.)*)"/is);
-                
                 keyId = kIdMatch ? kIdMatch[1] : null;
                 issuerId = iIdMatch ? iIdMatch[1] : null;
                 keyContent = kContentMatch ? kContentMatch[1] : null;
               }
+            } else if (rawKey.includes('-----BEGIN')) {
+               console.log('Detectada ASC API Key em formato PEM bruto.');
+               keyContent = rawKey;
             }
 
             if (keyId && issuerId && keyContent) {
-              // Normaliza a chave (PEM): remove escapes e garante quebras de linha reais
               let cleanKey = keyContent
                 .replace(/\\n/g, '\n')
                 .replace(/\\r/g, '')
@@ -168,8 +166,14 @@ jobs:
                 .replace(/\\\\/g, '\\');
               
               if (!cleanKey.includes('-----BEGIN')) {
-                console.error('❌ Conteúdo extraído não parece ser uma chave PEM válida.');
-                process.exit(1);
+                // Se ainda não tem o header, tenta adicionar
+                if (cleanKey.length > 50) {
+                   console.log('⚠️ Chave sem header PEM. Tentando formatar...');
+                   cleanKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
+                } else {
+                   console.error('❌ Conteúdo extraído inválido.');
+                   process.exit(1);
+                }
               }
 
               fs.writeFileSync('AuthKey.p8', cleanKey);
@@ -179,14 +183,14 @@ jobs:
                 `EXPO_ASC_API_KEY_PATH=${process.cwd()}/AuthKey.p8`
               ];
               fs.appendFileSync(process.env.GITHUB_ENV, envs.join('\n') + '\n');
-              console.log(`✅ ASC API Key configurada com sucesso (ID: ${keyId}).`);
+              console.log(`✅ ASC API Key configurada (ID: ${keyId}).`);
             } else {
-              console.log('⚠️ Não foi possível extrair campos. Usando como arquivo bruto.');
+              console.log('⚠️ Campos não extraídos. Usando como arquivo bruto.');
               fs.writeFileSync('asc-key.json', rawKey);
               fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key.json\n`);
             }
           } catch (e) {
-            console.error('❌ Erro inesperado ao processar ASC API Key:', e.message);
+            console.error('❌ Erro ao processar ASC API Key:', e.message);
             fs.writeFileSync('asc-key.json', rawKey);
             fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key.json\n`);
           }
@@ -227,45 +231,26 @@ jobs:
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID || '7L9P9U9Z9R' }}
+          EXPO_ASC_KEY_ID: ${{ env.EXPO_ASC_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ env.EXPO_ASC_ISSUER_ID }}
+          EXPO_ASC_API_KEY_PATH: ${{ env.EXPO_ASC_API_KEY_PATH }}
           # Fallback Apple ID variables para o EAS CLI
           EXPO_APPLE_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Verificando credenciais..."
-          eas credentials --platform ios --profile production --non-interactive || echo "Aviso: Falha ao listar credenciais, mas continuando..."
-          echo "Iniciando build local do iOS (Release)..."
-          
-          # Verificar variáveis da ASC API Key injetadas pelo step anterior
-          echo "Verificando credenciais..."
           if [ -z "$EXPO_ASC_KEY_ID" ]; then
             echo "⚠️ EXPO_ASC_KEY_ID não encontrada no GITHUB_ENV."
           else
-            echo "✅ EXPO_ASC_KEY_ID: $EXPO_ASC_KEY_ID"
+            echo "✅ EXPO_ASC_KEY_ID configurada."
           fi
           
-          echo "Executando prebuild para validar config iOS..."
-          npx expo prebuild --platform ios --no-install
+          # Tentar configurar credenciais para OneSignal target especificamente
+          echo "Configurando credenciais remotas..."
+          eas credentials --platform ios --profile production --non-interactive || echo "Aviso: Falha ao sincronizar credenciais, mas continuando..."
           
-          if [ -d "ios" ]; then
-            echo "✅ Pasta 'ios' gerada com sucesso!"
-          else
-            echo "❌ Falha ao gerar pasta 'ios'!"
-            exit 1
-          fi
-          
-          echo "Iniciando compilação nativa com EAS CLI..."
-          # Usar build-local se necessário, mas o problema pode ser a falta de credenciais remotas prontas
-          # Variáveis EXPO_ASC_* já injetadas via GITHUB_ENV
-          
+          echo "Iniciando build local do iOS (Release)..."
           eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
-          
-          echo "Verificando se o IPA foi gerado..."
-          ls -la app-release.ipa || echo "❌ app-release.ipa não encontrado no root!"
-          
-          if [ ! -f "app-release.ipa" ]; then
-            echo "Buscando IPA em subdiretórios..."
-            find . -name "*.ipa"
-          fi
 
       - name: Build Android Release (AAB)
         id: android_release
