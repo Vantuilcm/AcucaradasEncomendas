@@ -9,7 +9,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate-and-build:
+  # Build v1.0.1-385
+  rellbuild-pipeline:
     name: RellBuild Validation & Build
     runs-on: macos-latest
     env:
