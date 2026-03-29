@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v2
+# RellBuild: Sync Check [2026-03-29] v3
 
 name: RellBuild Beta Pipeline
 
@@ -223,6 +223,7 @@ jobs:
         if: "always() && !cancelled() && !contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_APPLE_TEAM_TYPE: company
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID || '7L9P9U9Z9R' }}
