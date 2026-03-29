@@ -40,7 +40,7 @@
     },
     "production": {
       "distribution": "store",
-      "credentialsSource": "remote",
+      "credentialsSource": "local",
       "autoIncrement": true,
       "env": {
         "APP_ENV": "production",

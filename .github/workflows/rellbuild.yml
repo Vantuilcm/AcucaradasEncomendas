@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v14
+# RellBuild: Sync Check [2026-03-29] v15
 
 name: RellBuild Beta Pipeline
 
@@ -125,9 +125,12 @@ jobs:
         id: prepare_asc
         env:
           EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID || 'vantuilcaramez@gmail.com' }}
+          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID || '7L9P9U9Z9R' }}
         run: |
           cat <<'EOF' > prepare_asc.js
           const fs = require('fs');
+          const path = require('path');
           let rawKey = process.env.EXPO_ASC_API_KEY;
           if (!rawKey) {
             console.log('⚠️ Nenhuma ASC API Key encontrada.');
@@ -166,7 +169,6 @@ jobs:
                 .replace(/\\\\/g, '\\');
               
               if (!cleanKey.includes('-----BEGIN')) {
-                // Se ainda não tem o header, tenta adicionar
                 if (cleanKey.length > 50) {
                    console.log('⚠️ Chave sem header PEM. Tentando formatar...');
                    cleanKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
@@ -177,6 +179,21 @@ jobs:
               }
 
               fs.writeFileSync('AuthKey.p8', cleanKey);
+              
+              // Gerar credentials.json para bypass de remote credentials
+              const credentialsJson = {
+                ios: {
+                  bundleIdentifier: "com.acucaradas.encomendas",
+                  appleId: process.env.EXPO_APPLE_ID,
+                  ascApiKeyId: keyId,
+                  ascApiKeyIssuerId: issuerId,
+                  ascApiKeyPath: "AuthKey.p8",
+                  appleTeamId: process.env.EXPO_APPLE_TEAM_ID
+                }
+              };
+              fs.writeFileSync('credentials.json', JSON.stringify(credentialsJson, null, 2));
+              console.log('✅ credentials.json gerado para build local (Bypass Remote).');
+
               const envs = [
                 `EXPO_ASC_KEY_ID=${keyId}`,
                 `EXPO_ASC_ISSUER_ID=${issuerId}`,
