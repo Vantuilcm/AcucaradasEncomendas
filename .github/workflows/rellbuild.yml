@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v5
+# RellBuild: Sync Check [2026-03-29] v6
 
 name: RellBuild Beta Pipeline
 
@@ -231,7 +231,9 @@ jobs:
           EXPO_APPLE_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          echo "Iniciando build local do iOS (Release)..."
+            echo "Verificando credenciais..."
+            eas credentials --platform ios --profile production --non-interactive || echo "Aviso: Falha ao listar credenciais, mas continuando..."
+            echo "Iniciando build local do iOS (Release)..."
           
           # Verificar variáveis da ASC API Key injetadas pelo step anterior
           echo "Verificando credenciais..."
