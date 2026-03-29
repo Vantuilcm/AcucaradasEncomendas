@@ -124,39 +124,45 @@ jobs:
         env:
           EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
         run: |
-          # Limpar espaços em branco e verificar se parece JSON
-          CLEAN_KEY=$(echo "$EXPO_ASC_API_KEY" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-          
-          if [ ! -z "$CLEAN_KEY" ] && [[ "$CLEAN_KEY" == \{* ]]; then
-            echo "Detectada ASC API Key em formato JSON. Extraindo..."
-            printf "%s" "$CLEAN_KEY" > asc-key.json
-            
-            # Tentar extrair usando python3 como fallback ao jq
-            if command -v jq >/dev/null 2>&1 && jq . asc-key.json >/dev/null 2>&1; then
-              KEY_ID=$(jq -r '.keyId' asc-key.json)
-              ISSUER_ID=$(jq -r '.issuerId' asc-key.json)
-              jq -r '.key' asc-key.json > AuthKey.p8
-            else
-              echo "⚠️ jq falhou ou não encontrado. Tentando python3..."
-              KEY_ID=$(python3 -c "import json; print(json.load(open('asc-key.json'))['keyId'])")
-              ISSUER_ID=$(python3 -c "import json; print(json.load(open('asc-key.json'))['issuerId'])")
-              python3 -c "import json; print(json.load(open('asc-key.json'))['key'])" > AuthKey.p8
-            fi
-            
-            if [ ! -z "$KEY_ID" ] && [ "$KEY_ID" != "null" ]; then
-              echo "EXPO_ASC_KEY_ID=$KEY_ID" >> $GITHUB_ENV
-              echo "EXPO_ASC_ISSUER_ID=$ISSUER_ID" >> $GITHUB_ENV
-              echo "EXPO_ASC_API_KEY_PATH=$(pwd)/AuthKey.p8" >> $GITHUB_ENV
-              echo "✅ ASC API Key preparada com sucesso (ID: $KEY_ID)."
-            else
-              echo "❌ Falha ao extrair dados do JSON."
-              echo "EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json" >> $GITHUB_ENV
-            fi
-          elif [ ! -z "$CLEAN_KEY" ]; then
-            echo "ASC API Key não parece ser JSON. Usando como arquivo bruto."
-            printf "%s" "$CLEAN_KEY" > asc-key.json
-            echo "EXPO_ASC_API_KEY_PATH=$(pwd)/asc-key.json" >> $GITHUB_ENV
-          fi
+          node -e "
+          const fs = require('fs');
+          const rawKey = process.env.EXPO_ASC_API_KEY;
+          if (!rawKey) {
+            console.log('⚠️ Nenhuma ASC API Key encontrada.');
+            process.exit(0);
+          }
+          try {
+            const cleanKey = rawKey.trim();
+            if (cleanKey.startsWith('{')) {
+              console.log('Detectada ASC API Key em formato JSON. Extraindo...');
+              const data = JSON.parse(cleanKey);
+              const keyId = data.keyId;
+              const issuerId = data.issuerId;
+              const keyContent = data.key;
+              
+              if (keyId && issuerId && keyContent) {
+                fs.writeFileSync('AuthKey.p8', keyContent);
+                const envs = [
+                  \`EXPO_ASC_KEY_ID=\${keyId}\`,
+                  \`EXPO_ASC_ISSUER_ID=\${issuerId}\`,
+                  \`EXPO_ASC_API_KEY_PATH=\${process.cwd()}/AuthKey.p8\`
+                ];
+                fs.appendFileSync(process.env.GITHUB_ENV, envs.join('\n') + '\n');
+                console.log(\`✅ ASC API Key preparada com sucesso (ID: \${keyId}).\`);
+              } else {
+                throw new Error('JSON incompleto: keyId, issuerId ou key faltando');
+              }
+            } else {
+              console.log('ASC API Key não parece ser JSON. Usando como arquivo bruto.');
+              fs.writeFileSync('asc-key.json', cleanKey);
+              fs.appendFileSync(process.env.GITHUB_ENV, \`EXPO_ASC_API_KEY_PATH=\${process.cwd()}/asc-key.json\n\`);
+            }
+          } catch (e) {
+            console.error('❌ Erro ao processar ASC API Key:', e.message);
+            fs.writeFileSync('asc-key.json', rawKey);
+            fs.appendFileSync(process.env.GITHUB_ENV, \`EXPO_ASC_API_KEY_PATH=\${process.cwd()}/asc-key.json\n\`);
+          }
+          "
 
       - name: Check EAS Status
         run: |
