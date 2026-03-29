@@ -58,7 +58,10 @@
       }
     },
     "production_v2": {
-      "extends": "production"
+      "extends": "production",
+      "ios": {
+        "bundleIdentifier": "com.acucaradas.encomendas.new"
+      }
     },
     "beta": {
       "extends": "production",
