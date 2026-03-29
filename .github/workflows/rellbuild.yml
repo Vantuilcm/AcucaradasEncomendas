@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v17
+# RellBuild: Sync Check [2026-03-29] v18
 
 name: RellBuild Beta Pipeline
 
@@ -180,19 +180,6 @@ jobs:
 
               fs.writeFileSync('AuthKey.p8', cleanKey);
               
-              // Gerar credentials.json para bypass de remote credentials (formato global para o time)
-              const credentialsJson = {
-                ios: {
-                  appleId: process.env.EXPO_APPLE_ID,
-                  ascApiKeyId: keyId,
-                  ascApiKeyIssuerId: issuerId,
-                  ascApiKeyPath: "AuthKey.p8",
-                  appleTeamId: process.env.EXPO_APPLE_TEAM_ID
-                }
-              };
-              fs.writeFileSync('credentials.json', JSON.stringify(credentialsJson, null, 2));
-              console.log('✅ credentials.json gerado para build local (Bypass Remote).');
-
               const envs = [
                 `EXPO_ASC_KEY_ID=${keyId}`,
                 `EXPO_ASC_ISSUER_ID=${issuerId}`,

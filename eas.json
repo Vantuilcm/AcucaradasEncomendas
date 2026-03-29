@@ -40,7 +40,6 @@
     },
     "production": {
       "distribution": "store",
-      "credentialsSource": "local",
       "autoIncrement": true,
       "env": {
         "APP_ENV": "production",
