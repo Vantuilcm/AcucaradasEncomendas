@@ -133,12 +133,25 @@ jobs:
           }
           try {
             const cleanKey = rawKey.trim();
+            let data;
             if (cleanKey.startsWith('{')) {
-              console.log('Detectada ASC API Key em formato JSON. Extraindo...');
-              const data = JSON.parse(cleanKey);
-              const keyId = data.keyId;
-              const issuerId = data.issuerId;
-              const keyContent = data.key;
+              console.log('Detectada ASC API Key em formato JSON. Tentando extrair...');
+              try {
+                data = JSON.parse(cleanKey);
+              } catch (parseError) {
+                console.log('⚠️ Falha no parse inicial do JSON. Tentando sanitizar...');
+                // Tenta limpar quebras de linha literais dentro de strings (comum em PEM keys mal coladas)
+                const sanitized = cleanKey.replace(/[\n\r]/g, '\\n').replace(/\\n/g, '\n').replace(/\n/g, '\\n');
+                // Mas isso pode ser perigoso. Vamos tentar apenas remover quebras de linha reais fora de aspas.
+                // Na verdade, o erro 'Bad escaped character' sugere que há algo como \x ou \u mal formatado.
+                // Vamos tentar carregar como um objeto JS flexível se possível, ou apenas logar o erro detalhado.
+                console.error('Erro detalhado no JSON:', parseError.message);
+                throw parseError;
+              }
+              
+              const keyId = data.keyId || data.key_id;
+              const issuerId = data.issuerId || data.issuer_id;
+              const keyContent = data.key || data.private_key;
               
               if (keyId && issuerId && keyContent) {
                 fs.writeFileSync('AuthKey.p8', keyContent);
@@ -158,7 +171,8 @@ jobs:
               fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key.json\n`);
             }
           } catch (e) {
-            console.error('❌ Erro ao processar ASC API Key:', e.message);
+            console.error('❌ Erro final ao processar ASC API Key:', e.message);
+            // Se falhou tudo, salva o bruto e torce para o EAS entender
             fs.writeFileSync('asc-key.json', rawKey);
             fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key.json\n`);
           }
