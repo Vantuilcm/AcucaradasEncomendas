@@ -124,7 +124,7 @@ jobs:
         env:
           EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
         run: |
-          node -e "
+          cat <<'EOF' > prepare_asc.js
           const fs = require('fs');
           const rawKey = process.env.EXPO_ASC_API_KEY;
           if (!rawKey) {
@@ -143,26 +143,27 @@ jobs:
               if (keyId && issuerId && keyContent) {
                 fs.writeFileSync('AuthKey.p8', keyContent);
                 const envs = [
-                  \`EXPO_ASC_KEY_ID=\${keyId}\`,
-                  \`EXPO_ASC_ISSUER_ID=\${issuerId}\`,
-                  \`EXPO_ASC_API_KEY_PATH=\${process.cwd()}/AuthKey.p8\`
+                  `EXPO_ASC_KEY_ID=${keyId}`,
+                  `EXPO_ASC_ISSUER_ID=${issuerId}`,
+                  `EXPO_ASC_API_KEY_PATH=${process.cwd()}/AuthKey.p8`
                 ];
                 fs.appendFileSync(process.env.GITHUB_ENV, envs.join('\n') + '\n');
-                console.log(\`✅ ASC API Key preparada com sucesso (ID: \${keyId}).\`);
+                console.log(`✅ ASC API Key preparada com sucesso (ID: ${keyId}).`);
               } else {
                 throw new Error('JSON incompleto: keyId, issuerId ou key faltando');
               }
             } else {
               console.log('ASC API Key não parece ser JSON. Usando como arquivo bruto.');
               fs.writeFileSync('asc-key.json', cleanKey);
-              fs.appendFileSync(process.env.GITHUB_ENV, \`EXPO_ASC_API_KEY_PATH=\${process.cwd()}/asc-key.json\n\`);
+              fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key.json\n`);
             }
           } catch (e) {
             console.error('❌ Erro ao processar ASC API Key:', e.message);
             fs.writeFileSync('asc-key.json', rawKey);
-            fs.appendFileSync(process.env.GITHUB_ENV, \`EXPO_ASC_API_KEY_PATH=\${process.cwd()}/asc-key.json\n\`);
+            fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key.json\n`);
           }
-          "
+          EOF
+          node prepare_asc.js
 
       - name: Check EAS Status
         run: |
@@ -324,6 +325,8 @@ jobs:
               exit 1
             fi
           fi
-#   S y n c   c h e c k   0 3 / 2 9 / 2 0 2 6   0 9 : 2 9 : 1 4  
- #   S y n c   c h e c k   0 3 / 2 9 / 2 0 2 6   0 9 : 2 9 : 4 5  
+#   S y n c   c h e c k   0 3 / 2 9 / 2 0 2 6   0 9 : 2 9 : 1 4 
+ 
+ #   S y n c   c h e c k   0 3 / 2 9 / 2 0 2 6   0 9 : 2 9 : 4 5 
+ 
  
