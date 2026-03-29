@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v19
+# RellBuild: Sync Check [2026-03-29] v20
 
 name: RellBuild Beta Pipeline
 
@@ -249,6 +249,9 @@ jobs:
           fi
           
           echo "Iniciando build local do iOS (Release)..."
+          # Tentando configurar credenciais remotas primeiro para corrigir possíveis erros de certificado
+          eas credentials:configure-build --platform ios --profile production --non-interactive || echo "⚠️ Falha ao configurar credenciais, tentando build direto..."
+          
           # O EAS CLI tentará usar as credenciais remotas. 
           # Se o certificado serial DD470DF7FF72EFAE5083BE235CC3199 não existir,
           # o EAS deve tentar usar a ASC API Key para criar um novo se estiver tudo certo.
