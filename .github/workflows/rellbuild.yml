@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v20
+# RellBuild: Sync Check [2026-03-29] v22
 
 name: RellBuild Beta Pipeline
 
@@ -248,14 +248,10 @@ jobs:
             echo "✅ EXPO_ASC_KEY_ID configurada."
           fi
           
-          echo "Iniciando build local do iOS (Release)..."
-          # Tentando configurar credenciais remotas primeiro para corrigir possíveis erros de certificado
-          eas credentials:configure-build --platform ios --profile production --non-interactive || echo "⚠️ Falha ao configurar credenciais, tentando build direto..."
-          
-          # O EAS CLI tentará usar as credenciais remotas. 
-          # Se o certificado serial DD470DF7FF72EFAE5083BE235CC3199 não existir,
-          # o EAS deve tentar usar a ASC API Key para criar um novo se estiver tudo certo.
-          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
+          echo "Iniciando build local do iOS (Release com novo perfil para evitar erro de certificado)..."
+          # Usando um novo perfil no eas.json para forçar o EAS a ignorar credenciais antigas quebradas
+          # O EAS CLI usará as variáveis de ambiente da ASC API Key para gerar novas credenciais automaticamente
+          eas build --platform ios --profile production_new --local --non-interactive --output app-release.ipa
 
       - name: Build Android Release (AAB)
         id: android_release
