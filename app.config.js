@@ -4,8 +4,15 @@ export default ({ config }) => {
   const sentryEnabled = process.env.EXPO_PUBLIC_SENTRY_ENABLED === "true" || !!process.env.SENTRY_AUTH_TOKEN;
 
   // Incremento automático baseado no ambiente ou variável de build
-  const buildNumber = process.env.GITHUB_RUN_NUMBER || config.ios?.buildNumber || "1";
-  const versionCode = process.env.GITHUB_RUN_NUMBER ? parseInt(process.env.GITHUB_RUN_NUMBER) : (config.android?.versionCode || 1);
+  // Usamos o valor do app.json como base para evitar conflitos com builds manuais anteriores
+  const baseVersion = parseInt(config.ios?.buildNumber || config.android?.versionCode || "400");
+  const runNumber = process.env.GITHUB_RUN_NUMBER ? parseInt(process.env.GITHUB_RUN_NUMBER) : 0;
+  
+  // Se o runNumber for muito baixo (ex: recém resetado), usamos a base do app.json + runNumber
+  // Isso garante que sempre subiremos a versão
+  const buildNumberValue = Math.max(baseVersion, runNumber + 250); 
+  const buildNumber = buildNumberValue.toString();
+  const versionCode = buildNumberValue;
 
   const plugins = config.plugins || [];
   
