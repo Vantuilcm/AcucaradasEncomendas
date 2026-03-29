@@ -1,3 +1,5 @@
+# RellBuild: Sync Check [2026-03-29]
+
 name: RellBuild Beta Pipeline
 
 on:
@@ -126,53 +128,65 @@ jobs:
         run: |
           cat <<'EOF' > prepare_asc.js
           const fs = require('fs');
-          const rawKey = process.env.EXPO_ASC_API_KEY;
+          let rawKey = process.env.EXPO_ASC_API_KEY;
           if (!rawKey) {
             console.log('⚠️ Nenhuma ASC API Key encontrada.');
             process.exit(0);
           }
           try {
-            const cleanKey = rawKey.trim();
-            let data;
-            if (cleanKey.startsWith('{')) {
-              console.log('Detectada ASC API Key em formato JSON. Tentando extrair...');
+            rawKey = rawKey.trim();
+            let keyId, issuerId, keyContent;
+            
+            // Tentativa 1: Parse como JSON
+            if (rawKey.startsWith('{')) {
+              console.log('Detectada ASC API Key em formato JSON. Tentando parse...');
               try {
-                data = JSON.parse(cleanKey);
-              } catch (parseError) {
-                console.log('⚠️ Falha no parse inicial do JSON. Tentando sanitizar...');
-                // Tenta limpar quebras de linha literais dentro de strings (comum em PEM keys mal coladas)
-                const sanitized = cleanKey.replace(/[\n\r]/g, '\\n').replace(/\\n/g, '\n').replace(/\n/g, '\\n');
-                // Mas isso pode ser perigoso. Vamos tentar apenas remover quebras de linha reais fora de aspas.
-                // Na verdade, o erro 'Bad escaped character' sugere que há algo como \x ou \u mal formatado.
-                // Vamos tentar carregar como um objeto JS flexível se possível, ou apenas logar o erro detalhado.
-                console.error('Erro detalhado no JSON:', parseError.message);
-                throw parseError;
+                const data = JSON.parse(rawKey);
+                keyId = data.keyId || data.key_id;
+                issuerId = data.issuerId || data.issuer_id;
+                keyContent = data.key || data.private_key || data.keyContent;
+              } catch (e) {
+                console.log('⚠️ Falha no JSON.parse. Tentando extração via Regex...');
+                // Tentativa 2: Extração via Regex (robusto para JSON malformado ou escapes ruins)
+                const kIdMatch = rawKey.match(/"(?:keyId|key_id)"\s*:\s*"([^"]+)"/i);
+                const iIdMatch = rawKey.match(/"(?:issuerId|issuer_id)"\s*:\s*"([^"]+)"/i);
+                // Regex para capturar o conteúdo da chave, lidando com escapes e novas linhas literais
+                const kContentMatch = rawKey.match(/"(?:key|private_key|keyContent)"\s*:\s*"((?:[^"\\]|\\.)*)"/is);
+                
+                keyId = kIdMatch ? kIdMatch[1] : null;
+                issuerId = iIdMatch ? iIdMatch[1] : null;
+                keyContent = kContentMatch ? kContentMatch[1] : null;
               }
+            }
+
+            if (keyId && issuerId && keyContent) {
+              // Normaliza a chave (PEM): remove escapes e garante quebras de linha reais
+              let cleanKey = keyContent
+                .replace(/\\n/g, '\n')
+                .replace(/\\r/g, '')
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\');
               
-              const keyId = data.keyId || data.key_id;
-              const issuerId = data.issuerId || data.issuer_id;
-              const keyContent = data.key || data.private_key;
-              
-              if (keyId && issuerId && keyContent) {
-                fs.writeFileSync('AuthKey.p8', keyContent);
-                const envs = [
-                  `EXPO_ASC_KEY_ID=${keyId}`,
-                  `EXPO_ASC_ISSUER_ID=${issuerId}`,
-                  `EXPO_ASC_API_KEY_PATH=${process.cwd()}/AuthKey.p8`
-                ];
-                fs.appendFileSync(process.env.GITHUB_ENV, envs.join('\n') + '\n');
-                console.log(`✅ ASC API Key preparada com sucesso (ID: ${keyId}).`);
-              } else {
-                throw new Error('JSON incompleto: keyId, issuerId ou key faltando');
+              if (!cleanKey.includes('-----BEGIN')) {
+                console.error('❌ Conteúdo extraído não parece ser uma chave PEM válida.');
+                process.exit(1);
               }
+
+              fs.writeFileSync('AuthKey.p8', cleanKey);
+              const envs = [
+                `EXPO_ASC_KEY_ID=${keyId}`,
+                `EXPO_ASC_ISSUER_ID=${issuerId}`,
+                `EXPO_ASC_API_KEY_PATH=${process.cwd()}/AuthKey.p8`
+              ];
+              fs.appendFileSync(process.env.GITHUB_ENV, envs.join('\n') + '\n');
+              console.log(`✅ ASC API Key configurada com sucesso (ID: ${keyId}).`);
             } else {
-              console.log('ASC API Key não parece ser JSON. Usando como arquivo bruto.');
-              fs.writeFileSync('asc-key.json', cleanKey);
+              console.log('⚠️ Não foi possível extrair campos. Usando como arquivo bruto.');
+              fs.writeFileSync('asc-key.json', rawKey);
               fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key.json\n`);
             }
           } catch (e) {
-            console.error('❌ Erro final ao processar ASC API Key:', e.message);
-            // Se falhou tudo, salva o bruto e torce para o EAS entender
+            console.error('❌ Erro inesperado ao processar ASC API Key:', e.message);
             fs.writeFileSync('asc-key.json', rawKey);
             fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key.json\n`);
           }
