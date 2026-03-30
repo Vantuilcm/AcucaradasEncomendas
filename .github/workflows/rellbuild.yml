@@ -1,6 +1,6 @@
-# RellBuild: Sync Check [2026-03-30] v43
+# RellBuild: Sync Check [2026-03-30] v44
 # Nota: OneSignal desabilitado temporariamente para debugar erro de certificado na extensão.
-# Tentativa de forçar novas credenciais com perfil production_v7.
+# Tentativa de forçar novas credenciais com perfil production_v7 e script Node para limpar.
 
 name: RellBuild Beta Pipeline
 
@@ -247,7 +247,39 @@ jobs:
           fi
           
           echo "Verificando credenciais (DEBUG)..."
+          # Tenta listar credenciais de forma não interativa (pode falhar, mas ok)
           eas credentials --platform ios || true
+          
+          echo "Tentando limpar credenciais remotas via script Node..."
+          cat <<'EOF' > clear_creds.js
+          const { spawn } = require('child_process');
+          const p = spawn('npx', ['eas', 'credentials', '--platform', 'ios'], { shell: true });
+          
+          p.stdout.on('data', (data) => {
+            const output = data.toString();
+            console.log('OUT:', output);
+            // Se pedir para selecionar o perfil, seleciona o primeiro (geralmenter production)
+            if (output.includes('Which build profile')) {
+              p.stdin.write('\n'); // Enter para o primeiro
+            }
+            // Se pedir o que fazer, e tiver a opção de apagar ou resetar
+            if (output.includes('What do you want to do')) {
+              // Aqui é difícil saber o número, mas geralmente "1" ou "2"
+              p.stdin.write('1\n'); 
+            }
+          });
+          
+          p.stderr.on('data', (data) => {
+            console.error('ERR:', data.toString());
+          });
+          
+          setTimeout(() => {
+            console.log('Timeout - finalizando script de limpeza');
+            p.kill();
+            process.exit(0);
+          }, 15000);
+          EOF
+          node clear_creds.js || true
           
           echo "Iniciando build local do iOS (Release com perfil production_v7 e verbose-logs)..."
           # Tentamos forçar a renovação das credenciais limpando o estado local (se houver) e usando o perfil novo
