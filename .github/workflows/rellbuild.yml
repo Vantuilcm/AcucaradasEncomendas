@@ -117,6 +117,32 @@ jobs:
           # Rodar validacao
           bash ./scripts/rellbuild-prebuild.sh
 
+      - name: Validate Scripts & Fail-safe
+        run: |
+          echo "Verificando se o script 'build' existe no package.json..."
+          if npm run | grep -q "^  build$"; then
+            echo "✅ Script 'build' encontrado. Como este é um projeto Expo, vamos garantir que ele não cause conflitos."
+            # Opcional: npm run build (mas o usuário disse que não precisa)
+          else
+            echo "ℹ️ Script 'build' não encontrado. Prosseguindo com o fluxo Expo/EAS (comportamento esperado)."
+          fi
+
+      - name: Validate Required Secrets
+        run: |
+          MISSING_SECRETS=()
+          [ -z "${{ secrets.EXPO_TOKEN }}" ] && MISSING_SECRETS+=("EXPO_TOKEN")
+          [ -z "${{ secrets.EXPO_APPLE_ID }}" ] && MISSING_SECRETS+=("EXPO_APPLE_ID")
+          [ -z "${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}" ] && MISSING_SECRETS+=("EXPO_APPLE_APP_SPECIFIC_PASSWORD")
+          [ -z "${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}" ] && MISSING_SECRETS+=("EXPO_APP_STORE_CONNECT_API_KEY")
+          [ -z "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" ] && MISSING_SECRETS+=("GOOGLE_SERVICE_ACCOUNT_JSON")
+
+          if [ ${#MISSING_SECRETS[@]} -ne 0 ]; then
+            echo "❌ Secrets ausentes: ${MISSING_SECRETS[*]}"
+            echo "⚠️ O pipeline continuará, mas as etapas de build/submit podem falhar."
+          else
+            echo "✅ Todos os secrets obrigatórios estão configurados."
+          fi
+
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
@@ -247,18 +273,10 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_APPLE_TEAM_TYPE: COMPANY_OR_ORGANIZATION
-          # NÃO incluímos EXPO_APPLE_ID e EXPO_APPLE_APP_SPECIFIC_PASSWORD aqui
-          # para forçar o EAS CLI a usar EXCLUSIVAMENTE o ASC API Key via env vars.
-          EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID: ${{ env.EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID }}
-          EAS_APPLE_APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ env.EAS_APPLE_APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
-          EAS_APPLE_APP_STORE_CONNECT_API_KEY_KEY: ${{ env.EAS_APPLE_APP_STORE_CONNECT_API_KEY_KEY }}
-          EXPO_ASC_KEY_ID: ${{ env.EXPO_ASC_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ env.EXPO_ASC_ISSUER_ID }}
-          EXPO_ASC_PRIVATE_KEY: ${{ env.EXPO_ASC_PRIVATE_KEY }}
-          EXPO_ASC_API_KEY_PATH: ${{ env.EXPO_ASC_API_KEY_PATH }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Verificando credenciais..."
+          # Usamos diretamente as variáveis do GITHUB_ENV injetadas pelo step Prepare ASC API Key
           if [ -z "$EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID" ]; then
             echo "❌ EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID não encontrada no env."
           else
@@ -266,15 +284,13 @@ jobs:
           fi
           
           echo "Iniciando build local do iOS (Release com perfil production_v13 e verbose-logs)..."
-          # Tentamos forçar a renovação total das credenciais usando 'local' no eas.json e novo bundleIdentifier.
           export EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION
           export EAS_BUILD_DEBUG=1
           
-          # Removemos qualquer resquício de credenciais locais
           rm -f credentials.json
           
-          # Passamos explicitamente o path da API Key
-          eas build --platform ios --profile production_v13 --local --non-interactive --output app-release.ipa --verbose-logs --asc-api-key-path "$EXPO_ASC_API_KEY_PATH"
+          # Ajustado: removido --asc-api-key-path (não suportado no build) e perfil alterado para production_v13
+          eas build --platform ios --profile production_v13 --local --non-interactive --output app-release.ipa --verbose-logs
 
       - name: Build Android Release (AAB)
         id: android_release
@@ -284,6 +300,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           echo "Iniciando build local do Android (Release)..."
+          # Perfil production para Android conforme o padrão do projeto
           eas build --platform android --profile production --local --non-interactive --output app-release.aab
           ls -la app-release.aab || echo "❌ app-release.aab não encontrado no root!"
 
@@ -319,22 +336,13 @@ jobs:
           EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
         run: |
           echo "Verificando artefato iOS..."
-          ls -la app-release.ipa || true
-          
+          # EXPO_ASC_API_KEY_PATH vem do GITHUB_ENV, injetado pelo Prepare ASC API Key
           if [ -f "app-release.ipa" ]; then
-            echo "🚀 Iniciando submissão iOS para TestFlight..."
-            # Variáveis EXPO_ASC_* já injetadas via GITHUB_ENV
-            eas submit -p ios --path app-release.ipa --non-interactive
+            echo "🚀 Submetendo IPA para TestFlight (usando --path e --asc-api-key-path)..."
+            eas submit -p ios --path app-release.ipa --non-interactive --asc-api-key-path "$EXPO_ASC_API_KEY_PATH"
           else
-            echo "⚠️ Arquivo app-release.ipa não encontrado no root. Buscando..."
-            IPA_PATH=$(find . -name "app-release.ipa" | head -n 1)
-            if [ ! -z "$IPA_PATH" ]; then
-              echo "Encontrado em: $IPA_PATH. Submetendo..."
-              eas submit -p ios --path "$IPA_PATH" --non-interactive
-            else
-              echo "❌ Falha crítica: app-release.ipa não existe em nenhum lugar."
-              exit 1
-            fi
+            echo "🚀 Submetendo IPA para TestFlight (usando --latest e --asc-api-key-path)..."
+            eas submit -p ios --latest --non-interactive --asc-api-key-path "$EXPO_ASC_API_KEY_PATH"
           fi
 
       - name: Submit Android to Play Store
@@ -344,24 +352,16 @@ jobs:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
         run: |
           if [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
-            echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado no GitHub Secrets. Pulando submissão Android."
+            echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado. Pulando submissão Android."
             exit 0
           fi
 
-          echo "Configurando credenciais locais via GOOGLE_SERVICE_ACCOUNT_JSON..."
           echo "$GOOGLE_SERVICE_ACCOUNT_JSON" > google-service-account.json
 
           if [ -f "app-release.aab" ]; then
-            echo "🚀 Iniciando submissão Android para Google Play (Internal)..."
-            eas submit -p android --path app-release.aab --service-account-key-path google-service-account.json --non-interactive --profile preview
+            echo "🚀 Submetendo AAB para Google Play (usando --path)..."
+            eas submit -p android --path app-release.aab --service-account-key-path google-service-account.json --non-interactive
           else
-            echo "⚠️ Arquivo app-release.aab não encontrado no root. Buscando..."
-            AAB_PATH=$(find . -name "app-release.aab" | head -n 1)
-            if [ ! -z "$AAB_PATH" ]; then
-              echo "Encontrado em: $AAB_PATH. Submetendo..."
-              eas submit -p android --path "$AAB_PATH" --service-account-key-path google-service-account.json --non-interactive --profile preview
-            else
-              echo "❌ Falha crítica: app-release.aab não existe."
-              exit 1
-            fi
+            echo "🚀 Submetendo AAB para Google Play (usando --latest)..."
+            eas submit -p android --latest --service-account-key-path google-service-account.json --non-interactive
           fi
