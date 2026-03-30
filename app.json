@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.acucaradas.encomendas.v13",
+      "bundleIdentifier": "com.acucaradas.encomendas",
       "buildNumber": "421",
       "entitlements": {
         "com.apple.developer.applesignin": [
