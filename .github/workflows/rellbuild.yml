@@ -1,27 +1,26 @@
-# RellBuild: Sync Check [2026-03-30] v51
-# Nota: Forçando reset total com bundleIdentifier v13 e credentialsSource: local em eas.json.
-# Removemos Apple ID do env do build para forçar uso EXCLUSIVO do ASC API Key.
+# RellBuild: PIPELINE FINAL BLINDADO (GitHub Actions)
+# Data: 2026-03-30
+# Objetivo: Build Android (Local Grátis) + Build iOS (Cloud) + Submit TestFlight Automático
 
-name: RellBuild Beta Pipeline
+name: 🚀 Build & Submit Mobile (iOS + Android)
 
 on:
   push:
     branches:
       - main
-      - master
-      - upgrade/sdk-52-rn-076
   workflow_dispatch:
 
 jobs:
-  # Build v1.0.1-386
-  rellbuild-pipeline:
-    name: RellBuild Validation & Build
+  build:
+    name: 🏗️ RellBuild Pipeline
     runs-on: macos-latest
     env:
-      ACTIONS_STEP_DEBUG: true
-      CI: 1
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+      EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID || '7L9P9U9Z9R' }}
+      EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
+      # Injetando envs do app para garantir build correto
       EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
       EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
       EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
@@ -33,335 +32,63 @@ jobs:
       EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
       EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-      GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-      GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
-      GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
-      EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
-      EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
-      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID || '7L9P9U9Z9R' }}
-      EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
-      EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
-      EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
-      SUBMIT_ENABLED: "true"
-      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
 
     steps:
-      - name: Checkout repository
+      # 🔹 1. Checkout
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (LTS)
+      # 🔹 2. Node
+      - name: 🟢 Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 18
           cache: 'npm'
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Install dependencies
+      # 🔹 3. Install deps
+      - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Security Audit (Non-blocking)
-        run: npm audit --audit-level=high || echo "⚠️ Vulnerabilidades encontradas, mas prosseguindo conforme solicitado."
+      # 🔹 4. Install Expo + EAS
+      - name: ⚙️ Install Expo & EAS CLI
+        run: npm install -g expo-cli eas-cli
 
-      - name: RellBuild Prebuild Validation
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
-          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
-          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
-          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-          EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
-          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
-          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-          EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
-          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
-          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
-          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
-          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
-        run: |
-          echo "Injetando segredos e configurando ambiente..."
-          
-          # Criar .env para o build (Expo SDK 52 usa EXPO_PUBLIC_*)
-          cat <<EOF > .env
-          EXPO_PUBLIC_FIREBASE_API_KEY=$EXPO_PUBLIC_FIREBASE_API_KEY
-          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=$EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
-          EXPO_PUBLIC_FIREBASE_PROJECT_ID=$EXPO_PUBLIC_FIREBASE_PROJECT_ID
-          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=$EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
-          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-          EXPO_PUBLIC_FIREBASE_APP_ID=$EXPO_PUBLIC_FIREBASE_APP_ID
-          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=$EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
-          EXPO_PUBLIC_ONESIGNAL_APP_ID=$EXPO_PUBLIC_ONESIGNAL_APP_ID
-          EXPO_PUBLIC_SENTRY_DSN=$EXPO_PUBLIC_SENTRY_DSN
-          EXPO_PUBLIC_SENTRY_ENABLED=$EXPO_PUBLIC_SENTRY_ENABLED
-          EXPO_PUBLIC_PROJECT_ID=$EXPO_PUBLIC_PROJECT_ID
-          SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
-          EOF
-          
-          # Remover espacos extras do .env
-          sed -i '' 's/^[[:space:]]*//' .env || sed -i 's/^[[:space:]]*//' .env
-          
-          echo "Arquivo .env gerado para o build."
+      # 🔹 5. Login Expo
+      - name: 🔐 Login Expo
+        run: eas login --token ${{ secrets.EXPO_TOKEN }}
 
-          chmod +x scripts/*.sh 2>/dev/null || true
-          chmod +x scripts/*.js 2>/dev/null || true
-          
-          # Rodar validacao
-          bash ./scripts/rellbuild-prebuild.sh
+      # 🔹 6. Validar EAS
+      - name: 🔎 Check EAS
+        run: eas whoami
 
-      - name: Validate Scripts & Fail-safe
-        run: |
-          echo "Verificando se o script 'build' existe no package.json..."
-          if npm run | grep -q "^  build$"; then
-            echo "✅ Script 'build' encontrado. Como este é um projeto Expo, vamos garantir que ele não cause conflitos."
-            # Opcional: npm run build (mas o usuário disse que não precisa)
-          else
-            echo "ℹ️ Script 'build' não encontrado. Prosseguindo com o fluxo Expo/EAS (comportamento esperado)."
-          fi
-
-      - name: Validate Required Secrets
-        run: |
-          MISSING_SECRETS=()
-          [ -z "${{ secrets.EXPO_TOKEN }}" ] && MISSING_SECRETS+=("EXPO_TOKEN")
-          [ -z "${{ secrets.EXPO_APPLE_ID }}" ] && MISSING_SECRETS+=("EXPO_APPLE_ID")
-          [ -z "${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}" ] && MISSING_SECRETS+=("EXPO_APPLE_APP_SPECIFIC_PASSWORD")
-          [ -z "${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}" ] && MISSING_SECRETS+=("EXPO_APP_STORE_CONNECT_API_KEY")
-          [ -z "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" ] && MISSING_SECRETS+=("GOOGLE_SERVICE_ACCOUNT_JSON")
-
-          if [ ${#MISSING_SECRETS[@]} -ne 0 ]; then
-            echo "❌ Secrets ausentes: ${MISSING_SECRETS[*]}"
-            echo "⚠️ O pipeline continuará, mas as etapas de build/submit podem falhar."
-          else
-            echo "✅ Todos os secrets obrigatórios estão configurados."
-          fi
-
-      - name: Setup Expo and EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Prepare ASC API Key
-        id: prepare_asc
-        env:
-          EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
-          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID || 'vantuilcaramez@gmail.com' }}
-          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID || '7L9P9U9Z9R' }}
-        run: |
-          cat <<'EOF' > prepare_asc.js
-          const fs = require('fs');
-          const path = require('path');
-          const rawKey = process.env.EXPO_ASC_API_KEY;
-          
-          if (!rawKey) {
-            console.log('⚠️ EXPO_ASC_API_KEY não definida.');
-            process.exit(0);
-          }
-
-          try {
-            const trimmedKey = rawKey.trim();
-            let keyId, issuerId, keyContent;
-
-            // Tenta como JSON primeiro
-            if (trimmedKey.startsWith('{')) {
-              try {
-                const data = JSON.parse(trimmedKey);
-                keyId = data.keyId || data.key_id;
-                issuerId = data.issuerId || data.issuer_id;
-                keyContent = data.key || data.private_key || data.keyContent || data.content;
-              } catch (e) {
-                console.log('JSON.parse falhou, tentando Regex...');
-              }
-            }
-
-            // Se não funcionou JSON ou não era JSON, tenta Regex
-            if (!keyId || !issuerId || !keyContent) {
-              const kIdMatch = trimmedKey.match(/"?keyId"?\s*[:=]\s*"?([A-Z0-9]+)"?/i);
-              const iIdMatch = trimmedKey.match(/"?issuerId"?\s*[:=]\s*"?([a-f0-9-]+)"?/i);
-              const kContentMatch = trimmedKey.match(/(-----BEGIN [^]+?-----END [^]+?-----)/is) || 
-                                   trimmedKey.match(/"?(?:key|private_key|keyContent)"?\s*[:=]\s*"?((?:[^"\\]|\\.)*)"?/is);
-              
-              keyId = keyId || (kIdMatch ? kIdMatch[1] : null);
-              issuerId = issuerId || (iIdMatch ? iIdMatch[1] : null);
-              keyContent = keyContent || (kContentMatch ? kContentMatch[1] : null);
-            }
-
-            if (keyId && issuerId && keyContent) {
-              console.log('✅ Dados extraídos com sucesso.');
-              let cleanKey = keyContent
-                .replace(/\\n/g, '\n')
-                .replace(/\\r/g, '')
-                .replace(/\\"/g, '"')
-                .replace(/\\\\/g, '\\');
-
-              if (!cleanKey.includes('-----BEGIN')) {
-                cleanKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
-              }
-
-              fs.writeFileSync('AuthKey.p8', cleanKey);
-
-              // Cria um arquivo JSON no formato que o EAS CLI entende nativamente para --asc-api-key-path
-              const easAscJson = {
-                keyId: keyId,
-                issuerId: issuerId,
-                key: cleanKey
-              };
-              fs.writeFileSync('asc-key-eas.json', JSON.stringify(easAscJson));
-
-              // Variáveis que o EAS CLI usa para ASC API Key (EAS_*)
-              fs.appendFileSync(process.env.GITHUB_ENV, `EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID=${keyId}\n`);
-              fs.appendFileSync(process.env.GITHUB_ENV, `EAS_APPLE_APP_STORE_CONNECT_API_KEY_ISSUER_ID=${issuerId}\n`);
-              fs.appendFileSync(process.env.GITHUB_ENV, `EAS_APPLE_APP_STORE_CONNECT_API_KEY_KEY<<EOF\n${cleanKey}\nEOF\n`);
-
-              // Redundância com variáveis mais antigas (EXPO_ASC_*)
-              fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_KEY_ID=${keyId}\n`);
-              fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_ISSUER_ID=${issuerId}\n`);
-              fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_PRIVATE_KEY<<EOF\n${cleanKey}\nEOF\n`);
-
-              fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key-eas.json\n`);
-              
-              console.log(`🚀 Configurado: ID=${keyId}, Issuer=${issuerId}`);
-            } else {
-              console.log('⚠️ Não foi possível extrair campos individuais. Salvando como raw.');
-              fs.writeFileSync('asc-key-eas.json', trimmedKey);
-              fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key-eas.json\n`);
-            }
-          } catch (err) {
-            console.error('❌ Erro fatal no prepare_asc:', err.message);
-            fs.writeFileSync('asc-key-eas.json', rawKey);
-            fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/asc-key-eas.json\n`);
-          }
-          EOF
-          node prepare_asc.js
-
-      - name: Check EAS Status
-        run: |
-          eas whoami
-          eas project:info
-
-      - name: Validate Expo Config
-        run: npx expo config --json
-
-      - name: Expo Doctor Check
-        run: npx expo-doctor . --fix-dependencies
-
-      - name: Build Android Beta (APK)
-        id: android_beta
+      # 🔹 7. Build Android (GRÁTIS LOCAL)
+      - name: 🤖 Build Android (local)
         if: "!contains(github.event.head_commit.message, '[skip-android]') && !contains(github.event.head_commit.message, '[ios-only]')"
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          echo "Verificando arquivos Firebase..."
-          ls -la google-services.json GoogleService-Info.plist || echo "⚠️ Arquivos Firebase não encontrados no root!"
-          
-          echo "Iniciando build local do Android (Beta)..."
-          eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
-          ls -la app-beta.apk || true
+          echo "🚀 Iniciando build Android local (gratuito)..."
+          eas build --platform android --profile production --local --non-interactive
 
-      - name: Build iOS Release (IPA)
-        id: ios_release
-        if: "always() && !cancelled() && !contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_APPLE_TEAM_TYPE: COMPANY_OR_ORGANIZATION
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      # 🔹 8. Build iOS (CLOUD FREE)
+      - name: 🍏 Build iOS (cloud)
+        if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
         run: |
-          echo "Verificando credenciais..."
-          # Usamos diretamente as variáveis do GITHUB_ENV injetadas pelo step Prepare ASC API Key
-          if [ -z "$EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID" ]; then
-            echo "❌ EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID não encontrada no env."
-          else
-            echo "✅ EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID configurada."
-          fi
-          
-          echo "Iniciando build local do iOS (Release com perfil production_v13 e verbose-logs)..."
-          export EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION
-          export EAS_BUILD_DEBUG=1
-          
-          rm -f credentials.json
-          
-          # Ajustado: removido --asc-api-key-path (não suportado no build) e perfil alterado para production_v13
-          eas build --platform ios --profile production_v13 --local --non-interactive --output app-release.ipa --verbose-logs
+          echo "🚀 Iniciando build iOS no EAS Cloud..."
+          eas build --platform ios --profile production_v13 --non-interactive
 
-      - name: Build Android Release (AAB)
-        id: android_release
-        if: "always() && !cancelled() && !contains(github.event.head_commit.message, '[skip-android]') && !contains(github.event.head_commit.message, '[ios-only]')"
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      # 🔹 9. Submit iOS
+      - name: 📦 Submit iOS (TestFlight)
+        if: success() && !contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')
         run: |
-          echo "Iniciando build local do Android (Release)..."
-          # Perfil production para Android conforme o padrão do projeto
-          eas build --platform android --profile production --local --non-interactive --output app-release.aab
-          ls -la app-release.aab || echo "❌ app-release.aab não encontrado no root!"
+          echo "📤 Enviando para TestFlight via --latest..."
+          eas submit --platform ios --latest --non-interactive
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        if: always() && !cancelled()
-        with:
-          name: rellbuild-artifacts
-          path: |
-            app-beta.apk
-            app-release.aab
-            app-release.ipa
-          if-no-files-found: warn
-
-      - name: RellBuild Final Report
+      # 🔹 10. Status final
+      - name: ✅ Done
         if: always()
         run: |
-          echo "### RellBuild Status"
+          echo "🔥 Pipeline finalizado com sucesso!"
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Build concluído com sucesso!"
+            echo "✅ Build e Submit concluídos."
           else
-            echo "❌ Build falhou. Verifique os logs acima."
-          fi
-
-      - name: Submit iOS to TestFlight
-        if: success() && env.SUBMIT_ENABLED == 'true'
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
-          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
-          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID || '7L9P9U9Z9R' }}
-          EXPO_ASC_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
-          EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
-        run: |
-          echo "Verificando artefato iOS..."
-          # EXPO_ASC_API_KEY_PATH vem do GITHUB_ENV, injetado pelo Prepare ASC API Key
-          if [ -f "app-release.ipa" ]; then
-            echo "🚀 Submetendo IPA para TestFlight (usando --path e --asc-api-key-path)..."
-            eas submit -p ios --path app-release.ipa --non-interactive --asc-api-key-path "$EXPO_ASC_API_KEY_PATH"
-          else
-            echo "🚀 Submetendo IPA para TestFlight (usando --latest e --asc-api-key-path)..."
-            eas submit -p ios --latest --non-interactive --asc-api-key-path "$EXPO_ASC_API_KEY_PATH"
-          fi
-
-      - name: Submit Android to Play Store
-        if: success() && env.SUBMIT_ENABLED == 'true' && !contains(github.event.head_commit.message, '[ios-only]')
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
-            echo "⚠️ GOOGLE_SERVICE_ACCOUNT_JSON não configurado. Pulando submissão Android."
-            exit 0
-          fi
-
-          echo "$GOOGLE_SERVICE_ACCOUNT_JSON" > google-service-account.json
-
-          if [ -f "app-release.aab" ]; then
-            echo "🚀 Submetendo AAB para Google Play (usando --path)..."
-            eas submit -p android --path app-release.aab --service-account-key-path google-service-account.json --non-interactive
-          else
-            echo "🚀 Submetendo AAB para Google Play (usando --latest)..."
-            eas submit -p android --latest --service-account-key-path google-service-account.json --non-interactive
+            echo "❌ Algo deu errado. Verifique os logs acima."
           fi
