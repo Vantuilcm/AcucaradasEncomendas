@@ -45,7 +45,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.acucaradas.encomendas",
-      "versionCode": 412,
+      "versionCode": 413,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
