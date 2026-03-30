@@ -109,11 +109,11 @@ jobs:
       - name: 🍏 Build iOS (EAS Cloud)
         if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
         env:
-            EXPO_ASC_API_KEY_PATH: ./api_key.p8
-            EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
-            EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-            EXPO_APPLE_TEAM_TYPE: "COMPANY_OR_ORGANIZATION"
-          run: |
+          EXPO_ASC_API_KEY_PATH: ./api_key.p8
+          EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+          EXPO_APPLE_TEAM_TYPE: "COMPANY_OR_ORGANIZATION"
+        run: |
           echo "🚀 Iniciando build iOS no EAS Cloud..."
           eas build --platform ios --profile production_v13 --non-interactive
 
