@@ -1,8 +1,8 @@
-# RellBuild: Sync Check [2026-03-30] v45
-# Nota: OneSignal desabilitado temporariamente para debugar erro de certificado na extensão.
-# Tentativa de forçar novas credenciais com perfil production_v8 e script Node para limpar.
-
-name: RellBuild Beta Pipeline
+# RellBuild: Sync Check [2026-03-30] v46
+# Nota: Mudança temporária de bundleIdentifier para com.acucaradas.encomendas.new para resetar credenciais.
+# Tentativa de forçar novas credenciais com perfil production_v9.
+  
+  name: RellBuild Beta Pipeline
 
 on:
   push:
@@ -250,52 +250,8 @@ jobs:
           # Tenta listar credenciais de forma não interativa (pode falhar, mas ok)
           eas credentials --platform ios || true
           
-          echo "Tentando limpar credenciais remotas via script Node..."
-          cat <<'EOF' > clear_creds.js
-          const { spawn } = require('child_process');
-          // Tentamos rodar 'eas' diretamente. No runner macos ele costuma estar no path
-          const p = spawn('eas', ['credentials', '--platform', 'ios'], { shell: true });
-          
-          p.stdout.on('data', (data) => {
-            const output = data.toString();
-            console.log('OUT:', output);
-            
-            // Qual perfil? Escolhemos 'production' (geralmente o primeiro se for só enter)
-            if (output.includes('Which build profile')) {
-              p.stdin.write('\n'); 
-            }
-            
-            // O que fazer?
-            // Se houver erro de certificado, queremos "Manage your Distribution Certificate" ou similar
-            // Vamos tentar selecionar as opções que levam à exclusão ou atualização
-            if (output.includes('What do you want to do')) {
-              // Tentamos '1' primeiro. Se virmos opções de 'delete', selecionamos.
-              p.stdin.write('1\n');
-            }
-            
-            if (output.includes('Manage your Distribution Certificate')) {
-               p.stdin.write('\n'); // Seleciona
-            }
-
-            if (output.includes('delete') || output.includes('remove')) {
-               p.stdin.write('y\n'); // Confirma
-            }
-          });
-          
-          p.stderr.on('data', (data) => {
-            console.error('ERR:', data.toString());
-          });
-          
-          setTimeout(() => {
-            console.log('Timeout - finalizando script de limpeza');
-            p.kill();
-            process.exit(0);
-          }, 20000);
-          EOF
-          node clear_creds.js || true
-          
-          echo "Iniciando build local do iOS (Release com perfil production_v8 e verbose-logs)..."
-          # Tentamos forçar a renovação das credenciais limpando o estado local (se houver) e usando o perfil novo
+          echo "Iniciando build local do iOS (Release com perfil production_v9 e verbose-logs)..."
+          # Tentamos forçar a renovação das credenciais usando um novo bundleIdentifier e perfil novo
           # Definimos EXPO_APPLE_TEAM_TYPE para evitar prompts interativos
           export EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION
           export EAS_BUILD_DEBUG=1
@@ -303,7 +259,7 @@ jobs:
           # Tenta remover o arquivo de credenciais local se existir (embora não deva existir no runner)
           rm -f credentials.json
           
-          eas build --platform ios --profile production_v8 --local --non-interactive --output app-release.ipa --verbose-logs
+          eas build --platform ios --profile production_v9 --local --non-interactive --output app-release.ipa --verbose-logs
 
       - name: Build Android Release (AAB)
         id: android_release
