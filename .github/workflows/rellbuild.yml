@@ -66,19 +66,6 @@ jobs:
             exit 1
           fi
 
-          # Injetar ASC API Key (iOS Credentials Fix)
-          if [ -n "$EXPO_APP_STORE_CONNECT_API_KEY" ]; then
-            echo "🍏 Preparando ASC API Key..."
-            # Tenta decodificar como Base64 (mais seguro), se falhar usa texto puro
-            if [[ "$EXPO_APP_STORE_CONNECT_API_KEY" =~ ^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$ ]]; then
-              echo "$EXPO_APP_STORE_CONNECT_API_KEY" | base64 -d > api_key.p8
-            else
-              echo "$EXPO_APP_STORE_CONNECT_API_KEY" > api_key.p8
-            fi
-            chmod 600 api_key.p8
-            echo "✅ ASC Key preparada."
-          fi
-
           # Injetar google-services.json (Android)
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "🤖 Injetando google-services.json..."
@@ -101,26 +88,20 @@ jobs:
 
           echo "✅ Validação e Injeção concluídas com sucesso."
 
-      # 🔹 6. Check EAS
-      - name: 🔎 Check EAS
-        run: eas whoami
+      # 🔹 6. Expo Doctor (Check configs)
+      - name: 🩺 Expo Doctor
+        run: npx expo doctor
 
       # 🔹 7. Build Android (Cloud)
       - name: 🤖 Build Android (EAS Cloud)
         if: "!contains(github.event.head_commit.message, '[skip-android]') && !contains(github.event.head_commit.message, '[ios-only]')"
         run: |
           echo "🚀 Iniciando build Android no EAS Cloud..."
-          eas build --platform android --profile production --non-interactive
+          eas build --platform android --profile production_v13 --non-interactive
 
       # 🔹 8. Build iOS (Cloud)
       - name: 🍏 Build iOS (EAS Cloud)
         if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
-        env:
-          EXPO_ASC_API_KEY_PATH: ./api_key.p8
-          EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-          EXPO_APPLE_TEAM_TYPE: "COMPANY_OR_ORGANIZATION"
-          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
         run: |
           echo "🚀 Iniciando build iOS no EAS Cloud..."
           eas build --platform ios --profile production_v13 --non-interactive
