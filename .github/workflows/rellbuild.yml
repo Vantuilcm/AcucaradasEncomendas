@@ -17,6 +17,8 @@ jobs:
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
       # Firebase Secrets (Usando os nomes exatos do seu GitHub)
       GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
       GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
@@ -103,12 +105,14 @@ jobs:
           echo "🚀 Iniciando build Android no EAS Cloud..."
           eas build --platform android --profile production --non-interactive
 
-      # 🔹 8. Build iOS (Cloud)
-      - name: 🍏 Build iOS (EAS Cloud)
-        if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
-        env:
-          EXPO_ASC_API_KEY_PATH: ./api_key.p8
-        run: |
+      # 8. Build iOS (Cloud)
+        - name: 🍏 Build iOS (EAS Cloud)
+          if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
+          env:
+            EXPO_ASC_API_KEY_PATH: ./api_key.p8
+            EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+            EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+          run: |
           echo "🚀 Iniciando build iOS no EAS Cloud..."
           eas build --platform ios --profile production_v13 --non-interactive
 
