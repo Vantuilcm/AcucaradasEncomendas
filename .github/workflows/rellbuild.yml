@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      # Apple Store Connect API Key (Obrigatório para modo não-interativo)
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
       # Firebase Secrets (Usando os nomes exatos do seu GitHub)
       GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
       GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
@@ -83,6 +87,14 @@ jobs:
             fi
           fi
 
+          # Injetar ASC API Key (.p8)
+          if [ -n "${{ secrets.EXPO_ASC_PRIVATE_KEY }}" ]; then
+            echo "🔑 Preparando chave ASC API Key..."
+            echo "${{ secrets.EXPO_ASC_PRIVATE_KEY }}" > AuthKey.p8
+            export EXPO_ASC_API_KEY_PATH="./AuthKey.p8"
+            echo "✅ Chave preparada."
+          fi
+
           echo "✅ Validação e Injeção concluídas com sucesso."
 
       # 🔹 6. Expo Doctor (Check configs)
@@ -99,6 +111,8 @@ jobs:
       # 🔹 8. Build iOS (Cloud)
       - name: 🍏 Build iOS (EAS Cloud)
         if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
+        env:
+          EXPO_ASC_API_KEY_PATH: "./AuthKey.p8"
         run: |
           echo "🚀 Iniciando build iOS no EAS Cloud..."
           eas build --platform ios --profile production_v13 --non-interactive
