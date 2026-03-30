@@ -67,18 +67,16 @@ jobs:
           fi
 
           # Injetar ASC API Key (iOS Credentials Fix)
-            if [ -n "$EXPO_APP_STORE_CONNECT_API_KEY" ]; then
-              echo "🍏 Preparando ASC API Key..."
-              # Garantir que a chave tenha cabeçalho e rodapé se não existirem
-              if [[ "$EXPO_APP_STORE_CONNECT_API_KEY" != *"BEGIN PRIVATE KEY"* ]]; then
-                echo "-----BEGIN PRIVATE KEY-----" > api_key.p8
-                echo "$EXPO_APP_STORE_CONNECT_API_KEY" >> api_key.p8
-                echo "-----END PRIVATE KEY-----" >> api_key.p8
-              else
-                echo "$EXPO_APP_STORE_CONNECT_API_KEY" > api_key.p8
-              fi
-              chmod 600 api_key.p8
-            fi
+          if [ -n "$EXPO_APP_STORE_CONNECT_API_KEY" ]; then
+            echo "🍏 Preparando ASC API Key..."
+            # Remove espaços/newlines e garante cabeçalho/rodapé
+            CLEAN_KEY=$(echo "$EXPO_APP_STORE_CONNECT_API_KEY" | tr -d '\r' | sed 's/-----BEGIN PRIVATE KEY-----//g' | sed 's/-----END PRIVATE KEY-----//g' | tr -d ' \n')
+            echo "-----BEGIN PRIVATE KEY-----" > api_key.p8
+            echo "$CLEAN_KEY" | fold -w 64 >> api_key.p8
+            echo "-----END PRIVATE KEY-----" >> api_key.p8
+            chmod 600 api_key.p8
+            echo "✅ ASC Key preparada."
+          fi
 
           # Injetar google-services.json (Android)
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
