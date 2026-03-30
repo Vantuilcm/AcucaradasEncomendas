@@ -16,8 +16,8 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.acucaradas.app.v1",
-      "buildNumber": "419",
+      "bundleIdentifier": "com.acucaradas.encomendas",
+      "buildNumber": "420",
       "entitlements": {
         "com.apple.developer.applesignin": [
           "Default"
