@@ -112,8 +112,9 @@ jobs:
           EXPO_ASC_API_KEY_PATH: ./api_key.p8
           EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
           EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-          EXPO_APPLE_TEAM_TYPE: "COMPANY_OR_ORGANIZATION"
-        run: |
+            EXPO_APPLE_TEAM_TYPE: "COMPANY_OR_ORGANIZATION"
+            EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+          run: |
           echo "🚀 Iniciando build iOS no EAS Cloud..."
           eas build --platform ios --profile production_v13 --non-interactive
 
