@@ -57,7 +57,7 @@
         "buildType": "app-bundle"
       }
     },
-    "production_v4": {
+    "production_v5": {
       "extends": "production"
     },
     "beta": {
