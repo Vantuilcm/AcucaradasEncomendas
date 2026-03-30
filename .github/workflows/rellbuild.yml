@@ -69,11 +69,12 @@ jobs:
           # Injetar ASC API Key (iOS Credentials Fix)
           if [ -n "$EXPO_APP_STORE_CONNECT_API_KEY" ]; then
             echo "🍏 Preparando ASC API Key..."
-            # Remove espaços/newlines e garante cabeçalho/rodapé
-            CLEAN_KEY=$(echo "$EXPO_APP_STORE_CONNECT_API_KEY" | tr -d '\r' | sed 's/-----BEGIN PRIVATE KEY-----//g' | sed 's/-----END PRIVATE KEY-----//g' | tr -d ' \n')
-            echo "-----BEGIN PRIVATE KEY-----" > api_key.p8
-            echo "$CLEAN_KEY" | fold -w 64 >> api_key.p8
-            echo "-----END PRIVATE KEY-----" >> api_key.p8
+            # Tenta decodificar como Base64 (mais seguro), se falhar usa texto puro
+            if [[ "$EXPO_APP_STORE_CONNECT_API_KEY" =~ ^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$ ]]; then
+              echo "$EXPO_APP_STORE_CONNECT_API_KEY" | base64 -d > api_key.p8
+            else
+              echo "$EXPO_APP_STORE_CONNECT_API_KEY" > api_key.p8
+            fi
             chmod 600 api_key.p8
             echo "✅ ASC Key preparada."
           fi
