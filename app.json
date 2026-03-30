@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.acucaradas.encomendas",
-      "buildNumber": "412",
+      "buildNumber": "413",
       "entitlements": {
         "com.apple.developer.applesignin": [
           "Default"
@@ -80,12 +80,6 @@
         {
           "icon": "./assets/notification-icon.png",
           "color": "#ffffff"
-        }
-      ],
-      [
-        "onesignal-expo-plugin",
-        {
-          "mode": "production"
         }
       ],
       [
