@@ -1,8 +1,9 @@
-# RellBuild: Sync Check [2026-03-30] v46
-# Nota: Mudança temporária de bundleIdentifier para com.acucaradas.encomendas.new para resetar credenciais.
+# RellBuild: Sync Check [2026-03-30] v47
+# Nota: Corrigindo indentação do workflow que quebrou v46.
+# Mudança temporária de bundleIdentifier para com.acucaradas.encomendas.new para resetar credenciais.
 # Tentativa de forçar novas credenciais com perfil production_v9.
-  
-  name: RellBuild Beta Pipeline
+
+name: RellBuild Beta Pipeline
 
 on:
   push:
