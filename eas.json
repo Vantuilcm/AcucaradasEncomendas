@@ -2,7 +2,8 @@
   "cli": {
     "version": ">= 5.9.0",
     "requireCommit": false,
-    "appVersionSource": "local"
+    "appVersionSource": "local",
+    "projectId": "6090106b-e327-4744-bce5-9ddb0d037045"
   },
   "build": {
     "development": {
