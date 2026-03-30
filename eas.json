@@ -80,11 +80,7 @@
       "extends": "production"
     },
     "production_v13": {
-      "extends": "production",
-      "credentialsSource": "remote",
-      "ios": {
-        "resourceClass": "m-medium"
-      }
+      "extends": "production"
     },
     "beta": {
       "extends": "production",
