@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.acucaradas.encomendas",
-      "buildNumber": "411",
+      "buildNumber": "412",
       "entitlements": {
         "com.apple.developer.applesignin": [
           "Default"
@@ -45,7 +45,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.acucaradas.encomendas",
-      "versionCode": 411,
+      "versionCode": 412,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

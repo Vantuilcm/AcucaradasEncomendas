@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-30] v39
+# RellBuild: Sync Check [2026-03-30] v40
 
 name: RellBuild Beta Pipeline
 
@@ -245,9 +245,9 @@ jobs:
           fi
           
           echo "Verificando credenciais (DEBUG)..."
-          eas credentials --platform ios || true
+          eas credentials --platform ios --profile production_v6 --non-interactive || true
           
-          echo "Iniciando build local do iOS (Release com perfil production_v5 e verbose-logs)..."
+          echo "Iniciando build local do iOS (Release com perfil production_v6 e verbose-logs)..."
           # Tentamos forçar a renovação das credenciais limpando o estado local (se houver) e usando o perfil novo
           # Definimos EXPO_APPLE_TEAM_TYPE para evitar prompts interativos
           export EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION
@@ -256,7 +256,7 @@ jobs:
           # Tenta remover o arquivo de credenciais local se existir (embora não deva existir no runner)
           rm -f credentials.json
           
-          eas build --platform ios --profile production_v5 --local --non-interactive --output app-release.ipa --verbose-logs
+          eas build --platform ios --profile production_v6 --local --non-interactive --output app-release.ipa --verbose-logs
 
       - name: Build Android Release (AAB)
         id: android_release
