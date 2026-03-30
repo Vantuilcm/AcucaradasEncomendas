@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-30] v37
+# RellBuild: Sync Check [2026-03-30] v38
 
 name: RellBuild Beta Pipeline
 
@@ -243,6 +243,9 @@ jobs:
           else
             echo "✅ EXPO_ASC_KEY_ID configurada."
           fi
+          
+          echo "Verificando credenciais (DEBUG)..."
+          eas credentials --platform ios --json || true
           
           echo "Iniciando build local do iOS (Release com perfil production_v4 e verbose-logs)..."
           # Tentamos forçar a renovação das credenciais limpando o estado local (se houver) e usando o perfil novo
