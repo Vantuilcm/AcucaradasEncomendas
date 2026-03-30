@@ -69,6 +69,9 @@
     "production_v9": {
       "extends": "production"
     },
+    "production_v10": {
+      "extends": "production"
+    },
     "beta": {
       "extends": "production",
       "distribution": "internal",

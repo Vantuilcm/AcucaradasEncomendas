@@ -1,7 +1,6 @@
-# RellBuild: Sync Check [2026-03-30] v47
-# Nota: Corrigindo indentação do workflow que quebrou v46.
-# Mudança temporária de bundleIdentifier para com.acucaradas.encomendas.new para resetar credenciais.
-# Tentativa de forçar novas credenciais com perfil production_v9.
+# RellBuild: Sync Check [2026-03-30] v48
+# Nota: Revertendo bundleIdentifier e usando as variáveis EAS_APPLE_APP_STORE_CONNECT_API_KEY_* corretas.
+# Tentativa de forçar novas credenciais com perfil production_v10.
 
 name: RellBuild Beta Pipeline
 
@@ -182,9 +181,19 @@ jobs:
               }
 
               fs.writeFileSync('AuthKey.p8', cleanKey);
+
+              // Variáveis que o EAS CLI usa para ASC API Key
+              fs.appendFileSync(process.env.GITHUB_ENV, `EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID=${keyId}\n`);
+              fs.appendFileSync(process.env.GITHUB_ENV, `EAS_APPLE_APP_STORE_CONNECT_API_KEY_ISSUER_ID=${issuerId}\n`);
+              
+              // Multiline GITHUB_ENV para a chave privada
+              fs.appendFileSync(process.env.GITHUB_ENV, `EAS_APPLE_APP_STORE_CONNECT_API_KEY_KEY<<EOF\n${cleanKey}\nEOF\n`);
+
+              // Fallback para variáveis legadas
               fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_KEY_ID=${keyId}\n`);
               fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_ISSUER_ID=${issuerId}\n`);
               fs.appendFileSync(process.env.GITHUB_ENV, `EXPO_ASC_API_KEY_PATH=${process.cwd()}/AuthKey.p8\n`);
+              
               console.log(`🚀 Configurado: ID=${keyId}, Issuer=${issuerId}`);
             } else {
               console.log('⚠️ Não foi possível extrair campos individuais. Salvando como raw.');
@@ -236,6 +245,9 @@ jobs:
           EXPO_ASC_KEY_ID: ${{ env.EXPO_ASC_KEY_ID }}
           EXPO_ASC_ISSUER_ID: ${{ env.EXPO_ASC_ISSUER_ID }}
           EXPO_ASC_API_KEY_PATH: ${{ env.EXPO_ASC_API_KEY_PATH }}
+          EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID: ${{ env.EAS_APPLE_APP_STORE_CONNECT_API_KEY_ID }}
+          EAS_APPLE_APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ env.EAS_APPLE_APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          EAS_APPLE_APP_STORE_CONNECT_API_KEY_KEY: ${{ env.EAS_APPLE_APP_STORE_CONNECT_API_KEY_KEY }}
           # Fallback Apple ID variables para o EAS CLI
           EXPO_APPLE_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -251,8 +263,8 @@ jobs:
           # Tenta listar credenciais de forma não interativa (pode falhar, mas ok)
           eas credentials --platform ios || true
           
-          echo "Iniciando build local do iOS (Release com perfil production_v9 e verbose-logs)..."
-          # Tentamos forçar a renovação das credenciais usando um novo bundleIdentifier e perfil novo
+          echo "Iniciando build local do iOS (Release com perfil production_v10 e verbose-logs)..."
+          # Tentamos forçar a renovação das credenciais usando um novo perfil e variáveis EAS_APPLE_APP_STORE_CONNECT_API_KEY_*
           # Definimos EXPO_APPLE_TEAM_TYPE para evitar prompts interativos
           export EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION
           export EAS_BUILD_DEBUG=1
@@ -260,7 +272,7 @@ jobs:
           # Tenta remover o arquivo de credenciais local se existir (embora não deva existir no runner)
           rm -f credentials.json
           
-          eas build --platform ios --profile production_v9 --local --non-interactive --output app-release.ipa --verbose-logs
+          eas build --platform ios --profile production_v10 --local --non-interactive --output app-release.ipa --verbose-logs
 
       - name: Build Android Release (AAB)
         id: android_release
