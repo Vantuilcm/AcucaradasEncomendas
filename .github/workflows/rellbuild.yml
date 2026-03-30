@@ -1,4 +1,4 @@
-# RellBuild: Sync Check [2026-03-29] v33
+# RellBuild: Sync Check [2026-03-29] v34
 
 name: RellBuild Beta Pipeline
 
@@ -245,8 +245,14 @@ jobs:
           fi
           
           echo "Iniciando build local do iOS (Release com perfil production_v3 para forçar novas credenciais)..."
-          # O EAS CLI usará as variáveis de ambiente da ASC API Key para gerar novas credenciais automaticamente
-          # Removido credentials.json para evitar erro de validação e deixar o EAS gerenciar via API Key
+          # Tentamos forçar a renovação das credenciais limpando o estado local (se houver) e usando o perfil novo
+          # Definimos EXPO_APPLE_TEAM_TYPE para evitar prompts interativos
+          export EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION
+          export EAS_BUILD_DEBUG=1
+          
+          # Tenta remover o arquivo de credenciais local se existir (embora não deva existir no runner)
+          rm -f credentials.json
+          
           eas build --platform ios --profile production_v3 --local --non-interactive --output app-release.ipa
 
       - name: Build Android Release (AAB)
