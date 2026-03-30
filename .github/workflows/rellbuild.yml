@@ -90,7 +90,7 @@ jobs:
 
       # 🔹 6. Expo Doctor (Check configs)
       - name: 🩺 Expo Doctor
-        run: npx expo doctor
+        run: npx expo-doctor
 
       # 🔹 7. Build Android (Cloud)
       - name: 🤖 Build Android (EAS Cloud)
