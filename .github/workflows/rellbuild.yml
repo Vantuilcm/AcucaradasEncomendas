@@ -53,15 +53,11 @@ jobs:
       - name: ⚙️ Install Expo & EAS CLI
         run: npm install -g expo-cli eas-cli
 
-      # 🔹 5. Login Expo
-      - name: 🔐 Login Expo
-        run: eas login --token ${{ secrets.EXPO_TOKEN }}
-
-      # 🔹 6. Validar EAS
+      # 🔹 5. Validar EAS
       - name: 🔎 Check EAS
         run: eas whoami
 
-      # 🔹 7. Build Android (GRÁTIS LOCAL)
+      # 🔹 6. Build Android (GRÁTIS LOCAL)
       - name: 🤖 Build Android (local)
         if: "!contains(github.event.head_commit.message, '[skip-android]') && !contains(github.event.head_commit.message, '[ios-only]')"
         run: |
