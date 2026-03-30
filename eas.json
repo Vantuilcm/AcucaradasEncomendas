@@ -79,6 +79,10 @@
     "production_v12": {
       "extends": "production"
     },
+    "production_v13": {
+      "extends": "production",
+      "credentialsSource": "local"
+    },
     "beta": {
       "extends": "production",
       "distribution": "internal",
