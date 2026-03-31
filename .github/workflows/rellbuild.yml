@@ -134,12 +134,11 @@ jobs:
       - name: 🩺 Expo Doctor
         run: npx expo-doctor
 
-      # 🔹 7. Build Android (Cloud)
+      # 🔹 7. Build Android (Cloud) - DESATIVADO (Já concluído)
       - name: 🤖 Build Android (EAS Cloud)
-        if: "!contains(github.event.head_commit.message, '[skip-android]') && !contains(github.event.head_commit.message, '[ios-only]')"
+        if: false # Desativado conforme solicitação: Build Android já está pronto.
         run: |
-          echo "🚀 Iniciando build Android no EAS Cloud..."
-          eas build --platform android --profile production_v13 --non-interactive
+          echo "🚀 Build Android ignorado (Já concluído)."
 
       # 🔹 8. Build iOS (Cloud)
       - name: 🍏 Build iOS (EAS Cloud)
