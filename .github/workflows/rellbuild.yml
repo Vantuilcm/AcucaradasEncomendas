@@ -144,32 +144,26 @@ jobs:
       - name: 🍏 Build iOS (EAS Cloud)
         if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
         env:
-          EXPO_ASC_API_KEY_PATH: "./AuthKey.p8"
-          EXPO_DEBUG: 1
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+          EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
         run: |
-          echo "🚀 Iniciando build iOS no EAS Cloud (Non-Interactive)..."
-          # Captura saída e falha rápido em erros críticos (401/403)
-          eas build --platform ios --profile production_v13 --non-interactive 2>&1 | tee build_log.txt
+          echo "🚀 Iniciando Build iOS com Guardião de Credenciais..."
           
-          if grep -q "Apple 401" build_log.txt; then
-            echo "❌ ERRO: Falha de autenticação Apple (401 Unauthorized) — Revise sua ASC API Key!"
-            exit 1
-          fi
+          # 1. Limpeza Profunda de Credenciais Corrompidas
+          echo "🧹 Limpando certificados e profiles antigos/inválidos..."
+          eas credentials:revoke -p ios --dist-cert --non-interactive || true
+          eas credentials:revoke -p ios --push-key --non-interactive || true
+          eas credentials:revoke -p ios --profile --non-interactive || true
           
-          if grep -q "Apple 403" build_log.txt; then
-            echo "❌ ERRO: Acesso negado pela Apple (403 Forbidden)!"
-            echo "👉 SOLUÇÃO DEFINITIVA:"
-            echo "1. O 'Account Holder' deve aceitar os novos termos em developer.apple.com"
-            echo "2. Garanta que a ASC API Key tenha permissão de 'ADMIN'"
-            echo "3. Verifique se o contrato do Apple Developer Program está ativo e pago"
-            exit 1
-          fi
-
-          if grep -q "No certificate exists with serial number" build_log.txt; then
-            echo "❌ ERRO: Inconsistência de Certificado Apple detectada!"
-            echo "👉 SOLUÇÃO: Execute 'eas credentials:revoke -p ios' localmente e remova certificados antigos/revogados."
-            exit 1
-          fi
+          # 2. Sincronização e Validação via ASC API Key
+          echo "� Sincronizando novas credenciais via Apple Store Connect API..."
+          eas credentials:sync -p ios --non-interactive
+          
+          # 3. Execução do Build com Fallback e Verbose
+          echo "🏗️ Executando build iOS no EAS Cloud..."
+          EXPO_DEBUG=1 eas build --platform ios --profile production_v13 --non-interactive
 
       # 🔹 9. Submit iOS to TestFlight
       - name: 📤 Submit iOS (TestFlight)
