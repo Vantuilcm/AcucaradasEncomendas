@@ -16,6 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      # Apple Store Connect API Key (Obrigatório para modo não-interativo)
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      EXPO_APPLE_TEAM_TYPE: "COMPANY_OR_ORGANIZATION"
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
       # Firebase Secrets (Usando os nomes exatos do seu GitHub)
       GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
       GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
@@ -83,9 +89,15 @@ jobs:
             fi
           fi
 
-          # Limpeza de resíduos de credenciais (Segurança RellBuild)
-          rm -f AuthKey.p8
-          unset EXPO_ASC_KEY_ID EXPO_ASC_ISSUER_ID EXPO_ASC_PRIVATE_KEY EXPO_ASC_API_KEY_PATH EXPO_APP_STORE_CONNECT_API_KEY
+          # Injetar ASC API Key (.p8) para autenticação Apple
+          if [ -n "$EXPO_ASC_PRIVATE_KEY" ]; then
+            echo "🔑 Preparando chave ASC API Key..."
+            echo "$EXPO_ASC_PRIVATE_KEY" > AuthKey.p8
+            echo "✅ Chave AuthKey.p8 criada."
+          else
+            echo "❌ ERRO CRÍTICO: EXPO_ASC_PRIVATE_KEY não encontrada nos secrets!"
+            exit 1
+          fi
 
           echo "✅ Validação e Injeção concluídas com sucesso."
 
@@ -103,8 +115,11 @@ jobs:
       # 🔹 8. Build iOS (Cloud)
       - name: 🍏 Build iOS (EAS Cloud)
         if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
+        env:
+          EXPO_ASC_API_KEY_PATH: "./AuthKey.p8"
+          EXPO_DEBUG: 1
         run: |
-          echo "🚀 Iniciando build iOS no EAS Cloud..."
+          echo "🚀 Iniciando build iOS no EAS Cloud com ASC API Key..."
           eas build --platform ios --profile production_v13 --non-interactive
 
       # 🔹 9. Submit iOS to TestFlight
