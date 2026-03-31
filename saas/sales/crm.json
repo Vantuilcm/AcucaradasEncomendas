@@ -1,0 +1,43 @@
+{
+  "leads": [
+    {
+      "id": "lead_001",
+      "company": "Doces da Vovó",
+      "contact_name": "Maria Silva",
+      "email": "contato@docesvovo.com",
+      "status": "contato",
+      "source": "Instagram Ads",
+      "estimated_revenue": 5000,
+      "last_follow_up": "2026-03-30"
+    },
+    {
+      "id": "lead_002",
+      "company": "Hamburgueria do Bairro",
+      "contact_name": "João Rocha",
+      "email": "joao@hamburgueriabairro.com",
+      "status": "negociacao",
+      "source": "Outbound",
+      "estimated_revenue": 15000,
+      "last_follow_up": "2026-03-31"
+    },
+    {
+      "id": "lead_003",
+      "company": "Padaria Central",
+      "contact_name": "Carlos Oliveira",
+      "email": "carlos@padariacentral.com",
+      "status": "fechado",
+      "source": "Indicação",
+      "estimated_revenue": 25000,
+      "plan": "PRO",
+      "closed_at": "2026-03-28"
+    }
+  ],
+  "pricing_tests": {
+    "current_variants": [
+      { "label": "BASIC", "price": 49.00, "conversion_rate": "15%" },
+      { "label": "STANDARD", "price": 99.00, "conversion_rate": "22%" },
+      { "label": "PREMIUM", "price": 199.00, "conversion_rate": "8%" }
+    ],
+    "winning_price": 99.00
+  }
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "tenant_id": "acucaradas",
+    "name": "Açucaradas Encomendas",
+    "plan": "ENTERPRISE",
+    "firebase_config": {
+      "apiKey": "AIzaSy...",
+      "projectId": "acucaradas-encomendas"
+    },
+    "status": "active"
+  },
+  {
+    "tenant_id": "cozinha-pro",
+    "name": "Cozinha Pro",
+    "plan": "PRO",
+    "firebase_config": {
+      "apiKey": "AIzaSy...",
+      "projectId": "cozinha-pro"
+    },
+    "status": "active"
+  }
+]

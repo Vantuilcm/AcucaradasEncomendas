@@ -14,7 +14,6 @@
       },
       "channel": "development",
       "ios": {
-        "resourceClass": "m-medium",
         "image": "macos-sequoia-15.3-xcode-16.2"
       },
       "android": {
@@ -34,7 +33,6 @@
         "buildType": "apk"
       },
       "ios": {
-        "resourceClass": "m-medium",
         "image": "macos-sequoia-15.3-xcode-16.2"
       }
     },
@@ -50,9 +48,8 @@
       },
       "channel": "production",
       "ios": {
-        "resourceClass": "m-medium",
         "buildConfiguration": "Release",
-        "image": "macos-sequoia-15.3-xcode-16.2"
+        "image": "macos-sequoia-15.2-xcode-16.2"
       },
       "android": {
         "buildType": "app-bundle"
@@ -80,7 +77,23 @@
       "extends": "production"
     },
     "production_v13": {
-      "extends": "production"
+      "distribution": "store",
+      "autoIncrement": true,
+      "credentialsSource": "remote",
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_APP_NAME": "Açucaradas Encomendas",
+        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045"
+      },
+      "channel": "production",
+      "ios": {
+        "buildConfiguration": "Release",
+        "image": "macos-sequoia-15.2-xcode-16.2"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
     },
     "beta": {
       "extends": "production",
