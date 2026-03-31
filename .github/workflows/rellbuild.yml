@@ -22,6 +22,7 @@ jobs:
       EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
       EXPO_APPLE_TEAM_TYPE: "COMPANY_OR_ORGANIZATION"
       EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
       # Firebase Secrets (Usando os nomes exatos do seu GitHub)
       GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
       GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
@@ -89,21 +90,24 @@ jobs:
             fi
           fi
 
-          # Injetar ASC API Key (.p8) para autenticação Apple
-          if [ -n "$EXPO_ASC_PRIVATE_KEY" ]; then
-            echo "🔑 Preparando chave ASC API Key..."
-            # Validar formato básico da chave (sem expor conteúdo)
-            if [[ "$EXPO_ASC_PRIVATE_KEY" == *"BEGIN PRIVATE KEY"* ]]; then
-              echo "✅ Formato da chave parece correto (PEM)."
-            else
-              echo "⚠️ AVISO: Formato da chave pode estar incorreto (falta BEGIN PRIVATE KEY)."
-            fi
-            echo "$EXPO_ASC_PRIVATE_KEY" > AuthKey.p8
-            echo "✅ Chave AuthKey.p8 criada."
+          # Injetar ASC API Key (.p8) com suporte a Multiline e Base64
+          if [ -n "$EXPO_ASC_PRIVATE_KEY_BASE64" ]; then
+            echo "🔑 Decodificando ASC Private Key via Base64..."
+            echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode > AuthKey.p8
+          elif [ -n "$EXPO_ASC_PRIVATE_KEY" ]; then
+            echo "🔑 Normalizando ASC Private Key (multiline safe)..."
+            echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
           else
-            echo "❌ ERRO CRÍTICO: EXPO_ASC_PRIVATE_KEY não encontrada nos secrets!"
+            echo "❌ ERRO CRÍTICO: EXPO_ASC_PRIVATE_KEY não encontrada!"
             exit 1
           fi
+
+          # Exportar para o ambiente do GitHub Actions preservando multiline
+          echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
+          cat AuthKey.p8 >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+          echo "✅ Chave AuthKey.p8 preparada e exportada."
 
           echo "✅ Validação e Injeção concluídas com sucesso."
 
@@ -122,9 +126,10 @@ jobs:
       - name: 🍏 Build iOS (EAS Cloud)
         if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
         env:
+          EXPO_ASC_API_KEY_PATH: "./AuthKey.p8"
           EXPO_DEBUG: 1
         run: |
-          echo "🚀 Iniciando build iOS no EAS Cloud com ASC API Key Forçada via eas.json..."
+          echo "🚀 Iniciando build iOS no EAS Cloud (Non-Interactive)..."
           eas build --platform ios --profile production_v13 --non-interactive
 
       # 🔹 9. Submit iOS to TestFlight
