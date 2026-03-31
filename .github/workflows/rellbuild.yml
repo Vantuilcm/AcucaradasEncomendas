@@ -116,9 +116,11 @@ jobs:
             exit 1
           fi
           
-          # Bloquear Fallback para Apple ID (Hardening)
+          # 🛡️ Hardening: Remover qualquer credencial manual (Base64/P12/Provisioning)
+          # Isso força o EAS a usar apenas Remote Credentials + ASC API Key
+          unset IOS_DIST_CERT_BASE64 IOS_PROV_PROFILE_BASE64 IOS_CERT_PASSWORD
           unset EXPO_APPLE_ID EXPO_APPLE_PASSWORD EXPO_APPLE_APP_SPECIFIC_PASSWORD
-          echo "🛡️ Fallback para Apple ID bloqueado. Usando apenas ASC API Key."
+          echo "🛡️ Credenciais manuais e Apple ID bloqueados. Forçando EAS Remote Credentials + ASC API Key."
 
           echo "✅ Validação e Injeção concluídas com sucesso."
 
@@ -141,10 +143,17 @@ jobs:
           EXPO_DEBUG: 1
         run: |
           echo "🚀 Iniciando build iOS no EAS Cloud (Non-Interactive)..."
-          # Captura saída e falha rápido em erro 401
+          # Captura saída e falha rápido em erros críticos (401/403)
           eas build --platform ios --profile production_v13 --non-interactive 2>&1 | tee build_log.txt
+          
           if grep -q "Apple 401" build_log.txt; then
-            echo "❌ ERRO: Falha de autenticação Apple (401 detected) — Revise sua ASC API Key!"
+            echo "❌ ERRO: Falha de autenticação Apple (401 Unauthorized) — Revise sua ASC API Key!"
+            exit 1
+          fi
+          
+          if grep -q "Apple 403" build_log.txt; then
+            echo "❌ ERRO: Acesso negado pela Apple (403 Forbidden)!"
+            echo "👉 Possíveis causas: Contrato Apple Developer expirado, Permissão da API Key insuficiente (Admin/App Manager necessário) ou Team ID incorreto."
             exit 1
           fi
 
