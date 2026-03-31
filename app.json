@@ -89,6 +89,12 @@
           "merchantIdentifier": "merchant.com.acucaradas.encomendas"
         }
       ],
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
+        }
+      ],
       "./plugins/withAndroidNamespaceFix"
     ],
     "updates": {

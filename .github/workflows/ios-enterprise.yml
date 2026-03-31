@@ -149,6 +149,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
+          # Renomear IPA para facilitar download
+          cp *.ipa Acucaradas_Encomendas.ipa || true
+          
           # Verificar se a tag já existe para evitar erro
           if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
             echo "⚠️ Tag $TAG_NAME já existe. Pulando criação."

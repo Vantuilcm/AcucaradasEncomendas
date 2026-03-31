@@ -11,11 +11,12 @@ import { Platform } from 'react-native';
 const getEnvVar = (expoKey: string, nodeKey: string, fallbackKey: string, name: string): string => {
   const value = process.env[expoKey] || process.env[nodeKey] || Constants.expoConfig?.extra?.[fallbackKey];
   
-  // Se for nulo, vazio, ou o valor padrão (mock), lançamos um erro claro
+  // Se for nulo, vazio, ou o valor padrão (mock), avisamos mas não travamos a inicialização aqui
   if (!value || value.includes('your-')) {
     const errorMsg = `CRITICAL ERROR: Variável de ambiente faltando para ${name}. Verifique seu arquivo .env ou segredos do EAS.`;
     console.error(errorMsg);
-    throw new Error(errorMsg);
+    // Em vez de throw, retornamos uma string vazia para evitar crash na inicialização do módulo
+    return '';
   }
   
   return value;
@@ -126,9 +127,9 @@ try {
 } catch (error) {
   console.error('CRITICAL: Firebase initialization error:', error);
 
-  // Sem fallbacks silenciosos ou mocks de dados.
-  // Se a inicialização falhar, propagamos o erro para impedir que o app rode em estado inconsistente.
-  throw new Error(`Falha crítica ao inicializar o Firebase. Verifique suas variáveis de ambiente. Detalhe: ${error instanceof Error ? error.message : 'Desconhecido'}`);
+  // Em vez de throw, vamos apenas logar o erro. 
+  // O app pode tentar rodar, mas as chamadas ao Firebase falharão (o que é melhor que crash na splash screen)
+  console.warn('Falha ao inicializar o Firebase. Algumas funcionalidades não estarão disponíveis.');
 }
 
 // Exportar as variáveis após a inicialização

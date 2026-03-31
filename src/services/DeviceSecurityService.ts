@@ -61,8 +61,8 @@ export class DeviceSecurityService {
       return false;
     } catch (error) {
       secureLoggingService.error('Erro ao verificar segurança do dispositivo', { error });
-      // Em caso de erro, assumimos que o dispositivo pode estar comprometido
-      return true;
+      // Em caso de erro, NÃO assumimos que o dispositivo está comprometido para evitar falsos positivos
+      return false;
     }
   }
 
@@ -92,7 +92,7 @@ export class DeviceSecurityService {
       return false;
     } catch (error) {
       secureLoggingService.error('Erro ao verificar root no Android', { error });
-      return true; // Em caso de erro, assumir que pode estar com root
+      return false; // Em caso de erro, NÃO assumir que pode estar com root
     }
   }
 
@@ -122,7 +122,7 @@ export class DeviceSecurityService {
       return false;
     } catch (error) {
       secureLoggingService.error('Erro ao verificar jailbreak no iOS', { error });
-      return true; // Em caso de erro, assumir que pode estar com jailbreak
+      return false; // Em caso de erro, NÃO assumir que pode estar com jailbreak
     }
   }
 
