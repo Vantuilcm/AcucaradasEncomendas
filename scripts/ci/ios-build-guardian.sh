@@ -44,6 +44,11 @@ fi
 export EXPO_ASC_API_KEY_PATH="./AuthKey.p8"
 echo "[SUCCESS] Arquivo AuthKey.p8 pronto e EXPO_ASC_API_KEY_PATH configurado."
 
+# 2.4 DEFINIÇÃO DO TIPO DE TIME (Para evitar prompt no CI)
+# O EAS CLI exige saber se o time é 'individual' ou 'company'
+export EXPO_APPLE_TEAM_TYPE="company"
+echo "[INFO] EXPO_APPLE_TEAM_TYPE configurado como 'company'."
+
 # 2.5 INJEÇÃO DE ARQUIVOS CRÍTICOS (Firebase)
 echo "[INFO] Injetando arquivos de configuração (Firebase)..."
 
@@ -96,12 +101,10 @@ if [ $BUILD_EXIT_CODE -eq 0 ]; then
     echo "✅ [SUCCESS] Build finalizado com sucesso em ${DURATION}s."
     echo "🔗 Link: $BUILD_URL"
 else
-    # Verifica se o erro foi de autenticação para tentar fallback
-    if grep -qE "authentication|401|403|credentials" build_output.log; then
-        echo "⚠️ [WARNING] Falha de autenticação detectada. Tentando Fallback..."
-        # Fallback (Note: o usuário pediu modo interativo, mas no CI isso falhará se não houver um TTY. 
-        # No entanto, seguiremos a instrução de tentar o comando sem --non-interactive como último recurso)
-        eas build --platform ios --profile production_v13 || echo "❌ [FAIL] Fallback também falhou."
+    # Verifica se o erro foi de autenticação ou falta de dados para tentar fallback
+    if grep -qE "authentication|401|403|credentials|Team Type" build_output.log; then
+        echo "⚠️ [WARNING] Falha de autenticação ou configuração detectada."
+        echo "📝 Verifique se EXPO_APPLE_TEAM_TYPE e ASC API Key estão corretos."
     fi
     
     STATUS="FALHA"
