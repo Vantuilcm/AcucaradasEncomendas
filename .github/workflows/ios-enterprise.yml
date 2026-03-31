@@ -16,6 +16,8 @@ jobs:
   ios-pipeline:
     name: 🍏 iOS Local Build (GitHub Runner - No Expo Credits)
     runs-on: macos-latest
+    permissions:
+      contents: write
     if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
     
     # Proteção de Ambiente para Aprovação Manual (Opcional se configurado no GitHub)
@@ -146,8 +148,14 @@ jobs:
           TAG_NAME="v${{ env.VERSION }}-build-${{ env.BUILD_NUMBER }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG_NAME" -m "Automated release tag for version $TAG_NAME"
-          git push origin "$TAG_NAME"
+          
+          # Verificar se a tag já existe para evitar erro
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "⚠️ Tag $TAG_NAME já existe. Pulando criação."
+          else
+            git tag -a "$TAG_NAME" -m "Automated release tag for version $TAG_NAME"
+            git push origin "$TAG_NAME"
+          fi
 
       - name: 🕵️ [SELF-ROLLBACK] Monitoramento Pós-Release
         if: always() && (steps.submit_step.outcome == 'success')
