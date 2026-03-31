@@ -110,17 +110,19 @@ jobs:
           echo "✅ Chave AuthKey.p8 preparada e exportada."
 
           # 🍎 Validação de Consistência da Apple API Key
-          echo "🍎 Validando consistência das credenciais Apple..."
+          echo "🍎 Validando consistência das credenciais Apple (ADMIN)..."
           if [ -z "$EXPO_ASC_KEY_ID" ] || [ -z "$EXPO_ASC_ISSUER_ID" ]; then
             echo "❌ ERRO: EXPO_ASC_KEY_ID ou EXPO_ASC_ISSUER_ID faltando!"
             exit 1
           fi
           
+          echo "🔑 Key ID em uso: $EXPO_ASC_KEY_ID"
+          
           # 🛡️ Hardening: Remover qualquer credencial manual (Base64/P12/Provisioning)
-          # Isso força o EAS a usar apenas Remote Credentials + ASC API Key
+          # Isso força o EAS a usar apenas Remote Credentials + ASC API Key (Admin)
           unset IOS_DIST_CERT_BASE64 IOS_PROV_PROFILE_BASE64 IOS_CERT_PASSWORD
           unset EXPO_APPLE_ID EXPO_APPLE_PASSWORD EXPO_APPLE_APP_SPECIFIC_PASSWORD
-          echo "🛡️ Credenciais manuais e Apple ID bloqueados. Forçando EAS Remote Credentials + ASC API Key."
+          echo "🛡️ Credenciais manuais e Apple ID bloqueados. Forçando EAS Remote Credentials + ASC API Key (Admin)."
 
           echo "✅ Validação e Injeção concluídas com sucesso."
 
