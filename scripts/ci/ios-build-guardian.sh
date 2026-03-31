@@ -47,7 +47,8 @@ echo "[SUCCESS] Arquivo AuthKey.p8 pronto e EXPO_ASC_API_KEY_PATH configurado."
 # 2.4 DEFINIÇÃO DO TIPO DE TIME (Para evitar prompt no CI)
 # O EAS CLI exige saber se o time é 'individual' ou 'company'
 export EXPO_APPLE_TEAM_TYPE="company"
-echo "[INFO] EXPO_APPLE_TEAM_TYPE configurado como 'company'."
+echo "EXPO_APPLE_TEAM_TYPE=company" >> $GITHUB_ENV
+echo "[INFO] EXPO_APPLE_TEAM_TYPE configurado como 'company' e exportado para GITHUB_ENV."
 
 # 2.5 INJEÇÃO DE ARQUIVOS CRÍTICOS (Firebase)
 echo "[INFO] Injetando arquivos de configuração (Firebase)..."
@@ -71,12 +72,8 @@ if [[ -n "${GOOGLE_SERVICES_JSON:-}" ]]; then
 fi
 
 # 3. LIMPEZA PROFUNDA DE CREDENCIAIS (FORÇADO)
-echo "[INFO] Executando limpeza profunda de credenciais no EAS..."
-# Usando --non-interactive com as variáveis de ambiente de ASC Key presentes
-eas credentials:revoke -p ios --dist-cert --non-interactive || true
-eas credentials:revoke -p ios --push-key --non-interactive || true
-eas credentials:revoke -p ios --profile --non-interactive || true
-eas credentials:sync -p ios --non-interactive || true
+echo "[INFO] Ignorando limpeza de credenciais legada (EAS CLI v18+ handle sync automatically)."
+# eas credentials:revoke e sync foram depreciados/alterados em versões recentes para fluxos automáticos de API Key
 
 # 4. EXECUÇÃO DO BUILD (ETAPA 4)
 START_TIME=$(date +%s)

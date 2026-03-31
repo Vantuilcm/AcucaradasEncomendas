@@ -110,6 +110,9 @@ jobs:
           # Forçar caminho da chave para evitar prompts no EAS CLI
           echo "EXPO_ASC_API_KEY_PATH=./AuthKey.p8" >> $GITHUB_ENV
           
+          # Forçar tipo de time para evitar prompt interativo
+          echo "EXPO_APPLE_TEAM_TYPE=company" >> $GITHUB_ENV
+          
           echo "✅ Chave AuthKey.p8 preparada e exportada."
 
           # 🍎 Validação de Consistência da Apple API Key
