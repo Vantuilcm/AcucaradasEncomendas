@@ -32,6 +32,7 @@ jobs:
       EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
       EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
       EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
       EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
       # Firebase (Injetados via Workflow)
       GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -69,10 +70,6 @@ jobs:
           chmod +x saas/saas-context.sh
           source saas/saas-context.sh
           echo "GROWTHOS_TENANT_ID=${GROWTHOS_TENANT_ID:-acucaradas}" >> $GITHUB_ENV
-
-      - name: 🔍 [ETAPA 1] Prebuild Check & Governança
-        run: |
-          ./scripts/ci/prebuild-check.sh
 
       - name: 🍏 [ETAPA 2] Build iOS (iOS-BUILD-GUARDIAN)
         id: build_ios

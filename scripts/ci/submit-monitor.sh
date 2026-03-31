@@ -10,7 +10,7 @@ echo "------------------------------------------------------------"
 
 # Executar EAS Submit capturando logs em tempo real
 set +e
-eas submit --platform "$PLATFORM" --latest --non-interactive 2>&1 | tee submit_log.txt
+npx eas-cli submit --platform "$PLATFORM" --latest --non-interactive 2>&1 | tee submit_log.txt
 SUBMIT_EXIT_CODE=${PIPESTATUS[0]}
 set -e
 

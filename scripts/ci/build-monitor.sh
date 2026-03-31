@@ -35,7 +35,7 @@ else
   # Executar EAS Build capturando logs em tempo real (Shell Strict Mode)
   # Usamos pipefail para garantir que falhas no EAS retornem erro mesmo com tee
   set +e
-  EXPO_DEBUG=1 EXPO_ASC_API_KEY_PATH="./AuthKey.p8" eas build --platform "$PLATFORM" --profile "$PROFILE" --non-interactive 2>&1 | tee build_log.txt
+  EXPO_DEBUG=1 EXPO_ASC_API_KEY_PATH="./AuthKey.p8" npx eas-cli build --platform "$PLATFORM" --profile "$PROFILE" --non-interactive 2>&1 | tee build_log.txt
   BUILD_EXIT_CODE=${PIPESTATUS[0]}
   set -e
 fi

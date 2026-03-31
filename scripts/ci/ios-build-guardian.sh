@@ -12,10 +12,29 @@ MISSING_VARS=()
 [ -z "${EXPO_TOKEN:-}" ] && MISSING_VARS+=("EXPO_TOKEN")
 [ -z "${EXPO_ASC_KEY_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_KEY_ID")
 [ -z "${EXPO_ASC_ISSUER_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_ISSUER_ID")
-[ -z "${EXPO_ASC_PRIVATE_KEY:-}" ] && MISSING_VARS+=("EXPO_ASC_PRIVATE_KEY")
+[ -z "${EXPO_ASC_PRIVATE_KEY:-}" ] && [ -z "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ] && MISSING_VARS+=("EXPO_ASC_PRIVATE_KEY")
+[ -z "${EXPO_APPLE_TEAM_ID:-}" ] && MISSING_VARS+=("EXPO_APPLE_TEAM_ID")
 
 if [ ${#MISSING_VARS[@]} -ne 0 ]; then
-    echo "❌ [ERRO] Variáveis ausentes: ${MISSING_VARS[*]}"
+    echo "❌ [ERRO] Variáveis obrigatórias ausentes: ${MISSING_VARS[*]}"
+    exit 1
+fi
+
+# 1.1 Governança de Arquivos (Anti-Signing Manual)
+echo "[INFO] Validando governança de credenciais..."
+forbidden_files=("credentials.json" "*.p12" "*.mobileprovision")
+for pattern in "${forbidden_files[@]}"; do
+    if ls $pattern 1> /dev/null 2>&1; then
+        echo "❌ [ERROR] [GOVERNANÇA] Arquivo proibido detectado: $pattern"
+        echo "💡 [DICA] O pipeline exige EAS Managed Credentials. Remova arquivos de signing manuais do repositório."
+        exit 1
+    fi
+done
+
+# 1.2 Governança de eas.json
+if grep -q "appStoreConnectApiKey" eas.json; then
+    echo "❌ [ERROR] [GOVERNANÇA] Configuração 'appStoreConnectApiKey' detectada no eas.json!"
+    echo "💡 [DICA] Use variáveis de ambiente EXPO_ASC_* para maior segurança."
     exit 1
 fi
 
@@ -87,11 +106,10 @@ echo "[INFO] Iniciando limpeza profunda de credenciais para resolver erro de Ser
 # --non-interactive é crucial aqui.
 set +e
 echo "🧹 Removendo credenciais locais e remotas (Sync Force)..."
-eas credentials:clear --platform ios --non-interactive || true
+npx eas-cli credentials:clear --platform ios --non-interactive || true
 
 # Forçar a limpeza do cache de build para garantir que nada antigo seja reutilizado
 echo "🧹 Limpando cache do EAS Build..."
-# eas build --platform ios --profile production_v13 --clear-cache --non-interactive (Isso será feito no comando de build abaixo)
 set -e
 
 echo "[SUCCESS] Limpeza concluída. O EAS tentará recriar as credenciais usando a ASC API Key."
@@ -102,7 +120,7 @@ echo "🚀 [INFO] Iniciando build iOS (Profile: production_v13)..."
 
 # Tenta o build com debug ativado
 set +e # Não parar imediatamente para capturar logs e erro
-EXPO_DEBUG=1 EAS_VERBOSE=1 eas build \
+EXPO_DEBUG=1 EAS_VERBOSE=1 npx eas-cli build \
   --platform ios \
   --profile production_v13 \
   --non-interactive \
