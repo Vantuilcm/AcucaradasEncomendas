@@ -109,6 +109,17 @@ jobs:
           
           echo "✅ Chave AuthKey.p8 preparada e exportada."
 
+          # 🍎 Validação de Consistência da Apple API Key
+          echo "🍎 Validando consistência das credenciais Apple..."
+          if [ -z "$EXPO_ASC_KEY_ID" ] || [ -z "$EXPO_ASC_ISSUER_ID" ]; then
+            echo "❌ ERRO: EXPO_ASC_KEY_ID ou EXPO_ASC_ISSUER_ID faltando!"
+            exit 1
+          fi
+          
+          # Bloquear Fallback para Apple ID (Hardening)
+          unset EXPO_APPLE_ID EXPO_APPLE_PASSWORD EXPO_APPLE_APP_SPECIFIC_PASSWORD
+          echo "🛡️ Fallback para Apple ID bloqueado. Usando apenas ASC API Key."
+
           echo "✅ Validação e Injeção concluídas com sucesso."
 
       # 🔹 6. Expo Doctor (Check configs)
@@ -130,7 +141,12 @@ jobs:
           EXPO_DEBUG: 1
         run: |
           echo "🚀 Iniciando build iOS no EAS Cloud (Non-Interactive)..."
-          eas build --platform ios --profile production_v13 --non-interactive
+          # Captura saída e falha rápido em erro 401
+          eas build --platform ios --profile production_v13 --non-interactive 2>&1 | tee build_log.txt
+          if grep -q "Apple 401" build_log.txt; then
+            echo "❌ ERRO: Falha de autenticação Apple (401 detected) — Revise sua ASC API Key!"
+            exit 1
+          fi
 
       # 🔹 9. Submit iOS to TestFlight
       - name: 📤 Submit iOS (TestFlight)
