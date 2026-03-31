@@ -137,9 +137,18 @@ DURATION=$((END_TIME - START_TIME))
 if [ $BUILD_EXIT_CODE -eq 0 ]; then
     STATUS="SUCESSO"
     # Local build gera o artefato no diretório atual ou subdiretório
-    BUILD_PATH=$(ls *.ipa 2>/dev/null | head -1 || echo "IPA não encontrada no root")
-    echo "✅ [SUCCESS] Build LOCAL finalizado com sucesso em ${DURATION}s."
-    echo "� Artefato: $BUILD_PATH"
+    BUILD_PATH=$(ls *.ipa 2>/dev/null | head -1 || echo "")
+    
+    if [ -n "$BUILD_PATH" ]; then
+        echo "✅ [SUCCESS] Build LOCAL finalizado com sucesso em ${DURATION}s."
+        echo "📦 Artefato: $BUILD_PATH"
+        # Exportar para o GitHub Actions usar no próximo step
+        echo "IPA_PATH=$BUILD_PATH" >> $GITHUB_ENV
+    else
+        STATUS="FALHA"
+        echo "❌ [FAIL] Build finalizado mas arquivo .ipa não foi encontrado."
+        BUILD_EXIT_CODE=1
+    fi
 else
     # Verifica se o erro foi de autenticação ou falta de dados para tentar fallback
     if grep -qE "authentication|401|403|credentials|Team Type" build_output.log; then

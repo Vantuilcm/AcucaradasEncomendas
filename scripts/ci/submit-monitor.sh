@@ -10,7 +10,13 @@ echo "------------------------------------------------------------"
 
 # Executar EAS Submit capturando logs em tempo real
 set +e
-npx eas-cli submit --platform "$PLATFORM" --latest --non-interactive 2>&1 | tee submit_log.txt
+if [ -n "${IPA_PATH:-}" ] && [ -f "$IPA_PATH" ]; then
+  echo "[INFO] [SUBMIT] Submetendo IPA local: $IPA_PATH"
+  npx eas-cli submit --platform "$PLATFORM" --path "$IPA_PATH" --non-interactive 2>&1 | tee submit_log.txt
+else
+  echo "[INFO] [SUBMIT] Submetendo último build do EAS Cloud..."
+  npx eas-cli submit --platform "$PLATFORM" --latest --non-interactive 2>&1 | tee submit_log.txt
+fi
 SUBMIT_EXIT_CODE=${PIPESTATUS[0]}
 set -e
 
