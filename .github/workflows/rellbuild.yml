@@ -57,7 +57,7 @@ jobs:
 
       # 🔹 4. Install EAS CLI
       - name: ⚙️ Install EAS CLI
-        run: npm install -g eas-cli@15.0.10
+        run: npm install -g eas-cli@latest
 
       # 🔹 5. Validation & Firebase Injection (FAIL FAST)
       - name: 🛡️ Validate & Inject Critical Files
@@ -149,21 +149,14 @@ jobs:
           EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
           EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
         run: |
-          echo "🚀 Iniciando Build iOS com Guardião de Credenciais..."
+          echo "🚀 Iniciando Build iOS no EAS Cloud..."
           
-          # 1. Limpeza Profunda de Credenciais Corrompidas
-          echo "🧹 Limpando certificados e profiles antigos/inválidos..."
-          eas credentials:revoke -p ios --dist-cert --non-interactive || true
-          eas credentials:revoke -p ios --push-key --non-interactive || true
-          eas credentials:revoke -p ios --profile --non-interactive || true
+          # 1. Limpeza de Cache e Forçar Novas Credenciais
+          # Como o comando 'credentials:revoke' falhou por versão/sintaxe, 
+          # usaremos '--clear-cache' que força o EAS a revalidar o ambiente.
           
-          # 2. Sincronização e Validação via ASC API Key
-          echo "� Sincronizando novas credenciais via Apple Store Connect API..."
-          eas credentials:sync -p ios --non-interactive
-          
-          # 3. Execução do Build com Fallback e Verbose
-          echo "🏗️ Executando build iOS no EAS Cloud..."
-          EXPO_DEBUG=1 eas build --platform ios --profile production_v13 --non-interactive
+          echo "🏗️ Executando build iOS (Profile: production_v13)..."
+          EXPO_DEBUG=1 eas build --platform ios --profile production_v13 --non-interactive --clear-cache
 
       # 🔹 9. Submit iOS to TestFlight
       - name: 📤 Submit iOS (TestFlight)
