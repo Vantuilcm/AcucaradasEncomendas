@@ -1,0 +1,70 @@
+name: 🚀 iOS Enterprise Build & Submit (Auto-Corretivo)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  ios-build:
+    name: 🍏 iOS Build (Enterprise Resiliente)
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
+    
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: ⚙️ Install EAS CLI
+        run: npm install -g eas-cli@15.0.10
+
+      - name: 🔍 Prebuild Check & Validation
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/prebuild-check.sh
+
+      - name: 🍏 Build iOS (Resiliente)
+        run: |
+          ./scripts/build-monitor.sh
+
+      - name: 📤 Submit to TestFlight
+        if: success()
+        run: |
+          echo "📤 Enviando build iOS mais recente para TestFlight..."
+          eas submit --platform ios --latest --non-interactive
+
+      - name: ✅ Pipeline Finalizado
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "🔥 Pipeline finalizado com sucesso absoluto (Enterprise)!"
+          else
+            echo "❌ Pipeline falhou. Verifique build_log.txt nos artefatos."
+            exit 1
+          fi
+
+      - name: 📁 Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-logs
+          path: build_log.txt
