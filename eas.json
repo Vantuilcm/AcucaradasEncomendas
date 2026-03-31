@@ -14,7 +14,6 @@
       },
       "channel": "development",
       "ios": {
-        "image": "macos-sequoia-15.3-xcode-16.2"
       },
       "android": {
         "buildType": "apk"
@@ -33,7 +32,6 @@
         "buildType": "apk"
       },
       "ios": {
-        "image": "macos-sequoia-15.3-xcode-16.2"
       }
     },
     "production": {
@@ -48,8 +46,7 @@
       },
       "channel": "production",
       "ios": {
-        "buildConfiguration": "Release",
-        "image": "macos-sequoia-15.2-xcode-16.2"
+        "buildConfiguration": "Release"
       },
       "android": {
         "buildType": "app-bundle"
@@ -90,8 +87,7 @@
       },
       "channel": "production",
       "ios": {
-        "buildConfiguration": "Release",
-        "image": "macos-sequoia-15.2-xcode-16.2"
+        "buildConfiguration": "Release"
       },
       "android": {
         "buildType": "app-bundle"
