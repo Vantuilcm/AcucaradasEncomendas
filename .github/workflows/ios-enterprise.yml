@@ -76,11 +76,7 @@ jobs:
 
       - name: 🍏 [ETAPA 2] Build iOS (iOS-BUILD-GUARDIAN)
         id: build_ios
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-          EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+        # Removido env redundante que sobrescreve o exportado pelo guardian
         run: |
           chmod +x scripts/ci/ios-build-guardian.sh
           ./scripts/ci/ios-build-guardian.sh

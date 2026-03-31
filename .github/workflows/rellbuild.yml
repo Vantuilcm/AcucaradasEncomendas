@@ -107,6 +107,9 @@ jobs:
           cat AuthKey.p8 >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
           
+          # Forçar caminho da chave para evitar prompts no EAS CLI
+          echo "EXPO_ASC_API_KEY_PATH=./AuthKey.p8" >> $GITHUB_ENV
+          
           echo "✅ Chave AuthKey.p8 preparada e exportada."
 
           # 🍎 Validação de Consistência da Apple API Key
@@ -147,13 +150,12 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
           EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-          EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+          EXPO_ASC_API_KEY_PATH: "./AuthKey.p8"
         run: |
           echo "🚀 Iniciando Build iOS no EAS Cloud..."
           
           # 1. Limpeza de Cache e Forçar Novas Credenciais
-          # Como o comando 'credentials:revoke' falhou por versão/sintaxe, 
-          # usaremos '--clear-cache' que força o EAS a revalidar o ambiente.
+          # A flag '--clear-cache' força o EAS a revalidar o ambiente.
           
           echo "🏗️ Executando build iOS (Profile: production_v13)..."
           EXPO_DEBUG=1 eas build --platform ios --profile production_v13 --non-interactive --clear-cache

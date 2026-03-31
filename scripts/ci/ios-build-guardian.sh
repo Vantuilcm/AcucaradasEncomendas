@@ -19,27 +19,30 @@ if [ ${#MISSING_VARS[@]} -ne 0 ]; then
     exit 1
 fi
 
-# 2. NORMALIZAÇÃO DA PRIVATE KEY (BASE64)
-# Remove espaços e quebras de linha se existirem
-RAW_KEY=$(echo "$EXPO_ASC_PRIVATE_KEY" | tr -d '[:space:]')
+# 2. NORMALIZAÇÃO E CRIAÇÃO DO ARQUIVO DE CHAVE (.p8)
+echo "[INFO] Preparando arquivo AuthKey.p8..."
 
-# Se não estiver em Base64 válido (checa o prefixo 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t' que é '-----BEGIN PRIVATE KEY-----')
-if [[ ! "$RAW_KEY" =~ ^LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t ]]; then
-    echo "[INFO] Detectada chave em formato texto. Convertendo para BASE64..."
-    # Se a chave for multiline (com \n literal ou real), normalizamos
-    NORMALIZED_KEY=$(echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g')
-    B64_KEY=$(echo "$NORMALIZED_KEY" | base64 | tr -d '[:space:]')
-    
-    if [[ ! "$B64_KEY" =~ ^LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t ]]; then
-        echo "❌ [ERRO] ASC KEY INVALIDA - Falha na conversão ou formato incorreto."
-        exit 1
-    fi
-    export EXPO_ASC_PRIVATE_KEY="$B64_KEY"
-    echo "[SUCCESS] Chave normalizada com sucesso."
+if [[ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]]; then
+    echo "🔑 Decodificando chave via Base64..."
+    echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode > AuthKey.p8
+elif [[ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]]; then
+    echo "🔑 Normalizando chave de texto (multiline safe)..."
+    # Converte \n literais para quebras de linha reais se necessário
+    echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
 else
-    echo "[INFO] ASC Key já está em formato BASE64 válido."
-    export EXPO_ASC_PRIVATE_KEY="$RAW_KEY"
+    echo "❌ [ERRO] Nenhuma chave encontrada em EXPO_ASC_PRIVATE_KEY ou EXPO_ASC_PRIVATE_KEY_BASE64"
+    exit 1
 fi
+
+# Validação básica do arquivo gerado
+if ! grep -q "BEGIN PRIVATE KEY" AuthKey.p8; then
+    echo "❌ [ERRO] O arquivo AuthKey.p8 gerado é inválido (não contém BEGIN PRIVATE KEY)."
+    rm -f AuthKey.p8
+    exit 1
+fi
+
+export EXPO_ASC_API_KEY_PATH="./AuthKey.p8"
+echo "[SUCCESS] Arquivo AuthKey.p8 pronto e EXPO_ASC_API_KEY_PATH configurado."
 
 # 3. LIMPEZA PROFUNDA DE CREDENCIAIS (FORÇADO)
 echo "[INFO] Executando limpeza profunda de credenciais no EAS..."
