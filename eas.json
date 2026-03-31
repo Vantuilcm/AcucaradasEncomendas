@@ -85,8 +85,8 @@
         "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_APP_NAME": "Açucaradas Encomendas",
         "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045",
-        "APPLE_TEAM_TYPE": "company",
-        "EXPO_APPLE_TEAM_TYPE": "company"
+        "APPLE_TEAM_TYPE": "COMPANY_OR_ORGANIZATION",
+        "EXPO_APPLE_TEAM_TYPE": "COMPANY_OR_ORGANIZATION"
       },
       "channel": "production",
       "ios": {

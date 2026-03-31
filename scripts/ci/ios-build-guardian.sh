@@ -46,10 +46,10 @@ echo "[SUCCESS] Arquivo AuthKey.p8 pronto e EXPO_ASC_API_KEY_PATH configurado."
 
 # 2.4 DEFINIÇÃO DO TIPO DE TIME (Para evitar prompt no CI)
 # O EAS CLI pode buscar por EXPO_APPLE_TEAM_TYPE ou APPLE_TEAM_TYPE
-export APPLE_TEAM_TYPE="company"
-export EXPO_APPLE_TEAM_TYPE="company"
-echo "APPLE_TEAM_TYPE=company" >> $GITHUB_ENV
-echo "EXPO_APPLE_TEAM_TYPE=company" >> $GITHUB_ENV
+export APPLE_TEAM_TYPE="COMPANY_OR_ORGANIZATION"
+export EXPO_APPLE_TEAM_TYPE="COMPANY_OR_ORGANIZATION"
+echo "APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION" >> $GITHUB_ENV
+echo "EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION" >> $GITHUB_ENV
 
 # Garantir que o Team ID também esteja no ambiente global
 if [[ -n "${EXPO_APPLE_TEAM_ID:-}" ]]; then
