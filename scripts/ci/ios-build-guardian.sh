@@ -45,10 +45,18 @@ export EXPO_ASC_API_KEY_PATH="./AuthKey.p8"
 echo "[SUCCESS] Arquivo AuthKey.p8 pronto e EXPO_ASC_API_KEY_PATH configurado."
 
 # 2.4 DEFINIÇÃO DO TIPO DE TIME (Para evitar prompt no CI)
-# O EAS CLI exige saber se o time é 'individual' ou 'company'
+# O EAS CLI pode buscar por EXPO_APPLE_TEAM_TYPE ou APPLE_TEAM_TYPE
+export APPLE_TEAM_TYPE="company"
 export EXPO_APPLE_TEAM_TYPE="company"
+echo "APPLE_TEAM_TYPE=company" >> $GITHUB_ENV
 echo "EXPO_APPLE_TEAM_TYPE=company" >> $GITHUB_ENV
-echo "[INFO] EXPO_APPLE_TEAM_TYPE configurado como 'company' e exportado para GITHUB_ENV."
+
+# Garantir que o Team ID também esteja no ambiente global
+if [[ -n "${EXPO_APPLE_TEAM_ID:-}" ]]; then
+    echo "EXPO_APPLE_TEAM_ID=${EXPO_APPLE_TEAM_ID}" >> $GITHUB_ENV
+fi
+
+echo "[INFO] Variáveis de Time (Type e ID) exportadas para GITHUB_ENV."
 
 # 2.5 INJEÇÃO DE ARQUIVOS CRÍTICOS (Firebase)
 echo "[INFO] Injetando arquivos de configuração (Firebase)..."

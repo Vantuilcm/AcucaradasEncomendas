@@ -111,7 +111,13 @@ jobs:
           echo "EXPO_ASC_API_KEY_PATH=./AuthKey.p8" >> $GITHUB_ENV
           
           # Forçar tipo de time para evitar prompt interativo
+          echo "APPLE_TEAM_TYPE=company" >> $GITHUB_ENV
           echo "EXPO_APPLE_TEAM_TYPE=company" >> $GITHUB_ENV
+          
+          # Garantir que o Team ID esteja no ambiente global
+          if [ -n "$EXPO_APPLE_TEAM_ID" ]; then
+            echo "EXPO_APPLE_TEAM_ID=$EXPO_APPLE_TEAM_ID" >> $GITHUB_ENV
+          fi
           
           echo "✅ Chave AuthKey.p8 preparada e exportada."
 
