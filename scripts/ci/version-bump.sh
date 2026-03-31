@@ -21,7 +21,12 @@ if [ "$PLATFORM" == "ios" ]; then
     
     # Atualizar no app.json (substituição simples)
     # Primeiro removemos o antigo para garantir que não haja duplicatas ou erros de substituição
-    sed -i "s/\"buildNumber\": \"$CURRENT_BUILD\"/\"buildNumber\": \"$NEW_BUILD\"/g" "$APP_JSON"
+    # Fix para macOS sed: usar "" para o sufixo de backup se necessário, ou evitar o sufixo
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i "" "s/\"buildNumber\": \"$CURRENT_BUILD\"/\"buildNumber\": \"$NEW_BUILD\"/g" "$APP_JSON"
+    else
+        sed -i "s/\"buildNumber\": \"$CURRENT_BUILD\"/\"buildNumber\": \"$NEW_BUILD\"/g" "$APP_JSON"
+    fi
     echo "[INFO] iOS Build Number incrementado: $CURRENT_BUILD -> $NEW_BUILD"
     
     # Exportar para GitHub Actions
@@ -35,7 +40,11 @@ else
     fi
     NEW_CODE=$((CURRENT_CODE + 1))
     
-    sed -i "s/\"versionCode\": $CURRENT_CODE/\"versionCode\": $NEW_CODE/g" "$APP_JSON"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i "" "s/\"versionCode\": $CURRENT_CODE/\"versionCode\": $NEW_CODE/g" "$APP_JSON"
+    else
+        sed -i "s/\"versionCode\": $CURRENT_CODE/\"versionCode\": $NEW_CODE/g" "$APP_JSON"
+    fi
     echo "[INFO] Android Version Code incrementado: $CURRENT_CODE -> $NEW_CODE"
     
     echo "BUILD_NUMBER=$NEW_CODE" >> $GITHUB_ENV
