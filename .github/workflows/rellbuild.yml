@@ -92,6 +92,12 @@ jobs:
           # Injetar ASC API Key (.p8) para autenticação Apple
           if [ -n "$EXPO_ASC_PRIVATE_KEY" ]; then
             echo "🔑 Preparando chave ASC API Key..."
+            # Validar formato básico da chave (sem expor conteúdo)
+            if [[ "$EXPO_ASC_PRIVATE_KEY" == *"BEGIN PRIVATE KEY"* ]]; then
+              echo "✅ Formato da chave parece correto (PEM)."
+            else
+              echo "⚠️ AVISO: Formato da chave pode estar incorreto (falta BEGIN PRIVATE KEY)."
+            fi
             echo "$EXPO_ASC_PRIVATE_KEY" > AuthKey.p8
             echo "✅ Chave AuthKey.p8 criada."
           else
