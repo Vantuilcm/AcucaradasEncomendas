@@ -2,7 +2,12 @@
   "cli": {
     "version": ">= 5.9.0",
     "requireCommit": false,
-    "appVersionSource": "local"
+    "appVersionSource": "local",
+    "appStoreConnectApiKey": {
+      "keyId": "$EXPO_ASC_KEY_ID",
+      "issuerId": "$EXPO_ASC_ISSUER_ID",
+      "key": "$EXPO_ASC_PRIVATE_KEY"
+    }
   },
   "build": {
     "development": {
