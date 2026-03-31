@@ -38,30 +38,39 @@ if grep -q "appStoreConnectApiKey" eas.json; then
     exit 1
 fi
 
-# 2. NORMALIZAÇÃO E CRIAÇÃO DO ARQUIVO DE CHAVE (.p8)
-echo "[INFO] Preparando arquivo AuthKey.p8..."
+# 2. NORMALIZAÇÃO E EXPORTAÇÃO DA ASC API KEY
+echo "[INFO] Normalizando credenciais da App Store Connect API..."
 
 if [[ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]]; then
     echo "🔑 Decodificando chave via Base64..."
-    echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode > AuthKey.p8
+    # Decodifica e remove espaços/quebras extras
+    decoded_key=$(echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode)
+    export EXPO_ASC_PRIVATE_KEY="$decoded_key"
 elif [[ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]]; then
     echo "🔑 Normalizando chave de texto (multiline safe)..."
-    # Converte \n literais para quebras de linha reais se necessário
-    echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
+    # Garante que \n literais sejam quebras reais
+    normalized_key=$(echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g')
+    export EXPO_ASC_PRIVATE_KEY="$normalized_key"
 else
     echo "❌ [ERRO] Nenhuma chave encontrada em EXPO_ASC_PRIVATE_KEY ou EXPO_ASC_PRIVATE_KEY_BASE64"
     exit 1
 fi
 
-# Validação básica do arquivo gerado
-if ! grep -q "BEGIN PRIVATE KEY" AuthKey.p8; then
-    echo "❌ [ERRO] O arquivo AuthKey.p8 gerado é inválido (não contém BEGIN PRIVATE KEY)."
-    rm -f AuthKey.p8
-    exit 1
-fi
+# Exporta para o GITHUB_ENV para que sub-processos e o EAS CLI vejam a chave corretamente
+{
+    echo "EXPO_ASC_PRIVATE_KEY<<EOF"
+    echo "$EXPO_ASC_PRIVATE_KEY"
+    echo "EOF"
+    echo "EXPO_ASC_KEY_ID=${EXPO_ASC_KEY_ID}"
+    echo "EXPO_ASC_ISSUER_ID=${EXPO_ASC_ISSUER_ID}"
+} >> "$GITHUB_ENV"
 
-export EXPO_ASC_API_KEY_PATH="./AuthKey.p8"
-echo "[SUCCESS] Arquivo AuthKey.p8 pronto e EXPO_ASC_API_KEY_PATH configurado."
+# Cria arquivo físico também como redundância (alguns plugins podem exigir)
+echo "$EXPO_ASC_PRIVATE_KEY" > AuthKey.p8
+export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
+echo "EXPO_ASC_PRIVATE_KEY_PATH=$(pwd)/AuthKey.p8" >> "$GITHUB_ENV"
+
+echo "[SUCCESS] Credenciais ASC normalizadas e exportadas."
 
 # 2.4 DEFINIÇÃO DO TIPO DE TIME (Para evitar prompt no CI)
 # O EAS CLI pode buscar por EXPO_APPLE_TEAM_TYPE ou APPLE_TEAM_TYPE
@@ -98,21 +107,12 @@ if [[ -n "${GOOGLE_SERVICES_JSON:-}" ]]; then
     fi
 fi
 
-# 3. LIMPEZA PROFUNDA DE CREDENCIAIS (FORÇADO)
-echo "[INFO] Iniciando limpeza profunda de credenciais para resolver erro de Serial Number..."
+# 3. VERIFICAÇÃO DE CREDENCIAIS
+echo "[INFO] Verificando credenciais para o build..."
 
-# Tenta remover certificados e perfis de provisionamento que possam estar corrompidos ou inexistentes no portal da Apple
-# mas ainda referenciados no banco de dados do EAS.
-# --non-interactive é crucial aqui.
-set +e
-echo "🧹 Removendo credenciais locais e remotas (Sync Force)..."
-npx eas-cli credentials:clear --platform ios --non-interactive || true
-
-# Forçar a limpeza do cache de build para garantir que nada antigo seja reutilizado
-echo "🧹 Limpando cache do EAS Build..."
-set -e
-
-echo "[SUCCESS] Limpeza concluída. O EAS tentará recriar as credenciais usando a ASC API Key."
+# Não limpamos mais as credenciais automaticamente para evitar erros no CI
+# O EAS CLI usará as credenciais existentes ou criará novas usando a ASC API Key
+echo "🛡️ O EAS tentará validar as credenciais usando a ASC API Key configurada."
 
 # 4. EXECUÇÃO DO BUILD (ETAPA 4)
 START_TIME=$(date +%s)
