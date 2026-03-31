@@ -41,9 +41,12 @@ else
     export EXPO_ASC_PRIVATE_KEY="$RAW_KEY"
 fi
 
-# 3. LIMPEZA DE CREDENCIAIS (ETAPA 3)
-echo "[INFO] Limpando credenciais antigas para evitar conflitos..."
+# 3. LIMPEZA PROFUNDA DE CREDENCIAIS (FORÇADO)
+echo "[INFO] Executando limpeza profunda de credenciais no EAS..."
+# Usando --non-interactive com as variáveis de ambiente de ASC Key presentes
 eas credentials:revoke -p ios --dist-cert --non-interactive || true
+eas credentials:revoke -p ios --push-key --non-interactive || true
+eas credentials:revoke -p ios --profile --non-interactive || true
 eas credentials:sync -p ios --non-interactive || true
 
 # 4. EXECUÇÃO DO BUILD (ETAPA 4)
