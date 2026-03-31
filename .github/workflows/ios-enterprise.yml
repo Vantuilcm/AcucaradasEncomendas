@@ -244,12 +244,13 @@ jobs:
           chmod +x scripts/ci/notify-market.sh
           ./scripts/ci/notify-market.sh
 
-      - name: 📁 Upload Artefatos (Logs & Sumário)
+      - name: 📁 Upload Artefatos (IPA & Logs)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-enterprise-logs
+          name: ios-build-artifacts-${{ env.VERSION }}-${{ env.BUILD_NUMBER }}
           path: |
+            *.ipa
             build_log.txt
             submit_log.txt
             error_summary.txt
@@ -260,7 +261,7 @@ jobs:
             business-history.json
             growth-history.json
             market-history.json
-          if-no-files-found: ignore
+          if-no-files-found: warn
           retention-days: 7
 
       - name: 📊 [ETAPA 6] Health Check & Alertas
