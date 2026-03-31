@@ -159,8 +159,11 @@ echo "------------------------------------------------------------"
 echo "📊 RESUMO FINAL:"
 echo "STATUS: $STATUS"
 echo "TEMPO: ${DURATION}s"
-[ "$STATUS" == "SUCESSO" ] && echo "LINK: $BUILD_URL"
-[ "$STATUS" == "FALHA" ] && echo "LOG: build_output.log"
+if [ "$STATUS" == "SUCESSO" ]; then
+    echo "ARTEFATO: $BUILD_PATH"
+else
+    echo "LOG: build_output.log"
+fi
 echo "------------------------------------------------------------"
 
 [ "$STATUS" == "SUCESSO" ] || exit 1
