@@ -17,7 +17,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.acucaradas.encomendas",
-      "buildNumber": "421",
+      "buildNumber": "385",
+      "appleTeamId": "7L68YF5S29",
+      "appleTeamType": "company",
       "entitlements": {
         "com.apple.developer.applesignin": [
           "Default"

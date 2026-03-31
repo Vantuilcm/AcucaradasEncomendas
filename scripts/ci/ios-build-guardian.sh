@@ -92,7 +92,9 @@ set +e # Não parar imediatamente para capturar logs e erro
 EXPO_DEBUG=1 EAS_VERBOSE=1 eas build \
   --platform ios \
   --profile production_v13 \
-  --non-interactive > build_output.log 2>&1
+  --non-interactive \
+  --clear-cache \
+  2>&1 | tee build_output.log 2>&1
 BUILD_EXIT_CODE=$?
 set -e
 
