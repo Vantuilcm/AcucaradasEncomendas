@@ -116,13 +116,14 @@ echo "[SUCCESS] Limpeza concluída. O EAS tentará recriar as credenciais usando
 
 # 4. EXECUÇÃO DO BUILD (ETAPA 4)
 START_TIME=$(date +%s)
-echo "🚀 [INFO] Iniciando build iOS (Profile: production_v13)..."
+echo "🚀 [INFO] Iniciando build iOS LOCAL (GitHub Runner - No Expo Credits)..."
 
-# Tenta o build com debug ativado
+# Tenta o build com debug ativado e modo LOCAL para não usar créditos do EAS
 set +e # Não parar imediatamente para capturar logs e erro
 EXPO_DEBUG=1 EAS_VERBOSE=1 npx eas-cli build \
   --platform ios \
   --profile production_v13 \
+  --local \
   --non-interactive \
   --clear-cache \
   2>&1 | tee build_output.log 2>&1
@@ -135,9 +136,10 @@ DURATION=$((END_TIME - START_TIME))
 # 5. VALIDAÇÃO DE SUCESSO E FALLBACK (ETAPA 5 e 6)
 if [ $BUILD_EXIT_CODE -eq 0 ]; then
     STATUS="SUCESSO"
-    BUILD_URL=$(grep -o "https://expo.dev/artifacts/[^ ]*" build_output.log | head -1 || echo "Link não encontrado")
-    echo "✅ [SUCCESS] Build finalizado com sucesso em ${DURATION}s."
-    echo "🔗 Link: $BUILD_URL"
+    # Local build gera o artefato no diretório atual ou subdiretório
+    BUILD_PATH=$(ls *.ipa 2>/dev/null | head -1 || echo "IPA não encontrada no root")
+    echo "✅ [SUCCESS] Build LOCAL finalizado com sucesso em ${DURATION}s."
+    echo "� Artefato: $BUILD_PATH"
 else
     # Verifica se o erro foi de autenticação ou falta de dados para tentar fallback
     if grep -qE "authentication|401|403|credentials|Team Type" build_output.log; then

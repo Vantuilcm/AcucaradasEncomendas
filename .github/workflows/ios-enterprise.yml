@@ -14,8 +14,8 @@ on:
 
 jobs:
   ios-pipeline:
-    name: 🍏 iOS Pipeline (Resiliente & Governança)
-    runs-on: ubuntu-latest
+    name: 🍏 iOS Local Build (GitHub Runner - No Expo Credits)
+    runs-on: macos-latest
     if: "!contains(github.event.head_commit.message, '[skip-ios]') && !contains(github.event.head_commit.message, '[android-only]')"
     
     # Proteção de Ambiente para Aprovação Manual (Opcional se configurado no GitHub)
