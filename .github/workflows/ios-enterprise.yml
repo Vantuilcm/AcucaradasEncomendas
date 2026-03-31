@@ -56,8 +56,8 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: ⚙️ Install EAS CLI (Versão Estável)
-        run: npm install -g eas-cli@15.0.10
+      - name: ⚙️ Install EAS CLI (Versão Mais Recente)
+        run: npm install -g eas-cli@latest
 
       - name: 🏷️ [ETAPA 0] Version Bump & Auto-Versioning
         run: |

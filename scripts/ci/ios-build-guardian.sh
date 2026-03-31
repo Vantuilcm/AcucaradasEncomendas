@@ -44,6 +44,27 @@ fi
 export EXPO_ASC_API_KEY_PATH="./AuthKey.p8"
 echo "[SUCCESS] Arquivo AuthKey.p8 pronto e EXPO_ASC_API_KEY_PATH configurado."
 
+# 2.5 INJEÇÃO DE ARQUIVOS CRÍTICOS (Firebase)
+echo "[INFO] Injetando arquivos de configuração (Firebase)..."
+
+if [[ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]]; then
+    echo "🍏 Injetando GoogleService-Info.plist..."
+    if [[ "$GOOGLE_SERVICE_INFO_PLIST" == *"<"* ]]; then
+        echo "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
+    else
+        echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist
+    fi
+fi
+
+if [[ -n "${GOOGLE_SERVICES_JSON:-}" ]]; then
+    echo "🤖 Injetando google-services.json..."
+    if [[ "$GOOGLE_SERVICES_JSON" == *"{"* ]]; then
+        echo "$GOOGLE_SERVICES_JSON" > google-services.json
+    else
+        echo "$GOOGLE_SERVICES_JSON" | base64 --decode > google-services.json
+    fi
+fi
+
 # 3. LIMPEZA PROFUNDA DE CREDENCIAIS (FORÇADO)
 echo "[INFO] Executando limpeza profunda de credenciais no EAS..."
 # Usando --non-interactive com as variáveis de ambiente de ASC Key presentes
