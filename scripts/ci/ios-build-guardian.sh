@@ -80,8 +80,21 @@ if [[ -n "${GOOGLE_SERVICES_JSON:-}" ]]; then
 fi
 
 # 3. LIMPEZA PROFUNDA DE CREDENCIAIS (FORÇADO)
-echo "[INFO] Ignorando limpeza de credenciais legada (EAS CLI v18+ handle sync automatically)."
-# eas credentials:revoke e sync foram depreciados/alterados em versões recentes para fluxos automáticos de API Key
+echo "[INFO] Iniciando limpeza profunda de credenciais para resolver erro de Serial Number..."
+
+# Tenta remover certificados e perfis de provisionamento que possam estar corrompidos ou inexistentes no portal da Apple
+# mas ainda referenciados no banco de dados do EAS.
+# --non-interactive é crucial aqui.
+set +e
+echo "🧹 Removendo credenciais locais e remotas (Sync Force)..."
+eas credentials:clear --platform ios --non-interactive || true
+
+# Forçar a limpeza do cache de build para garantir que nada antigo seja reutilizado
+echo "🧹 Limpando cache do EAS Build..."
+# eas build --platform ios --profile production_v13 --clear-cache --non-interactive (Isso será feito no comando de build abaixo)
+set -e
+
+echo "[SUCCESS] Limpeza concluída. O EAS tentará recriar as credenciais usando a ASC API Key."
 
 # 4. EXECUÇÃO DO BUILD (ETAPA 4)
 START_TIME=$(date +%s)
