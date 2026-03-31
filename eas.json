@@ -84,12 +84,15 @@
         "APP_ENV": "production",
         "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_APP_NAME": "Açucaradas Encomendas",
-        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045"
+        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045",
+        "APPLE_TEAM_TYPE": "company",
+        "EXPO_APPLE_TEAM_TYPE": "company"
       },
       "channel": "production",
       "ios": {
         "buildConfiguration": "Release",
-        "image": "macos-sequoia-15.2-xcode-16.2"
+        "image": "macos-sequoia-15.2-xcode-16.2",
+        "appleTeamId": "7L68YF5S29"
       },
       "android": {
         "buildType": "app-bundle"
