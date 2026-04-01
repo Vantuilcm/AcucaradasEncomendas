@@ -19,10 +19,15 @@ const isSentryEnabled = () => {
 };
 
 export const initSentry = () => {
+  console.log('MISSÃO: [4/3] Sentry Init - DESATIVADO TEMPORARIAMENTE para debug de boot');
+  return;
+  
+  /*
   if (!isSentryEnabled()) {
     console.log('[Sentry] Monitoramento desativado (ENV desativado ou DSN ausente ou Feature Flag desligada)');
     return;
   }
+  */
 
   try {
     Sentry.init({

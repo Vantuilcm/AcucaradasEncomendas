@@ -3,24 +3,25 @@
 
 # Pastas pesadas e geradas
 node_modules/
+node_modules_old/
 .expo/
 dist/
 web-build/
 build/
 ios/
 android/
-
-# Artefatos de build
+*.zip
+*.log
 *.ipa
 *.apk
 *.aab
-
-# Logs e arquivos temporários
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.DS_Store
-*.zip
+job_logs_*.txt
+run_log.txt
+full_log.txt
+logs_*.txt
+failed_logs.txt
+build_logs.txt
+latest_failure_log.txt
 
 # NÃO ignorar google-services.json e GoogleService-Info.plist aqui,
 # pois eles são necessários para o build mas estão no .gitignore.
