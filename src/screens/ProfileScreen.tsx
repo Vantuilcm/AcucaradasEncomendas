@@ -40,6 +40,14 @@ export const ProfileScreen = () => {
     navigation.navigate('AdminPanel');
   };
 
+  if (!user && !logout) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <ScreenshotProtection
       enabled={true}

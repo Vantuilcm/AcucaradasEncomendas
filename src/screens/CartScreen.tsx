@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -7,6 +7,7 @@ import { useCart } from '../contexts/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Divider } from 'react-native-paper';
 import { useAppTheme } from '../components/ThemeProvider';
+import { EnhancedImage, PlaceholderType } from '../components/EnhancedImage';
 
 type CartScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -20,7 +21,12 @@ export default function CartScreen() {
     <Card style={styles.cartItem} key={item.id}>
       <Card.Content style={styles.cartItemContent}>
         {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.itemImage} />
+          <EnhancedImage
+            source={{ uri: item.image }}
+            style={styles.itemImage}
+            placeholderType={PlaceholderType.ACTIVITY_INDICATOR}
+            resizeMode="cover"
+          />
         ) : (
           <View style={[styles.itemImage, styles.placeholderImage]}>
             <Text style={styles.placeholderText}>{item.name.charAt(0)}</Text>

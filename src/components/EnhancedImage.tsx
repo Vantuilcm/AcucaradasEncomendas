@@ -73,13 +73,26 @@ export const EnhancedImage = memo((props: EnhancedImageProps) => {
   // Se for uma imagem local, não precisamos fazer cache
   const isRemoteImage = typeof source !== 'number' && source.uri && source.uri.startsWith('http');
 
+  // Validar se a URI é segura (HTTPS) para iOS
+  const getSafeUri = (uri: string) => {
+    if (Platform.OS === 'ios' && uri.startsWith('http://')) {
+      return uri.replace('http://', 'https://');
+    }
+    return uri;
+  };
+
   // Função para animação de fade in
   const fadeIn = (animatedValue: Animated.Value) => {
-    Animated.timing(animatedValue, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    try {
+      Animated.timing(animatedValue, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } catch (error) {
+      console.error('Erro na animação de imagem:', error);
+      animatedValue.setValue(1); // Forçar exibição em caso de erro na animação
+    }
   };
 
   // Observar quando o componente entra na tela
@@ -111,7 +124,7 @@ export const EnhancedImage = memo((props: EnhancedImageProps) => {
       return;
     }
 
-    const remoteUri = (source as { uri: string }).uri;
+    const remoteUri = getSafeUri((source as { uri: string }).uri);
     const filename = `${SHA1(remoteUri)}.jpg`;
     const cacheFilePath = `${IMAGE_CACHE_FOLDER}${filename}`;
 
@@ -197,12 +210,13 @@ export const EnhancedImage = memo((props: EnhancedImageProps) => {
               { backgroundColor: placeholderColor || theme.colors.surfaceVariant },
             ]}
           >
-            <Animated.View
+            {/* Removido Animated.View complexo para evitar crash em favor de uma View estática */}
+            <View
               style={[
                 styles.skeletonAnimation,
                 {
                   backgroundColor: theme.colors.background,
-                  opacity: new Animated.Value(0.3), // Começar com baixa opacidade
+                  opacity: 0.3,
                 },
               ]}
             />

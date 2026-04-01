@@ -210,10 +210,34 @@ const AppNavigator = () => {
 
   if (loading || permissionsLoading || !isReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} testID="app-loading">
-        <ActivityIndicator size="large" color="#FF6B6B" />
+      <View 
+        style={{ 
+          flex: 1, 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          backgroundColor: theme.colors.background 
+        }} 
+        testID="app-loading"
+      >
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text 
+          variant="bodyMedium" 
+          style={{ 
+            marginTop: 16, 
+            color: theme.colors.text.secondary 
+          }}
+        >
+          Carregando ambiente seguro...
+        </Text>
       </View>
     );
+  }
+
+  // Fallback para quando o user está "autenticado" mas o objeto está nulo ou incompleto
+  // Isso evita crashes em telas que dependem do user imediatamente após o login
+  if (user === null && !loading && isReady) {
+    // Se não há usuário mas não está carregando, o Stack Navigator já lidará 
+    // com as rotas públicas (Login), então não precisamos de bloqueio aqui.
   }
 
   return (

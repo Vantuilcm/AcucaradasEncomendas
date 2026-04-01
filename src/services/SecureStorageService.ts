@@ -85,42 +85,61 @@ export class SecureStorageService {
       // Recuperar o valor armazenado
       let storedValue: string | null = null;
       
-      if (Platform.OS === 'web') {
-        // No ambiente web, recuperar do localStorage
-        storedValue = localStorage.getItem(key);
-      } else {
-        // Em dispositivos móveis, recuperar do SecureStore
-        storedValue = await SecureStore.getItemAsync(key);
+      try {
+        if (Platform.OS === 'web') {
+          // No ambiente web, recuperar do localStorage
+          storedValue = localStorage.getItem(key);
+        } else {
+          // Em dispositivos móveis, recuperar do SecureStore
+          storedValue = await SecureStore.getItemAsync(key);
+        }
+      } catch (readError) {
+        loggingService.error('Erro de leitura física no armazenamento seguro', { 
+          key, 
+          error: (readError as Error).message 
+        });
+        // Se falhar a leitura, tentamos limpar para evitar loop de erro
+        await this.removeData(key).catch(() => {});
+        return null;
       }
       
       if (!storedValue) {
         return null;
       }
       
-      // Verificar se o valor tem metadados (como expiração)
+      // Tentar processar o valor recuperado
       try {
-        const parsedValue = JSON.parse(storedValue);
-        if (parsedValue.expiresAt) {
-          // Verificar se o valor expirou
-          if (Date.now() > parsedValue.expiresAt) {
-            loggingService.info('Dados expirados', { key });
+        // Verificar se o valor tem metadados (como expiração)
+        if (storedValue.startsWith('{') && storedValue.endsWith('}')) {
+          const parsed = JSON.parse(storedValue);
+          if (parsed && parsed.expiresAt && parsed.expiresAt < Date.now()) {
+            loggingService.info('Dado expirado no armazenamento seguro', { key });
             await this.removeData(key);
             return null;
           }
-          storedValue = parsedValue.value;
+          storedValue = parsed.value;
         }
-      } catch (e) {
-        // Se não for JSON, continuar com o valor original
+        
+        // Se for um dado criptografado, descriptografar
+        if (storedValue && storedValue.startsWith(this.ENCRYPTED_PREFIX)) {
+          return await this.decryptValue(storedValue);
+        }
+        
+        return storedValue;
+      } catch (parseError) {
+        loggingService.error('Dado corrompido detectado no armazenamento seguro', { 
+          key, 
+          error: (parseError as Error).message 
+        });
+        // Em caso de corrupção, removemos o dado para permitir novo login/fluxo
+        await this.removeData(key).catch(() => {});
+        return null;
       }
-      
-      // Verificar se o valor está criptografado
-      if (typeof storedValue === 'string' && storedValue.startsWith(this.ENCRYPTED_PREFIX)) {
-        storedValue = await this.decryptValue(storedValue);
-      }
-      
-      return storedValue;
     } catch (error) {
-      loggingService.error('Erro ao recuperar dados seguros', { error: (error as Error).message, key });
+      loggingService.error('Erro crítico ao recuperar dados seguros', { 
+        key, 
+        error: (error as Error).message 
+      });
       return null;
     }
   }

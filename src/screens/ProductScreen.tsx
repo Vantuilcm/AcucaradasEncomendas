@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Button, IconButton, Divider } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { OptimizedImage } from '../components/OptimizedImage';
+import { EnhancedImage, PlaceholderType } from '../components/EnhancedImage';
 import { Product } from '../types/Product';
 import { ProductService } from '../services/ProductService';
 import { StoreLocationButton } from '../components/StoreLocationButton';
@@ -61,13 +61,17 @@ export function ProductScreen() {
   }, [productId]);
 
   const handleAddToCart = () => {
-    // Lógica para adicionar ao carrinho
-    loggingService.info('Produto adicionado ao carrinho', {
-      productId,
-      quantity,
-    });
+    try {
+      // Lógica para adicionar ao carrinho
+      loggingService.info('Produto adicionado ao carrinho', {
+        productId,
+        quantity,
+      });
 
-    navigation.navigate('Cart' as never);
+      navigation.navigate('Cart' as never);
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error);
+    }
   };
 
   const handleQuantityChange = (value: number) => {
@@ -105,10 +109,11 @@ export function ProductScreen() {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        <OptimizedImage
+        <EnhancedImage
           source={{ uri: product.imagens?.[0] || 'https://via.placeholder.com/400' }}
           style={styles.productImage}
           resizeMode="cover"
+          placeholderType={PlaceholderType.SKELETON}
         />
 
         <View style={styles.productInfo}>

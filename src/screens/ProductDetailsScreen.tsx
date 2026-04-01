@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Dimensions,
   Animated,
+  TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useCart } from '../contexts/CartContext';
@@ -36,11 +38,24 @@ export default function ProductDetailsScreen() {
     message: '',
     type: FeedbackType.SUCCESS,
   });
+  const [modalImageVisible, setModalImageVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const addToCartButtonRef = useRef(null);
 
   const recommendationService = RecommendationService.getInstance();
+
+  const handleImagePress = useCallback((uri: string) => {
+    try {
+      if (uri && uri.startsWith('http')) {
+        setSelectedImage(uri);
+        setModalImageVisible(true);
+      }
+    } catch (error) {
+      console.error('Erro ao abrir imagem:', error);
+    }
+  }, []);
 
   // Registrar visualização do produto para recomendações
   useEffect(() => {
@@ -67,38 +82,47 @@ export default function ProductDetailsScreen() {
 
   // Função para adicionar ao carrinho com animação
   const handleAddToCart = () => {
-    if (!product) return;
+    try {
+      if (!product) return;
 
-    // Adicionar ao carrinho
-    addToCart(product);
+      // Adicionar ao carrinho
+      addToCart(product);
 
-    // Feedback tátil
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      // Feedback tátil
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Mostrar toast
-    showToast('Produto adicionado ao carrinho', FeedbackType.SUCCESS);
+      // Mostrar toast
+      showToast('Produto adicionado ao carrinho', FeedbackType.SUCCESS);
 
-    // Calcular posição para animação
-    if (addToCartButtonRef.current) {
-      (addToCartButtonRef.current as any)?.measure((_fx: any, _fy: any, width: any, _height: any, px: any, py: any) => {
-        const startPosition = {
-          x: px + width / 2,
-          y: py,
-        };
+      // Calcular posição para animação
+      if (addToCartButtonRef.current) {
+        (addToCartButtonRef.current as any)?.measure((_fx: any, _fy: any, width: any, _height: any, px: any, py: any) => {
+          try {
+            const startPosition = {
+              x: px + width / 2,
+              y: py,
+            };
 
-        // Posição do carrinho no header (estimado)
-        const endPosition = {
-          x: width - 30,
-          y: 50,
-        };
+            // Posição do carrinho no header (estimado)
+            const endPosition = {
+              x: width - 30,
+              y: 50,
+            };
 
-        // Iniciar animação
-        setCartAnimation({
-          visible: true,
-          startPosition,
-          endPosition,
+            // Iniciar animação
+            setCartAnimation({
+              visible: true,
+              startPosition,
+              endPosition,
+            });
+          } catch (error) {
+            console.error('Erro ao calcular posição da animação:', error);
+          }
         });
-      });
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error);
+      showToast('Erro ao adicionar ao carrinho', FeedbackType.ERROR);
     }
   };
 
@@ -165,14 +189,19 @@ export default function ProductDetailsScreen() {
                 scrollEventThrottle={16}
               >
                 {product.imagens.map((image: any, index: number) => (
-                  <View key={index} style={styles.imageContainer}>
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.imageContainer}
+                    onPress={() => handleImagePress(image)}
+                    activeOpacity={0.9}
+                  >
                     <EnhancedImage
                       source={{ uri: image }}
                       style={styles.productImage}
                       placeholderType={PlaceholderType.SKELETON}
                       resizeMode="cover"
                     />
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
 
@@ -282,6 +311,38 @@ export default function ProductDetailsScreen() {
           onAnimationComplete={handleCartAnimationComplete}
         />
       )}
+
+      {/* Modal simples para visualização de imagem (sem zoom complexo) */}
+      <Modal
+        visible={modalImageVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalImageVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalBackground}
+            activeOpacity={1}
+            onPress={() => setModalImageVisible(false)}
+          />
+          <View style={styles.modalImageContainer}>
+            {selectedImage && (
+              <EnhancedImage
+                source={{ uri: selectedImage }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+                placeholderType={PlaceholderType.ACTIVITY_INDICATOR}
+              />
+            )}
+            <TouchableOpacity
+              style={styles.closeModalButton}
+              onPress={() => setModalImageVisible(false)}
+            >
+              <Text style={styles.closeModalText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -290,6 +351,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  // ... existing styles ...
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackground: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalImageContainer: {
+    width: width,
+    height: width,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: width,
+    height: width,
+  },
+  closeModalButton: {
+    position: 'absolute',
+    top: -50,
+    right: 20,
+    padding: 10,
+  },
+  closeModalText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   errorContainer: {
     flex: 1,

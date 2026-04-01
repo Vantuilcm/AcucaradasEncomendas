@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   Switch,
-  Image,
   ActivityIndicator,
   Alert,
   Platform,
@@ -21,6 +20,7 @@ import { UserProfileService } from '../services/UserProfileService';
 import { Permission } from '../services/PermissionsService';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { useAppTheme } from '../components/ThemeProvider';
+import { EnhancedImage, PlaceholderType } from '../components/EnhancedImage';
 
 const ProfileSettingsScreen = () => {
   const { theme } = useAppTheme();
@@ -272,7 +272,12 @@ const ProfileSettingsScreen = () => {
                 <ActivityIndicator size="large" color={theme.colors.primary} />
               </View>
             ) : profileData.perfil.fotoPerfil ? (
-              <Image source={{ uri: profileData.perfil.fotoPerfil }} style={styles.profilePhoto} />
+              <EnhancedImage
+                source={{ uri: profileData.perfil.fotoPerfil }}
+                style={styles.profilePhoto}
+                placeholderType={PlaceholderType.ACTIVITY_INDICATOR}
+                resizeMode="cover"
+              />
             ) : (
               <View style={styles.photoPlaceholder}>
                 <Ionicons name="person" size={60} color={theme.colors.text.disabled} />

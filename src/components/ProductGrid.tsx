@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  Image,
   Dimensions,
   ActivityIndicator,
   RefreshControl,
@@ -16,6 +15,7 @@ import { useCart } from '../contexts/CartContext';
 import { Product } from '../types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from './ThemeProvider';
+import { EnhancedImage, PlaceholderType } from './EnhancedImage';
 
 interface ProductGridProps {
   products: Product[];
@@ -106,16 +106,18 @@ export function ProductGrid({
   // Função para adicionar produto ao carrinho
   const handleAddToCart = useCallback(
     (product: Product) => {
-      addItem({
-        productId: product.id,
-        name: product.nome,
-        price: product.preco,
-        quantity: 1,
-        image:
-          Array.isArray(product.imagens) && product.imagens.length > 0 ? product.imagens[0] : '',
-      });
-
-      // Mostrar feedback visual (pode ser um toast ou snackbar)
+      try {
+        addItem({
+          productId: product.id,
+          name: product.nome,
+          price: product.preco,
+          quantity: 1,
+          image:
+            Array.isArray(product.imagens) && product.imagens.length > 0 ? product.imagens[0] : '',
+        });
+      } catch (error) {
+        console.error('Erro ao adicionar ao carrinho:', error);
+      }
     },
     [addItem]
   );
@@ -134,7 +136,7 @@ export function ProductGrid({
       >
         {item.destacado && <Badge style={styles.featuredBadge}>Destaque</Badge>}
 
-        <Image
+        <EnhancedImage
           source={{
             uri:
               Array.isArray(item.imagens) && item.imagens.length > 0
@@ -143,6 +145,7 @@ export function ProductGrid({
           }}
           style={styles.productImage}
           resizeMode="cover"
+          placeholderType={PlaceholderType.SKELETON}
         />
 
         <View style={styles.productInfo}>

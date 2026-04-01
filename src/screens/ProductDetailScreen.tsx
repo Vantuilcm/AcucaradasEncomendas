@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Image, Dimensions } from 'react-native';
-import { Text, Button, Card, Chip, IconButton, useTheme, Snackbar, TextInput } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Modal } from 'react-native';
+import { Text, Button, Card, Chip, IconButton, useTheme, Snackbar, TextInput, Portal } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { EnhancedImage, PlaceholderType } from '../components/EnhancedImage';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -91,6 +92,15 @@ export default function ProductDetailScreen() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [observations, setObservations] = useState('');
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const handleImagePress = () => {
+    try {
+      setIsModalVisible(true);
+    } catch (error) {
+      console.error('Erro ao abrir imagem:', error);
+    }
+  };
 
   // Simular carregamento do produto
   useEffect(() => {
@@ -106,10 +116,14 @@ export default function ProductDetailScreen() {
   }, [productId]);
 
   const handleAddToCart = () => {
-    // Aqui você adicionaria o produto ao carrinho
-    // Por exemplo, chamando uma função do contexto de carrinho
-    console.log(`Adicionando ${quantity} unidades do produto ${productId} ao carrinho`);
-    setSnackbarVisible(true);
+    try {
+      // Aqui você adicionaria o produto ao carrinho
+      // Por exemplo, chamando uma função do contexto de carrinho
+      console.log(`Adicionando ${quantity} unidades do produto ${productId} ao carrinho`);
+      setSnackbarVisible(true);
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error);
+    }
   };
 
   const handleQuantityChange = (delta: number) => {
@@ -145,7 +159,14 @@ export default function ProductDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        <Image source={{ uri: product.image }} style={styles.productImage} />
+        <TouchableOpacity onPress={handleImagePress} activeOpacity={0.9}>
+          <EnhancedImage
+            source={{ uri: product.image }}
+            style={styles.productImage}
+            placeholderType={PlaceholderType.SKELETON}
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
         
         <View style={styles.header}>
           <View style={styles.titleContainer}>
@@ -287,6 +308,33 @@ export default function ProductDetailScreen() {
       >
         Produto adicionado ao carrinho!
       </Snackbar>
+
+      <Portal>
+        <Modal
+          visible={isModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsModalVisible(false)}
+        >
+          <View style={styles.modalBackground}>
+            <TouchableOpacity 
+              style={styles.modalCloseButton} 
+              onPress={() => setIsModalVisible(false)}
+            >
+              <IconButton icon="close" iconColor="#fff" size={30} />
+            </TouchableOpacity>
+            
+            <View style={styles.modalImageContainer}>
+              <EnhancedImage
+                source={{ uri: product.image }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+                placeholderType={PlaceholderType.ACTIVITY_INDICATOR}
+              />
+            </View>
+          </View>
+        </Modal>
+      </Portal>
     </SafeAreaView>
   );
 }
@@ -380,5 +428,25 @@ const styles = StyleSheet.create({
   unavailableButton: {
     flex: 1,
     backgroundColor: '#9e9e9e',
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1,
+  },
+  modalImageContainer: {
+    width: width,
+    height: width,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
   },
 });
