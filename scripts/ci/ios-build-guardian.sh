@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V3.0 - GitHub Local Build)
+# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V3.2 - Stable Local Build)
 # Missão: Executar Build iOS 100% estável no GitHub Runner (macOS) SEM usar créditos da Expo.
 # Suporte: Apple ID (2FA) ou ASC API Key (Recomendado para CI).
 
-echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS (LOCAL)..."
+echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS (LOCAL V3.2)..."
 echo "------------------------------------------------------------"
 
 ## ETAPA 1 — PRÉ-VALIDAÇÃO (FAIL FAST)
@@ -15,6 +15,22 @@ MISSING_BASE_VARS=()
 [ -z "${EXPO_TOKEN:-}" ] && MISSING_BASE_VARS+=("EXPO_TOKEN")
 [ -z "${EXPO_APPLE_TEAM_ID:-}" ] && MISSING_BASE_VARS+=("EXPO_APPLE_TEAM_ID")
 [ -z "${GOOGLE_SERVICE_INFO_PLIST:-}" ] && MISSING_BASE_VARS+=("GOOGLE_SERVICE_INFO_PLIST")
+
+# 1.1.1 Verificação de Variáveis de Runtime (CRÍTICO PARA LOCAL BUILD)
+# Sem estas variáveis o app crasha no startup porque o bundle JS não as encontra.
+CRITICAL_RUNTIME_VARS=(
+    "EXPO_PUBLIC_FIREBASE_API_KEY"
+    "EXPO_PUBLIC_FIREBASE_PROJECT_ID"
+    "EXPO_PUBLIC_ONESIGNAL_APP_ID"
+    "EXPO_PUBLIC_API_URL"
+)
+
+for var in "${CRITICAL_RUNTIME_VARS[@]}"; do
+    if [ -z "${!var:-}" ]; then
+        echo "⚠️ [WARNING] Variável de Runtime ausente: $var"
+        echo "💡 [DICA] Como você está usando BUILD LOCAL no GitHub, você DEVE migrar os segredos do Expo Dashboard para o GitHub Secrets."
+    fi
+done
 
 if [ ${#MISSING_BASE_VARS[@]} -ne 0 ]; then
     echo "❌ [ERRO] Variáveis base ausentes: ${MISSING_BASE_VARS[*]}"
@@ -86,9 +102,9 @@ if [ "$BUNDLE_ID" != "com.acucaradas.encomendas" ]; then
     exit 1
 fi
 
-## ETAPA 2 — LIMPEZA DE AMBIENTE (ANTI-CONFLITO)
-echo "🧹 [INFO] Limpando ambiente de build..."
-rm -rf ios/build
+## ETAPA 2 — LIMPEZA PROFUNDA (ANTI-CONFLITO)
+echo "🧹 [INFO] Limpando ambiente de build (DEEP CLEAN)..."
+rm -rf ios
 rm -rf node_modules/.cache
 # Limpar variáveis que podem causar conflito se estivermos usando API Key
 if [ "$AUTH_METHOD" = "ASC_API_KEY" ]; then
@@ -101,15 +117,16 @@ START_TIME=$(date +%s)
 
 # 3.1 Carregar variáveis de ambiente do Perfil (EAS Local exige injeção manual)
 echo "🌍 [ENV] Injetando variáveis do Perfil: ${PROFILE:-production_v13}..."
-# Injeção manual das variáveis críticas para evitar crash no startup (Sentry, OneSignal, etc)
-export APP_ENV="production"
-export EXPO_PUBLIC_APP_ENV="production"
-export EXPO_PUBLIC_APP_NAME="Açucaradas Encomendas"
-export EXPO_PUBLIC_PROJECT_ID="6090106b-e327-4744-bce5-9ddb0d037045"
-export APPLE_TEAM_TYPE="COMPANY_OR_ORGANIZATION"
+
+# Exportar TODAS as variáveis EXPO_PUBLIC_ disponíveis no ambiente
+# Isso garante que o bundle JS as inclua no binário local.
+for var in $(env | grep ^EXPO_PUBLIC_ | cut -d= -f1); do
+    export "$var"
+    echo "✅ Exportado: $var"
+done
 
 # 3.2 Pré-geração Nativa (Garante injeção do GoogleService-Info.plist)
-echo "🏗️ [PREBUILD] Gerando diretório nativo iOS..."
+echo "🏗️ [PREBUILD] Gerando diretório nativo iOS limpo..."
 npx expo prebuild --platform ios --no-install --non-interactive
 
 # 3.3 Validar se o prebuild injetou o arquivo no local correto do Xcode
