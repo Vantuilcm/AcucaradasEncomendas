@@ -80,8 +80,6 @@ echo "🔑 [AUTH] Utilizando App Store Connect API Key (Admin)."
         echo "❌ [ERRO] Falha ao gerar arquivo AuthKey.p8."
         exit 1
     fi
-fi
-
 # 1.3 Governança de Arquivos (Anti-Signing Manual)
 echo "[INFO] Validando governança de credenciais..."
 forbidden_files=("credentials.json" "*.p12" "*.mobileprovision")
