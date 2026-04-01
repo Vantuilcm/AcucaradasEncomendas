@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Text, AppState, AppStateStatus, Platform } from 'react-native';
 import * as ScreenCapture from '../compat/expoScreenCapture';
 import { loggingService } from '../services/LoggingService';
+import { UserUtils } from '../utils/UserUtils';
 import securityConfig from '../config/securityConfig';
 import { securityMonitoring, SecurityEventType } from '../monitoring/SecurityMonitoring';
 import { getUserInfo } from '../services/UserService';
@@ -33,7 +34,7 @@ interface DynamicWatermarkProps {
 }
 
 const DynamicWatermark: React.FC<DynamicWatermarkProps> = ({ userInfo }) => {
-  const label = userInfo?.email || userInfo?.id || 'Usuário';
+  const label = UserUtils.getUserEmail(userInfo) || UserUtils.getUserId(userInfo) || 'Usuário';
   return (
     <View style={styles.watermarkContainer}>
       <Text style={styles.watermarkText}>{label}</Text>

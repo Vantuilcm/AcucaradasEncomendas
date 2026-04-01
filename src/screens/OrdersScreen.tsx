@@ -23,6 +23,7 @@ import { Order, OrderStatus, OrderFilters, OrderSummary } from '../types/Order';
 import { OrderService } from '../services/OrderService';
 import { formatCurrency } from '../utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
+import { UserUtils } from '../utils/UserUtils';
 
 export function OrdersScreen() {
   const theme = useTheme();
@@ -48,19 +49,22 @@ export function OrdersScreen() {
     try {
       setLoading(true);
       setError(null);
-      if (!user) {
-        throw new Error('Usuário não autenticado');
+      
+      const userId = UserUtils.getUserId(user);
+      if (!userId) {
+        throw new Error('Usuário não autenticado ou ID ausente');
       }
 
       const orderService = OrderService.getInstance();
       const [ordersData, summaryData] = await Promise.all([
-        orderService.getUserOrders(user.id, filters),
-        orderService.getOrderSummary(user.id),
+        orderService.getUserOrders(userId, filters),
+        orderService.getOrderSummary(userId),
       ]);
 
-      setOrders(ordersData);
+      setOrders(ordersData || []);
       setSummary(summaryData);
     } catch (err) {
+      console.error('Erro ao carregar pedidos:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar pedidos');
     } finally {
       setLoading(false);
@@ -68,75 +72,107 @@ export function OrdersScreen() {
   };
 
   const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    try {
+      setRefreshing(true);
+      await loadData();
+    } catch (err) {
+      console.error('Erro ao atualizar pedidos:', err);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setFilters(prev => ({ ...prev, search: query }));
+    try {
+      setSearchQuery(query);
+      setFilters(prev => ({ ...prev, search: query }));
+    } catch (err) {
+      console.error('Erro ao buscar pedidos:', err);
+    }
   };
 
   const handleStatusChange = (status: OrderStatus | 'all') => {
-    setSelectedStatus(status);
-    setFilters(prev => ({
-      ...prev,
-      status: status === 'all' ? undefined : [status],
-    }));
+    try {
+      setSelectedStatus(status);
+      setFilters(prev => ({
+        ...prev,
+        status: status === 'all' ? undefined : [status],
+      }));
+    } catch (err) {
+      console.error('Erro ao mudar status:', err);
+    }
   };
 
   const handleApplyFilters = () => {
-    setFilters(prev => ({
-      ...prev,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-    }));
-    setShowFilters(false);
+    try {
+      setFilters(prev => ({
+        ...prev,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      }));
+      setShowFilters(false);
+    } catch (err) {
+      console.error('Erro ao aplicar filtros:', err);
+    }
   };
 
   const getStatusColor = (status: OrderStatus) => {
-    switch (status) {
-      case 'pending':
-        return theme.colors.tertiary;
-      case 'confirmed':
-      case 'preparing':
-      case 'ready':
-        return theme.colors.primary;
-      case 'delivering':
-        return theme.colors.secondary;
-      case 'delivered':
-        return theme.colors.primary;
-      case 'cancelled':
-        return theme.colors.error;
-      default:
-        return theme.colors.outline;
+    try {
+      switch (status) {
+        case 'pending':
+          return theme?.colors?.tertiary || '#757575';
+        case 'confirmed':
+        case 'preparing':
+        case 'ready':
+          return theme?.colors?.primary || '#E91E63';
+        case 'delivering':
+          return theme?.colors?.secondary || '#03A9F4';
+        case 'delivered':
+          return theme?.colors?.primary || '#E91E63';
+        case 'cancelled':
+          return theme?.colors?.error || '#FF0000';
+        default:
+          return theme?.colors?.outline || '#BDBDBD';
+      }
+    } catch (e) {
+      console.error('Erro ao obter cor do status:', e);
+      return '#BDBDBD';
     }
   };
 
   const getStatusLabel = (status: OrderStatus) => {
-    switch (status) {
-      case 'pending':
-        return 'Pendente';
-      case 'confirmed':
-        return 'Confirmado';
-      case 'preparing':
-        return 'Em Preparação';
-      case 'ready':
-        return 'Pronto';
-      case 'delivering':
-        return 'Em Entrega';
-      case 'delivered':
-        return 'Entregue';
-      case 'cancelled':
-        return 'Cancelado';
-      default:
-        return status;
+    try {
+      switch (status) {
+        case 'pending':
+          return 'Pendente';
+        case 'confirmed':
+          return 'Confirmado';
+        case 'preparing':
+          return 'Em Preparação';
+        case 'ready':
+          return 'Pronto';
+        case 'delivering':
+          return 'Em Entrega';
+        case 'delivered':
+          return 'Entregue';
+        case 'cancelled':
+          return 'Cancelado';
+        default:
+          return status || 'Desconhecido';
+      }
+    } catch (e) {
+      console.error('Erro ao obter label do status:', e);
+      return 'Desconhecido';
     }
   };
 
   const handleOrderPress = (orderId: string) => {
-    navigation.navigate('OrderDetails', { orderId });
+    try {
+      if (!orderId) return;
+      navigation.navigate('OrderDetails', { orderId });
+    } catch (err) {
+      console.error('Erro ao abrir detalhes do pedido:', err);
+    }
   };
 
   if (loading && !refreshing) {
@@ -183,19 +219,19 @@ export function OrdersScreen() {
             </Text>
             <View style={styles.summaryGrid}>
               <View style={styles.summaryItem}>
-                <Text variant="headlineMedium">{summary.total}</Text>
+                <Text variant="headlineMedium">{summary.total || 0}</Text>
                 <Text variant="bodyMedium">Total</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text variant="headlineMedium">{summary.pending}</Text>
+                <Text variant="headlineMedium">{summary.pending || 0}</Text>
                 <Text variant="bodyMedium">Pendentes</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text variant="headlineMedium">{summary.delivering}</Text>
+                <Text variant="headlineMedium">{summary.delivering || 0}</Text>
                 <Text variant="bodyMedium">Em Entrega</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text variant="headlineMedium">{summary.delivered}</Text>
+                <Text variant="headlineMedium">{summary.delivered || 0}</Text>
                 <Text variant="bodyMedium">Entregues</Text>
               </View>
             </View>
@@ -205,56 +241,59 @@ export function OrdersScreen() {
                 <Ionicons name="calendar-outline" size={18} color="#FF69B4" /> Pedidos Agendados
               </Text>
               <Text variant="headlineMedium" style={styles.scheduledCount}>
-                {summary.scheduledOrders}
+                {summary.scheduledOrders || 0}
               </Text>
             </View>
           </View>
         )}
 
-        {orders.length === 0 ? (
+        {(!orders || orders.length === 0) ? (
           <View style={styles.emptyState}>
             <Text variant="bodyLarge" style={styles.emptyText}>
               Nenhum pedido encontrado
             </Text>
           </View>
         ) : (
-          orders.map(order => (
-            <Card
-              key={order.id}
-              style={styles.orderCard}
-              onPress={() => handleOrderPress(order.id)}
-            >
-              <Card.Content>
-                <View style={styles.orderHeader}>
-                  <Text variant="titleMedium">Pedido #{order.id.slice(-6)}</Text>
-                  <Chip
-                    textStyle={{ color: '#fff' }}
-                    style={{ backgroundColor: getStatusColor(order.status) }}
-                  >
-                    {getStatusLabel(order.status)}
-                  </Chip>
-                </View>
-
-                <Text variant="bodyMedium" style={styles.orderDate}>
-                  {new Date(order.createdAt).toLocaleDateString('pt-BR')}
-                </Text>
-
-                {order.isScheduledOrder && order.scheduledDelivery?.date && (
-                  <View style={styles.scheduledFlag}>
-                    <Ionicons name="calendar" size={16} color="#FF69B4" />
-                    <Text style={styles.scheduledText}>
-                      Agendado para{' '}
-                      {new Date(order.scheduledDelivery.date).toLocaleDateString('pt-BR')}
-                    </Text>
+          orders.map(order => {
+            if (!order?.id) return null;
+            return (
+              <Card
+                key={order.id}
+                style={styles.orderCard}
+                onPress={() => handleOrderPress(order.id)}
+              >
+                <Card.Content>
+                  <View style={styles.orderHeader}>
+                    <Text variant="titleMedium">Pedido #{order.id.slice(-6)}</Text>
+                    <Chip
+                      textStyle={{ color: '#fff' }}
+                      style={{ backgroundColor: getStatusColor(order.status) }}
+                    >
+                      {getStatusLabel(order.status)}
+                    </Chip>
                   </View>
-                )}
 
-                <Text variant="bodyMedium" style={styles.orderTotal}>
-                  Total: {formatCurrency(order.totalAmount)}
-                </Text>
-              </Card.Content>
-            </Card>
-          ))
+                  <Text variant="bodyMedium" style={styles.orderDate}>
+                    {order.createdAt ? new Date(order.createdAt).toLocaleDateString('pt-BR') : 'Data indisponível'}
+                  </Text>
+
+                  {order.isScheduledOrder && order.scheduledDelivery?.date && (
+                    <View style={styles.scheduledFlag}>
+                      <Ionicons name="calendar" size={16} color="#FF69B4" />
+                      <Text style={styles.scheduledText}>
+                        Agendado para{' '}
+                        {new Date(order.scheduledDelivery.date).toLocaleDateString('pt-BR')}
+                      </Text>
+                    </View>
+                  )}
+
+                  <Text variant="bodyMedium" style={styles.orderTotal}>
+                    Total: {formatCurrency(order.totalAmount || 0)}
+                  </Text>
+                </Card.Content>
+              </Card>
+            );
+          })
         )}
       </ScrollView>
 

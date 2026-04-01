@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
+import { UserUtils } from '../utils/UserUtils';
 import { usePermissions } from '../hooks/usePermissions';
 import { UserProfileService } from '../services/UserProfileService';
 import { Permission } from '../services/PermissionsService';
@@ -54,16 +55,17 @@ const ProfileSettingsScreen = () => {
   // Carregar dados do perfil
   useEffect(() => {
     const loadProfile = async () => {
-      if (!user || !(user as any).uid) return;
+      const userId = UserUtils.getUserId(user);
+      if (!userId) return;
 
       try {
         setLoading(true);
-        const profileWithReviews = await profileService.obterPerfilCompleto((user as any).uid);
+        const profileWithReviews = await profileService.obterPerfilCompleto(userId);
 
         if (profileWithReviews) {
           setProfileData({
-            nome: profileWithReviews.nome || '',
-            email: profileWithReviews.email || '',
+            nome: UserUtils.getUserName(profileWithReviews) || '',
+            email: UserUtils.getUserEmail(profileWithReviews) || '',
             telefone: profileWithReviews.telefone || '',
             endereco: profileWithReviews.endereco || [],
             perfil: {
@@ -93,12 +95,13 @@ const ProfileSettingsScreen = () => {
 
   // Atualizar perfil básico
   const handleUpdateProfile = async () => {
-    if (!user || !(user as any).uid) return;
+    const userId = UserUtils.getUserId(user);
+    if (!userId) return;
 
     try {
       setLoading(true);
 
-      await profileService.atualizarPerfil((user as any).uid, {
+      await profileService.atualizarPerfil(userId, {
         nome: profileData.nome,
         telefone: profileData.telefone,
       });
@@ -114,13 +117,14 @@ const ProfileSettingsScreen = () => {
 
   // Atualizar preferências
   const handleUpdatePreferences = async () => {
-    if (!user || !(user as any).uid) return;
+    const userId = UserUtils.getUserId(user);
+    if (!userId) return;
 
     try {
       setLoading(true);
 
-      await profileService.atualizarPreferencias((user as any).uid, profileData.perfil.preferencias);
-      await profileService.atualizarNotificacoes((user as any).uid, profileData.perfil.notificacoes);
+      await profileService.atualizarPreferencias(userId, profileData.perfil.preferencias);
+      await profileService.atualizarNotificacoes(userId, profileData.perfil.notificacoes);
 
       Alert.alert('Sucesso', 'Preferências atualizadas com sucesso!');
     } catch (error) {
@@ -153,8 +157,15 @@ const ProfileSettingsScreen = () => {
       if (!result.canceled && result.assets && result.assets[0].uri) {
         setLoadingPhoto(true);
 
+        const userId = UserUtils.getUserId(user);
+        if (!userId) {
+          Alert.alert('Erro', 'Usuário não autenticado.');
+          setLoadingPhoto(false);
+          return;
+        }
+
         try {
-          const photoUrl = await profileService.atualizarFotoPerfil((user as any).uid, result.assets[0].uri);
+          const photoUrl = await profileService.atualizarFotoPerfil(userId, result.assets[0].uri);
 
           setProfileData({
             ...profileData,
@@ -190,10 +201,13 @@ const ProfileSettingsScreen = () => {
 
       if (!confirmacao) return;
 
+      const userId = UserUtils.getUserId(user);
+      if (!userId) return;
+
       setLoadingPhoto(true);
 
       try {
-        await profileService.removerFotoPerfil((user as any).uid);
+        await profileService.removerFotoPerfil(userId);
 
         setProfileData({
           ...profileData,

@@ -52,9 +52,14 @@ export function CreateReviewScreen() {
       setLoading(true);
       setError(null);
 
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) {
+        throw new Error('ID do usuário não encontrado');
+      }
+
       const reviewService = ReviewService.getInstance();
       await reviewService.createReview({
-        userId: user.id,
+        userId,
         orderId,
         rating,
         comment: comment.trim(),

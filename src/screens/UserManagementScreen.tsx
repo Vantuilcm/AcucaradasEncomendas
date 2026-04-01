@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { db } from '../config/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { UserUtils } from '../utils/UserUtils';
 import { User } from '../models/User';
 import usePermissions from '../hooks/usePermissions';
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -161,7 +162,7 @@ const UserManagementScreen: React.FC = () => {
         // Atualizar o usuário na lista
         setUsuarios(
           usuarios.map(user => {
-            if (user.id === userId) {
+            if (UserUtils.getUserId(user) === userId) {
               return { ...user, role: novoRole };
             }
             return user;
@@ -212,40 +213,47 @@ const UserManagementScreen: React.FC = () => {
   };
 
   const editarUsuario = (usuario: User) => {
-    (navigation as any).navigate('UserEditScreen', { userId: usuario.id });
+    (navigation as any).navigate('UserEditScreen', { userId: UserUtils.getUserId(usuario) });
   };
 
   const renderItem = ({ item }: { item: User }) => {
-    const role = ((item as any).role as string) || 'cliente';
-    let roleColor = theme.colors.disabled;
+    const role = UserUtils.getUserRole(item) || 'cliente';
+    let roleColor = theme?.colors?.disabled || '#9E9E9E';
 
     switch (role) {
       case 'admin':
-        roleColor = theme.colors.error;
+        roleColor = theme?.colors?.error || '#F44336';
         break;
       case 'gerente':
-        roleColor = theme.colors.tertiary;
+        roleColor = theme?.colors?.tertiary || '#795548';
         break;
       case 'atendente':
-        roleColor = theme.colors.info;
+        roleColor = theme?.colors?.info || '#2196F3';
         break;
       case 'entregador':
-        roleColor = theme.colors.success;
+        roleColor = theme?.colors?.success || '#4CAF50';
+        break;
+      case 'produtor':
+        roleColor = theme?.colors?.primary || '#E91E63';
         break;
     }
 
+    const userId = UserUtils.getUserId(item);
+    const userName = UserUtils.getUserName(item);
+    const userEmail = UserUtils.getUserEmail(item);
+
     return (
-      <View style={[styles.userCard, { backgroundColor: theme.colors.card }]}>
+      <View style={[styles.userCard, { backgroundColor: theme?.colors?.card || '#FFFFFF' }]}>
         <View style={styles.userInfo}>
-          <View style={[styles.userImagePlaceholder, { backgroundColor: theme.colors.primary }]}>
+          <View style={[styles.userImagePlaceholder, { backgroundColor: theme?.colors?.primary || '#E91E63' }]}>
             <Text style={styles.userInitials}>
-              {item.nome ? item.nome.charAt(0).toUpperCase() : 'U'}
+              {userName ? userName.charAt(0).toUpperCase() : 'U'}
             </Text>
           </View>
 
           <View style={styles.userDetails}>
-            <Text style={[styles.userName, { color: theme.colors.text.primary }]}>{item.nome || 'Usuário'}</Text>
-            <Text style={[styles.userEmail, { color: theme.colors.text.secondary }]}>{item.email}</Text>
+            <Text style={[styles.userName, { color: theme?.colors?.text?.primary || '#000000' }]}>{userName || 'Usuário'}</Text>
+            <Text style={[styles.userEmail, { color: theme?.colors?.text?.secondary || '#757575' }]}>{userEmail || ''}</Text>
             <View style={[styles.roleBadge, { backgroundColor: roleColor }]}>
               <Text style={styles.roleText}>
                 {role === 'admin'
@@ -256,25 +264,27 @@ const UserManagementScreen: React.FC = () => {
                       ? 'Atendente'
                       : role === 'entregador'
                         ? 'Entregador'
-                        : 'Cliente'}
+                        : role === 'produtor'
+                          ? 'Produtor'
+                          : 'Comprador'}
               </Text>
             </View>
           </View>
         </View>
 
-        <View style={[styles.userActions, { borderTopColor: theme.colors.border }]}>
+        <View style={[styles.userActions, { borderTopColor: theme?.colors?.border || '#EEEEEE' }]}>
           <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: theme.colors.surface }]} 
+            style={[styles.actionButton, { backgroundColor: theme?.colors?.surface || '#F5F5F5' }]} 
             onPress={() => editarUsuario(item)}
           >
-            <Ionicons name="create-outline" size={22} color={theme.colors.info} />
+            <Ionicons name="create-outline" size={22} color={theme?.colors?.info || '#2196F3'} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: theme.colors.surface }]}
+            style={[styles.actionButton, { backgroundColor: theme?.colors?.surface || '#F5F5F5' }]}
             onPress={() =>
-              mudarPapelUsuario(
-                item.id,
+              userId && mudarPapelUsuario(
+                userId,
                 role === 'admin'
                   ? 'gerente'
                   : role === 'gerente'
@@ -283,18 +293,20 @@ const UserManagementScreen: React.FC = () => {
                       ? 'cliente'
                       : role === 'cliente'
                         ? 'entregador'
-                        : 'cliente'
+                        : role === 'entregador'
+                          ? 'produtor'
+                          : 'cliente'
               )
             }
           >
-            <Ionicons name="swap-vertical" size={22} color={theme.colors.tertiary} />
+            <Ionicons name="swap-vertical" size={22} color={theme?.colors?.tertiary || '#795548'} />
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: theme.colors.surface }]} 
-            onPress={() => resetarPermissoes(item.id)}
+            style={[styles.actionButton, { backgroundColor: theme?.colors?.surface || '#F5F5F5' }]} 
+            onPress={() => userId && resetarPermissoes(userId)}
           >
-            <Ionicons name="refresh" size={22} color={theme.colors.warning} />
+            <Ionicons name="refresh" size={22} color={theme?.colors?.warning || '#FF9800'} />
           </TouchableOpacity>
         </View>
       </View>
@@ -303,8 +315,8 @@ const UserManagementScreen: React.FC = () => {
 
   return (
     <ProtectedRoute requiredPermissions={['manageUsers'] as any}>
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
+      <View style={[styles.container, { backgroundColor: theme?.colors?.background || '#F5F5F5' }]}>
+        <View style={[styles.header, { backgroundColor: theme?.colors?.primary || '#E91E63' }]}>
           <Text style={styles.title}>Gerenciamento de Usuários</Text>
 
           <TouchableOpacity
@@ -315,13 +327,13 @@ const UserManagementScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.searchContainer, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
-          <View style={[styles.searchInputContainer, { backgroundColor: theme.colors.surface }]}>
-            <Ionicons name="search" size={20} color={theme.colors.text.secondary} style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: theme?.colors?.card || '#FFFFFF', borderBottomColor: theme?.colors?.border || '#EEEEEE' }]}>
+          <View style={[styles.searchInputContainer, { backgroundColor: theme?.colors?.surface || '#F5F5F5' }]}>
+            <Ionicons name="search" size={20} color={theme?.colors?.text?.secondary || '#757575'} style={styles.searchIcon} />
             <TextInput
-              style={[styles.searchInput, { color: theme.colors.text.primary }]}
+              style={[styles.searchInput, { color: theme?.colors?.text?.primary || '#000000' }]}
               placeholder="Buscar usuários..."
-              placeholderTextColor={theme.colors.text.disabled}
+              placeholderTextColor={theme?.colors?.text?.disabled || '#9E9E9E'}
               value={termoBusca}
               onChangeText={setTermoBusca}
               onSubmitEditing={buscarUsuario}
@@ -335,7 +347,7 @@ const UserManagementScreen: React.FC = () => {
                 }}
                 style={styles.clearButton}
               >
-                <Ionicons name="close-circle" size={20} color={theme.colors.text.secondary} />
+                <Ionicons name="close-circle" size={20} color={theme?.colors?.text?.secondary || '#757575'} />
               </TouchableOpacity>
             )}
           </View>
@@ -345,8 +357,8 @@ const UserManagementScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  { backgroundColor: theme.colors.surface },
-                  filtroPapel === 'todos' && { backgroundColor: theme.colors.primary },
+                  { backgroundColor: theme?.colors?.surface || '#F5F5F5' },
+                  filtroPapel === 'todos' && { backgroundColor: theme?.colors?.primary || '#E91E63' },
                 ]}
                 onPress={() => {
                   setFiltroPapel('todos');
@@ -357,7 +369,7 @@ const UserManagementScreen: React.FC = () => {
                 <Text
                   style={[
                     styles.filterText,
-                    { color: theme.colors.text.secondary },
+                    { color: theme?.colors?.text?.secondary || '#757575' },
                     filtroPapel === 'todos' && { color: '#FFF' },
                   ]}
                 >
@@ -368,8 +380,8 @@ const UserManagementScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  { backgroundColor: theme.colors.surface },
-                  filtroPapel === 'admin' && { backgroundColor: theme.colors.primary },
+                  { backgroundColor: theme?.colors?.surface || '#F5F5F5' },
+                  filtroPapel === 'admin' && { backgroundColor: theme?.colors?.primary || '#E91E63' },
                 ]}
                 onPress={() => {
                   setFiltroPapel('admin');
@@ -380,7 +392,7 @@ const UserManagementScreen: React.FC = () => {
                 <Text
                   style={[
                     styles.filterText,
-                    { color: theme.colors.text.secondary },
+                    { color: theme?.colors?.text?.secondary || '#757575' },
                     filtroPapel === 'admin' && { color: '#FFF' },
                   ]}
                 >
@@ -391,8 +403,8 @@ const UserManagementScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  { backgroundColor: theme.colors.surface },
-                  filtroPapel === 'gerente' && { backgroundColor: theme.colors.primary },
+                  { backgroundColor: theme?.colors?.surface || '#F5F5F5' },
+                  filtroPapel === 'gerente' && { backgroundColor: theme?.colors?.primary || '#E91E63' },
                 ]}
                 onPress={() => {
                   setFiltroPapel('gerente');
@@ -403,7 +415,7 @@ const UserManagementScreen: React.FC = () => {
                 <Text
                   style={[
                     styles.filterText,
-                    { color: theme.colors.text.secondary },
+                    { color: theme?.colors?.text?.secondary || '#757575' },
                     filtroPapel === 'gerente' && { color: '#FFF' },
                   ]}
                 >
@@ -414,8 +426,8 @@ const UserManagementScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  { backgroundColor: theme.colors.surface },
-                  filtroPapel === 'atendente' && { backgroundColor: theme.colors.primary },
+                  { backgroundColor: theme?.colors?.surface || '#F5F5F5' },
+                  filtroPapel === 'atendente' && { backgroundColor: theme?.colors?.primary || '#E91E63' },
                 ]}
                 onPress={() => {
                   setFiltroPapel('atendente');
@@ -426,7 +438,7 @@ const UserManagementScreen: React.FC = () => {
                 <Text
                   style={[
                     styles.filterText,
-                    { color: theme.colors.text.secondary },
+                    { color: theme?.colors?.text?.secondary || '#757575' },
                     filtroPapel === 'atendente' && { color: '#FFF' },
                   ]}
                 >
@@ -437,8 +449,8 @@ const UserManagementScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  { backgroundColor: theme.colors.surface },
-                  filtroPapel === 'entregador' && { backgroundColor: theme.colors.primary },
+                  { backgroundColor: theme?.colors?.surface || '#F5F5F5' },
+                  filtroPapel === 'entregador' && { backgroundColor: theme?.colors?.primary || '#E91E63' },
                 ]}
                 onPress={() => {
                   setFiltroPapel('entregador');
@@ -449,7 +461,7 @@ const UserManagementScreen: React.FC = () => {
                 <Text
                   style={[
                     styles.filterText,
-                    { color: theme.colors.text.secondary },
+                    { color: theme?.colors?.text?.secondary || '#757575' },
                     filtroPapel === 'entregador' && { color: '#FFF' },
                   ]}
                 >
@@ -460,8 +472,8 @@ const UserManagementScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  { backgroundColor: theme.colors.surface },
-                  filtroPapel === 'cliente' && { backgroundColor: theme.colors.primary },
+                  { backgroundColor: theme?.colors?.surface || '#F5F5F5' },
+                  filtroPapel === 'cliente' && { backgroundColor: theme?.colors?.primary || '#E91E63' },
                 ]}
                 onPress={() => {
                   setFiltroPapel('cliente');
@@ -472,7 +484,7 @@ const UserManagementScreen: React.FC = () => {
                 <Text
                   style={[
                     styles.filterText,
-                    { color: theme.colors.text.secondary },
+                    { color: theme?.colors?.text?.secondary || '#757575' },
                     filtroPapel === 'cliente' && { color: '#FFF' },
                   ]}
                 >
@@ -485,22 +497,22 @@ const UserManagementScreen: React.FC = () => {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>Carregando usuários...</Text>
+            <ActivityIndicator size="large" color={theme?.colors?.primary || '#E91E63'} />
+            <Text style={[styles.loadingText, { color: theme?.colors?.text?.secondary || '#757575' }]}>Carregando usuários...</Text>
           </View>
         ) : (
           <FlatList
             data={usuarios}
-            keyExtractor={item => item.id}
+            keyExtractor={item => UserUtils.getUserId(item) || Math.random().toString()}
             renderItem={renderItem}
             contentContainerStyle={styles.listContainer}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme?.colors?.primary || '#E91E63']} />
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Ionicons name="people" size={60} color={theme.colors.text.disabled} />
-                <Text style={[styles.emptyText, { color: theme.colors.text.secondary }]}>
+                <Ionicons name="people" size={60} color={theme?.colors?.text?.disabled || '#9E9E9E'} />
+                <Text style={[styles.emptyText, { color: theme?.colors?.text?.secondary || '#757575' }]}>
                   {termoBusca ? 'Nenhum usuário encontrado' : 'Não há usuários cadastrados'}
                 </Text>
               </View>
@@ -514,8 +526,8 @@ const UserManagementScreen: React.FC = () => {
             ListFooterComponent={
               carregandoMais ? (
                 <View style={styles.footerLoading}>
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
-                  <Text style={[styles.footerText, { color: theme.colors.text.secondary }]}>Carregando mais usuários...</Text>
+                  <ActivityIndicator size="small" color={theme?.colors?.primary || '#E91E63'} />
+                  <Text style={[styles.footerText, { color: theme?.colors?.text?.secondary || '#757575' }]}>Carregando mais usuários...</Text>
                 </View>
               ) : null
             }

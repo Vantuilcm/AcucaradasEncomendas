@@ -1,57 +1,94 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { LogBox, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
+import AppNavigator from './navigation/AppNavigator';
+import { AuthProvider } from './contexts/AuthContext';
+import { CartProvider } from './contexts/CartContext';
+import { LocationProvider } from './contexts/LocationContext';
+import { ThemeProvider, useAppTheme } from './components/ThemeProvider';
+import { initSentry } from './config/sentry';
 
-export default function App() {
-  console.log('MISSÃO: [MINIMAL] App Iniciado com SUCESSO - Se você vê esta mensagem, o crash NÃO é nativo');
+// Inicializar Sentry (protegido por variáveis de ambiente)
+try {
+  initSentry();
+} catch (error) {
+  console.error('Erro ao inicializar Sentry:', error);
+}
+
+// Ignorar warnings específicos durante desenvolvimento
+if (LogBox) {
+  LogBox.ignoreLogs([
+    'Non-serializable values were found in the navigation state',
+    'Sending `onAnimatedValueUpdate` with no listeners registered',
+  ]);
+}
+
+function ThemedApp() {
+  const { isDark, theme } = useAppTheme();
   
+  // Mesclar o tema do Paper com o nosso tema customizado
+  const paperTheme = isDark 
+    ? { 
+        ...MD3DarkTheme, 
+        colors: { 
+          ...MD3DarkTheme.colors, 
+          primary: theme?.colors?.primary || '#000000', 
+          secondary: theme?.colors?.secondary || '#000000', 
+          tertiary: theme?.colors?.tertiary || '#000000',
+          background: theme?.colors?.background || '#000000', 
+          surface: theme?.colors?.surface || '#000000', 
+          error: theme?.colors?.error || '#FF0000', 
+          onSurface: theme?.colors?.text?.primary || '#FFFFFF', 
+          onBackground: theme?.colors?.text?.primary || '#FFFFFF',
+          surfaceVariant: theme?.colors?.surfaceVariant || '#000000',
+          outline: theme?.colors?.outline || '#000000',
+        },
+        roundness: 3.5, // 3.5 * 4 = 14px (md borderRadius)
+      } 
+    : { 
+        ...MD3LightTheme, 
+        colors: { 
+          ...MD3LightTheme.colors, 
+          primary: theme?.colors?.primary || '#000000', 
+          secondary: theme?.colors?.secondary || '#000000', 
+          tertiary: theme?.colors?.tertiary || '#000000',
+          background: theme?.colors?.background || '#FFFFFF', 
+          surface: theme?.colors?.surface || '#FFFFFF', 
+          error: theme?.colors?.error || '#B00020', 
+          onSurface: theme?.colors?.text?.primary || '#000000', 
+          onBackground: theme?.colors?.text?.primary || '#000000',
+          surfaceVariant: theme?.colors?.surfaceVariant || '#EEEEEE',
+          outline: theme?.colors?.outline || '#79747E',
+        },
+        roundness: 3.5,
+      };
+
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="auto" />
-        <View style={styles.content}>
-          <Text style={styles.title}>Açucaradas Encomendas</Text>
-          <Text style={styles.subtitle}>MODO DE DEBUG: App Minimalista</Text>
-          <Text style={styles.status}>Build: 437</Text>
-          <Text style={styles.message}>Se o app abriu, o problema está nos Providers ou Navegação.</Text>
-        </View>
-      </SafeAreaView>
-    </SafeAreaProvider>
+    <PaperProvider theme={paperTheme}>
+      <View style={{ flex: 1, backgroundColor: theme?.colors?.background || (isDark ? '#000000' : '#FFFFFF') }} testID="app-container">
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <AppNavigator />
+      </View>
+    </PaperProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#E91E63',
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 20,
-  },
-  status: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: 10,
-  },
-  message: {
-    fontSize: 14,
-    textAlign: 'center',
-    color: '#888',
-  },
-});
+export default function App() {
+  console.log('App: Renderizando árvore completa de Providers com Proteção 440');
+  
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <CartProvider>
+              <ThemedApp />
+            </CartProvider>
+          </LocationProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}

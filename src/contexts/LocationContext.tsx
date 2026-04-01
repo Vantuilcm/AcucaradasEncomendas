@@ -8,6 +8,7 @@ import {
 } from '../services/LocationService';
 import { useAuth } from './AuthContext';
 import { loggingService } from '../services/LoggingService';
+import { UserUtils } from '../utils/UserUtils';
 
 interface LocationContextProps {
   currentLocation: GeoCoordinates | null;
@@ -64,28 +65,44 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
       setCurrentLocation(location);
 
       // Obter endereço a partir das coordenadas
-      const address = await locationService.getAddressFromCoordinates(location);
-      setCurrentAddress(address);
+      try {
+        const address = await locationService.getAddressFromCoordinates(location);
+        if (address) setCurrentAddress(address);
+      } catch (addrError) {
+        loggingService.error('Erro ao converter coordenadas em endereço', { addrError });
+      }
 
       // Salvar a localização do usuário se estiver autenticado
-      if (user) {
-        await locationService.saveUserLocation(user.id, location);
+      const userId = UserUtils.getUserId(user);
+      if (userId) {
+        try {
+          await locationService.saveUserLocation(userId, location);
+        } catch (saveError) {
+          loggingService.error('Erro ao salvar localização do usuário', { saveError });
+        }
       }
 
       // Buscar lojas próximas automaticamente
       if (isProximityEnabled) {
-        await findNearbyStores();
+        try {
+          await findNearbyStores();
+        } catch (nearbyError) {
+          loggingService.error('Erro ao buscar lojas próximas automaticamente', { nearbyError });
+        }
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Erro ao atualizar localização';
       setLocationError(errorMsg);
-      loggingService.error('Erro ao atualizar localização', { error });
+      loggingService.error('Erro crítico em updateLocation', { error });
 
-      Alert.alert(
-        'Erro de localização',
-        'Não foi possível obter sua localização atual. Verifique se o GPS está ativo e se o app tem permissão para acessar sua localização.',
-        [{ text: 'OK' }]
-      );
+      // Só mostrar alert se não estiver em background ou carregamento inicial
+      if (currentLocation === null) {
+        Alert.alert(
+          'Erro de localização',
+          'Não foi possível obter sua localização atual. Verifique se o GPS está ativo e se o app tem permissão para acessar sua localização.',
+          [{ text: 'OK' }]
+        );
+      }
     } finally {
       setIsLoadingLocation(false);
     }

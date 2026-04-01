@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from '
 import { Product } from '../types/Product';
 import { RecommendationService } from '../services/RecommendationService';
 import { useAuth } from '../contexts/AuthContext';
+import { UserUtils } from '../utils/UserUtils';
 import { EnhancedImage, PlaceholderType } from './EnhancedImage';
 import { HorizontalListSkeleton } from './SkeletonLoader';
 
@@ -42,16 +43,20 @@ export const ProductRecommendations = ({
 
   // Carregar recomendações conforme o tipo
   useEffect(() => {
+    let isMounted = true;
     const loadRecommendations = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        if (!user) {
+        const userId = UserUtils.getUserId(user);
+        if (!userId) {
           // Se não há usuário autenticado, usar recomendações baseadas em visualizações
           const viewRecommendations =
             await recommendationService.getRecommendationsBasedOnViews(limit);
-          setProducts(viewRecommendations);
+          if (isMounted) {
+            setProducts(viewRecommendations || []);
+          }
           return;
         }
 
@@ -60,7 +65,7 @@ export const ProductRecommendations = ({
         switch (recommendationType) {
           case 'personalized':
             recommendedProducts = await recommendationService.getPersonalizedRecommendations(
-              user.id,
+              userId,
               limit
             );
             break;
@@ -69,60 +74,81 @@ export const ProductRecommendations = ({
             break;
           case 'purchased':
             recommendedProducts =
-              await recommendationService.getRecommendationsBasedOnPurchaseHistory(user.id, limit);
+              await recommendationService.getRecommendationsBasedOnPurchaseHistory(userId, limit);
             break;
           default:
             recommendedProducts = await recommendationService.getPersonalizedRecommendations(
-              user.id,
+              userId,
               limit
             );
         }
 
-        setProducts(recommendedProducts);
+        if (isMounted) {
+          setProducts(recommendedProducts || []);
+        }
       } catch (err) {
         console.error('Erro ao carregar recomendações:', err);
-        setError('Não foi possível carregar as recomendações');
+        if (isMounted) {
+          setError('Não foi possível carregar as recomendações');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     loadRecommendations();
+    return () => { isMounted = false; };
   }, [user, limit, recommendationType, recommendationService]);
 
   // Função para renderizar um item do produto
-  const renderProductItem = ({ item }: { item: Product }) => (
-    <TouchableOpacity
-      style={[
-        styles.productCard,
-        { width: cardWidth },
-        cardStyle === 'compact' ? styles.compactCard : styles.regularCard,
-      ]}
-      activeOpacity={0.7}
-      onPress={() => onProductPress && onProductPress(item)}
-    >
-      <EnhancedImage
-        source={{ uri: (item.imagens && item.imagens.length > 0) ? item.imagens[0] : 'https://via.placeholder.com/150' }}
-        style={[styles.productImage, { height: imageHeight }]}
-        placeholderType={PlaceholderType.SKELETON}
-        lazy={true}
-        resizeMode="cover"
-      />
-
-      <View style={styles.productInfo}>
-        <Text
-          style={[styles.productName, cardStyle === 'compact' ? styles.compactText : {}]}
-          numberOfLines={1}
+  const renderProductItem = ({ item }: { item: Product }) => {
+    try {
+      if (!item) return null;
+      return (
+        <TouchableOpacity
+          style={[
+            styles.productCard,
+            { width: cardWidth },
+            cardStyle === 'compact' ? styles.compactCard : styles.regularCard,
+          ]}
+          activeOpacity={0.7}
+          onPress={() => {
+            try {
+              onProductPress && onProductPress(item);
+            } catch (error) {
+              console.error('Erro ao clicar no produto recomendado:', error);
+            }
+          }}
         >
-          {item.nome}
-        </Text>
+          <EnhancedImage
+            source={{ uri: (item.imagens && item.imagens.length > 0) ? item.imagens[0] : 'https://via.placeholder.com/150' }}
+            style={[styles.productImage, { height: imageHeight }]}
+            placeholderType={PlaceholderType.SKELETON}
+            lazy={true}
+            resizeMode="cover"
+          />
 
-        <Text style={[styles.productPrice, cardStyle === 'compact' ? styles.compactPrice : {}]}>
-          R$ {item.preco.toFixed(2)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+          <View style={styles.productInfo}>
+            <Text
+              style={[styles.productName, cardStyle === 'compact' ? styles.compactText : {}]}
+              numberOfLines={1}
+            >
+              {item.nome || 'Produto'}
+            </Text>
+
+            <Text style={[styles.productPrice, cardStyle === 'compact' ? styles.compactPrice : {}]}>
+              R$ {(item.preco || 0).toFixed(2)}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      );
+    } catch (error) {
+      console.error('Erro ao renderizar item de recomendação:', error);
+      return null;
+    }
+  };
 
   // Personalizar o título baseado no tipo de recomendação
   const getRecommendationTitle = () => {

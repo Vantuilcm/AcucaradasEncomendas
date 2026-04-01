@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { UserUtils } from '../utils/UserUtils';
 import { notificationSettingsServiceWithCache } from '../services/NotificationSettingsServiceWithCache';
 import { NotificationSettings } from '../types/NotificationSettings';
 import { loggingService } from '../services/LoggingService';
@@ -43,7 +44,8 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
    * Carrega as configurações de notificação do usuário
    */
   const loadSettings = useCallback(async () => {
-    if (!user) {
+    const userId = UserUtils.getUserId(user);
+    if (!userId) {
       setSettings(null);
       setIsLoading(false);
       return;
@@ -53,11 +55,11 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
       setIsLoading(true);
       setError(null);
 
-      let userSettings = await notificationSettingsServiceWithCache.getUserSettings(user.id);
+      let userSettings = await notificationSettingsServiceWithCache.getUserSettings(userId);
 
       // Se não existirem configurações, criar padrão
       if (!userSettings) {
-        userSettings = await notificationSettingsServiceWithCache.createDefaultSettings(user.id);
+        userSettings = await notificationSettingsServiceWithCache.createDefaultSettings(userId);
       }
 
       setSettings(userSettings);

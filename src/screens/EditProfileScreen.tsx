@@ -4,6 +4,7 @@ import { TextInput, Button, Avatar, Title, Caption, Divider, Text } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { UserUtils } from '../utils/UserUtils';
 import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { useAppTheme } from '../components/ThemeProvider';
@@ -25,10 +26,10 @@ const EditProfileScreen = () => {
   useEffect(() => {
     // Carregar dados do usuário atual
     if (user) {
-      setName((user as any).name || '');
-      setEmail((user as any).email || '');
-      setPhone((user as any).phone || '');
-      setAddress((user as any).address || '');
+      setName(UserUtils.getUserName(user) || '');
+      setEmail(UserUtils.getUserEmail(user) || '');
+      setPhone((user as any).telefone || (user as any).phone || '');
+      setAddress((user as any).endereco?.[0]?.logradouro || (user as any).address || '');
     }
   }, [user]);
 

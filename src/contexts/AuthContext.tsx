@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { UserUtils } from '../utils/UserUtils';
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { Alert, TouchableWithoutFeedback } from 'react-native';
@@ -21,6 +22,8 @@ interface AuthContextData {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
+  profileLoading: boolean;
+  isReady: boolean;
   login: (email: string, password: string, role?: string) => Promise<void>;
   register: (userData: User, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -41,6 +44,8 @@ const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [, setIsDeviceSecure] = useState<boolean>(true);
 
@@ -91,10 +96,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkDeviceSecurity();
   }, []);
 
+  // Buscar perfil completo do Firestore com resiliência, retry e logs estruturados
+  const fetchUserProfile = useCallback(async (userId: string, retries = 3): Promise<User | null> => {
+    let attempt = 0;
+    while (attempt < retries) {
+      try {
+        setProfileLoading(true);
+        secureLoggingService.security('PROFILE_FETCH_START', { userId, attempt: attempt + 1 });
+        
+        const userRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as any;
+          const role = UserUtils.getUserRole(userData);
+          
+          secureLoggingService.security('PROFILE_FOUND', { 
+            userId, 
+            role,
+            email: UserUtils.getUserEmail(userData)
+          });
+          
+          if (role) {
+            secureLoggingService.security('ROLE_RESOLVED', { userId, role });
+          } else {
+            secureLoggingService.warn('ROLE_MISSING', { userId });
+          }
+          
+          return { ...userData, id: userId };
+        } else {
+          secureLoggingService.security('PROFILE_NOT_FOUND', { userId });
+          return null;
+        }
+      } catch (error) {
+        attempt++;
+        secureLoggingService.error('FIREBASE_FETCH_ERROR', { 
+          userId, 
+          attempt,
+          error: error instanceof Error ? error.message : 'Erro desconhecido' 
+        });
+        
+        if (attempt >= retries) {
+          return null;
+        }
+        // Espera curta antes do próximo retry (500ms, 1s, 1.5s)
+        await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+      } finally {
+        if (attempt === retries || attempt === 0) {
+          setProfileLoading(false);
+        }
+      }
+    }
+    return null;
+  }, []);
+
   // Verificar autenticação ao iniciar o app
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        setLoading(true);
+        setIsReady(false);
+        secureLoggingService.security('BOOT_START');
+        secureLoggingService.security('AUTH_CHECK_START');
         // Verificar se existe um token salvo
         const token = await SecureStorageService.getData('authToken');
 
@@ -102,42 +165,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setAuthToken(token);
           const payload = SecurityService.getTokenPayload(token);
 
-          if (payload && payload.id) {
-            // Buscar dados do usuário
-            const userRef = doc(db, 'users', payload.id);
-            const userDoc = await getDoc(userRef);
+          if (payload?.id) {
+            secureLoggingService.security('AUTH_READY', { userId: payload.id });
+            secureLoggingService.security('USER_FOUND', { userId: payload.id });
+            const userData = await fetchUserProfile(payload.id);
 
-            if (userDoc.exists()) {
-              const userData = userDoc.data() as unknown as User;
+            if (userData) {
               setUser(userData);
-
-              // Configurar contexto do Sentry
-              LoggingService.getInstance().setUser(userData.id, {
-                email: userData.email,
-                role: userData.role,
-                name: userData.nome,
+              const userId = UserUtils.getUserId(userData);
+              const role = UserUtils.getUserRole(userData);
+              
+              secureLoggingService.security('PROFILE_READY', { 
+                userId,
+                role
               });
 
+              // Configurar contexto do Sentry
+              try {
+                if (userId) {
+                  LoggingService.getInstance().setUser(userId, {
+                    email: UserUtils.getUserEmail(userData) || '',
+                    role: role || '',
+                    name: UserUtils.getUserName(userData) || '',
+                  });
+                }
+              } catch (sentryError) {
+                console.error('Erro ao configurar Sentry:', sentryError);
+              }
+
               // Iniciar monitoramento de inatividade
-              SecurityService.startActivityMonitor(() => logout());
+              try {
+                SecurityService.startActivityMonitor(() => logout());
+              } catch (monitorError) {
+                console.error('Erro ao iniciar monitor de atividade:', monitorError);
+              }
             } else {
-              // Se o documento do usuário não existe, fazer logout
+              secureLoggingService.security('LOGIN_RECOVERY_PATH', { reason: 'profile_not_found', userId: payload.id });
               await logout();
             }
+          } else {
+            await logout();
           }
         } else {
           // Token inválido ou expirado
+          secureLoggingService.security('AUTH_READY', { userId: null, reason: 'no_token_or_invalid' });
           await logout();
         }
       } catch (error) {
-        secureLoggingService.security('Erro ao verificar autenticação', { 
+        console.error('Erro no checkAuth:', error);
+        secureLoggingService.security('Erro crítico ao verificar autenticação', { 
           error: error instanceof Error ? error.message : 'Erro desconhecido',
           timestamp: new Date().toISOString(),
-          severity: 'high'
+          severity: 'critical'
         });
-        await logout();
+        // Em caso de erro crítico, forçar estado seguro (não autenticado)
+        setUser(null);
+        setAuthToken(null);
       } finally {
         setLoading(false);
+        setIsReady(true);
+        secureLoggingService.security('APP_READY');
       }
     };
 
@@ -145,9 +232,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Limpar monitor de atividade ao desmontar
     return () => {
-      SecurityService.stopActivityMonitor();
+      try {
+        SecurityService.stopActivityMonitor();
+      } catch (e) {
+        console.error('Erro ao parar monitor de atividade:', e);
+      }
     };
-  }, []);
+  }, [fetchUserProfile]);
 
   // Método de login
   const login = async (email: string, password: string, _role?: string) => {
@@ -203,24 +294,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await SecureStorageService.storeData('authToken', token, { sensitive: true });
         setAuthToken(token);
 
-        // Buscar dados completos do usuário
-        const userRef = doc(db, 'users', authUser.id);
-        const userDoc = await getDoc(userRef);
-        console.log('AuthContext: userDoc fetched', userDoc.exists());
+        // Buscar dados completos do usuário usando a função centralizada
+        const userData = await fetchUserProfile(authUser.id);
 
-        if (userDoc.exists()) {
-           let userData = userDoc.data() as unknown as User;
-           
-           setUser(userData);
+        if (userData) {
+          setUser(userData);
+          const userId = UserUtils.getUserId(userData);
+          const role = UserUtils.getUserRole(userData);
 
           // Iniciar monitoramento de inatividade
           SecurityService.startActivityMonitor(() => logout());
 
-          // Substituir o logging comum por logging seguro
-          secureLoggingService.security('Login bem-sucedido', { userId: userData.id, timestamp: new Date().toISOString() });
+          // Logs estruturados
+          secureLoggingService.security('LOGIN_SUCCESS', { 
+            userId, 
+            role,
+            timestamp: new Date().toISOString() 
+          });
+          
+          secureLoggingService.security('AUTH_READY', { userId, role });
         } else {
-          secureLoggingService.security('Falha no login: dados do usuário não encontrados', { email: sanitizedEmail });
-          throw new Error('Dados do usuário não encontrados');
+          secureLoggingService.security('LOGIN_FAILURE', { 
+            reason: 'profile_fetch_failed', 
+            email: sanitizedEmail 
+          });
+          throw new Error('Não foi possível carregar seu perfil. Tente novamente.');
         }
       } else {
         secureLoggingService.security('Falha na autenticação', { email: sanitizedEmail });
@@ -280,16 +378,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (newUser && token) {
         // Armazenar token
-      await SecureStorageService.storeData('authToken', token, { sensitive: true });
-      setAuthToken(token);
+        await SecureStorageService.storeData('authToken', token, { sensitive: true });
+        setAuthToken(token);
 
-        // Atualizar estado
-        setUser(newUser);
+        // Buscar dados completos do usuário para garantir sincronização
+        const userData = await fetchUserProfile(newUser.id);
+        
+        if (userData) {
+          setUser(userData);
+          const userId = UserUtils.getUserId(userData);
+          const role = UserUtils.getUserRole(userData);
 
-        // Iniciar monitoramento de inatividade
-        SecurityService.startActivityMonitor(() => logout());
+          // Iniciar monitoramento de inatividade
+          SecurityService.startActivityMonitor(() => logout());
 
-        secureLoggingService.security('Registro bem-sucedido', { userId: newUser.id, timestamp: new Date().toISOString() });
+          secureLoggingService.security('REGISTER_SUCCESS', { 
+            userId, 
+            role,
+            timestamp: new Date().toISOString() 
+          });
+          
+          secureLoggingService.security('AUTH_READY', { userId, role });
+        } else {
+          secureLoggingService.security('REGISTER_FAILURE', { 
+            reason: 'profile_fetch_after_register_failed', 
+            userId: newUser.id 
+          });
+          throw new Error('Conta criada, mas houve um erro ao carregar seu perfil. Tente fazer login.');
+        }
       } else {
         secureLoggingService.security('Falha ao registrar usuário', { email: sanitizedEmail });
         throw new Error('Falha ao registrar usuário');
@@ -319,13 +435,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthToken(null);
 
       // Limpar estado
-      const userId = user?.id;
+      const userId = UserUtils.getUserId(user);
       setUser(null);
 
       secureLoggingService.security('Logout realizado', { userId, timestamp: new Date().toISOString() });
     } catch (error: any) {
       secureLoggingService.security('Erro ao fazer logout', { 
-        userId: user?.id,
+        userId: UserUtils.getUserId(user),
         errorMessage: error.message || 'Erro desconhecido' 
       });
     } finally {
@@ -373,20 +489,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      if (!user || !user.id) {
+      const userId = UserUtils.getUserId(user);
+      if (!userId) {
         throw new Error('Usuário não autenticado');
       }
 
       // Sanitizar dados
       const sanitizedData: Partial<User> = {};
-      if (userData.nome) sanitizedData.nome = SecurityService.sanitizeInput(userData.nome);
-      if (userData.email) sanitizedData.email = SecurityService.sanitizeInput(userData.email);
+      const userNome = UserUtils.getUserName(userData);
+      const userEmail = UserUtils.getUserEmail(userData);
+      
+      if (userNome) sanitizedData.nome = SecurityService.sanitizeInput(userNome);
+      if (userEmail) sanitizedData.email = SecurityService.sanitizeInput(userEmail);
       if (userData.telefone)
         sanitizedData.telefone = SecurityService.sanitizeInput(userData.telefone);
       if (userData.endereco) sanitizedData.endereco = userData.endereco;
 
       // Atualizar no Firestore
-      await updateDoc(doc(db, 'users', user.id), {
+      await updateDoc(doc(db, 'users', userId), {
         ...sanitizedData,
         updatedAt: new Date(),
       } as any);
@@ -395,25 +515,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedUser = {
         ...user,
         ...sanitizedData,
-      };
+      } as User;
       setUser(updatedUser);
 
       // Atualizar contexto do Sentry
-      LoggingService.getInstance().setUser(updatedUser.id, {
-        email: updatedUser.email,
-        role: updatedUser.role,
-        name: updatedUser.nome,
+      LoggingService.getInstance().setUser(userId, {
+        email: UserUtils.getUserEmail(updatedUser) || '',
+        role: UserUtils.getUserRole(updatedUser) || '',
+        name: UserUtils.getUserName(updatedUser) || '',
       });
 
       secureLoggingService.security('Dados do usuário atualizados', { 
-        userId: user.id,
+        userId,
         fieldsUpdated: Object.keys(sanitizedData),
         timestamp: new Date().toISOString() 
       });
       Alert.alert('Sucesso', 'Dados atualizados com sucesso.');
     } catch (error: any) {
       secureLoggingService.security('Erro ao atualizar dados do usuário', { 
-        userId: user?.id,
+        userId: UserUtils.getUserId(user),
         fieldsAttempted: Object.keys(userData),
         errorMessage: error.message || 'Erro desconhecido' 
       });
@@ -466,37 +586,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const handlePostSocialLogin = async (authUser: any, _role: string) => {
-    const userRef = doc(db, 'users', authUser.uid);
-    const usuariosRef = doc(db, 'usuarios', authUser.uid);
-    const userDoc = await getDoc(userRef);
-    if (userDoc.exists()) {
-      // O usuário já existe, não alteramos a role via frontend por segurança.
-      // O app apenas lê os dados existentes.
-      const existingData = userDoc.data() || {};
-      setUser({ id: authUser.uid, ...existingData } as unknown as User);
-    } else {
-      // Cria o registro no Firestore se não existir. A role inicial é sempre de segurança (comprador),
-      // ou se necessário forçar o fallback seguro.
-      const defaultRole = 'comprador';
-      const newUser = {
-        email: authUser.email || '',
-        nome: authUser.displayName || 'Usuário Social',
-        role: defaultRole,
-        dataCriacao: new Date(),
-        ultimoLogin: new Date(),
-      };
-      await setDoc(userRef, newUser);
-      await setDoc(usuariosRef, newUser);
-      setUser({ id: authUser.uid, ...newUser } as unknown as User);
+    try {
+      if (!authUser?.uid) throw new Error('UID do usuário social ausente');
+
+      const userRef = doc(db, 'users', authUser.uid);
+      const usuariosRef = doc(db, 'usuarios', authUser.uid);
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        // O usuário já existe, não alteramos a role via frontend por segurança.
+        // O app apenas lê os dados existentes.
+        const existingData = userDoc.data() || {};
+        setUser({ id: authUser.uid, ...existingData } as unknown as User);
+      } else {
+        // Cria o registro no Firestore se não existir. A role inicial é sempre de segurança (comprador),
+        // ou se necessário forçar o fallback seguro.
+        const defaultRole = 'comprador';
+        const newUser = {
+          email: authUser.email || '',
+          nome: authUser.displayName || 'Usuário Social',
+          role: defaultRole,
+          dataCriacao: new Date(),
+          ultimoLogin: new Date(),
+        };
+        await setDoc(userRef, newUser);
+        await setDoc(usuariosRef, newUser);
+        setUser({ id: authUser.uid, ...newUser } as unknown as User);
+      }
+
+      // Gerar e salvar token JWT
+      const token = await authUser.getIdToken(true);
+      if (token) {
+        await SecureStorageService.storeData('authToken', token, { sensitive: true });
+        setAuthToken(token);
+      }
+
+      // Iniciar monitoramento de inatividade
+      try {
+        SecurityService.startActivityMonitor(() => logout());
+      } catch (monitorError) {
+        console.error('Erro ao iniciar monitor de atividade no social login:', monitorError);
+      }
+    } catch (error) {
+      console.error('Erro no handlePostSocialLogin:', error);
+      throw error;
     }
-
-    // Gerar e salvar token JWT
-    const token = await authUser.getIdToken(true);
-    await SecureStorageService.storeData('authToken', token, { sensitive: true });
-    setAuthToken(token);
-
-    // Iniciar monitoramento de inatividade
-    SecurityService.startActivityMonitor(() => logout());
   };
 
   const signInWithGoogle = useCallback(async (role: string = 'comprador') => {
@@ -579,6 +712,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user,
           isAuthenticated: !!user,
           loading,
+          profileLoading,
+          isReady,
           login,
           register,
           logout,

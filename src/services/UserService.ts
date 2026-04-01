@@ -7,6 +7,7 @@ import { loggingService } from './LoggingService';
 import { User } from '../models/User';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { UserUtils } from '../utils/UserUtils';
 
 // Interface para informações básicas do usuário
 export interface UserInfo {
@@ -27,16 +28,17 @@ export const userInfo = (): UserInfo | null => {
 export const getUserInfo = (): UserInfo | null => {
   try {
     const currentUser = auth.currentUser;
+    const userId = UserUtils.getUserId(currentUser);
     
-    if (!currentUser) {
+    if (!userId) {
       return null;
     }
     
     // Usar apenas APIs públicas e seguras
     return {
-      id: currentUser.uid,
-      email: currentUser.email || '',
-      nome: currentUser.displayName || '',
+      id: userId,
+      email: UserUtils.getUserEmail(currentUser) || '',
+      nome: UserUtils.getUserName(currentUser) || '',
       dataCriacao: new Date()
     };
   } catch (error) {

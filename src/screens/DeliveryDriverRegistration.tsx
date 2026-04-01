@@ -64,8 +64,13 @@ export default function DeliveryDriverRegistration() {
   useEffect(() => {
     if (Platform.OS !== 'web') {
       (async () => {
-        // const { status } = await Camera.requestCameraPermissionsAsync();
-        setHasPermission(status === 'granted');
+        try {
+          const { status } = await Camera.requestCameraPermissionsAsync();
+          setHasPermission(status === 'granted');
+        } catch (error) {
+          console.error('Erro ao solicitar permissões da câmera:', error);
+          setHasPermission(false);
+        }
       })();
     } else {
       setHasPermission(true);
@@ -73,11 +78,15 @@ export default function DeliveryDriverRegistration() {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      setForm(prev => ({
-        ...prev,
-        email: user.email || prev.email,
-      }));
+    try {
+      if (user) {
+        setForm(prev => ({
+          ...prev,
+          email: user?.email || prev.email || '',
+        }));
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar formulário com dados do usuário:', error);
     }
   }, [user]);
 
@@ -169,7 +178,8 @@ export default function DeliveryDriverRegistration() {
   };
 
   const handleSubmit = async () => {
-    if (!user?.uid) {
+    const userId = user?.uid || (user as any)?.id;
+    if (!userId) {
       Alert.alert('Erro', 'Você precisa estar autenticado para enviar o cadastro.');
       return;
     }
@@ -203,7 +213,6 @@ export default function DeliveryDriverRegistration() {
     try {
       setSubmitting(true);
 
-      const userId = user.uid;
       const timestamp = Date.now();
       const basePath = `delivery_drivers/${userId}/${timestamp}`;
 
@@ -266,7 +275,8 @@ export default function DeliveryDriverRegistration() {
 
       Alert.alert('Sucesso', 'Cadastro enviado para análise!');
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível enviar o cadastro.');
+      console.error('Erro ao enviar cadastro de entregador:', error);
+      Alert.alert('Erro', 'Não foi possível enviar o cadastro. Tente novamente.');
     } finally {
       setSubmitting(false);
     }

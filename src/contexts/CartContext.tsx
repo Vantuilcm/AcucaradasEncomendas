@@ -29,17 +29,27 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       const currentCart = await cartService.getCart();
-      setCart(currentCart);
+      if (currentCart && currentCart.items) {
+        setCart(currentCart);
 
-      // Atualizar contagem de itens
-      const count = currentCart.items.reduce((total, item) => total + item.quantity, 0);
-      setItemCount(count);
+        // Atualizar contagem de itens
+        const count = currentCart.items.reduce((total, item) => total + (item.quantity || 0), 0);
+        setItemCount(count);
 
-      // Calcular total
-      const total = await cartService.getCartTotal();
-      setCartTotal(total);
+        // Calcular total
+        try {
+          const total = await cartService.getCartTotal();
+          setCartTotal(total || 0);
+        } catch (totalErr) {
+          console.error('Erro ao calcular total do carrinho:', totalErr);
+        }
+      }
     } catch (error) {
-      console.error('Erro ao carregar carrinho:', error);
+      console.error('Erro crítico ao carregar carrinho:', error);
+      // Fallback para estado seguro
+      setCart({ items: [], lastUpdated: new Date().toISOString() });
+      setItemCount(0);
+      setCartTotal(0);
     } finally {
       setIsLoading(false);
     }

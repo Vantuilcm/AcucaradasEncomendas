@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { UserUtils } from '../utils/UserUtils';
 import { notificationSettingsServiceWithCacheV2 } from '../services/NotificationSettingsServiceWithCacheV2';
 import { NotificationSettings } from '../types/NotificationSettings';
 import { loggingService } from '../services/LoggingService';
@@ -48,7 +49,8 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
    * Carrega as configurações de notificação do usuário
    */
   const loadSettings = useCallback(async () => {
-    if (!user) {
+    const userId = UserUtils.getUserId(user);
+    if (!userId) {
       setSettings(null);
       setIsLoading(false);
       return;
@@ -58,11 +60,11 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
       setIsLoading(true);
       setError(null);
 
-      let userSettings = await notificationSettingsServiceWithCacheV2.getUserSettings(user.id);
+      let userSettings = await notificationSettingsServiceWithCacheV2.getUserSettings(userId);
 
       // Se não existirem configurações, criar padrão
       if (!userSettings) {
-        userSettings = await notificationSettingsServiceWithCacheV2.createDefaultSettings(user.id);
+        userSettings = await notificationSettingsServiceWithCacheV2.createDefaultSettings(userId);
       }
 
       setSettings(userSettings);
@@ -82,13 +84,14 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
    */
   const updateSettings = useCallback(
     async (updates: Partial<NotificationSettings>) => {
-      if (!user) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
 
       try {
         setIsUpdating(true);
         setError(null);
 
-        await notificationSettingsServiceWithCacheV2.updateSettings(user.id, updates);
+        await notificationSettingsServiceWithCacheV2.updateSettings(userId, updates);
 
         // Atualização otimista da UI
         setSettings(prevSettings => {
@@ -123,7 +126,8 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
    */
   const toggleNotificationType = useCallback(
     async (type: keyof NotificationSettings['types']) => {
-      if (!user || !settings) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId || !settings) return;
 
       try {
         setIsUpdating(true);
@@ -143,7 +147,7 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
           };
         });
 
-        await notificationSettingsServiceWithCacheV2.toggleNotificationType(user.id, type);
+        await notificationSettingsServiceWithCacheV2.toggleNotificationType(userId, type);
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Erro ao alternar tipo de notificação');
@@ -165,7 +169,8 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
    */
   const toggleQuietHours = useCallback(
     async (enabled: boolean) => {
-      if (!user || !settings) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId || !settings) return;
 
       try {
         setIsUpdating(true);
@@ -184,7 +189,7 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
           };
         });
 
-        await notificationSettingsServiceWithCacheV2.toggleQuietHours(user.id, enabled);
+        await notificationSettingsServiceWithCacheV2.toggleQuietHours(userId, enabled);
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Erro ao alternar modo silencioso');
         setError(error);
@@ -205,7 +210,8 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
    */
   const updateQuietHoursTime = useCallback(
     async (start: string, end: string) => {
-      if (!user || !settings) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId || !settings) return;
 
       try {
         setIsUpdating(true);
@@ -231,7 +237,7 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
           };
         });
 
-        await notificationSettingsServiceWithCacheV2.updateQuietHoursTime(user.id, start, end);
+        await notificationSettingsServiceWithCacheV2.updateQuietHoursTime(userId, start, end);
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Erro ao atualizar horário do modo silencioso');
@@ -253,7 +259,8 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
    */
   const updateFrequency = useCallback(
     async (frequency: NotificationSettings['frequency']) => {
-      if (!user || !settings) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId || !settings) return;
 
       try {
         setIsUpdating(true);
@@ -269,7 +276,7 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
           };
         });
 
-        await notificationSettingsServiceWithCacheV2.updateFrequency(user.id, frequency);
+        await notificationSettingsServiceWithCacheV2.updateFrequency(userId, frequency);
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Erro ao atualizar frequência de notificações');
@@ -291,7 +298,8 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
    */
   const toggleAllNotifications = useCallback(
     async (enabled: boolean) => {
-      if (!user || !settings) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId || !settings) return;
 
       try {
         setIsUpdating(true);
@@ -307,7 +315,7 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
           };
         });
 
-        await notificationSettingsServiceWithCacheV2.updateSettings(user.id, { enabled });
+        await notificationSettingsServiceWithCacheV2.updateSettings(userId, { enabled });
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Erro ao alternar notificações');
         setError(error);
@@ -328,14 +336,15 @@ export function useNotificationSettingsV2(): UseNotificationSettingsReturn {
    * Útil quando é necessário forçar uma atualização dos dados
    */
   const refreshSettings = useCallback(async () => {
-    if (!user) return;
+    const userId = user?.id || (user as any)?.uid;
+    if (!userId) return;
 
     try {
       setIsLoading(true);
       setError(null);
 
       // Limpar o cache para forçar uma nova consulta ao Firestore
-      await notificationSettingsServiceWithCacheV2.clearCache(user.id);
+      await notificationSettingsServiceWithCacheV2.clearCache(userId);
       await loadSettings();
     } catch (err) {
       const error =

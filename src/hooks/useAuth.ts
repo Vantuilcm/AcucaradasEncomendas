@@ -27,6 +27,7 @@ import {
 import { TwoFactorAuthService, TwoFactorAuthResult } from '../services/TwoFactorAuthService';
 
 import { Role } from '../services/PermissionsService';
+import { UserUtils } from '../utils/UserUtils';
 
 interface AuthState {
   user: User | null;
@@ -58,7 +59,7 @@ export function useAuth(): AuthState {
   const socialAuthService = SocialAuthService.getInstance();
   const twoFactorAuthService = new TwoFactorAuthService();
   const [, , googlePromptAsync] = Google.useAuthRequest({
-    expoClientId: GOOGLE_CLIENT_ID.expo,
+    clientId: GOOGLE_CLIENT_ID.expo,
     iosClientId: GOOGLE_CLIENT_ID.ios,
     androidClientId: GOOGLE_CLIENT_ID.android,
     webClientId: GOOGLE_CLIENT_ID.web,
@@ -70,37 +71,41 @@ export function useAuth(): AuthState {
   });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: any) => {
-      setUser(user);
+    try {
+      const unsubscribe = onAuthStateChanged(auth, async (user: any) => {
+        try {
+          setUser(user);
+          setLoading(false);
+          if (user) {
+            // Registrar autenticação no logging seguro
+            secureLoggingService.security('Usuário autenticado', {
+              userId: UserUtils.getUserId(user),
+              email: UserUtils.getUserEmail(user),
+              timestamp: new Date().toISOString()
+            });
+
+            // Verificar status do 2FA
+            const enabled = await twoFactorAuthService.is2FAEnabled();
+            setIs2FAEnabled(enabled);
+
+            // Verificar se já tem uma sessão 2FA válida
+            const hasSession = await twoFactorAuthService.hasValidSession();
+            setIs2FAVerified(hasSession);
+          } else {
+            setIs2FAEnabled(false);
+            setIs2FAVerified(false);
+          }
+        } catch (error) {
+          console.error('Erro no processamento do estado de autenticação:', error);
+          setLoading(false);
+        }
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Erro ao configurar listener de autenticação:', error);
       setLoading(false);
-      if (user) {
-        // Substituído por secureLoggingService
-        // loggingService.setUser(user.uid, {
-        //   email: user.email,
-        // });
-        
-        // Registrar autenticação no logging seguro
-        secureLoggingService.security('Usuário autenticado', {
-          userId: user.uid,
-          email: user.email,
-          timestamp: new Date().toISOString()
-        });
-
-        // Verificar status do 2FA
-        const enabled = await twoFactorAuthService.is2FAEnabled();
-        setIs2FAEnabled(enabled);
-
-        // Verificar se já tem uma sessão 2FA válida
-        const hasSession = await twoFactorAuthService.hasValidSession();
-        setIs2FAVerified(hasSession);
-      } else {
-        // loggingService.clearUser();
-        setIs2FAEnabled(false);
-        setIs2FAVerified(false);
-      }
-    });
-
-    return unsubscribe;
+    }
   }, [auth]);
 
   const signIn = useCallback(
@@ -185,14 +190,14 @@ export function useAuth(): AuthState {
       setIs2FAEnabled(false);
       setIs2FAVerified(false);
       secureLoggingService.security('Usuário deslogado com sucesso', {
-        userId: user?.uid,
+        userId: UserUtils.getUserId(user),
         timestamp: new Date().toISOString()
       });
     } catch (err: any) {
         const errorMessage = 'Erro ao deslogar usuário';
         setError(errorMessage);
         secureLoggingService.security('Falha ao deslogar usuário', { 
-          userId: user?.uid, 
+          userId: UserUtils.getUserId(user), 
           errorMessage: err.message || errorMessage,
           errorCode: err.code || 'unknown',
           timestamp: new Date().toISOString()
@@ -373,7 +378,7 @@ export function useAuth(): AuthState {
       if (result.success) {
         setIs2FAEnabled(true);
         secureLoggingService.security('2FA ativado com sucesso', {
-          userId: user?.uid,
+          userId: UserUtils.getUserId(user),
           timestamp: new Date().toISOString()
         });
       }
@@ -382,7 +387,7 @@ export function useAuth(): AuthState {
       const errorMessage = 'Erro ao ativar autenticação de dois fatores';
       setError(errorMessage);
       secureLoggingService.security('Falha ao ativar 2FA', { 
-        userId: user?.uid,
+        userId: UserUtils.getUserId(user),
         errorMessage: err.message || errorMessage,
         errorCode: err.code || 'unknown',
         timestamp: new Date().toISOString()
@@ -402,7 +407,7 @@ export function useAuth(): AuthState {
         setIs2FAEnabled(false);
         setIs2FAVerified(true);
         secureLoggingService.security('2FA desativado', {
-          userId: user?.uid,
+          userId: UserUtils.getUserId(user),
           timestamp: new Date().toISOString()
         });
       }
@@ -411,7 +416,7 @@ export function useAuth(): AuthState {
       const errorMessage = 'Erro ao desativar autenticação de dois fatores';
       setError(errorMessage);
       secureLoggingService.security('Falha ao desativar 2FA', { 
-        userId: user?.uid,
+        userId: UserUtils.getUserId(user),
         errorMessage: err.message || errorMessage,
         errorCode: err.code || 'unknown',
         timestamp: new Date().toISOString()
@@ -430,12 +435,12 @@ export function useAuth(): AuthState {
       if (result.success) {
         setIs2FAVerified(true);
         secureLoggingService.security('Código 2FA verificado com sucesso', {
-          userId: user?.uid,
+          userId: UserUtils.getUserId(user),
           timestamp: new Date().toISOString()
         });
       } else {
         secureLoggingService.security('Falha na verificação do código 2FA', {
-          userId: user?.uid,
+          userId: UserUtils.getUserId(user),
           timestamp: new Date().toISOString()
         });
       }
@@ -444,7 +449,7 @@ export function useAuth(): AuthState {
       const errorMessage = 'Erro ao verificar código';
       setError(errorMessage);
       secureLoggingService.security('Erro ao verificar código 2FA', { 
-        userId: user?.uid,
+        userId: UserUtils.getUserId(user),
         errorMessage: err.message || errorMessage,
         errorCode: err.code || 'unknown',
         timestamp: new Date().toISOString()
@@ -462,7 +467,7 @@ export function useAuth(): AuthState {
       const result = await twoFactorAuthService.generateAndSendVerificationCode();
       if (result.success) {
         secureLoggingService.security('Código 2FA gerado e enviado', {
-          userId: user?.uid,
+          userId: UserUtils.getUserId(user),
           timestamp: new Date().toISOString()
         });
       }
@@ -471,7 +476,7 @@ export function useAuth(): AuthState {
       const errorMessage = 'Erro ao gerar código de verificação';
       setError(errorMessage);
       secureLoggingService.security('Erro ao gerar código 2FA', { 
-        userId: user?.uid,
+        userId: UserUtils.getUserId(user),
         errorMessage: err.message || errorMessage,
         errorCode: err.code || 'unknown',
         timestamp: new Date().toISOString()
@@ -490,7 +495,7 @@ export function useAuth(): AuthState {
       const result = await twoFactorAuthService.regenerateBackupCodes();
       if (result.success) {
         secureLoggingService.security('Códigos de backup 2FA regenerados', {
-          userId: user?.uid,
+          userId: UserUtils.getUserId(user),
           timestamp: new Date().toISOString()
         });
       }
@@ -499,7 +504,7 @@ export function useAuth(): AuthState {
       const errorMessage = 'Erro ao gerar novos códigos de backup';
       setError(errorMessage);
       secureLoggingService.security('Erro ao regenerar códigos de backup 2FA', { 
-        userId: user?.uid,
+        userId: UserUtils.getUserId(user),
         errorMessage: err.message || errorMessage,
         errorCode: err.code || 'unknown',
         timestamp: new Date().toISOString()

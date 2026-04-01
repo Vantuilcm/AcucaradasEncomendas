@@ -4,6 +4,7 @@ import { Text, Button, List, FAB, useTheme, IconButton } from 'react-native-pape
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { UserUtils } from '../utils/UserUtils';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { Address } from '../types/Address';
@@ -18,18 +19,23 @@ export function AddressScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadAddresses();
+    try {
+      loadAddresses();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao inicializar endereços');
+    }
   }, []);
 
   const loadAddresses = async () => {
     try {
       setLoading(true);
       setError(null);
-      if (!user) {
+      const userId = UserUtils.getUserId(user);
+      if (!userId) {
         throw new Error('Usuário não autenticado');
       }
       const addressService = new AddressService();
-      const userAddresses = await addressService.getUserAddresses(user.id);
+      const userAddresses = await addressService.getUserAddresses(userId);
       setAddresses(userAddresses);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar endereços');
@@ -110,7 +116,7 @@ export function AddressScreen() {
 
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        style={[styles.fab, { backgroundColor: theme?.colors?.primary || '#E91E63' }]}
         onPress={handleAddAddress}
       />
     </SafeAreaView>

@@ -31,40 +31,47 @@ export function PaymentMethodFormScreen() {
   const [pixKeyType, setPixKeyType] = useState<'cpf' | 'email' | 'phone' | 'evp'>('cpf');
 
   const validateForm = () => {
-    if (type === 'credit_card' || type === 'debit_card') {
-      if (!cardNumber || !cardHolder || !expiryMonth || !expiryYear || !cvv || !brand) {
-        setError('Todos os campos são obrigatórios');
-        return false;
+    try {
+      if (type === 'credit_card' || type === 'debit_card') {
+        if (!cardNumber || !cardHolder || !expiryMonth || !expiryYear || !cvv || !brand) {
+          setError('Todos os campos são obrigatórios');
+          return false;
+        }
+        if (cardNumber.length < 16) {
+          setError('Número do cartão inválido');
+          return false;
+        }
+        if (cvv.length < 3) {
+          setError('CVV inválido');
+          return false;
+        }
+        if (parseInt(expiryMonth) < 1 || parseInt(expiryMonth) > 12) {
+          setError('Mês de validade inválido');
+          return false;
+        }
+        if (parseInt(expiryYear) < new Date().getFullYear()) {
+          setError('Ano de validade inválido');
+          return false;
+        }
+      } else {
+        if (!pixKey) {
+          setError('Chave PIX é obrigatória');
+          return false;
+        }
       }
-      if (cardNumber.length < 16) {
-        setError('Número do cartão inválido');
-        return false;
-      }
-      if (cvv.length < 3) {
-        setError('CVV inválido');
-        return false;
-      }
-      if (parseInt(expiryMonth) < 1 || parseInt(expiryMonth) > 12) {
-        setError('Mês de validade inválido');
-        return false;
-      }
-      if (parseInt(expiryYear) < new Date().getFullYear()) {
-        setError('Ano de validade inválido');
-        return false;
-      }
-    } else {
-      if (!pixKey) {
-        setError('Chave PIX é obrigatória');
-        return false;
-      }
+      return true;
+    } catch (error) {
+      console.error('Erro na validação do formulário:', error);
+      setError('Erro ao validar os dados do formulário');
+      return false;
     }
-    return true;
   };
 
   const handleSubmit = async () => {
     try {
       if (!validateForm()) return;
-      if (!user) {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) {
         throw new Error('Usuário não autenticado');
       }
 
@@ -84,7 +91,7 @@ export function PaymentMethodFormScreen() {
           brand,
           isDefault: false,
         };
-        await paymentMethodService.addCreditCard(user.id, card);
+        await paymentMethodService.addCreditCard(userId, card);
       } else {
         const pix: Omit<PixPayment, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
           type: 'pix',
@@ -92,11 +99,14 @@ export function PaymentMethodFormScreen() {
           pixKeyType,
           isDefault: false,
         };
-        await paymentMethodService.addPixPayment(user.id, pix);
+        await paymentMethodService.addPixPayment(userId, pix);
       }
 
-      navigation.goBack();
+      if (navigation?.canGoBack()) {
+        navigation.goBack();
+      }
     } catch (err) {
+      console.error('Erro ao salvar método de pagamento:', err);
       setError(err instanceof Error ? err.message : 'Erro ao salvar método de pagamento');
     } finally {
       setLoading(false);

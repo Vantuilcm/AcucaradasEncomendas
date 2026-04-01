@@ -59,25 +59,24 @@ export default function ProductDetailsScreen() {
 
   // Registrar visualização do produto para recomendações
   useEffect(() => {
-    if (!product) return;
+    let isMounted = true;
+    if (!product || !product.id) return;
 
     const logProductView = async () => {
-      if (user) {
-        try {
-          await recommendationService.trackProductView(user.id, product.id);
-        } catch (error) {
-          console.error('Erro ao registrar visualização:', error);
-        }
-      } else {
-        try {
+      try {
+        const userId = user?.id || (user as any)?.uid;
+        if (userId && isMounted) {
+          await recommendationService.trackProductView(userId, product.id);
+        } else if (isMounted) {
           await (recommendationService as any).trackAnonymousProductView(product.id);
-        } catch (error) {
-          console.error('Erro ao registrar visualização anônima:', error);
         }
+      } catch (error) {
+        console.error('Erro ao registrar visualização:', error);
       }
     };
 
     logProductView();
+    return () => { isMounted = false; };
   }, [product, user, recommendationService]);
 
   // Função para adicionar ao carrinho com animação
@@ -86,10 +85,12 @@ export default function ProductDetailsScreen() {
       if (!product) return;
 
       // Adicionar ao carrinho
-      addToCart(product);
+      if (typeof addToCart === 'function') {
+        addToCart(product);
+      }
 
       // Feedback tátil
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
       // Mostrar toast
       showToast('Produto adicionado ao carrinho', FeedbackType.SUCCESS);
@@ -99,13 +100,13 @@ export default function ProductDetailsScreen() {
         (addToCartButtonRef.current as any)?.measure((_fx: any, _fy: any, width: any, _height: any, px: any, py: any) => {
           try {
             const startPosition = {
-              x: px + width / 2,
+              x: px + (width || 0) / 2,
               y: py,
             };
 
             // Posição do carrinho no header (estimado)
             const endPosition = {
-              x: width - 30,
+              x: (width || 0) - 30,
               y: 50,
             };
 
@@ -128,40 +129,64 @@ export default function ProductDetailsScreen() {
 
   // Função para exibir toast
   const showToast = (message: any, type = FeedbackType.SUCCESS) => {
-    setToast({
-      visible: true,
-      message,
-      type,
-    });
+    try {
+      setToast({
+        visible: true,
+        message: message || '',
+        type,
+      });
 
-    // Ocultar toast após um tempo
-    setTimeout(() => {
-      setToast(prev => ({ ...prev, visible: false }));
-    }, 3000);
+      // Ocultar toast após um tempo
+      setTimeout(() => {
+        setToast(prev => ({ ...prev, visible: false }));
+      }, 3000);
+    } catch (error) {
+      console.error('Erro ao mostrar toast:', error);
+    }
   };
 
   // Finalizar animação do carrinho
   const handleCartAnimationComplete = () => {
-    setCartAnimation(prev => ({ ...prev, visible: false }));
+    try {
+      setCartAnimation(prev => ({ ...prev, visible: false }));
+    } catch (error) {
+      console.error('Erro ao finalizar animação do carrinho:', error);
+    }
   };
 
   // Gerenciar notificação após compartilhamento
   const handleAfterShare = () => {
-    showToast('Produto compartilhado!', FeedbackType.SUCCESS);
+    try {
+      showToast('Produto compartilhado!', FeedbackType.SUCCESS);
+    } catch (error) {
+      console.error('Erro ao processar compartilhamento:', error);
+    }
   };
 
   // Atualizar título da tela com o nome do produto
   useEffect(() => {
-    if (product && product.nome) {
-      navigation.setOptions({
-        title: product.nome,
-      });
+    let isMounted = true;
+    try {
+      if (product && product.nome && isMounted && navigation?.setOptions) {
+        navigation.setOptions({
+          title: product.nome,
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao definir título da tela:', error);
     }
+    return () => { isMounted = false; };
   }, [navigation, product]);
 
   // Navegar para detalhes de outro produto
   const handleProductPress = (selectedProduct: any) => {
-    (navigation as any).replace('ProductDetails', { product: selectedProduct });
+    try {
+      if (navigation && (navigation as any).replace) {
+        (navigation as any).replace('ProductDetails', { product: selectedProduct });
+      }
+    } catch (error) {
+      console.error('Erro ao navegar para detalhes do produto:', error);
+    }
   };
 
   if (!product) {
@@ -245,8 +270,8 @@ export default function ProductDetailsScreen() {
 
         {/* Informações do produto */}
         <View style={styles.productInfoContainer}>
-          <Text style={styles.productName}>{product.nome}</Text>
-          <Text style={styles.productPrice}>R$ {product.preco.toFixed(2)}</Text>
+          <Text style={styles.productName}>{product.nome || 'Produto sem nome'}</Text>
+          <Text style={styles.productPrice}>R$ {(product.preco || 0).toFixed(2)}</Text>
 
           {/* Ações sociais (curtir, compartilhar) */}
           <ProductSocialActions product={product} onShare={handleAfterShare} />
@@ -254,7 +279,7 @@ export default function ProductDetailsScreen() {
           {/* Descrição do produto */}
           <View style={styles.descriptionContainer}>
             <Text style={styles.sectionTitle}>Descrição</Text>
-            <Text style={styles.descriptionText}>{product.descricao}</Text>
+            <Text style={styles.descriptionText}>{product.descricao || 'Sem descrição disponível'}</Text>
           </View>
 
           {/* Informações adicionais */}

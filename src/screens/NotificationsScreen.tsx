@@ -38,28 +38,42 @@ export function NotificationsScreen() {
   const styles = useMemo(() => createStyles(theme, isDark), [theme, isDark]);
 
   useEffect(() => {
-    if (user) {
-      loadData();
-      checkPushStatus();
-    }
+    let isMounted = true;
+    
+    const initialize = async () => {
+      try {
+        if (user && isMounted) {
+          await loadData();
+          await checkPushStatus();
+        }
+      } catch (error) {
+        console.error('Erro na inicialização de notificações:', error);
+      }
+    };
+
+    initialize();
+    return () => { isMounted = false; };
   }, [user]);
 
   const loadData = async () => {
     try {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) {
+        setNotifications([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
-
       const [notificationsData, statsData, preferencesData] = await Promise.all([
-        notificationService.getUserNotifications(user.id),
-        notificationService.getNotificationStats(user.id),
-        notificationService.getUserPreferences(user.id),
+        notificationService.getUserNotifications(userId),
+        notificationService.getNotificationStats(userId),
+        notificationService.getUserPreferences(userId),
       ]);
 
-      setNotifications(notificationsData);
+      setNotifications(notificationsData || []);
       setStats(statsData);
       setPreferences(preferencesData);
     } catch (err) {
@@ -70,13 +84,19 @@ export function NotificationsScreen() {
   };
 
   const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    try {
+      setRefreshing(true);
+      await loadData();
+    } catch (err) {
+      console.error('Erro ao atualizar notificações:', err);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
+      if (!notificationId) return;
       await notificationService.markAsRead(notificationId);
       setNotifications(prev => prev.map(n => (n.id === notificationId ? { ...n, read: true } : n)));
       if (stats) {
@@ -90,15 +110,17 @@ export function NotificationsScreen() {
         );
       }
     } catch (err) {
+      console.error('Erro ao marcar como lida:', err);
       Alert.alert('Erro', 'Não foi possível marcar a notificação como lida. Tente novamente.');
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
-      if (!user) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
 
-      await notificationService.markAllAsRead(user.id);
+      await notificationService.markAllAsRead(userId);
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       if (stats) {
         setStats(prev =>
@@ -111,6 +133,7 @@ export function NotificationsScreen() {
         );
       }
     } catch (err) {
+      console.error('Erro ao marcar todas como lidas:', err);
       Alert.alert(
         'Erro',
         'Não foi possível marcar todas as notificações como lidas. Tente novamente.'
@@ -120,6 +143,7 @@ export function NotificationsScreen() {
 
   const handleDeleteNotification = async (notificationId: string) => {
     try {
+      if (!notificationId) return;
       await notificationService.deleteNotification(notificationId);
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       if (stats) {
@@ -134,43 +158,54 @@ export function NotificationsScreen() {
         );
       }
     } catch (err) {
+      console.error('Erro ao excluir notificação:', err);
       Alert.alert('Erro', 'Não foi possível excluir a notificação. Tente novamente.');
     }
   };
 
   const handleOpenPreferences = () => {
-    if (preferences) {
-      setTempPreferences(preferences);
-      setShowPreferencesModal(true);
+    try {
+      if (preferences) {
+        setTempPreferences(preferences);
+        setShowPreferencesModal(true);
+      }
+    } catch (err) {
+      console.error('Erro ao abrir preferências:', err);
     }
   };
 
   const handleSavePreferences = async () => {
     try {
-      if (!user || !tempPreferences) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId || !tempPreferences) return;
 
-      await notificationService.updateUserPreferences(user.id, tempPreferences);
+      await notificationService.updateUserPreferences(userId, tempPreferences);
       setPreferences(tempPreferences);
       setShowPreferencesModal(false);
     } catch (err) {
+      console.error('Erro ao salvar preferências:', err);
       Alert.alert('Erro', 'Não foi possível salvar as preferências. Tente novamente.');
     }
   };
 
   const handleToggleNotificationType = (type: NotificationType) => {
-    if (!tempPreferences) return;
+    try {
+      if (!tempPreferences) return;
 
-    setTempPreferences(prev =>
-      prev
-        ? {
-            ...prev,
-            types: {
-              ...prev.types,
-              [type]: !prev.types[type],
-            },
-          }
-        : null
-    );
+      setTempPreferences(prev =>
+        prev
+          ? {
+              ...prev,
+              types: {
+                ...prev.types,
+                [type]: !prev.types[type],
+              },
+            }
+          : null
+      );
+    } catch (err) {
+      console.error('Erro ao alternar tipo de notificação:', err);
+    }
   };
 
   const checkPushStatus = async () => {
@@ -184,19 +219,21 @@ export function NotificationsScreen() {
 
   const handleTogglePushNotifications = async () => {
     try {
-      if (!user) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
 
       if (!pushEnabled) {
         const { status } = await Notifications.requestPermissionsAsync();
         if (status === 'granted') {
-          await notificationService.registerUserForPushNotifications(user.id);
+          await notificationService.registerUserForPushNotifications(userId);
           setPushEnabled(true);
         }
       } else {
-        await notificationService.unregisterUserFromPushNotifications(user.id);
+        await notificationService.unregisterUserFromPushNotifications(userId);
         setPushEnabled(false);
       }
     } catch (error) {
+      console.error('Erro ao alterar notificações push:', error);
       Alert.alert(
         'Erro',
         'Não foi possível alterar as configurações de notificação push. Tente novamente.'
@@ -227,8 +264,8 @@ export function NotificationsScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          colors={[theme.colors.primary]}
-          tintColor={theme.colors.primary}
+          colors={[theme?.colors?.primary || '#E91E63']}
+          tintColor={theme?.colors?.primary || '#E91E63'}
         />
       }
     >
@@ -254,7 +291,7 @@ export function NotificationsScreen() {
             <Switch
               value={pushEnabled}
               onValueChange={handleTogglePushNotifications}
-              color={theme.colors.success}
+              color={theme?.colors?.success || '#4CAF50'}
             />
           </View>
         </Card.Content>
@@ -332,7 +369,7 @@ export function NotificationsScreen() {
                   onValueChange={enabled =>
                     setTempPreferences(prev => (prev ? { ...prev, enabled } : null))
                   }
-                  color={theme.colors.primary}
+                  color={theme?.colors?.primary || '#E91E63'}
                 />
             </View>
             {notificationTypes.map(type => (
@@ -355,7 +392,7 @@ export function NotificationsScreen() {
                 <Switch
                   value={tempPreferences?.types[type] ?? true}
                   onValueChange={() => handleToggleNotificationType(type)}
-                  color={theme.colors.primary}
+                  color={theme?.colors?.primary || '#E91E63'}
                 />
               </View>
             ))}
@@ -371,37 +408,41 @@ export function NotificationsScreen() {
 }
 
 const withAlpha = (hex: string, alpha: number) => {
-  const cleaned = hex.replace('#', '');
-  const r = parseInt(cleaned.substring(0, 2), 16);
-  const g = parseInt(cleaned.substring(2, 4), 16);
-  const b = parseInt(cleaned.substring(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  try {
+    const cleaned = hex.replace('#', '');
+    const r = parseInt(cleaned.substring(0, 2), 16);
+    const g = parseInt(cleaned.substring(2, 4), 16);
+    const b = parseInt(cleaned.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  } catch (e) {
+    return `rgba(0, 0, 0, ${alpha})`;
+  }
 };
 
 const createStyles = (theme: { colors: any }, isDark: boolean) =>
   StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme?.colors?.background || '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme?.colors?.card || '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: theme?.colors?.border || '#E0E0E0',
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   notificationItem: {
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme?.colors?.card || '#FFFFFF',
   },
   unreadNotification: {
-    backgroundColor: withAlpha(theme.colors.secondary, isDark ? 0.2 : 0.12),
+    backgroundColor: withAlpha(theme?.colors?.secondary || '#03DAC6', isDark ? 0.2 : 0.12),
   },
   notificationActions: {
     flexDirection: 'row',
@@ -413,10 +454,10 @@ const createStyles = (theme: { colors: any }, isDark: boolean) =>
     padding: 32,
   },
   emptyText: {
-    color: theme.colors.text.secondary,
+    color: theme?.colors?.text?.secondary || '#757575',
   },
   modal: {
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme?.colors?.card || '#FFFFFF',
     padding: 20,
     margin: 20,
     borderRadius: 8,
@@ -440,14 +481,14 @@ const createStyles = (theme: { colors: any }, isDark: boolean) =>
     marginTop: 16,
   },
   errorText: {
-    color: theme.colors.error,
+    color: theme?.colors?.error || '#FF0000',
     textAlign: 'center',
     margin: 16,
   },
   card: {
     margin: 16,
     elevation: 2,
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme?.colors?.card || '#FFFFFF',
   },
   pushNotificationContainer: {
     flexDirection: 'row',

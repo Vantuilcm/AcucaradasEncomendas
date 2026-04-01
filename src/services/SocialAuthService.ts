@@ -14,6 +14,7 @@ import * as FirebaseAuth from 'firebase/auth';
 
 const signInWithCredential = (FirebaseAuth as any).signInWithCredential;
 const OAuthProvider = (FirebaseAuth as any).OAuthProvider;
+import { UserUtils } from '../utils/UserUtils';
 import { collection, query, where, limit, getDocs, addDoc, updateDoc, doc, setDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Importação condicional para evitar erros em plataformas não suportadas
@@ -145,7 +146,7 @@ export class SocialAuthService {
       const token = SecurityService.generateToken({
         id: userId,
         email: userData.email,
-        isAdmin: user.isAdmin || false,
+        isAdmin: (user as any)?.isAdmin || false,
       });
 
       // Armazenar token de forma segura
@@ -214,11 +215,19 @@ export class SocialAuthService {
   public async signInWithCredential(credential: AuthCredential, role?: string): Promise<SocialAuthResult> {
     try {
       const result = await signInWithCredential(auth, credential);
+      if (!result || !result.user) {
+        throw new Error('Falha na autenticação: usuário não retornado');
+      }
       const { user, additionalUserInfo } = result;
 
       // Salvar o token para uso posterior
-      if (user.stsTokenManager) {
-        await AsyncStorage.setItem('userToken', user.stsTokenManager.accessToken);
+      try {
+        const accessToken = (user as any)?.stsTokenManager?.accessToken;
+        if (user && accessToken) {
+          await AsyncStorage.setItem('userToken', accessToken);
+        }
+      } catch (storageError) {
+        secureLoggingService.warn('Erro ao salvar token no AsyncStorage', { error: storageError });
       }
 
       // Se for a primeira vez que o usuário acessa, salvar dados adicionais
@@ -229,9 +238,10 @@ export class SocialAuthService {
         await this.updateUserBasicInfo(user);
       }
 
+      const userId = UserUtils.getUserId(user);
       secureLoggingService.security('Login social realizado com sucesso', {
-        userId: user.uid,
-        email: user.email,
+        userId,
+        email: UserUtils.getUserEmail(user),
         provider: additionalUserInfo?.providerId,
         isNewUser: additionalUserInfo?.isNewUser,
         role: role,
@@ -260,27 +270,35 @@ export class SocialAuthService {
    * Configura um novo usuário no sistema
    */
   private async setupNewUser(user: any): Promise<void> {
+    if (!user?.uid) {
+      secureLoggingService.error('Erro ao configurar novo usuário: objeto de usuário inválido');
+      return;
+    }
     try {
       // Se o usuário não tiver um nome de exibição, usar o email
-      if (!user.displayName && user.email) {
+      if (!user?.displayName && user?.email) {
         const displayName = user.email.split('@')[0];
-        await updateProfile(user, { displayName });
+        try {
+          await updateProfile(user, { displayName });
+        } catch (updateError) {
+          secureLoggingService.warn('Erro ao atualizar profile', { error: updateError });
+        }
       }
 
       // Novos usuários sempre recebem papel de comprador por segurança
       const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, {
-        email: user.email,
-        nome: user.displayName || user.email?.split('@')[0] || '',
+        email: user?.email || '',
+        nome: user?.displayName || user?.email?.split('@')[0] || 'Usuário',
         role: 'comprador',
         dataCriacao: new Date(),
         ultimoLogin: new Date()
       }, { merge: true });
     } catch (error: any) {
       secureLoggingService.security('Erro ao configurar novo usuário', { 
-        userId: user.uid,
-        email: user.email,
-        errorMessage: error.message || 'Erro desconhecido',
+        userId: user?.uid,
+        email: user?.email,
+        errorMessage: error?.message || 'Erro desconhecido',
         timestamp: new Date().toISOString()
       });
       // Não lançamos exceção aqui para não interromper o fluxo de login
@@ -288,18 +306,22 @@ export class SocialAuthService {
   }
 
   private async updateUserBasicInfo(user: any): Promise<void> {
+    if (!user?.uid) {
+      secureLoggingService.error('Erro ao atualizar info basica: objeto de usuário inválido');
+      return;
+    }
     try {
       const userRef = doc(db, 'users', user.uid);
       // Atualiza apenas dados básicos como login, sem tocar no papel (role)
       await setDoc(userRef, {
-        email: user.email,
-        nome: user.displayName || user.email?.split('@')[0] || '',
+        email: user?.email || '',
+        nome: user?.displayName || user?.email?.split('@')[0] || 'Usuário',
         ultimoLogin: new Date()
       }, { merge: true });
     } catch (error: any) {
       secureLoggingService.security('Erro ao atualizar info basica do usuario', {
-        userId: user.uid,
-        errorMessage: error.message || 'Erro desconhecido',
+        userId: user?.uid,
+        errorMessage: error?.message || 'Erro desconhecido',
         timestamp: new Date().toISOString()
       });
     }

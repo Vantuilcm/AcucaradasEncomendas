@@ -30,6 +30,7 @@ import { loggingService } from './LoggingService';
 import { secureLoggingService } from './SecureLoggingService';
 import { SecureStorageService } from './SecureStorageService';
 import { User } from '../models/User';
+import { UserUtils } from '../utils/UserUtils';
 
 export class AuthService {
   private static instance: AuthService;
@@ -69,19 +70,22 @@ export class AuthService {
     phone: string;
     address?: string;
   }): Promise<User> {
+    if (!userData) {
+      throw new Error('Dados do usuário não fornecidos');
+    }
     try {
       const validationService = ValidationService.getInstance();
 
       // Validar dados do usuário
-      if (!validationService.validateEmail(userData.email)) {
+      if (!userData.email || !validationService.validateEmail(userData.email)) {
         throw new Error('Email inválido');
       }
 
-      if (!validationService.validatePhone(userData.phone)) {
+      if (!userData.phone || !validationService.validatePhone(userData.phone)) {
         throw new Error('Telefone inválido');
       }
 
-      if (!this.validatePassword(userData.password)) {
+      if (!userData.password || !this.validatePassword(userData.password)) {
         throw new Error(
           'Senha deve conter pelo menos 8 caracteres, uma letra maiúscula, uma letra minúscula, um número e um caractere especial'
         );
@@ -104,14 +108,25 @@ export class AuthService {
       );
 
       const firebaseUser = userCredential.user;
+      if (!firebaseUser) {
+        throw new Error('Erro ao criar usuário no Firebase Authentication');
+      }
 
       // Enviar email de verificação
-      await sendEmailVerification(firebaseUser);
+      try {
+        await sendEmailVerification(firebaseUser);
+      } catch (emailError) {
+        loggingService.error('Erro ao enviar email de verificação', emailError as Error);
+      }
 
       // Atualizar o perfil do usuário
-      await updateProfile(firebaseUser, {
-        displayName: userData.name
-      });
+      try {
+        await updateProfile(firebaseUser, {
+          displayName: userData.name
+        });
+      } catch (profileError) {
+        loggingService.error('Erro ao atualizar perfil do usuário', profileError as Error);
+      }
 
       // Criar documento do usuário no Firestore
       const userDoc = {
@@ -130,11 +145,13 @@ export class AuthService {
       await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
 
       // Gerar token JWT para autenticação na API
-      const token = await (firebaseUser as any).getIdToken(true);
-      await SecureStorageService.storeData('authToken', token);
+      const token = await (firebaseUser as any).getIdToken?.(true);
+      if (token) {
+        await SecureStorageService.storeData('authToken', token);
+      }
 
       secureLoggingService.info('Usuário registrado com sucesso', {
-        uid: firebaseUser.uid,
+        userId: UserUtils.getUserId(firebaseUser),
         email: userData.email
       });
 
@@ -147,7 +164,7 @@ export class AuthService {
         ultimoLogin: new Date(),
       } as User;
     } catch (error: any) {
-      secureLoggingService.error('Erro ao registrar usuário', { error: error.message });
+      secureLoggingService.error('Erro ao registrar usuário', { error: error?.message || 'Erro desconhecido' });
       throw error;
     }
   }
@@ -159,6 +176,9 @@ export class AuthService {
    * @returns Informações do usuário logado e token
    */
   public async login(email: string, password: string): Promise<{ user: User; token: string }> {
+    if (!email || !password) {
+      throw new Error('Email e senha são obrigatórios');
+    }
     try {
       // Validar email
       const validationService = ValidationService.getInstance();
@@ -170,40 +190,47 @@ export class AuthService {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
-        // Atualizar último login no Firestore
-        const userRef = doc(db, 'users', firebaseUser.uid);
+      if (!firebaseUser) {
+        throw new Error('Falha na autenticação');
+      }
+
+      // Atualizar último login no Firestore
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      try {
         await updateDoc(userRef, {
           lastLogin: serverTimestamp()
         });
+      } catch (updateError) {
+        loggingService.error('Erro ao atualizar último login', updateError as Error);
+      }
 
-        // Buscar dados completos do usuário
-        const userDoc = await getDoc(userRef);
-        if (!userDoc.exists()) {
-          throw new Error('Usuário não encontrado no banco de dados');
-        }
+      // Buscar dados completos do usuário
+      const userDoc = await getDoc(userRef);
+      if (!userDoc.exists()) {
+        throw new Error('Usuário não encontrado no banco de dados');
+      }
 
-        const userData = userDoc.data();
-        if (!userData) {
-          throw new Error('Usuário não encontrado no banco de dados');
-        }
+      const userData = userDoc.data();
+      if (!userData) {
+        throw new Error('Dados do usuário estão vazios');
+      }
 
-        const nome =
-          typeof userData.name === 'string'
-            ? userData.name
-            : typeof userData.nome === 'string'
-              ? userData.nome
-              : '';
-        const telefone = typeof userData.phone === 'string' ? userData.phone : undefined;
-        const userEmail = typeof userData.email === 'string' ? userData.email : email;
+      const nome = UserUtils.getUserName(userData) || '';
+      const telefone = (userData as any).phone || (userData as any).telefone || undefined;
+      const userEmail = UserUtils.getUserEmail(userData) || email;
 
-        // Gerar token JWT para autenticação na API
-        const token = await (firebaseUser as any).getIdToken(true);
+      // Gerar token JWT para autenticação na API
+      const token = await (firebaseUser as any).getIdToken?.(true);
+      if (token) {
         await SecureStorageService.storeData('authToken', token);
+      } else {
+        throw new Error('Não foi possível gerar o token de acesso');
+      }
 
-        secureLoggingService.info('Login realizado com sucesso', {
-          uid: firebaseUser.uid,
-          email: email
-        });
+      secureLoggingService.info('Login realizado com sucesso', {
+        userId: UserUtils.getUserId(firebaseUser),
+        email: email
+      });
 
       return {
         user: {
@@ -216,7 +243,7 @@ export class AuthService {
         token
       };
     } catch (error: any) {
-      secureLoggingService.error('Erro ao fazer login', { error: error.message });
+      secureLoggingService.error('Erro ao fazer login', { error: error?.message || 'Erro desconhecido' });
       throw error;
     }
   }
@@ -234,7 +261,7 @@ export class AuthService {
 
       secureLoggingService.info('Logout realizado com sucesso');
     } catch (error: any) {
-      secureLoggingService.error('Erro ao fazer logout', { error: error.message });
+      secureLoggingService.error('Erro ao fazer logout', { error: error?.message || 'Erro desconhecido' });
       throw error;
     }
   }
@@ -244,6 +271,9 @@ export class AuthService {
    * @param email Email do usuário
    */
   public async resetPassword(email: string): Promise<void> {
+    if (!email) {
+      throw new Error('Email é obrigatório');
+    }
     try {
       const validationService = ValidationService.getInstance();
       if (!validationService.validateEmail(email)) {
@@ -254,7 +284,7 @@ export class AuthService {
 
       secureLoggingService.info('Email de recuperação de senha enviado', { email });
     } catch (error: any) {
-      secureLoggingService.error('Erro ao enviar email de recuperação de senha', { error: error.message });
+      secureLoggingService.error('Erro ao enviar email de recuperação de senha', { error: error?.message || 'Erro desconhecido' });
       throw error;
     }
   }
@@ -265,6 +295,9 @@ export class AuthService {
    * @param newPassword Nova senha
    */
   public async confirmPasswordReset(code: string, newPassword: string): Promise<void> {
+    if (!code || !newPassword) {
+      throw new Error('Código e nova senha são obrigatórios');
+    }
     try {
       if (!this.validatePassword(newPassword)) {
         throw new Error(
@@ -276,7 +309,7 @@ export class AuthService {
 
       secureLoggingService.info('Senha redefinida com sucesso');
     } catch (error: any) {
-      secureLoggingService.error('Erro ao redefinir senha', { error: error.message });
+      secureLoggingService.error('Erro ao redefinir senha', { error: error?.message || 'Erro desconhecido' });
       throw error;
     }
   }
@@ -308,11 +341,14 @@ export class AuthService {
     senha?: string;
     emailVerificado?: boolean;
   }> {
+    if (!dadosUsuario) {
+      throw new Error('Dados do usuário não fornecidos');
+    }
     try {
       const validationService = ValidationService.getInstance();
       const senhaFinal = senha || dadosUsuario.senha || '';
 
-      if (!validationService.validateEmail(dadosUsuario.email)) {
+      if (!dadosUsuario.email || !validationService.validateEmail(dadosUsuario.email)) {
         throw new Error('Email inválido');
       }
 
@@ -320,7 +356,7 @@ export class AuthService {
         throw new Error('Telefone inválido');
       }
 
-      if (!this.validatePassword(senhaFinal)) {
+      if (!senhaFinal || !this.validatePassword(senhaFinal)) {
         throw new Error(
           'Senha deve conter pelo menos 8 caracteres, uma letra maiúscula, uma letra minúscula, um número e um caractere especial'
         );
@@ -333,21 +369,32 @@ export class AuthService {
       );
 
       const user = userCredential.user;
+      if (!user) {
+        throw new Error('Erro ao criar usuário');
+      }
 
-      await updateProfile(user, {
-        displayName: dadosUsuario.nome,
-      });
+      try {
+        await updateProfile(user, {
+          displayName: dadosUsuario.nome,
+        });
+      } catch (updateError) {
+        loggingService.error('Erro ao atualizar perfil', updateError as Error);
+      }
 
-      await sendEmailVerification(user);
+      try {
+        await sendEmailVerification(user);
+      } catch (verifyError) {
+        loggingService.error('Erro ao enviar email de verificação', verifyError as Error);
+      }
 
       const userData = {
-        nome: dadosUsuario.nome,
+        nome: dadosUsuario.nome || '',
         email: dadosUsuario.email,
-        telefone: dadosUsuario.telefone,
+        telefone: dadosUsuario.telefone || null,
         dataCriacao: serverTimestamp(),
         emailVerificado: false,
         ultimoLogin: serverTimestamp(),
-        role: dadosUsuario.role || 'comprador', // Aqui deve aceitar a role, porém em produção deveria passar por uma aprovação do admin
+        role: dadosUsuario.role || 'comprador',
         
         // Dados adicionais baseados no perfil
         documentNumber: dadosUsuario.documentNumber || null,
@@ -361,7 +408,11 @@ export class AuthService {
 
       await setDoc(doc(db, 'users', user.uid), userData);
       // Mantendo compatibilidade caso outro lugar use 'usuarios'
-      await setDoc(doc(db, 'usuarios', user.uid), userData);
+      try {
+        await setDoc(doc(db, 'usuarios', user.uid), userData);
+      } catch (compatError) {
+        loggingService.error('Erro ao salvar em coleção legada', compatError as Error);
+      }
 
       const usuarioSimulado = {
         id: user.uid,
@@ -373,14 +424,16 @@ export class AuthService {
       this.usuarios.set(usuarioSimulado.id, usuarioSimulado);
 
       // Gerar token JWT para autenticação na API
-      const token = await (user as any).getIdToken(true);
-      await SecureStorageService.storeData('authToken', token);
+      const token = await (user as any).getIdToken?.(true);
+      if (token) {
+        await SecureStorageService.storeData('authToken', token);
+      }
 
-      loggingService.info('Novo usuário registrado', { userId: user.uid });
+      loggingService.info('Novo usuário registrado', { userId: UserUtils.getUserId(user) });
 
       const userResult: User = {
         id: user.uid,
-        nome: dadosUsuario.nome,
+        nome: dadosUsuario.nome || '',
         email: dadosUsuario.email,
         telefone: dadosUsuario.telefone,
         role: dadosUsuario.role || 'comprador',
@@ -390,7 +443,7 @@ export class AuthService {
 
       return {
         user: userResult,
-        token,
+        token: token || '',
         id: user.uid,
         nome: dadosUsuario.nome,
         email: dadosUsuario.email,
@@ -403,7 +456,7 @@ export class AuthService {
     } catch (error: any) {
       const errorInstance = error instanceof Error ? error : new Error('Erro desconhecido');
       loggingService.error('Erro ao registrar usuário', errorInstance, { originalError: error });
-      if (error.code === 'auth/email-already-in-use') {
+      if (error?.code === 'auth/email-already-in-use') {
         throw new Error('Este email já está sendo usado por outra conta.');
       }
       throw error;
@@ -430,6 +483,9 @@ export class AuthService {
     token: string;
     expiresIn: number;
   }> {
+    if (!credenciais || !credenciais.email || !credenciais.senha) {
+      throw new Error('Email e senha são obrigatórios');
+    }
     try {
       const validationService = ValidationService.getInstance();
 
@@ -445,11 +501,18 @@ export class AuthService {
       );
 
       const user = userCredential.user;
+      if (!user) {
+        throw new Error('Falha na autenticação');
+      }
 
       // Verificar se o email foi verificado
       if (!user.emailVerified && !credenciais.ignorarVerificacao) {
         // Reenviar email de verificação
-        await sendEmailVerification(user);
+        try {
+          await sendEmailVerification(user);
+        } catch (verifyError) {
+          loggingService.error('Erro ao reenviar verificação', verifyError as Error);
+        }
         throw new Error(
           'Por favor, verifique seu email antes de fazer login. Um novo email de verificação foi enviado.'
         );
@@ -482,21 +545,23 @@ export class AuthService {
       }
 
       // Gerar token de autenticação
-      const token = await (user as any).getIdToken(true);
-      await SecureStorageService.storeData('authToken', token);
+      const token = await (user as any).getIdToken?.(true);
+      if (token) {
+        await SecureStorageService.storeData('authToken', token);
+      }
 
-      loggingService.info('Usuário autenticado com sucesso', { userId: user.uid });
+      loggingService.info('Usuário autenticado com sucesso', { userId: UserUtils.getUserId(user) });
 
       const userResult: User = {
         id: user.uid,
-        nome: user.displayName || usuario?.nome || '',
-        email: user.email || credenciais.email,
+        nome: UserUtils.getUserName(user) || usuario?.nome || '',
+        email: UserUtils.getUserEmail(user) || credenciais.email,
         telefone: usuario?.telefone,
         ultimoLogin: new Date(),
       };
 
       return {
-        token,
+        token: token || '',
         expiresIn: 24 * 60 * 60,
         user: userResult,
         usuario: {
@@ -506,14 +571,14 @@ export class AuthService {
           emailVerificado: user.emailVerified,
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       const errorInstance = error instanceof Error ? error : new Error('Erro desconhecido');
       loggingService.error('Erro ao autenticar usuário', errorInstance, { originalError: error });
-      if ((error as any).code === 'auth/user-not-found') {
+      if (error?.code === 'auth/user-not-found') {
         throw new Error('Usuário não encontrado');
-      } else if ((error as any).code === 'auth/wrong-password') {
+      } else if (error?.code === 'auth/wrong-password') {
         throw new Error('Senha incorreta');
-      } else if ((error as any).code === 'auth/too-many-requests') {
+      } else if (error?.code === 'auth/too-many-requests') {
         throw new Error('Muitas tentativas de login. Por favor, tente novamente mais tarde.');
       }
       throw error;
@@ -564,18 +629,13 @@ export class AuthService {
       // Compatibilidade com versão simulada
       const usuario = this.usuarios.get(decoded.id);
 
-      const nome =
-        typeof userData.nome === 'string'
-          ? userData.nome
-          : typeof userData.name === 'string'
-            ? userData.name
-            : '';
-      const telefone = typeof userData.telefone === 'string' ? userData.telefone : usuario?.telefone;
-      const email = currentUser.email || (typeof userData.email === 'string' ? userData.email : '');
+      const nome = UserUtils.getUserName(userData) || '';
+      const telefone = (userData as any).telefone || (userData as any).phone || usuario?.telefone;
+      const email = UserUtils.getUserEmail(currentUser) || UserUtils.getUserEmail(userData) || '';
 
       return {
         id: decoded.id,
-        nome: currentUser.displayName || nome,
+        nome: UserUtils.getUserName(currentUser) || nome,
         email,
         telefone,
         emailVerificado: currentUser.emailVerified,
@@ -662,11 +722,11 @@ export class AuthService {
       }
 
       if (currentUser) {
-        loggingService.info('Senha atualizada com sucesso', { userId: currentUser.uid });
+        loggingService.info('Senha atualizada com sucesso', { userId: UserUtils.getUserId(currentUser) });
         return {
           id: currentUser.uid,
-          nome: currentUser.displayName || '',
-          email: currentUser.email || '',
+          nome: UserUtils.getUserName(currentUser) || '',
+          email: UserUtils.getUserEmail(currentUser) || '',
           telefone: undefined,
           emailVerificado: currentUser.emailVerified,
         };
@@ -896,7 +956,7 @@ export class AuthService {
 
       await sendEmailVerification(currentUser);
 
-      loggingService.info('Email de verificação reenviado', { userId: currentUser.uid });
+      loggingService.info('Email de verificação reenviado', { userId: UserUtils.getUserId(currentUser) });
 
       return {
         mensagem:
@@ -935,11 +995,11 @@ export class AuthService {
       }
 
       loggingService.info('Email verificado com sucesso', {
-        userId: currentUser?.uid,
+        userId: UserUtils.getUserId(currentUser),
       });
 
       return {
-        mensagem: 'Email verificado com sucesso! Agora você tem acesso completo à sua conta.',
+        mensagem: 'Email verificado com sucesso!',
       };
     } catch (error) {
       const errorInstance = error instanceof Error ? error : new Error('Erro desconhecido');

@@ -47,18 +47,19 @@ export default function WishlistScreen() {
 
   // Carregar produtos da lista de desejos
   const loadWishlist = useCallback(async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
     try {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
 
       // Obter itens da lista de desejos
-      const wishlistItems = await socialService.getWishlist((user as any).uid);
+      const wishlistItems = await socialService.getWishlist(userId);
 
-      if (wishlistItems.length === 0) {
+      if (!wishlistItems || wishlistItems.length === 0) {
         setProducts([]);
         return;
       }
@@ -86,16 +87,10 @@ export default function WishlistScreen() {
 
       // Ordenar por data de adição (mais recente primeiro)
       const sortedProducts = productsDetails.sort(
-        (a, b) => b.wishlistData.dateAdded - a.wishlistData.dateAdded
+        (a, b) => (b.wishlistData?.dateAdded || 0) - (a.wishlistData?.dateAdded || 0)
       );
 
       setProducts(sortedProducts);
-
-      // Buscar configurações de privacidade da lista
-      // const wishlistData = await socialService.getWishlistByUserId((user as any).uid);
-      // if (wishlistData) {
-      //   setIsPublic(wishlistData.isPublic);
-      // }
     } catch (error) {
       loggingService.error('Erro ao carregar lista de desejos', { error });
       showToast('Não foi possível carregar sua lista de desejos', FeedbackType.ERROR);
@@ -107,23 +102,33 @@ export default function WishlistScreen() {
   // Atualizar a lista de desejos quando a tela receber foco
   useFocusEffect(
     useCallback(() => {
-      loadWishlist();
+      try {
+        loadWishlist();
+      } catch (err) {
+        console.error('Erro no useFocusEffect da Wishlist:', err);
+      }
     }, [loadWishlist])
   );
 
   // Função para atualizar a lista
   const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadWishlist();
-    setRefreshing(false);
+    try {
+      setRefreshing(true);
+      await loadWishlist();
+    } catch (err) {
+      console.error('Erro ao atualizar wishlist:', err);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Função para remover produto da lista
   const removeFromWishlist = async (product: WishlistProduct) => {
-    if (!user) return;
-
     try {
-      await socialService.removeFromWishlist((user as any).uid, product.id);
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId || !product?.id) return;
+
+      await socialService.removeFromWishlist(userId, product.id);
 
       // Atualizar estado local
       setProducts(prev => prev.filter(p => p.id !== product.id));
@@ -134,7 +139,7 @@ export default function WishlistScreen() {
     } catch (error) {
       loggingService.error('Erro ao remover produto da lista de desejos', {
         error,
-        productId: product.id,
+        productId: product?.id,
       });
       showToast('Não foi possível remover o produto', FeedbackType.ERROR);
     }
@@ -142,14 +147,13 @@ export default function WishlistScreen() {
 
   // Função para compartilhar a lista de desejos
   const shareWishlist = async () => {
-    if (!user) return;
-
     try {
-      // setShareLoading(true);
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
 
       // Verificar se há itens públicos na lista
-      const wishlistItems = await socialService.getWishlist((user as any).uid);
-      const publicItems = wishlistItems.filter(item => item.isPublic);
+      const wishlistItems = await socialService.getWishlist(userId);
+      const publicItems = (wishlistItems || []).filter(item => item.isPublic);
 
       if (publicItems.length === 0) {
         Alert.alert(
@@ -164,7 +168,7 @@ export default function WishlistScreen() {
       }
 
       // Compartilhar a lista
-      const shared = await socialService.shareWishlist((user as any).uid, user.nome);
+      const shared = await socialService.shareWishlist(userId, user?.nome || 'Usuário');
 
       if (shared) {
         // Feedback tátil e visual
@@ -174,24 +178,25 @@ export default function WishlistScreen() {
     } catch (error) {
       loggingService.error('Erro ao compartilhar lista de desejos', { error });
       showToast('Não foi possível compartilhar sua lista', FeedbackType.ERROR);
-    } finally {
-      // setShareLoading(false);
     }
   };
 
   // Função para tornar todos os itens públicos
   const makeAllPublic = async () => {
-    if (!user) return;
-
     try {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
+
       setLoading(true);
 
       // Obter itens da lista de desejos
-      const wishlistItems = await socialService.getWishlist((user as any).uid);
+      const wishlistItems = await socialService.getWishlist(userId);
 
       // Atualizar cada item para público
-      for (const item of wishlistItems) {
-        await (socialService as any).setWishlistItemVisibility((user as any).uid, item.productId, true);
+      if (wishlistItems && wishlistItems.length > 0) {
+        for (const item of wishlistItems) {
+          await (socialService as any).setWishlistItemVisibility(userId, item.productId, true);
+        }
       }
 
       // Recarregar a lista
@@ -208,12 +213,13 @@ export default function WishlistScreen() {
 
   // Função para alternar a visibilidade de um item
   const toggleItemVisibility = async (product: WishlistProduct) => {
-    if (!user) return;
-
     try {
-      const newVisibility = !product.wishlistData.isPublic;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId || !product?.id) return;
 
-      await (socialService as any).setWishlistItemVisibility((user as any).uid, product.id, newVisibility);
+      const newVisibility = !product.wishlistData?.isPublic;
+
+      await (socialService as any).setWishlistItemVisibility(userId, product.id, newVisibility);
 
       // Atualizar estado local
       setProducts(prev =>
@@ -238,7 +244,7 @@ export default function WishlistScreen() {
     } catch (error) {
       loggingService.error('Erro ao atualizar visibilidade do item', {
         error,
-        productId: product.id,
+        productId: product?.id,
       });
       showToast('Não foi possível atualizar o item', FeedbackType.ERROR);
     }
@@ -260,12 +266,17 @@ export default function WishlistScreen() {
 
   // Navegar para a tela de detalhes do produto
   const handleProductPress = (product: WishlistProduct) => {
-    (navigation as any).navigate('ProductDetails', { product });
+    try {
+      if (!product) return;
+      (navigation as any).navigate('ProductDetails', { product });
+    } catch (error) {
+      loggingService.error('Erro ao navegar para detalhes do produto', { error });
+    }
   };
 
   // Função para alternar entre lista pública e privada
   const toggleWishlistPrivacy = async () => {
-    if (!user) return;
+    if (!user || !(user as any).uid) return;
 
     try {
       const newIsPublic = !isPublic;
@@ -285,97 +296,105 @@ export default function WishlistScreen() {
   };
 
   // Renderizar item da lista
-  const renderItem = ({ item }: { item: WishlistProduct }) => (
-    <View style={styles.productItemContainer}>
-      <TouchableOpacity
-        style={styles.productCard}
-        onPress={() => handleProductPress(item)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.productImageContainer}>
-          <EnhancedImage
-            source={{ uri: item.imagens && item.imagens.length > 0 ? item.imagens[0] : 'https://via.placeholder.com/150' }}
-            style={styles.productImage}
-            placeholderType={PlaceholderType.SKELETON}
-            lazy={true}
-          />
-
-          {/* Indicador de visibilidade */}
-          <View style={styles.visibilityIndicator}>
-            <Ionicons
-              name={item.wishlistData.isPublic ? 'eye-outline' : 'eye-off-outline'}
-              size={16}
-              color="#FFF"
+  const renderItem = ({ item }: { item: WishlistProduct }) => {
+    if (!item) return null;
+    
+    return (
+      <View style={styles.productItemContainer}>
+        <TouchableOpacity
+          style={styles.productCard}
+          onPress={() => handleProductPress(item)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.productImageContainer}>
+            <EnhancedImage
+              source={{ uri: item.imagens && item.imagens.length > 0 ? item.imagens[0] : 'https://via.placeholder.com/150' }}
+              style={styles.productImage}
+              placeholderType={PlaceholderType.SKELETON}
+              lazy={true}
             />
+
+            {/* Indicador de visibilidade */}
+            <View style={styles.visibilityIndicator}>
+              <Ionicons
+                name={item.wishlistData?.isPublic ? 'eye-outline' : 'eye-off-outline'}
+                size={16}
+                color="#FFF"
+              />
+            </View>
           </View>
-        </View>
 
-        <View style={styles.productInfo}>
-          <Text style={{ flex: 1, fontWeight: 'bold', backgroundColor: 'transparent' }}>{item.nome}</Text>
-          <Text style={styles.productPrice}>R$ {item.preco.toFixed(2)}</Text>
-
-          <View style={styles.productActions}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => {
-                setSelectedProduct(item);
-                setMenuVisible(true);
-              }}
+          <View style={styles.productInfo}>
+            <Text 
+              style={styles.productName} 
+              numberOfLines={2}
+              ellipsizeMode="tail"
             >
-              <Ionicons name="ellipsis-vertical" size={18} color="#555" />
-            </TouchableOpacity>
+              {item.nome || 'Produto sem nome'}
+            </Text>
+            <Text style={styles.productPrice}>
+              R$ {(item.preco || 0).toFixed(2)}
+            </Text>
 
-            <TouchableOpacity
-              style={[styles.actionButton, styles.removeButton]}
-              onPress={() => removeFromWishlist(item)}
-            >
-              <Ionicons name="trash-outline" size={18} color="#FFF" />
-            </TouchableOpacity>
+            <View style={styles.productActions}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => {
+                  setSelectedProduct(item);
+                  setMenuVisible(true);
+                }}
+              >
+                <Ionicons name="ellipsis-vertical" size={18} color="#555" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionButton, styles.removeButton]}
+                onPress={() => removeFromWishlist(item)}
+              >
+                <Ionicons name="trash-outline" size={18} color="#FFF" />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        {/* Menu de opções */}
-        {menuVisible && selectedProduct?.id === item.id && (
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={{ x: 0, y: 0 }}
-          >
-            <Menu.Item
-              onPress={() => {
-                toggleItemVisibility(item);
-                setMenuVisible(false);
-              }}
-              title={item.wishlistData.isPublic ? 'Tornar privado' : 'Tornar público'}
-            />
-            <Menu.Item
-              onPress={() => {
-                socialService.shareProduct(item);
-                setMenuVisible(false);
-              }}
-              title="Compartilhar"
-            />
-            <Divider />
-            <Menu.Item
-              onPress={() => {
-                removeFromWishlist(item);
-                setMenuVisible(false);
-              }}
-              title="Remover"
-            />
-          </Menu>
-        )}
-      </TouchableOpacity>
-
-      <IconButton
-        icon="close"
-        size={24}
-        style={styles.removeButton}
-        iconColor={styles.removeButton.backgroundColor}
-        onPress={() => removeFromWishlist(item)}
-      />
-    </View>
-  );
+          {/* Menu de opções */}
+          {menuVisible && selectedProduct?.id === item.id && (
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={{ x: 0, y: 0 }}
+            >
+              <Menu.Item
+                onPress={() => {
+                  toggleItemVisibility(item);
+                  setMenuVisible(false);
+                }}
+                title={item.wishlistData?.isPublic ? 'Tornar privado' : 'Tornar público'}
+              />
+              <Menu.Item
+                onPress={async () => {
+                  try {
+                    await socialService.shareProduct(item);
+                  } catch (error) {
+                    loggingService.error('Erro ao compartilhar produto', { error });
+                  }
+                  setMenuVisible(false);
+                }}
+                title="Compartilhar"
+              />
+              <Divider />
+              <Menu.Item
+                onPress={() => {
+                  removeFromWishlist(item);
+                  setMenuVisible(false);
+                }}
+                title="Remover"
+              />
+            </Menu>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

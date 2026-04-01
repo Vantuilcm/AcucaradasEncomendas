@@ -16,7 +16,10 @@ export function RegisterScreen({ route }: { route?: any }) {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const role = route?.params?.role || 'comprador';
-  const { register, loading } = useAuth();
+  const { register, loading, profileLoading } = useAuth();
+  
+  const isSyncing = loading || profileLoading;
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -83,10 +86,9 @@ export function RegisterScreen({ route }: { route?: any }) {
       setError(errorMessage);
       
       // Registrar falha na validação do formulário
-      secureLoggingService.security('Falha na validação do formulário de registro', {
+      secureLoggingService.security('REGISTER_VALIDATION_FAILED', {
         email,
-        reason: errorMessage,
-        timestamp: new Date().toISOString()
+        reason: errorMessage
       });
       
       return false;
@@ -94,12 +96,11 @@ export function RegisterScreen({ route }: { route?: any }) {
   };
 
   const handleRegister = async () => {
+    if (isSyncing) return;
+
     try {
       setError(null);
       
-      // Registrar tentativa de registro (sem incluir a senha)
-      secureLoggingService.security('Tentativa de registro de nova conta', { email, name });
-
       if (!validateForm()) {
         return;
       }
@@ -112,6 +113,8 @@ export function RegisterScreen({ route }: { route?: any }) {
       const sanitizedEmail = InputValidationService.validateAndSanitizeInput(email, {
         type: 'email'
       });
+
+      secureLoggingService.security('USER_REGISTER_ATTEMPT', { email: sanitizedEmail, role });
 
       // Preparar dados adicionais com base na role
       let additionalData: any = { phone };
@@ -146,26 +149,21 @@ export function RegisterScreen({ route }: { route?: any }) {
         ...additionalData
       } as any, password);
       
-      // Registrar registro bem-sucedido
-      secureLoggingService.security('Registro de conta bem-sucedido', { 
-        email: sanitizedEmail,
-        name: sanitizedName
-      });
+      // O redirecionamento é tratado pelo AppNavigator
+      
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao criar conta';
       setError(errorMessage);
       
-      // Registrar falha no registro
-      secureLoggingService.security('Falha no registro de conta', { 
+      secureLoggingService.error('REGISTER_PROCESS_ERROR', { 
         email, 
-        error: errorMessage,
-        timestamp: new Date().toISOString()
+        error: errorMessage 
       });
     }
   };
 
-  if (loading) {
-    return <LoadingState message="Criando conta..." />;
+  if (isSyncing) {
+    return <LoadingState message={profileLoading ? "Carregando perfil..." : "Criando conta..."} />;
   }
 
   return (

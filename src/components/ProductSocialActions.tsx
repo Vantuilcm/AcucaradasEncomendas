@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { IconButton, Text, useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
+import { UserUtils } from '../utils/UserUtils';
 import { Product } from '../types/Product';
 import { SocialService } from '../services/SocialService';
 import { WishlistService } from '../services/WishlistService';
@@ -23,23 +24,30 @@ export function ProductSocialActions({ product, onShare }: ProductSocialActionsP
 
   // Verificar se o produto está na lista de desejos do usuário
   useEffect(() => {
-    if (!user) return;
-
+    let isMounted = true;
+    
     const checkWishlist = async () => {
       try {
-        const isInList = await wishlistService.isInWishlist(user.id, product.id);
-        setInWishlist(isInList);
+        const userId = UserUtils.getUserId(user);
+        if (!userId || !product?.id) return;
+        
+        const isInList = await wishlistService.isInWishlist(userId, product.id);
+        if (isMounted) {
+          setInWishlist(isInList);
+        }
       } catch (error) {
         console.error('Erro ao verificar lista de desejos:', error);
       }
     };
 
     checkWishlist();
-  }, [user, product.id]);
+    return () => { isMounted = false; };
+  }, [user, product?.id]);
 
   // Função para compartilhar o produto
   const handleShare = async () => {
     try {
+      if (!product) return;
       setLoading(true);
       await socialService.shareProduct(product);
 
@@ -60,13 +68,14 @@ export function ProductSocialActions({ product, onShare }: ProductSocialActionsP
 
   // Função para adicionar/remover da lista de desejos
   const handleWishlist = async () => {
-    if (!user) {
+    const userId = UserUtils.getUserId(user);
+    if (!userId) {
       Alert.alert(
         'Faça login',
         'Para adicionar produtos à sua lista de desejos, você precisa estar logado.',
         [
           { text: 'Cancelar', style: 'cancel' },
-          {
+          { 
             text: 'Fazer Login',
             onPress: () => {
               /* TODO: Navegar para tela de login */
@@ -78,21 +87,22 @@ export function ProductSocialActions({ product, onShare }: ProductSocialActionsP
     }
 
     try {
+      if (!product?.id) return;
       setLoading(true);
 
       if (inWishlist) {
-        await wishlistService.removeFromWishlist(user.id, product.id);
+        await wishlistService.removeFromWishlist(userId, product.id);
         setInWishlist(false);
         // Feedback tátil
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } else {
-        await wishlistService.addToWishlist(user.id, product.id);
+        await wishlistService.addToWishlist(userId, product.id);
         setInWishlist(true);
         // Feedback tátil
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
     } catch (error) {
-      console.error('Erro na lista de desejos:', error);
+      console.error('Erro ao atualizar lista de desejos:', error);
       Alert.alert('Erro', 'Não foi possível atualizar sua lista de desejos.');
     } finally {
       setLoading(false);
@@ -101,25 +111,30 @@ export function ProductSocialActions({ product, onShare }: ProductSocialActionsP
 
   // Função para convidar amigos a conhecer o produto
   const handleInviteFriends = () => {
-    if (!user) {
-      Alert.alert('Faça login', 'Para convidar amigos, você precisa estar logado.', [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Fazer Login',
-          onPress: () => {
-            /* TODO: Navegar para tela de login */
+    try {
+      if (!user) {
+        Alert.alert('Faça login', 'Para convidar amigos, você precisa estar logado.', [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Fazer Login',
+            onPress: () => {
+              /* TODO: Navegar para tela de login */
+            },
           },
-        },
-      ]);
-      return;
-    }
+        ]);
+        return;
+      }
 
-    // TODO: Implementar modal para inserir emails dos amigos
-    Alert.alert(
-      'Convide seus amigos',
-      'Em breve você poderá convidar seus amigos para conhecer este produto!',
-      [{ text: 'OK', style: 'default' }]
-    );
+      // TODO: Implementar modal para inserir emails dos amigos
+      Alert.alert(
+        'Convide seus amigos',
+        'Em breve você poderá convidar seus amigos para conhecer este produto!',
+        [{ text: 'OK', style: 'default' }]
+      );
+    } catch (error) {
+      console.error('Erro ao convidar amigos:', error);
+      Alert.alert('Erro', 'Não foi possível abrir o convite.');
+    }
   };
 
   return (
@@ -128,7 +143,7 @@ export function ProductSocialActions({ product, onShare }: ProductSocialActionsP
         <IconButton
           icon={inWishlist ? 'heart' : 'heart-outline'}
           size={26}
-          iconColor={inWishlist ? theme.colors.error : theme.colors.onSurface}
+          iconColor={inWishlist ? (theme?.colors?.error || '#FF0000') : (theme?.colors?.onSurface || '#000000')}
           disabled={loading}
         />
         <Text style={styles.actionText}>{inWishlist ? 'Adicionado' : 'Favoritar'}</Text>
@@ -140,7 +155,7 @@ export function ProductSocialActions({ product, onShare }: ProductSocialActionsP
         <IconButton
           icon="share-variant"
           size={26}
-          iconColor={theme.colors.onSurface}
+          iconColor={theme?.colors?.onSurface || '#000000'}
           disabled={loading}
         />
         <Text style={styles.actionText}>Compartilhar</Text>
@@ -156,7 +171,7 @@ export function ProductSocialActions({ product, onShare }: ProductSocialActionsP
         <IconButton
           icon="account-multiple-plus"
           size={26}
-          iconColor={theme.colors.onSurface}
+          iconColor={theme?.colors?.onSurface || '#000000'}
           disabled={loading}
         />
         <Text style={styles.actionText}>Convidar</Text>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../config/firebase';
+import { UserUtils } from '../utils/UserUtils';
 import { NotificationService } from '../services/NotificationService';
 import { Notification } from '../types/Notification';
 import * as ExpoNotifications from 'expo-notifications';
@@ -28,9 +29,9 @@ const NotificationBell: React.FC = () => {
 
   // Carregar notificações do usuário
   const loadNotifications = async () => {
-    if (!auth.currentUser) return;
+    const userId = UserUtils.getUserId(auth.currentUser);
+    if (!userId) return;
 
-    const userId = auth.currentUser.uid;
     const userNotifications = await NotificationService.getInstance().getUserNotifications(userId);
 
     setNotifications(userNotifications);
@@ -44,7 +45,8 @@ const NotificationBell: React.FC = () => {
 
   // Marcar notificação como lida
   const markAsRead = async (notificationId: string) => {
-    if (!auth.currentUser) return;
+    const userId = UserUtils.getUserId(auth.currentUser);
+    if (!userId) return;
 
     await NotificationService.getInstance().markAsRead(notificationId);
 

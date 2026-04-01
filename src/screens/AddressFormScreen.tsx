@@ -17,7 +17,7 @@ export function AddressFormScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
-  const { address } = route.params as RouteParams;
+  const { address } = (route.params || {}) as RouteParams;
   const validationService = ValidationService.getInstance();
 
   const [loading, setLoading] = useState(false);
@@ -35,70 +35,92 @@ export function AddressFormScreen() {
   });
 
   useEffect(() => {
-    if (address) {
-      setFormData(address);
+    let isMounted = true;
+    try {
+      if (address && isMounted) {
+        setFormData(address);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados do endereço:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao carregar dados do endereço');
     }
+    return () => { isMounted = false; };
   }, [address]);
 
   const validateForm = () => {
-    if (!formData.name?.trim()) {
-      setError('Nome do endereço é obrigatório');
+    try {
+      if (!formData.name?.trim()) {
+        setError('Nome do endereço é obrigatório');
+        return false;
+      }
+
+      if (!formData.street?.trim()) {
+        setError('Rua é obrigatória');
+        return false;
+      }
+
+      if (!formData.number?.trim()) {
+        setError('Número é obrigatório');
+        return false;
+      }
+
+      if (!formData.neighborhood?.trim()) {
+        setError('Bairro é obrigatório');
+        return false;
+      }
+
+      if (!formData.city?.trim()) {
+        setError('Cidade é obrigatória');
+        return false;
+      }
+
+      if (!formData.state?.trim()) {
+        setError('Estado é obrigatório');
+        return false;
+      }
+
+      if (!formData.zipCode?.trim()) {
+        setError('CEP é obrigatório');
+        return false;
+      }
+
+      if (!validationService.validateZipCode(formData.zipCode)) {
+        setError('CEP inválido. Use o formato 00000-000');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Erro na validação do formulário:', error);
+      setError('Erro ao validar os dados do formulário');
       return false;
     }
-
-    if (!formData.street?.trim()) {
-      setError('Rua é obrigatória');
-      return false;
-    }
-
-    if (!formData.number?.trim()) {
-      setError('Número é obrigatório');
-      return false;
-    }
-
-    if (!formData.neighborhood?.trim()) {
-      setError('Bairro é obrigatório');
-      return false;
-    }
-
-    if (!formData.city?.trim()) {
-      setError('Cidade é obrigatória');
-      return false;
-    }
-
-    if (!formData.state?.trim()) {
-      setError('Estado é obrigatório');
-      return false;
-    }
-
-    if (!formData.zipCode?.trim()) {
-      setError('CEP é obrigatório');
-      return false;
-    }
-
-    if (!validationService.validateZipCode(formData.zipCode)) {
-      setError('CEP inválido. Use o formato 00000-000');
-      return false;
-    }
-
-    return true;
   };
 
   const formatZipCode = (zipCode: string) => {
-    return validationService.formatZipCode(zipCode);
+    try {
+      return validationService.formatZipCode(zipCode);
+    } catch (error) {
+      console.error('Erro ao formatar CEP:', error);
+      return zipCode;
+    }
   };
 
   const handleZipCodeChange = (text: string) => {
-    // Remove caracteres não numéricos
-    const numericValue = text.replace(/[^0-9]/g, '');
+    try {
+      // Remove caracteres não numéricos
+      const numericValue = text.replace(/[^0-9]/g, '');
 
-    // Limita a 8 dígitos
-    const truncatedValue = numericValue.slice(0, 8);
+      // Limita a 8 dígitos
+      const truncatedValue = numericValue.slice(0, 8);
 
-    // Formata o CEP quando tem 8 dígitos
-    const formattedZipCode = formatZipCode(truncatedValue);
+      // Formata o CEP quando tem 8 dígitos
+      const formattedZipCode = formatZipCode(truncatedValue);
 
-    setFormData({ ...formData, zipCode: formattedZipCode });
+      setFormData({ ...formData, zipCode: formattedZipCode });
+    } catch (error) {
+      console.error('Erro ao processar mudança de CEP:', error);
+    }
   };
 
   const handleSubmit = async () => {
@@ -110,14 +132,15 @@ export function AddressFormScreen() {
         return;
       }
 
-      if (!user) {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) {
         throw new Error('Usuário não autenticado');
       }
 
       const addressService = new AddressService();
       const addressData = {
         ...formData,
-        userId: user.id,
+        userId: userId,
       } as Omit<Address, 'id'>;
 
       if (address?.id) {
@@ -127,11 +150,14 @@ export function AddressFormScreen() {
       }
 
       if (formData.isDefault) {
-        await addressService.setDefaultAddress(user.id, address?.id || '');
+        await addressService.setDefaultAddress(userId, address?.id || '');
       }
 
-      navigation.goBack();
+      if (navigation?.canGoBack()) {
+        navigation.goBack();
+      }
     } catch (err) {
+      console.error('Erro ao salvar endereço:', err);
       setError(err instanceof Error ? err.message : 'Erro ao salvar endereço');
     } finally {
       setLoading(false);

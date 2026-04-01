@@ -1,4 +1,5 @@
 import { loggingService } from './LoggingService';
+import { UserUtils } from '../utils/UserUtils';
 import { db, storage } from '../config/firebase';
 import {
   doc,
@@ -77,14 +78,19 @@ export class UserProfileService {
         throw new Error('Usuário não encontrado');
       }
 
-      const userData = userDoc.data() as unknown as User;
-      userData.id = userId;
+      const userData = userDoc.data() as any;
+      const user: User = {
+        id: userId,
+        nome: UserUtils.getUserName(userData) || '',
+        email: UserUtils.getUserEmail(userData) || '',
+        ...userData
+      };
 
       // Obter estatísticas do usuário
       const stats = await this.getUserStats(userId);
 
       return {
-        ...userData,
+        ...user,
         stats,
       };
     } catch (error: any) {
@@ -126,12 +132,17 @@ export class UserProfileService {
 
       // Obter dados atualizados
       const updatedDoc = await getDoc(userRef);
-      const updatedUserData = updatedDoc.data() as any as User;
-      updatedUserData.id = userId;
+      const updatedData = updatedDoc.data() as any;
+      const updatedUser: User = {
+        id: userId,
+        nome: UserUtils.getUserName(updatedData) || '',
+        email: UserUtils.getUserEmail(updatedData) || '',
+        ...updatedData
+      };
 
       loggingService.info('Perfil de usuário atualizado com sucesso', { userId });
 
-      return updatedUserData;
+      return updatedUser;
     } catch (error: any) {
       loggingService.error('Erro ao atualizar perfil do usuário', { error, userId });
       throw error;
@@ -626,7 +637,13 @@ export class UserProfileService {
         throw new Error('Usuário não encontrado');
       }
 
-      const userData = userDoc.data() as any as User;
+      const userData = userDoc.data() as any;
+      const user: User = {
+        id: userId,
+        nome: UserUtils.getUserName(userData) || '',
+        email: UserUtils.getUserEmail(userData) || '',
+        ...userData
+      };
 
       // Buscar avaliações do usuário
       const avaliacoes = await this.reviewService.getUserReviews(userId);
@@ -638,7 +655,7 @@ export class UserProfileService {
           : 0;
 
       return {
-        ...userData,
+        ...user,
         avaliacoes,
         mediaAvaliacoes,
       };
@@ -688,12 +705,15 @@ export class UserProfileService {
         throw new Error('Usuário não encontrado após atualização');
       }
 
+      const updatedData = userDoc.data() as any;
       loggingService.info('Perfil do usuário atualizado', { userId });
 
       return {
         id: userId,
-        ...userDoc.data(),
-      } as any as User;
+        nome: UserUtils.getUserName(updatedData) || '',
+        email: UserUtils.getUserEmail(updatedData) || '',
+        ...updatedData
+      };
     } catch (error: any) {
       loggingService.error('Erro ao atualizar perfil do usuário', { error, userId });
       throw error;
@@ -761,13 +781,16 @@ export class UserProfileService {
 
       // Buscar perfil atualizado
       const userDocAtualizado = await getDoc(doc(db, 'usuarios', userId));
+      const updatedData = userDocAtualizado.data() as any;
 
       loggingService.info('Endereço adicionado ao perfil', { userId });
 
       return {
         id: userId,
-        ...userDocAtualizado.data(),
-      } as any as User;
+        nome: UserUtils.getUserName(updatedData) || '',
+        email: UserUtils.getUserEmail(updatedData) || '',
+        ...updatedData
+      };
     } catch (error: any) {
       loggingService.error('Erro ao adicionar endereço', { error, userId });
       throw error;
@@ -813,13 +836,16 @@ export class UserProfileService {
 
       // Buscar perfil atualizado
       const userDocAtualizado = await getDoc(doc(db, 'usuarios', userId));
+      const updatedData = userDocAtualizado.data() as any;
 
       loggingService.info('Endereço removido do perfil', { userId });
 
       return {
         id: userId,
-        ...userDocAtualizado.data(),
-      } as any as User;
+        nome: UserUtils.getUserName(updatedData) || '',
+        email: UserUtils.getUserEmail(updatedData) || '',
+        ...updatedData
+      };
     } catch (error: any) {
       loggingService.error('Erro ao remover endereço', { error, userId });
       throw error;
@@ -928,13 +954,16 @@ export class UserProfileService {
 
       // Buscar perfil atualizado
       const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      const updatedData = userDoc.data() as any;
 
       loggingService.info('Preferências do usuário atualizadas', { userId });
 
       return {
         id: userId,
-        ...userDoc.data(),
-      } as any as User;
+        nome: UserUtils.getUserName(updatedData) || '',
+        email: UserUtils.getUserEmail(updatedData) || '',
+        ...updatedData
+      };
     } catch (error) {
       loggingService.error('Erro ao atualizar preferências', { error, userId });
       throw error;
@@ -962,13 +991,16 @@ export class UserProfileService {
 
       // Buscar perfil atualizado
       const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      const updatedData = userDoc.data() as any;
 
       loggingService.info('Configurações de notificação atualizadas', { userId });
 
       return {
         id: userId,
-        ...userDoc.data(),
-      } as any as User;
+        nome: UserUtils.getUserName(updatedData) || '',
+        email: UserUtils.getUserEmail(updatedData) || '',
+        ...updatedData
+      };
     } catch (error) {
       loggingService.error('Erro ao atualizar configurações de notificação', { error, userId });
       throw error;

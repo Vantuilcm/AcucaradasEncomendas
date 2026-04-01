@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useAppTheme } from '../components/ThemeProvider';
 import { NavigationContainer, NavigatorScreenParams, DefaultTheme as NavigationDefaultTheme, DarkTheme as NavigationDarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -6,14 +6,17 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Text, Button } from 'react-native-paper';
 import usePermissions from '../hooks/usePermissions';
 import { useNotifications } from '../hooks/useNotifications';
+import { UserUtils } from '../utils/UserUtils';
+import { secureLoggingService } from '../services/SecureLoggingService';
 
 // Telas de autenticação
 import LoginScreen from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
+import { RoleSelectionScreen } from '../screens/RoleSelectionScreen';
 
 // Telas principais
 import { HomeScreen } from '../screens/HomeScreen';
@@ -87,8 +90,9 @@ export type RootStackParamList = {
   PremiumTest: undefined;
   DeliveryDriverRegistration: undefined;
   Login: undefined;
-  Register: undefined;
+  Register: { role?: string };
   ForgotPassword: undefined;
+  RoleSelection: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -187,58 +191,104 @@ const DriverTabs = () => {
 
 // Navegador principal do aplicativo
 const AppNavigator = () => {
-  const { user, loading } = useAuth();
-  const { isEntregador, isProdutor, isAdmin, loading: permissionsLoading } = usePermissions();
-  const [isReady, setIsReady] = useState(false);
-  const { isDark, theme } = useAppTheme();
-  
+  const { user, loading, profileLoading, isReady } = useAuth();
+  const { isProdutor, isAdmin, isEntregador } = usePermissions();
+  const { theme, isDark } = useAppTheme();
+
   // Mesclar o tema da navegação com o nosso tema customizado
-  const navigationTheme = isDark 
-    ? { ...NavigationDarkTheme, colors: { ...NavigationDarkTheme.colors, primary: theme.colors.primary, background: theme.colors.background, card: theme.colors.card, text: theme.colors.text.primary, border: theme.colors.border, notification: theme.colors.notification } } 
-    : { ...NavigationDefaultTheme, colors: { ...NavigationDefaultTheme.colors, primary: theme.colors.primary, background: theme.colors.background, card: theme.colors.card, text: theme.colors.text.primary, border: theme.colors.border, notification: theme.colors.notification } };
-  
-  // Inicializar notificações
-  useNotifications();
+  const navigationTheme = useMemo(() => {
+    try {
+      return isDark 
+        ? { ...NavigationDarkTheme, colors: { ...NavigationDarkTheme.colors, primary: theme?.colors?.primary || '#E91E63', background: theme?.colors?.background || '#FFFFFF', card: theme?.colors?.card || '#FFFFFF', text: theme?.colors?.text?.primary || '#000000', border: theme?.colors?.border || '#E0E0E0', notification: theme?.colors?.notification || '#FF0000' } } 
+        : { ...NavigationDefaultTheme, colors: { ...NavigationDefaultTheme.colors, primary: theme?.colors?.primary || '#E91E63', background: theme?.colors?.background || '#FFFFFF', card: theme?.colors?.card || '#FFFFFF', text: theme?.colors?.text?.primary || '#000000', border: theme?.colors?.border || '#E0E0E0', notification: theme?.colors?.notification || '#FF0000' } };
+    } catch (e) {
+      console.error('Erro ao processar tema de navegação:', e);
+      return NavigationDefaultTheme;
+    }
+  }, [isDark, theme]);
 
-  useEffect(() => {
-    // Simular um tempo de carregamento para garantir que o estado de autenticação esteja pronto
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (loading || permissionsLoading || !isReady) {
+  // Controle de Boot Global Determinístico com Debug Visual
+  if (!isReady || loading || profileLoading) {
     return (
       <View 
         style={{ 
           flex: 1, 
           justifyContent: 'center', 
           alignItems: 'center',
-          backgroundColor: theme.colors.background 
+          backgroundColor: '#121212', // Fundo escuro para destaque do debug
+          padding: 20
         }} 
-        testID="app-loading"
+        testID="app-loading-debug"
       >
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color="#FFD700" />
+        
+        <View style={{ 
+          marginTop: 30, 
+          width: '100%', 
+          backgroundColor: '#1E1E1E', 
+          padding: 15, 
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: '#333'
+        }}>
+          <Text style={{ color: '#FFD700', fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }}>
+            DEBUG DE INICIALIZAÇÃO (BOOT)
+          </Text>
+          
+          {[
+            { label: 'isReady', value: isReady },
+            { label: 'authLoading (loading)', value: loading },
+            { label: 'profileLoading', value: profileLoading },
+            { label: 'user (autenticado)', value: !!user },
+            { label: 'profile (Firestore)', value: !!user && !!(user as any).role }
+          ].map((item, index) => (
+            <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 }}>
+              <Text style={{ color: '#AAA' }}>{item.label}:</Text>
+              <Text style={{ color: item.value ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>
+                {item.value ? 'READY/TRUE' : 'WAITING/FALSE'}
+              </Text>
+            </View>
+          ))}
+        </View>
+
         <Text 
-          variant="bodyMedium" 
+          variant="bodySmall" 
           style={{ 
-            marginTop: 16, 
-            color: theme.colors.text.secondary 
+            marginTop: 20, 
+            color: '#666',
+            textAlign: 'center'
           }}
         >
-          Carregando ambiente seguro...
+          {!isReady || loading ? 'Aguardando Firebase Auth...' : 'Aguardando Perfil Firestore...'}
         </Text>
       </View>
     );
   }
 
-  // Fallback para quando o user está "autenticado" mas o objeto está nulo ou incompleto
-  // Isso evita crashes em telas que dependem do user imediatamente após o login
-  if (user === null && !loading && isReady) {
-    // Se não há usuário mas não está carregando, o Stack Navigator já lidará 
-    // com as rotas públicas (Login), então não precisamos de bloqueio aqui.
+  // Centralização de Identidade e Redirecionamento Determinístico
+  const userId = UserUtils.getUserId(user);
+  const userRole = UserUtils.getUserRole(user);
+  const isAuthenticated = !!userId;
+
+  // Proteger acesso a profile antes de estar pronto
+  if (isAuthenticated && !user) {
+    secureLoggingService.error('PROFILE_RECOVERY_NEEDED', { userId });
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ textAlign: 'center', marginBottom: 20 }}>
+          Detectamos um problema ao carregar seu perfil.
+        </Text>
+        <Button mode="contained" onPress={() => useAuth().logout()}>
+          Tentar Novamente (Logout)
+        </Button>
+      </View>
+    );
+  }
+
+  // Log do alvo de navegação
+  if (isAuthenticated) {
+    const target = UserUtils.getNavigationTarget(userRole);
+    secureLoggingService.info('NAVIGATION_TARGET', { userId, role: userRole, target });
   }
 
   return (
@@ -246,18 +296,25 @@ const AppNavigator = () => {
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
-            backgroundColor: theme.colors.card,
+            backgroundColor: theme?.colors?.card || '#FFFFFF',
           },
-          headerTintColor: theme.colors.text.primary,
+          headerTintColor: theme?.colors?.text?.primary || '#000000',
           headerTitleStyle: {
             fontWeight: 'bold',
           },
         }}
       >
-        {user ? (
+        {isAuthenticated ? (
           // Rotas privadas (usuário autenticado)
           <>
-            {isEntregador ? (
+            {!userRole ? (
+              // Se role ausente, forçar seleção de papel
+              <Stack.Screen
+                name="RoleSelection"
+                component={RoleSelectionScreen}
+                options={{ title: 'Completar Cadastro', headerShown: false }}
+              />
+            ) : isEntregador ? (
               <>
                 <Stack.Screen
                   name="DriverTabs"

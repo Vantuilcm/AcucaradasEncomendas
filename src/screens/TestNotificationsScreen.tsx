@@ -61,6 +61,9 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
   // Função para registrar um novo log de notificação no Firestore
   const logNotification = async (log: NotificationLog) => {
     try {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return null;
+
       // Criar um ID único para o log
       const logId = `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -68,6 +71,7 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
       const logRef = doc(db, notificationLogsCollection, logId);
       await setDoc(logRef, {
         ...log,
+        userId: userId, // Garantir que o userId está correto
         id: logId,
         createdAt: new Date().toISOString(),
       });
@@ -75,6 +79,7 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
       // Adicionar ao estado local para atualização imediata da UI
       const newLog = {
         ...log,
+        userId: userId,
         id: logId,
       };
 
@@ -89,12 +94,14 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
   // Função para carregar logs de notificações do Firestore
   const loadNotificationLogs = async () => {
     try {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
+
       setLogsLoading(true);
-      if (!user) return;
 
       // Buscar logs do Firestore
       const logsRef = collection(db, notificationLogsCollection);
-      let q = query(logsRef, where('userId', '==', (user as any).uid), orderBy('timestamp', 'desc'));
+      let q = query(logsRef, where('userId', '==', userId), orderBy('timestamp', 'desc'));
 
       // Aplicar filtro por tipo se estiver selecionado
       if (filterType) {
@@ -102,14 +109,14 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
         if (['sent', 'received', 'clicked', 'failed'].includes(filterType)) {
           q = query(
             logsRef,
-            where('userId', '==', (user as any).uid),
+            where('userId', '==', userId),
             where('status', '==', filterType),
             orderBy('timestamp', 'desc')
           );
         } else {
           q = query(
             logsRef,
-            where('userId', '==', (user as any).uid),
+            where('userId', '==', userId),
             where('type', '==', filterType),
             orderBy('timestamp', 'desc')
           );
@@ -132,20 +139,26 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
   };
 
   useEffect(() => {
-    if (user) {
-      loadUserData();
-      checkOneSignalId();
-      loadNotificationLogs();
+    try {
+      if (user) {
+        loadUserData();
+        checkOneSignalId();
+        loadNotificationLogs();
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados iniciais da tela de testes:', error);
     }
   }, [user]);
 
   const loadUserData = async (): Promise<void> => {
     try {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
+
       setLoading(true);
-      if (!(user as any)?.uid) return;
 
       // Buscar dados do usuário no Firestore
-      const userRef = doc(db, 'users', (user as any).uid);
+      const userRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userRef);
       const userData = userDoc.data();
 
@@ -172,8 +185,10 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
 
   const updateFcmToken = async (): Promise<void> => {
     try {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
+
       setLoading(true);
-      if (!user) return;
 
       // Solicitar permissão e obter token
       const { status } = await Notifications.requestPermissionsAsync();
@@ -191,7 +206,7 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
       const token = tokenData.data;
 
       // Atualizar no Firestore
-      const userRef = doc(db, 'users', (user as any).uid);
+      const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, {
         fcmToken: token,
         tokenUpdatedAt: new Date().toISOString(),
@@ -212,8 +227,10 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
 
   const sendTestNotification = async (): Promise<void> => {
     try {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
+
       setLoading(true);
-      if (!user) return;
 
       // Verificar se o token existe
       if (!fcmToken) {
@@ -223,7 +240,7 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
 
       // Enviar notificação de teste
       await pushNotificationService.sendPushNotification(
-        (user as any).uid,
+        userId,
         'Notificação de Teste',
         'Esta é uma notificação de teste do Açucaradas Encomendas',
         {
@@ -235,7 +252,7 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
 
       // Registrar log da notificação enviada
       await logNotification({
-        userId: (user as any).uid,
+        userId: userId,
         type: 'TEST_NOTIFICATION',
         title: 'Notificação de Teste',
         message: 'Esta é uma notificação de teste do Açucaradas Encomendas',
@@ -263,7 +280,8 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
   const sendOrderNotification = async () => {
     try {
       setLoading(true);
-      if (!user) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
 
       // Verificar se o token existe
       if (!fcmToken) {
@@ -289,7 +307,7 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
       );
 
       await pushNotificationService.sendPushNotification(
-        (user as any).uid,
+        userId,
         formattedNotification.title,
         formattedNotification.message,
         formattedNotification.data
@@ -297,7 +315,7 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
 
       // Registrar log da notificação de pedido
       await logNotification({
-        userId: (user as any).uid,
+        userId: userId,
         type: 'NEW_ORDER',
         title: formattedNotification.title,
         message: formattedNotification.message,
@@ -323,13 +341,14 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
   const updateOneSignalTags = async () => {
     try {
       setLoading(true);
-      if (!user) return;
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) return;
 
       // Definir tags do OneSignal
       await setOneSignalTags({
-        user_id: (user as any).uid,
-        user_type: (user as any).role || 'customer',
-        email: user.email || '',
+        user_id: userId,
+        user_type: (user as any)?.role || 'customer',
+        email: user?.email || '',
         last_login: new Date().toISOString(),
         app_version: Constants.expoConfig?.version || '1.0.0',
         platform: Platform.OS,
@@ -338,13 +357,13 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
 
       // Registrar log da atualização de tags
       await logNotification({
-        userId: (user as any).uid,
+        userId: userId,
         type: 'ONESIGNAL_TAGS_UPDATE',
         title: 'Atualização de Tags OneSignal',
         message: 'Tags do OneSignal foram atualizadas',
         data: {
-          user_id: (user as any).uid,
-          user_type: (user as any).role || 'customer',
+          user_id: userId,
+          user_type: (user as any)?.role || 'customer',
           timestamp: new Date().toISOString(),
         },
         status: 'sent',

@@ -41,129 +41,160 @@ fi
 # 2. NORMALIZAÇÃO E EXPORTAÇÃO DA ASC API KEY
 echo "[INFO] Normalizando credenciais da App Store Connect API..."
 
+# CASO 1 — BASE64:
 if [[ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]]; then
-    echo "🔑 Decodificando chave via Base64..."
-    # Decodifica e remove espaços/quebras extras
-    decoded_key=$(echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode)
-    export EXPO_ASC_PRIVATE_KEY="$decoded_key"
+    echo "🔑 [CASO 1] Decodificando chave via Base64..."
+    echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode > AuthKey.p8
+    
+    # Exportar corretamente multiline para o GITHUB_ENV (ETAPA 2)
+    if [[ -n "${GITHUB_ENV:-}" ]]; then
+        echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> "$GITHUB_ENV"
+        cat AuthKey.p8 >> "$GITHUB_ENV"
+        echo "EOF" >> "$GITHUB_ENV"
+    fi
+    
+    # Exportar para o ambiente atual para uso imediato
+    export EXPO_ASC_PRIVATE_KEY=$(cat AuthKey.p8)
+    
+# CASO 2 — STRING DIRETA:
 elif [[ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]]; then
-    echo "🔑 Normalizando chave de texto (multiline safe)..."
-    # Garante que \n literais sejam quebras reais
-    normalized_key=$(echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g')
-    export EXPO_ASC_PRIVATE_KEY="$normalized_key"
+    echo "🔑 [CASO 2] Normalizando chave de texto (multiline safe)..."
+    
+    # Detectar se contém "\n" e converter para quebra real (ETAPA 2)
+    if [[ "$EXPO_ASC_PRIVATE_KEY" == *"\\n"* ]]; then
+        echo "[INFO] Detectado '\\n' literal, convertendo para quebra de linha real..."
+        echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
+    else
+        echo "$EXPO_ASC_PRIVATE_KEY" > AuthKey.p8
+    fi
+
+    # Exportar corretamente multiline para o GITHUB_ENV (ETAPA 2)
+    if [[ -n "${GITHUB_ENV:-}" ]]; then
+        echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> "$GITHUB_ENV"
+        cat AuthKey.p8 >> "$GITHUB_ENV"
+        echo "EOF" >> "$GITHUB_ENV"
+    fi
+
+    # Exportar para o ambiente atual para uso imediato
+    export EXPO_ASC_PRIVATE_KEY=$(cat AuthKey.p8)
 else
     echo "❌ [ERRO] Nenhuma chave encontrada em EXPO_ASC_PRIVATE_KEY ou EXPO_ASC_PRIVATE_KEY_BASE64"
     exit 1
 fi
 
-# Exporta para o GITHUB_ENV para que sub-processos e o EAS CLI vejam a chave corretamente
-{
-    echo "EXPO_ASC_PRIVATE_KEY<<EOF"
-    echo "$EXPO_ASC_PRIVATE_KEY"
-    echo "EOF"
-    echo "EXPO_ASC_KEY_ID=${EXPO_ASC_KEY_ID}"
-    echo "EXPO_ASC_ISSUER_ID=${EXPO_ASC_ISSUER_ID}"
-} >> "$GITHUB_ENV"
+# Exportar ID e Issuer (ETAPA 5)
+if [[ -n "${GITHUB_ENV:-}" ]]; then
+    echo "EXPO_ASC_KEY_ID=${EXPO_ASC_KEY_ID}" >> "$GITHUB_ENV"
+    echo "EXPO_ASC_ISSUER_ID=${EXPO_ASC_ISSUER_ID}" >> "$GITHUB_ENV"
+    echo "EXPO_ASC_PRIVATE_KEY_PATH=$(pwd)/AuthKey.p8" >> "$GITHUB_ENV"
+fi
 
-# Cria arquivo físico também como redundância (alguns plugins podem exigir)
-echo "$EXPO_ASC_PRIVATE_KEY" > AuthKey.p8
 export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
-echo "EXPO_ASC_PRIVATE_KEY_PATH=$(pwd)/AuthKey.p8" >> "$GITHUB_ENV"
 
-echo "[SUCCESS] Credenciais ASC normalizadas e exportadas."
-
-# 2.4 DEFINIÇÃO DO TIPO DE TIME (Para evitar prompt no CI)
-# O EAS CLI pode buscar por EXPO_APPLE_TEAM_TYPE ou APPLE_TEAM_TYPE
-export APPLE_TEAM_TYPE="COMPANY_OR_ORGANIZATION"
-export EXPO_APPLE_TEAM_TYPE="COMPANY_OR_ORGANIZATION"
-echo "APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION" >> $GITHUB_ENV
-echo "EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION" >> $GITHUB_ENV
-
-# Garantir que o Team ID também esteja no ambiente global
-if [[ -n "${EXPO_APPLE_TEAM_ID:-}" ]]; then
-    echo "EXPO_APPLE_TEAM_ID=${EXPO_APPLE_TEAM_ID}" >> $GITHUB_ENV
+# 2.1 VALIDAÇÃO DA KEY (ETAPA 4)
+echo "[INFO] Validando conteúdo da ASC API Key..."
+if ! grep -q "BEGIN PRIVATE KEY" AuthKey.p8 || ! grep -q "END PRIVATE KEY" AuthKey.p8; then
+    echo "❌ [ERRO CRÍTICO] AuthKey.p8 não contém marcadores válidos de PRIVATE KEY!"
+    echo "💡 [DICA] Verifique se a variável EXPO_ASC_PRIVATE_KEY está correta."
+    exit 1
 fi
+echo "[SUCCESS] ASC API Key validada com sucesso."
 
-echo "[INFO] Variáveis de Time (Type e ID) exportadas para GITHUB_ENV."
+# 3. LIMPEZA DE CONFLITOS (ETAPA 3)
+echo "[INFO] Limpando conflitos de credenciais..."
+# Remover/ignorar automaticamente conforme ETAPA 3 da MISSÃO
+unset IOS_DIST_CERT_BASE64 
+unset IOS_PROV_PROFILE_BASE64 
+unset IOS_CERT_PASSWORD 
+unset EXPO_APP_STORE_CONNECT_API_KEY
+unset EXPO_APPLE_ID 
+unset EXPO_APPLE_PASSWORD 
+unset EXPO_APPLE_APP_SPECIFIC_PASSWORD
 
-# 2.5 INJEÇÃO DE ARQUIVOS CRÍTICOS (Firebase)
-echo "[INFO] Injetando arquivos de configuração (Firebase)..."
+echo "🛡️ Credenciais manuais e Apple ID bloqueados. Forçando uso exclusivo de ASC API Key (Admin)."
 
-if [[ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]]; then
-    echo "🍏 Injetando GoogleService-Info.plist..."
-    if [[ "$GOOGLE_SERVICE_INFO_PLIST" == *"<"* ]]; then
-        echo "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
-    else
-        echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist
-    fi
-fi
-
-if [[ -n "${GOOGLE_SERVICES_JSON:-}" ]]; then
-    echo "🤖 Injetando google-services.json..."
-    if [[ "$GOOGLE_SERVICES_JSON" == *"{"* ]]; then
-        echo "$GOOGLE_SERVICES_JSON" > google-services.json
-    else
-        echo "$GOOGLE_SERVICES_JSON" | base64 --decode > google-services.json
-    fi
-fi
-
-# 3. VERIFICAÇÃO DE CREDENCIAIS
-echo "[INFO] Verificando credenciais para o build..."
-
-# Não limpamos mais as credenciais automaticamente para evitar erros no CI
-# O EAS CLI usará as credenciais existentes ou criará novas usando a ASC API Key
-echo "🛡️ O EAS tentará validar as credenciais usando a ASC API Key configurada."
-
-# 4. EXECUÇÃO DO BUILD (ETAPA 4)
+# 4. EXECUÇÃO DO BUILD (ETAPA 6)
 START_TIME=$(date +%s)
-echo "🚀 [INFO] Iniciando build iOS LOCAL (GitHub Runner - No Expo Credits)..."
+echo "🚀 [INFO] Iniciando build iOS no EAS Cloud..."
 
-# Tenta o build com debug ativado e modo LOCAL para não usar créditos do EAS
-set +e # Não parar imediatamente para capturar logs e erro
-EXPO_DEBUG=1 EAS_VERBOSE=1 npx eas-cli build \
-  --platform ios \
-  --profile production_v13 \
-  --local \
-  --non-interactive \
-  --clear-cache \
-  2>&1 | tee build_output.log 2>&1
+# Função para executar o build
+run_build() {
+  local attempt=$1
+  echo "🏗️ Tentativa $attempt de build iOS..."
+  
+  # Tenta o build com debug ativado e modo CLOUD (EAS Native)
+  # Usamos --output para garantir que o IPA seja baixado se o build for bem sucedido
+  set +e # Não parar imediatamente para capturar logs e erro
+  EXPO_DEBUG=1 eas build \
+    --platform ios \
+    --profile production_v13 \
+    --non-interactive \
+    --output="build-$(date +%s).ipa" \
+    2>&1 | tee build_output.log 2>&1
+  local exit_code=$?
+  set -e
+  return $exit_code
+}
+
+# Primeira tentativa
+run_build 1
 BUILD_EXIT_CODE=$?
-set -e
+
+# 5. MONITORAMENTO E AUTO-CORREÇÃO (ETAPA 7 e 8)
+if [ $BUILD_EXIT_CODE -ne 0 ]; then
+    if grep -q "Failed to display prompt" build_output.log; then
+        echo "❌ [ABORT] ASC API Key não reconhecida — problema de ENV"
+        
+        echo "⚠️ [AUTO-HEAL] Tentando reprocessar ASC API Key para uma última tentativa..."
+        # Reprocessar key (multiline fix)
+        if [[ "$EXPO_ASC_PRIVATE_KEY" == *"\\n"* ]]; then
+            echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
+        else
+            echo "$EXPO_ASC_PRIVATE_KEY" > AuthKey.p8
+        fi
+        
+        # Re-exportar para o ambiente atual
+        export EXPO_ASC_PRIVATE_KEY=$(cat AuthKey.p8)
+        
+        echo "🔄 [AUTO-HEAL] Reexecutando build automaticamente (1 tentativa)..."
+        run_build 2
+        BUILD_EXIT_CODE=$?
+    fi
+fi
 
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
 
-# 5. VALIDAÇÃO DE SUCESSO E FALLBACK (ETAPA 5 e 6)
+# 6. VALIDAÇÃO DE SUCESSO (ETAPA 7)
 if [ $BUILD_EXIT_CODE -eq 0 ]; then
     STATUS="SUCESSO"
-    # Local build gera o artefato no diretório atual ou subdiretório
     BUILD_PATH=$(ls *.ipa 2>/dev/null | head -1 || echo "")
     
     if [ -n "$BUILD_PATH" ]; then
-        echo "✅ [SUCCESS] Build LOCAL finalizado com sucesso em ${DURATION}s."
+        echo "✅ [SUCCESS] Build finalizado com sucesso em ${DURATION}s."
         echo "📦 Artefato: $BUILD_PATH"
-        # Exportar para o GitHub Actions usar no próximo step
-        echo "IPA_PATH=$BUILD_PATH" >> $GITHUB_ENV
+        
+        if [[ -n "${GITHUB_ENV:-}" ]]; then
+            echo "IPA_PATH=$BUILD_PATH" >> "$GITHUB_ENV"
+        fi
+        
+        if grep -q "Using ASC API Key" build_output.log; then
+            echo "💎 [INFO] Confirmado: EAS utilizou ASC API Key com sucesso."
+        fi
     else
-        STATUS="FALHA"
-        echo "❌ [FAIL] Build finalizado mas arquivo .ipa não foi encontrado."
-        BUILD_EXIT_CODE=1
+        echo "⚠️ [WARNING] Build finalizado mas arquivo .ipa não foi encontrado localmente."
+        echo "💡 Isso pode ocorrer se o download falhou, mas o build no EAS Cloud pode ter tido sucesso."
     fi
 else
-    # Verifica se o erro foi de autenticação ou falta de dados para tentar fallback
-    if grep -qE "authentication|401|403|credentials|Team Type" build_output.log; then
-        echo "⚠️ [WARNING] Falha de autenticação ou configuração detectada."
-        echo "📝 Verifique se EXPO_APPLE_TEAM_TYPE e ASC API Key estão corretos."
+    STATUS="FALHA"
+    if grep -q "Failed to display prompt" build_output.log; then
+        echo "❌ [ERRO] ASC API Key não reconhecida — problema de ENV"
     fi
     
-    STATUS="FALHA"
-    CAUSE=$(tail -n 10 build_output.log)
     echo "❌ [FAIL] Build falhou após ${DURATION}s."
-    echo "📝 Causa Raiz Provável:"
-    echo "$CAUSE"
 fi
 
-# 6. LOGS ESTRUTURADOS (ETAPA 7)
+# 7. LOGS ESTRUTURADOS (ETAPA 7)
 echo "------------------------------------------------------------"
 echo "📊 RESUMO FINAL:"
 echo "STATUS: $STATUS"

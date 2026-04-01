@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity } from 'react-native';
+import React, { useMemo, useState, useCallback } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Alert } from 'react-native';
 import { TextInput, Button, Text, SegmentedButtons, Checkbox } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +11,7 @@ import { InputValidationService } from '../services/InputValidationService';
 import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { useAppTheme } from '../components/ThemeProvider';
+import { UserUtils } from '../utils/UserUtils';
 
 import { Role } from '../services/PermissionsService';
 
@@ -18,7 +19,7 @@ export default function LoginScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<any>();
-  const { login, loading } = useAuth();
+  const { login, loading, profileLoading } = useAuth();
   const [authError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +28,9 @@ export default function LoginScreen() {
   const [role, setRole] = useState<string>(Role.COMPRADOR);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const validateInputs = () => {
+  const isSyncing = loading || profileLoading;
+
+  const validateInputs = useCallback(() => {
     try {
       // Validar email
       InputValidationService.validateInputType(email, 'email');
@@ -47,18 +50,17 @@ export default function LoginScreen() {
       setError(err instanceof Error ? err.message : 'Dados de entrada inválidos');
       return false;
     }
-  };
+  }, [email, password, termsAccepted]);
 
   const handleLogin = async () => {
+    if (isSyncing) return;
+
     try {
       setError(null);
       
-      // Registrar tentativa de login (sem incluir a senha)
-      secureLoggingService.security('Tentativa de login', { email });
-      
       // Validar entradas antes de tentar login
       if (!validateInputs()) {
-        secureLoggingService.security('Falha na validação de login', { email, reason: error });
+        secureLoggingService.security('LOGIN_VALIDATION_FAILED', { email });
         return;
       }
       
@@ -67,30 +69,41 @@ export default function LoginScreen() {
         type: 'email'
       });
       
+      secureLoggingService.security('USER_LOGIN_ATTEMPT', { email: sanitizedEmail, role });
+      
       await login(sanitizedEmail, password, role);
       
-      // Registrar login bem-sucedido
-      secureLoggingService.security('Login bem-sucedido', { email: sanitizedEmail });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao fazer login';
+      // O redirecionamento agora é tratado pelo AppNavigator automaticamente 
+      // assim que o estado 'user' for atualizado no AuthContext.
+      
+    } catch (err: any) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao processar login';
       setError(errorMessage);
       
-      // Registrar falha de login
-      secureLoggingService.security('Falha de login', { 
+      secureLoggingService.error('LOGIN_PROCESS_ERROR', { 
         email, 
-        error: errorMessage,
-        timestamp: new Date().toISOString()
+        error: errorMessage 
       });
+
+      Alert.alert(
+        'Falha no Login',
+        errorMessage,
+        [{ text: 'Tentar Novamente' }]
+      );
     }
   };
 
   const handleRegister = () => {
-    secureLoggingService.info('Navegação para tela de registro');
-    navigation.navigate('Register', { role });
+    try {
+      secureLoggingService.info('NAVIGATION_TO_REGISTER', { role });
+      navigation.navigate('Register', { role });
+    } catch (err) {
+      secureLoggingService.error('NAVIGATION_ERROR', { screen: 'Register', error: err });
+    }
   };
 
-  if (loading) {
-    return <LoadingState message="Entrando..." />;
+  if (isSyncing) {
+    return <LoadingState message={profileLoading ? "Carregando perfil..." : "Entrando..."} />;
   }
 
   return (
@@ -207,7 +220,7 @@ const createStyles = (theme: { colors: any }) =>
   StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme?.colors?.background || '#FFFFFF',
   },
   keyboardAvoid: {
     flex: 1,
@@ -216,7 +229,7 @@ const createStyles = (theme: { colors: any }) =>
     flex: 1,
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme?.colors?.background || '#FFFFFF',
   },
   logoContainer: {
     alignItems: 'center',
@@ -232,24 +245,24 @@ const createStyles = (theme: { colors: any }) =>
   title: {
     textAlign: 'center',
     marginBottom: 8,
-    color: theme.colors.text.primary,
+    color: theme?.colors?.text?.primary || '#000000',
     fontWeight: 'bold', // Adicionado bold
   },
   subtitle: {
     textAlign: 'center',
     marginBottom: 36, // Aumentado um pouco
-    color: theme.colors.text.secondary,
+    color: theme?.colors?.text?.secondary || '#757575',
   },
   input: {
     marginBottom: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme?.colors?.surface || '#FFFFFF',
   },
   forgotPasswordContainer: {
     alignItems: 'flex-end',
     marginBottom: 8,
   },
   forgotPasswordText: {
-    color: theme.colors.text.primary,
+    color: theme?.colors?.text?.primary || '#000000',
     fontSize: 14,
   },
   termsContainer: {
@@ -266,10 +279,10 @@ const createStyles = (theme: { colors: any }) =>
   },
   termsText: {
     fontSize: 12,
-    color: theme.colors.text.secondary,
+    color: theme?.colors?.text?.secondary || '#757575',
   },
   termsLink: {
-    color: theme.colors.primary,
+    color: theme?.colors?.primary || '#E91E63',
     textDecorationLine: 'underline',
   },
   button: {

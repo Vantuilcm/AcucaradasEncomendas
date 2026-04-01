@@ -14,6 +14,7 @@ import { requestNotificationPermission } from '../config/notifications';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { loggingService } from '../services/LoggingService';
+import { UserUtils } from '../utils/UserUtils';
 import { NotificationType } from '../types/Notification';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -95,42 +96,68 @@ export function useNotifications(navigation?: NotificationsNavigationProp): UseN
   };
 
   const initializeNotifications = useCallback(async (): Promise<(() => void) | undefined> => {
-    if (!user) {
+    let isMounted = true;
+    const userId = UserUtils.getUserId(user);
+    if (!userId) {
       return undefined;
     }
 
     try {
-      setIsLoading(true);
-      setError(null);
+      if (isMounted) {
+        setIsLoading(true);
+        setError(null);
+      }
 
       // Inicializar OneSignal
-      initOneSignal();
-      await requestOneSignalPermission();
-      integrateWithExistingNotifications();
+      try {
+        initOneSignal();
+        await requestOneSignalPermission();
+        integrateWithExistingNotifications();
+      } catch (osError) {
+        loggingService.error('Erro ao inicializar OneSignal:', normalizeError(osError));
+      }
 
       // Configurar tags do usuário
-      if (user.id) {
+      try {
         setOneSignalTags({
-          user_id: user.id,
-          user_type: user.isAdmin ? 'admin' : 'customer',
-          email: user.email,
+          user_id: userId,
+          user_type: UserUtils.getUserRole(user) === 'admin' ? 'admin' : 'customer',
+          email: UserUtils.getUserEmail(user) || '',
           last_login: new Date().toISOString(),
         });
+      } catch (tagError) {
+        loggingService.error('Erro ao configurar tags OneSignal:', normalizeError(tagError));
       }
 
       // Solicitar permissão para notificações FCM e obter token
-      const fcmToken = await requestNotificationPermission();
-      if (fcmToken && user.id) {
-        // Salvar o token no perfil do usuário no Firestore
-        await saveUserFCMToken(user.id, fcmToken);
+      let fcmToken: string | null = null;
+      try {
+        fcmToken = await requestNotificationPermission();
+        if (fcmToken) {
+          // Salvar o token no perfil do usuário no Firestore
+          await saveUserFCMToken(userId, fcmToken);
+        }
+      } catch (fcmError) {
+        loggingService.error('Erro ao processar token FCM:', normalizeError(fcmError));
       }
 
       // Registrar para notificações push usando o novo serviço
-      const expoToken = await mobileNotificationService.registerForPushNotifications(user.id);
-      setPushToken(expoToken);
+      let expoToken: string | null = null;
+      try {
+        expoToken = await mobileNotificationService.registerForPushNotifications(userId);
+        if (isMounted) {
+          setPushToken(expoToken);
+        }
+      } catch (expoError) {
+        loggingService.error('Erro ao registrar Expo Push:', normalizeError(expoError));
+      }
 
       // Manter compatibilidade com o serviço antigo
-      await notificationService.registerUserForPushNotifications(user.id);
+      try {
+        await notificationService.registerUserForPushNotifications(userId);
+      } catch (oldServiceError) {
+        loggingService.error('Erro no serviço de notificação antigo:', normalizeError(oldServiceError));
+      }
 
       // Configurar listeners
       const subscription = mobileNotificationService.setupNotificationListener(notification => {
@@ -139,24 +166,33 @@ export function useNotifications(navigation?: NotificationsNavigationProp): UseN
 
       const responseSubscription = mobileNotificationService.setupNotificationResponseListener(
         response => {
-          const data = response.notification.request.content.data;
-          loggingService.info('Resposta à notificação:', data);
+          try {
+            const data = response.notification.request.content.data;
+            loggingService.info('Resposta à notificação:', data);
 
-          // Navegar para a tela apropriada com base nos dados da notificação
-          if (navigation && data) {
-            if (data.type === 'NEW_ORDER') {
-              navigation.navigate('OrderDetails', { orderId: data.orderId });
-            } else if (data.type === 'ORDER_STATUS_UPDATE') {
-              navigation.navigate('MainTabs', { screen: 'Orders' });
+            // Navegar para a tela apropriada com base nos dados da notificação
+            if (navigation && data) {
+              if (data.type === 'NEW_ORDER') {
+                navigation.navigate('OrderDetails', { orderId: data.orderId });
+              } else if (data.type === 'ORDER_STATUS_UPDATE') {
+                navigation.navigate('MainTabs', { screen: 'Orders' });
+              }
             }
+          } catch (navError) {
+            loggingService.error('Erro ao processar clique na notificação:', normalizeError(navError));
           }
         }
       );
 
       return () => {
+        isMounted = false;
         subscription();
         responseSubscription();
-        notificationService.unregisterUserFromPushNotifications(user.id);
+        if (userId) {
+          notificationService.unregisterUserFromPushNotifications(userId).catch(err => {
+            loggingService.error('Erro ao desregistrar usuário (antigo):', normalizeError(err));
+          });
+        }
         if (expoToken) {
           mobileNotificationService.unregisterToken(expoToken).catch(err => {
             loggingService.error('Erro ao desregistrar token:', normalizeError(err));
@@ -165,12 +201,16 @@ export function useNotifications(navigation?: NotificationsNavigationProp): UseN
       };
     } catch (error) {
       loggingService.error('Erro ao inicializar notificações:', normalizeError(error));
-      setError(error instanceof Error ? error : new Error('Erro ao inicializar notificações'));
+      if (isMounted) {
+        setError(error instanceof Error ? error : new Error('Erro ao inicializar notificações'));
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted) {
+        setIsLoading(false);
+      }
     }
     return undefined;
-  }, [user]);
+  }, [user, navigation]);
 
   const requestPermissions = useCallback(async (): Promise<boolean> => {
     try {
@@ -196,7 +236,8 @@ export function useNotifications(navigation?: NotificationsNavigationProp): UseN
    * Registra o dispositivo para receber notificações push
    */
   const registerForPushNotifications = useCallback(async (): Promise<string | null> => {
-    if (!user) {
+    const userId = UserUtils.getUserId(user);
+    if (!userId) {
       setError(new Error('Usuário não autenticado'));
       return null;
     }
@@ -205,7 +246,7 @@ export function useNotifications(navigation?: NotificationsNavigationProp): UseN
       setIsLoading(true);
       setError(null);
 
-      const token = await mobileNotificationService.registerForPushNotifications(user.id);
+      const token = await mobileNotificationService.registerForPushNotifications(userId);
       setPushToken(token);
       return token;
     } catch (err) {
@@ -223,7 +264,8 @@ export function useNotifications(navigation?: NotificationsNavigationProp): UseN
    * Cancela o registro do dispositivo para notificações push
    */
   const unregisterPushNotifications = useCallback(async (): Promise<void> => {
-    if (!pushToken || !user) {
+    const userId = UserUtils.getUserId(user);
+    if (!pushToken || !userId) {
       return;
     }
 
@@ -232,7 +274,7 @@ export function useNotifications(navigation?: NotificationsNavigationProp): UseN
       setError(null);
 
       await mobileNotificationService.unregisterToken(pushToken);
-      await notificationService.unregisterUserFromPushNotifications(user.id);
+      await notificationService.unregisterUserFromPushNotifications(userId);
       setPushToken(null);
     } catch (err) {
       const error =

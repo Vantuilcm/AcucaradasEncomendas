@@ -42,24 +42,37 @@ export const PaymentMethodsScreen: React.FC = () => {
   const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
-    loadPaymentMethods();
+    let isMounted = true;
+    const init = async () => {
+      try {
+        if (isMounted) {
+          await loadPaymentMethods();
+        }
+      } catch (error) {
+        console.error('Erro ao inicializar métodos de pagamento:', error);
+      }
+    };
+    init();
+    return () => { isMounted = false; };
   }, []);
 
   const loadPaymentMethods = async () => {
     try {
       setLoading(true);
-      if (!user?.id) {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) {
         setCards([]);
         setPixKeys([]);
         return;
       }
       const [userCards, userPixKeys] = await Promise.all([
-        PaymentService.getInstance().getPaymentCards(user.id),
-        PaymentService.getInstance().getPixKeys(user.id),
+        PaymentService.getInstance().getPaymentCards(userId),
+        PaymentService.getInstance().getPixKeys(userId),
       ]);
       setCards(userCards);
       setPixKeys(userPixKeys);
     } catch (error) {
+      console.error('Erro ao carregar métodos de pagamento:', error);
       Alert.alert('Erro', 'Não foi possível carregar seus métodos de pagamento.');
     } finally {
       setLoading(false);
@@ -67,9 +80,14 @@ export const PaymentMethodsScreen: React.FC = () => {
   };
 
   const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
-    await loadPaymentMethods();
-    setRefreshing(false);
+    try {
+      setRefreshing(true);
+      await loadPaymentMethods();
+    } catch (error) {
+      console.error('Erro ao atualizar métodos de pagamento:', error);
+    } finally {
+      setRefreshing(false);
+    }
   }, []);
 
   const handleAddCard = async (cardData: {
@@ -81,20 +99,22 @@ export const PaymentMethodsScreen: React.FC = () => {
   }) => {
     try {
       setLoading(true);
-      if (!user?.id || !user.email) {
+      const userId = user?.id || (user as any)?.uid;
+      const userEmail = user?.email;
+      if (!userId || !userEmail) {
         Alert.alert('Erro', 'Usuário não autenticado.');
         return;
       }
 
       const stripeService = StripeService.getInstance();
-      const userRef = doc(db, 'users', user.id);
+      const userRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userRef);
       const userData = userDoc.exists() ? (userDoc.data() as any) : null;
       let customerId = userData?.stripeCustomerId as string | undefined;
       if (!customerId) {
         customerId = await stripeService.createCustomer(
-          user.email,
-          user.nome || 'Cliente'
+          userEmail,
+          (user as any)?.nome || 'Cliente'
         );
         await updateDoc(userRef, { stripeCustomerId: customerId } as any);
       }
@@ -105,7 +125,7 @@ export const PaymentMethodsScreen: React.FC = () => {
         expYear: parseInt('20' + cardData.expiryDate.split('/')[1]),
         cvc: cardData.cvc,
         holderName: cardData.holderName,
-        email: user.email,
+        email: userEmail,
       });
 
       // Adicionar método de pagamento ao cliente
@@ -123,7 +143,7 @@ export const PaymentMethodsScreen: React.FC = () => {
       const [expiryMonth, expiryYear] = cardData.expiryDate.split('/');
       const cardNumber = cardData.number.replace(/\s/g, '');
       await PaymentService.getInstance().addPaymentCard({
-        userId: user.id,
+        userId: userId,
         last4: cardNumber.slice(-4),
         brand: cardData.brand || 'Card',
         expiryMonth: parseInt(expiryMonth),
@@ -132,9 +152,10 @@ export const PaymentMethodsScreen: React.FC = () => {
       });
 
       setModalVisible(false);
-      loadPaymentMethods();
+      await loadPaymentMethods();
       Alert.alert('Sucesso', 'Cartão adicionado com sucesso!');
     } catch (error) {
+      console.error('Erro ao adicionar cartão:', error);
       Alert.alert('Erro', 'Não foi possível adicionar o cartão.');
     } finally {
       setLoading(false);
@@ -144,20 +165,22 @@ export const PaymentMethodsScreen: React.FC = () => {
   const handleAddPixKey = async () => {
     try {
       setLoading(true);
-      if (!user?.id) {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) {
         Alert.alert('Erro', 'Usuário não autenticado.');
         return;
       }
       await PaymentService.getInstance().addPixKey({
-        userId: user.id,
+        userId: userId,
         type: pixKeyType,
         value: pixKey,
         isDefault: pixKeys.length === 0,
       });
       setModalVisible(false);
-      loadPaymentMethods();
+      await loadPaymentMethods();
       Alert.alert('Sucesso', 'Chave PIX adicionada com sucesso!');
     } catch (error) {
+      console.error('Erro ao adicionar chave PIX:', error);
       Alert.alert('Erro', 'Não foi possível adicionar a chave PIX.');
     } finally {
       setLoading(false);
@@ -168,9 +191,10 @@ export const PaymentMethodsScreen: React.FC = () => {
     try {
       setLoading(true);
       await PaymentService.getInstance().removePaymentCard(cardId);
-      loadPaymentMethods();
+      await loadPaymentMethods();
       Alert.alert('Sucesso', 'Cartão removido com sucesso!');
     } catch (error) {
+      console.error('Erro ao remover cartão:', error);
       Alert.alert('Erro', 'Não foi possível remover o cartão.');
     } finally {
       setLoading(false);
@@ -180,14 +204,16 @@ export const PaymentMethodsScreen: React.FC = () => {
   const handleSetDefaultCard = async (cardId: string) => {
     try {
       setLoading(true);
-      if (!user?.id) {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) {
         Alert.alert('Erro', 'Usuário não autenticado.');
         return;
       }
-      await PaymentService.getInstance().setDefaultCard(user.id, cardId);
-      loadPaymentMethods();
+      await PaymentService.getInstance().setDefaultCard(userId, cardId);
+      await loadPaymentMethods();
       Alert.alert('Sucesso', 'Cartão padrão definido com sucesso!');
     } catch (error) {
+      console.error('Erro ao definir cartão padrão:', error);
       Alert.alert('Erro', 'Não foi possível definir o cartão como padrão.');
     } finally {
       setLoading(false);
@@ -198,9 +224,10 @@ export const PaymentMethodsScreen: React.FC = () => {
     try {
       setLoading(true);
       await PaymentService.getInstance().removePixKey(pixKeyId);
-      loadPaymentMethods();
+      await loadPaymentMethods();
       Alert.alert('Sucesso', 'Chave PIX removida com sucesso!');
     } catch (error) {
+      console.error('Erro ao remover chave PIX:', error);
       Alert.alert('Erro', 'Não foi possível remover a chave PIX.');
     } finally {
       setLoading(false);
@@ -210,14 +237,16 @@ export const PaymentMethodsScreen: React.FC = () => {
   const handleSetDefaultPixKey = async (pixKeyId: string) => {
     try {
       setLoading(true);
-      if (!user?.id) {
+      const userId = user?.id || (user as any)?.uid;
+      if (!userId) {
         Alert.alert('Erro', 'Usuário não autenticado.');
         return;
       }
-      await PaymentService.getInstance().setDefaultPixKey(user.id, pixKeyId);
-      loadPaymentMethods();
+      await PaymentService.getInstance().setDefaultPixKey(userId, pixKeyId);
+      await loadPaymentMethods();
       Alert.alert('Sucesso', 'Chave PIX padrão definida com sucesso!');
     } catch (error) {
+      console.error('Erro ao definir chave PIX padrão:', error);
       Alert.alert('Erro', 'Não foi possível definir a chave PIX como padrão.');
     } finally {
       setLoading(false);
@@ -227,7 +256,7 @@ export const PaymentMethodsScreen: React.FC = () => {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={colors?.primary || '#E91E63'} />
       </View>
     );
   }
