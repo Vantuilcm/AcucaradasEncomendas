@@ -99,14 +99,36 @@ echo "🛡️ Ambiente limpo e pronto."
 ## ETAPA 3 — EXECUÇÃO DO BUILD LOCAL (GITHUB RUNNER)
 START_TIME=$(date +%s)
 
+# 3.1 Carregar variáveis de ambiente do Perfil (EAS Local exige injeção manual)
+echo "🌍 [ENV] Injetando variáveis do Perfil: ${PROFILE:-production_v13}..."
+# Injeção manual das variáveis críticas para evitar crash no startup (Sentry, OneSignal, etc)
+export APP_ENV="production"
+export EXPO_PUBLIC_APP_ENV="production"
+export EXPO_PUBLIC_APP_NAME="Açucaradas Encomendas"
+export EXPO_PUBLIC_PROJECT_ID="6090106b-e327-4744-bce5-9ddb0d037045"
+export APPLE_TEAM_TYPE="COMPANY_OR_ORGANIZATION"
+
+# 3.2 Pré-geração Nativa (Garante injeção do GoogleService-Info.plist)
+echo "🏗️ [PREBUILD] Gerando diretório nativo iOS..."
+npx expo prebuild --platform ios --no-install --non-interactive
+
+# 3.3 Validar se o prebuild injetou o arquivo no local correto do Xcode
+if [ ! -f "ios/Açucaradas Encomendas/GoogleService-Info.plist" ] && [ ! -f "ios/AcucaradasEncomendas/GoogleService-Info.plist" ]; then
+    echo "⚠️ [WARNING] GoogleService-Info.plist não encontrado no diretório nativo. Copiando manualmente..."
+    # Tentar encontrar o diretório correto (com ou sem espaços)
+    TARGET_DIR=$(find ios -maxdepth 1 -type d -not -path 'ios' -not -name 'Pods' -not -name '*.xcodeproj' -not -name '*.xcworkspace' | head -n 1)
+    cp GoogleService-Info.plist "$TARGET_DIR/"
+fi
+
 run_eas_build_local() {
   local attempt=$1
-  echo "🏗️ [BUILD] Tentativa $attempt de build iOS LOCAL (GitHub Runner)..."
+  local build_profile=${PROFILE:-"production_v13"}
+  echo "🏗️ [BUILD] Tentativa $attempt de build iOS LOCAL (Perfil: $build_profile)..."
   
   # Executa EAS Build Local
   # --local: Compila no runner macos, não usa créditos Expo Cloud
   set +e
-  eas build --platform ios --profile production --local --non-interactive
+  eas build --platform ios --profile "$build_profile" --local --non-interactive
   local exit_code=$?
   set -e
   
