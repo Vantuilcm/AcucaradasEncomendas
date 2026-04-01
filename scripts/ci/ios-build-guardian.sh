@@ -14,42 +14,41 @@ echo "------------------------------------------------------------"
 MISSING_BASE_VARS=()
 [ -z "${EXPO_TOKEN:-}" ] && MISSING_BASE_VARS+=("EXPO_TOKEN")
 [ -z "${EXPO_APPLE_TEAM_ID:-}" ] && MISSING_BASE_VARS+=("EXPO_APPLE_TEAM_ID")
-[ -z "${GOOGLE_SERVICE_INFO_PLIST:-}" ] && MISSING_BASE_VARS+=("GOOGLE_SERVICE_INFO_PLIST")
-
-# 1.1.1 Verificação de Variáveis de Runtime (CRÍTICO PARA LOCAL BUILD)
-# Sem estas variáveis o app crasha no startup porque o bundle JS não as encontra.
-CRITICAL_RUNTIME_VARS=(
-    "EXPO_PUBLIC_FIREBASE_API_KEY"
-    "EXPO_PUBLIC_FIREBASE_PROJECT_ID"
-    "EXPO_PUBLIC_ONESIGNAL_APP_ID"
-    "EXPO_PUBLIC_API_URL"
-)
-
-for var in "${CRITICAL_RUNTIME_VARS[@]}"; do
-    if [ -z "${!var:-}" ]; then
-        echo "⚠️ [WARNING] Variável de Runtime ausente: $var"
-        echo "💡 [DICA] Como você está usando BUILD LOCAL no GitHub, você DEVE migrar os segredos do Expo Dashboard para o GitHub Secrets."
-    fi
-done
+# GOOGLE_SERVICE_INFO_PLIST não é obrigatório para o Guardian se já existir o arquivo
+# Mas no CI geralmente é injetado via secret.
+[ -z "${GOOGLE_SERVICE_INFO_PLIST:-}" ] && echo "⚠️ [WARNING] GOOGLE_SERVICE_INFO_PLIST não definida. O build pode falhar se o arquivo não existir."
 
 if [ ${#MISSING_BASE_VARS[@]} -ne 0 ]; then
-    echo "❌ [ERRO] Variáveis base ausentes: ${MISSING_BASE_VARS[*]}"
+    echo "❌ [ERRO] Variáveis base obrigatórias ausentes: ${MISSING_BASE_VARS[*]}"
     exit 1
 fi
 
 # 1.2 Validação de Autenticação (Apple ID ou ASC API Key)
 AUTH_METHOD=""
 
-echo "[DEBUG] Verificando credenciais..."
+# Debug credential checks
+echo "🔍 [DEBUG] Verificando credenciais para iOS..."
 echo "[DEBUG] EXPO_ASC_KEY_ID: ${EXPO_ASC_KEY_ID:-(vazia)}"
 echo "[DEBUG] EXPO_ASC_ISSUER_ID: ${EXPO_ASC_ISSUER_ID:-(vazia)}"
 echo "[DEBUG] EXPO_ASC_PRIVATE_KEY: ${EXPO_ASC_PRIVATE_KEY:+(presente)}"
 echo "[DEBUG] EXPO_ASC_PRIVATE_KEY_BASE64: ${EXPO_ASC_PRIVATE_KEY_BASE64:+(presente)}"
 
-# Verificar ASC API Key (Prioridade)
-if [ -n "${EXPO_ASC_KEY_ID:-}" ] && [ -n "${EXPO_ASC_ISSUER_ID:-}" ] && { [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ] || [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; }; then
-    AUTH_METHOD="ASC_API_KEY"
-    echo "🔑 [AUTH] Utilizando App Store Connect API Key (Admin)."
+# Verificar ASC API Key (Obrigatório para iOS EAS Cloud em modo não-interativo)
+MISSING_ASC_VARS=()
+[ -z "${EXPO_ASC_KEY_ID:-}" ] && MISSING_ASC_VARS+=("EXPO_ASC_KEY_ID")
+[ -z "${EXPO_ASC_ISSUER_ID:-}" ] && MISSING_ASC_VARS+=("EXPO_ASC_ISSUER_ID")
+if [ -z "${EXPO_ASC_PRIVATE_KEY:-}" ] && [ -z "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
+    MISSING_ASC_VARS+=("EXPO_ASC_PRIVATE_KEY ou EXPO_ASC_PRIVATE_KEY_BASE64")
+fi
+
+if [ ${#MISSING_ASC_VARS[@]} -ne 0 ]; then
+    echo "❌ [ERRO] Variáveis de ASC API Key ausentes: ${MISSING_ASC_VARS[*]}"
+    echo "💡 [DICA] Sem estas variáveis, o EAS Build solicitará credenciais interativamente e falhará no CI."
+    exit 1
+fi
+
+AUTH_METHOD="ASC_API_KEY"
+echo "🔑 [AUTH] Utilizando App Store Connect API Key (Admin)."
     
     # Normalizar Private Key para arquivo se necessário pelo EAS
     if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
@@ -81,14 +80,6 @@ if [ -n "${EXPO_ASC_KEY_ID:-}" ] && [ -n "${EXPO_ASC_ISSUER_ID:-}" ] && { [ -n "
         echo "❌ [ERRO] Falha ao gerar arquivo AuthKey.p8."
         exit 1
     fi
-# Verificar Apple ID
-elif [ -n "${EXPO_APPLE_ID:-}" ] && [ -n "${EXPO_APPLE_APP_SPECIFIC_PASSWORD:-}" ]; then
-    AUTH_METHOD="APPLE_ID"
-    echo "🔑 [AUTH] Utilizando Apple ID + App Specific Password."
-else
-    echo "❌ [ERRO] Nenhuma credencial de autenticação Apple válida encontrada."
-    echo "💡 [DICA] Configure (EXPO_APPLE_ID + EXPO_APPLE_APP_SPECIFIC_PASSWORD) OU (EXPO_ASC_KEY_ID + EXPO_ASC_ISSUER_ID + EXPO_ASC_PRIVATE_KEY)."
-    exit 1
 fi
 
 # 1.3 Governança de Arquivos (Anti-Signing Manual)
