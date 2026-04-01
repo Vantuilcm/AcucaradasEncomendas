@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import usePermissions from '../hooks/usePermissions';
 import { useNotifications } from '../hooks/useNotifications';
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, StatusBar, RefreshControl, ActivityIndicator } from 'react-native';
 import { Text, Button, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
