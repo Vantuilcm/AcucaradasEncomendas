@@ -168,7 +168,14 @@ if [ ! -f "ios/Açucaradas Encomendas/GoogleService-Info.plist" ] && [ ! -f "ios
     echo "⚠️ [WARNING] GoogleService-Info.plist não encontrado no diretório nativo. Copiando manualmente..."
     # Tentar encontrar o diretório correto (com ou sem espaços)
     TARGET_DIR=$(find ios -maxdepth 1 -type d -not -path 'ios' -not -name 'Pods' -not -name '*.xcodeproj' -not -name '*.xcworkspace' | head -n 1)
-    cp GoogleService-Info.plist "$TARGET_DIR/"
+    if [ -n "$TARGET_DIR" ]; then
+        cp GoogleService-Info.plist "$TARGET_DIR/"
+    fi
+fi
+
+# 3.4 Corrigir permissões do gradlew (apenas para evitar erros se o android estiver presente)
+if [ -f "android/gradlew" ]; then
+    chmod +x android/gradlew
 fi
 
 run_eas_build() {
