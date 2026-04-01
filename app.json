@@ -2,7 +2,7 @@
   "expo": {
     "name": "Açucaradas Encomendas",
     "slug": "acucaradas-encomendas",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.acucaradas.encomendas",
-      "buildNumber": "441",
+      "buildNumber": "442",
       "appleTeamId": "7L68YF5S29",
       "entitlements": {
         "com.apple.developer.applesignin": [
@@ -46,7 +46,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.acucaradas.encomendas",
-      "versionCode": 441,
+      "versionCode": 442,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
