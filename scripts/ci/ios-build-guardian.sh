@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V2.1 - Hybrid Auth)
-# Missão: Executar Build iOS 100% estável, automatizado e resiliente via GitHub Actions + EAS Cloud.
+# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V3.0 - GitHub Local Build)
+# Missão: Executar Build iOS 100% estável no GitHub Runner (macOS) SEM usar créditos da Expo.
 # Suporte: Apple ID (2FA) ou ASC API Key (Recomendado para CI).
 
-echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS..."
+echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS (LOCAL)..."
 echo "------------------------------------------------------------"
 
 ## ETAPA 1 — PRÉ-VALIDAÇÃO (FAIL FAST)
@@ -96,52 +96,52 @@ if [ "$AUTH_METHOD" = "ASC_API_KEY" ]; then
 fi
 echo "🛡️ Ambiente limpo e pronto."
 
-## ETAPA 3 — EXECUÇÃO DO BUILD (PADRÃO OFICIAL EAS CLOUD)
+## ETAPA 3 — EXECUÇÃO DO BUILD LOCAL (GITHUB RUNNER)
 START_TIME=$(date +%s)
 
-run_eas_build() {
+run_eas_build_local() {
   local attempt=$1
-  echo "🏗️ [BUILD] Tentativa $attempt de build iOS no EAS Cloud..."
+  echo "🏗️ [BUILD] Tentativa $attempt de build iOS LOCAL (GitHub Runner)..."
   
-  # Executa EAS Build e captura a URL do build
+  # Executa EAS Build Local
+  # --local: Compila no runner macos, não usa créditos Expo Cloud
   set +e
-  BUILD_LOG=$(eas build --platform ios --profile production --non-interactive --no-wait 2>&1)
+  eas build --platform ios --profile production --local --non-interactive
   local exit_code=$?
   set -e
   
-  echo "$BUILD_LOG"
-  
-  # ETAPA 4 — MONITORAMENTO INTELIGENTE
-  BUILD_URL=$(echo "$BUILD_LOG" | grep -o "https://expo.dev/accounts/[^ ]*/builds/[^ ]*" | head -1 || echo "")
-  
-  if [ -n "$BUILD_URL" ]; then
-      echo "📦 [SUCCESS] Build iniciado com sucesso!"
-      echo "🔗 URL: $BUILD_URL"
+  if [ $exit_code -eq 0 ]; then
+      echo "📦 [SUCCESS] Build Local concluído com sucesso!"
+      # Encontrar o arquivo .ipa gerado
+      IPA_FILE=$(ls *.ipa 2>/dev/null | head -n 1 || echo "")
+      if [ -n "$IPA_FILE" ]; then
+          echo "📂 Arquivo gerado: $IPA_FILE"
+          echo "IPA_PATH=$IPA_FILE" >> $GITHUB_ENV
+      fi
       return 0
   else
-      echo "⚠️ [WARNING] Não foi possível capturar a URL do build na tentativa $attempt."
+      echo "⚠️ [WARNING] Falha no build local na tentativa $attempt."
       return 1
   fi
 }
 
-# ETAPA 5 — AUTO-HEAL (RETRY)
+# ETAPA 4 — AUTO-HEAL (RETRY)
 MAX_RETRIES=2
 ATTEMPT=1
 SUCCESS=false
 
 while [ $ATTEMPT -le $MAX_RETRIES ]; do
-    if run_eas_build $ATTEMPT; then
+    if run_eas_build_local $ATTEMPT; then
         SUCCESS=true
         break
     fi
     
-    echo "🔄 [AUTO-HEAL] Detectada falha no disparo. Verificando causas comuns..."
+    echo "🔄 [AUTO-HEAL] Detectada falha no build. Verificando causas comuns..."
     
     # Se erro de credenciais, tenta sincronizar
-    if echo "$BUILD_LOG" | grep -q "credentials"; then
-        echo "🔑 [FIX] Tentando sincronizar credenciais EAS..."
-        eas credentials:sync -p ios --non-interactive || true
-    fi
+    # No build local, as credenciais ainda são baixadas do EAS
+    echo "🔑 [FIX] Sincronizando credenciais EAS para garantir acesso local..."
+    eas credentials:sync -p ios --non-interactive || true
     
     ATTEMPT=$((ATTEMPT + 1))
     [ $ATTEMPT -le $MAX_RETRIES ] && echo "⏳ Aguardando 10s para próxima tentativa..." && sleep 10
@@ -150,18 +150,17 @@ done
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
 
-## ETAPA 6 — OUTPUT FINAL
+## ETAPA 5 — OUTPUT FINAL
 echo "------------------------------------------------------------"
 echo "📊 RESUMO FINAL:"
 if [ "$SUCCESS" = true ]; then
     echo "STATUS: SUCCESS"
-    echo "URL: $BUILD_URL"
+    echo "TIPO: LOCAL BUILD (GitHub)"
     echo "TEMPO: ${DURATION}s"
     exit 0
 else
     echo "STATUS: FAILURE"
-    echo "MOTIVO: Falha ao disparar build após $MAX_RETRIES tentativas."
-    echo "ETAPA: ETAPA 3 (EAS BUILD)"
-    echo "DICA: Verifique se o EXPO_TOKEN tem permissão de Admin e se as credenciais ($AUTH_METHOD) estão corretas."
+    echo "MOTIVO: Falha no build local após $MAX_RETRIES tentativas."
+    echo "DICA: Verifique os logs do Xcode acima para erros de compilação ou certificados."
     exit 1
 fi
