@@ -40,6 +40,12 @@ fi
 # 1.2 Validação de Autenticação (Apple ID ou ASC API Key)
 AUTH_METHOD=""
 
+echo "[DEBUG] Verificando credenciais..."
+echo "[DEBUG] EXPO_ASC_KEY_ID: ${EXPO_ASC_KEY_ID:-(vazia)}"
+echo "[DEBUG] EXPO_ASC_ISSUER_ID: ${EXPO_ASC_ISSUER_ID:-(vazia)}"
+echo "[DEBUG] EXPO_ASC_PRIVATE_KEY: ${EXPO_ASC_PRIVATE_KEY:+(presente)}"
+echo "[DEBUG] EXPO_ASC_PRIVATE_KEY_BASE64: ${EXPO_ASC_PRIVATE_KEY_BASE64:+(presente)}"
+
 # Verificar ASC API Key (Prioridade)
 if [ -n "${EXPO_ASC_KEY_ID:-}" ] && [ -n "${EXPO_ASC_ISSUER_ID:-}" ] && { [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ] || [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; }; then
     AUTH_METHOD="ASC_API_KEY"
@@ -117,6 +123,11 @@ echo "✅ [SUCCESS] GoogleService-Info.plist válido."
 
 # 1.5 Expo Config Validation (Bundle ID)
 echo "[INFO] Validando Expo Config..."
+if ! command -v jq &> /dev/null; then
+    echo "⚠️ [WARNING] jq não encontrado. Instalando..."
+    sudo apt-get update && sudo apt-get install -y jq || true
+fi
+
 BUNDLE_ID=$(npx expo config --json | jq -r '.ios.bundleIdentifier // empty')
 if [ "$BUNDLE_ID" != "com.acucaradas.encomendas" ]; then
     echo "❌ [ERRO] bundleIdentifier incorreto: $BUNDLE_ID (esperado: com.acucaradas.encomendas)"
