@@ -770,10 +770,6 @@ export class AuthService {
       // Versão simulada para compatibilidade
       const usuario = Array.from(this.usuarios.values()).find(u => u.email === email);
       if (usuario) {
-        const jwtSecret = process.env.JWT_SECRET;
-        if (!jwtSecret) {
-          throw new Error('JWT_SECRET não configurado nas variáveis de ambiente');
-        }
         // Gerar token simulado (mas sem usar crypto/jsonwebtoken no client)
       const token = `simulated_token_${usuario.id}_${Date.now()}`;
       // const token = jwt.sign({ id: usuario.id, email: usuario.email }, jwtSecret, {
@@ -838,10 +834,6 @@ export class AuthService {
         await confirmPasswordReset(auth, dados.actionCode, dados.novaSenha);
       } else {
         // Versão simulada com JWT token
-        const jwtSecret = process.env.JWT_SECRET;
-        if (!jwtSecret) {
-          throw new Error('JWT_SECRET não configurado nas variáveis de ambiente');
-        }
         if (!dados.token) {
           throw new Error('Token inválido');
         }

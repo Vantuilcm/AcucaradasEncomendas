@@ -1,19 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-
-// Configuração da API com fallbacks para diferentes ambientes
-const getApiUrl = () => {
-  return (
-    process.env.EXPO_PUBLIC_API_URL ||
-    Constants.expoConfig?.extra?.apiUrl ||
-    'https://api.acucaradas.com'
-  );
-};
+import { ENV } from '../config/env';
 
 const api = axios.create({
-  baseURL: getApiUrl(),
+  baseURL: ENV.EXPO_PUBLIC_API_URL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

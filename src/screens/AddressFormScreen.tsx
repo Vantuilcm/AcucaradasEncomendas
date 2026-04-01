@@ -181,7 +181,7 @@ export function AddressFormScreen() {
             <TextInput
               label="Nome do Endereço"
               value={formData.name}
-              onChangeText={text => setFormData({ ...formData, name: text })}
+              onChangeText={(text: string) => setFormData({ ...formData, name: text })}
               style={styles.input}
             />
 
@@ -198,42 +198,42 @@ export function AddressFormScreen() {
             <TextInput
               label="Rua"
               value={formData.street}
-              onChangeText={text => setFormData({ ...formData, street: text })}
+              onChangeText={(text: string) => setFormData({ ...formData, street: text })}
               style={styles.input}
             />
 
             <TextInput
               label="Número"
               value={formData.number}
-              onChangeText={text => setFormData({ ...formData, number: text })}
+              onChangeText={(text: string) => setFormData({ ...formData, number: text })}
               style={styles.input}
             />
 
             <TextInput
               label="Complemento"
               value={formData.complement}
-              onChangeText={text => setFormData({ ...formData, complement: text })}
+              onChangeText={(text: string) => setFormData({ ...formData, complement: text })}
               style={styles.input}
             />
 
             <TextInput
               label="Bairro"
               value={formData.neighborhood}
-              onChangeText={text => setFormData({ ...formData, neighborhood: text })}
+              onChangeText={(text: string) => setFormData({ ...formData, neighborhood: text })}
               style={styles.input}
             />
 
             <TextInput
               label="Cidade"
               value={formData.city}
-              onChangeText={text => setFormData({ ...formData, city: text })}
+              onChangeText={(text: string) => setFormData({ ...formData, city: text })}
               style={styles.input}
             />
 
             <TextInput
               label="Estado"
               value={formData.state}
-              onChangeText={text => setFormData({ ...formData, state: text })}
+              onChangeText={(text: string) => setFormData({ ...formData, state: text })}
               style={styles.input}
             />
 
@@ -241,7 +241,7 @@ export function AddressFormScreen() {
               <Text variant="bodyLarge">Endereço Padrão</Text>
               <Switch
                 value={formData.isDefault}
-                onValueChange={value => setFormData({ ...formData, isDefault: value })}
+                onValueChange={(value: boolean) => setFormData({ ...formData, isDefault: value })}
               />
             </View>
 

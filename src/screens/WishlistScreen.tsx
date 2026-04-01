@@ -131,7 +131,7 @@ export default function WishlistScreen() {
       await socialService.removeFromWishlist(userId, product.id);
 
       // Atualizar estado local
-      setProducts(prev => prev.filter(p => p.id !== product.id));
+      setProducts((prev: WishlistProduct[]) => prev.filter((p: WishlistProduct) => p.id !== product.id));
 
       // Feedback tátil e visual
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -222,8 +222,8 @@ export default function WishlistScreen() {
       await (socialService as any).setWishlistItemVisibility(userId, product.id, newVisibility);
 
       // Atualizar estado local
-      setProducts(prev =>
-        prev.map(p => {
+      setProducts((prev: WishlistProduct[]) =>
+        prev.map((p: WishlistProduct) => {
           if (p.id === product.id) {
             return {
               ...p,
@@ -260,7 +260,7 @@ export default function WishlistScreen() {
 
     // Esconder o toast após um tempo
     setTimeout(() => {
-      setToast(prev => ({ ...prev, visible: false }));
+      setToast((prev: any) => ({ ...prev, visible: false }));
     }, 3000);
   };
 
@@ -361,7 +361,7 @@ export default function WishlistScreen() {
             <Menu
               visible={menuVisible}
               onDismiss={() => setMenuVisible(false)}
-              anchor={{ x: 0, y: 0 }}
+              anchor={{ x: 100, y: 100 }}
             >
               <Menu.Item
                 onPress={() => {
@@ -465,7 +465,7 @@ export default function WishlistScreen() {
         visible={toast.visible}
         message={toast.message}
         type={toast.type}
-        onHide={() => setToast(prev => ({ ...prev, visible: false }))}
+        onHide={() => setToast((prev: any) => ({ ...prev, visible: false }))}
       />
     </SafeAreaView>
   );

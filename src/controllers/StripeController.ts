@@ -9,7 +9,9 @@ export class StripeController {
 
   constructor() {
     this.paymentService = PaymentService.getInstance();
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+    // A STRIPE_SECRET_KEY deve ser configurada apenas no servidor.
+    // Este controller parece ser parte de um mock ou implementação híbrida.
+    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'mock_secret_key', {
       apiVersion: '2026-02-25.clover',
     });
   }

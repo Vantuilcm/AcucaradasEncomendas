@@ -128,7 +128,7 @@ export default function ProductDetailsScreen() {
   };
 
   // Função para exibir toast
-  const showToast = (message: any, type = FeedbackType.SUCCESS) => {
+  const showToast = (message: string, type = FeedbackType.SUCCESS) => {
     try {
       setToast({
         visible: true,
@@ -296,7 +296,7 @@ export default function ProductDetailsScreen() {
           )}
 
           {/* Botão de adicionar ao carrinho */}
-          <View style={styles.addToCartContainer} ref={addToCartButtonRef}>
+          <View style={styles.addToCartContainer} ref={addToCartButtonRef} collapsable={false}>
             <FeedbackButton
               onPress={handleAddToCart}
               hapticFeedback={true}
@@ -325,7 +325,7 @@ export default function ProductDetailsScreen() {
         visible={toast.visible}
         message={toast.message}
         type={toast.type}
-        onHide={() => setToast(prev => ({ ...prev, visible: false }))}
+        onHide={() => setToast((prev: any) => ({ ...prev, visible: false }))}
       />
 
       {/* Animação de adição ao carrinho */}

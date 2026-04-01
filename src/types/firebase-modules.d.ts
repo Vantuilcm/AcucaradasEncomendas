@@ -35,6 +35,18 @@ declare module 'firebase/auth' {
     static credential(email: string, password: string): AuthCredential;
   }
 
+  export class GoogleAuthProvider {
+    static credential(idToken: string, accessToken?: string): AuthCredential;
+  }
+
+  export class FacebookAuthProvider {
+    static credential(accessToken: string): AuthCredential;
+  }
+
+  export function getAuth(app?: any): Auth;
+  export function initializeAuth(app: any, options?: any): Auth;
+  export function getReactNativePersistence(storage: any): any;
+
   export function applyActionCode(auth: Auth, oobCode: string): Promise<void>;
   export function confirmPasswordReset(
     auth: Auth,
@@ -64,6 +76,29 @@ declare module 'firebase/auth' {
   ): Promise<UserCredential>;
   export function updateEmail(user: User, newEmail: string): Promise<void>;
   export function updatePassword(user: User, newPassword: string): Promise<void>;
+  export function signInWithCredential(auth: Auth, credential: AuthCredential): Promise<UserCredential>;
+}
+
+declare module 'firebase/app' {
+  export interface FirebaseApp {
+    name: string;
+    options: any;
+  }
+  export function initializeApp(config: any): FirebaseApp;
+  export function getApps(): FirebaseApp[];
+  export function getApp(name?: string): FirebaseApp;
+  export function deleteApp(app: FirebaseApp): Promise<void>;
+}
+
+declare module 'firebase/storage' {
+  export interface FirebaseStorage {}
+  export function getStorage(app?: any): FirebaseStorage;
+}
+
+declare module 'firebase/analytics' {
+  export interface Analytics {}
+  export function getAnalytics(app?: any): Analytics;
+  export function isSupported(): Promise<boolean>;
 }
 
 declare module 'firebase/firestore' {

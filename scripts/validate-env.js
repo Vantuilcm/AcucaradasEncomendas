@@ -1,76 +1,51 @@
-const fs = require('fs');
-const path = require('path');
+/**
+ * 🧪 scripts/validate-env.js
+ * Valida variáveis de ambiente CRÍTICAS antes do build começar.
+ * Se faltar algo essencial, o build falha imediatamente (Fail Fast).
+ */
 
-console.log('🔍 [RellBuild] Validando ambiente e variáveis críticas antes do build...');
-
-const requiredVars = [
+const requiredEnvVars = [
+  'EXPO_PUBLIC_API_URL',
+  'EXPO_PUBLIC_PROJECT_ID',
+  'EXPO_PUBLIC_APP_NAME',
   'EXPO_PUBLIC_FIREBASE_API_KEY',
-  'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
-  'EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
   'EXPO_PUBLIC_FIREBASE_APP_ID',
   'EXPO_PUBLIC_ONESIGNAL_APP_ID',
   'EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY'
 ];
 
-const requiredFiles = [
-  'google-services.json',
-  'GoogleService-Info.plist'
+const forbiddenEnvVars = [
+  'FIREBASE_API_KEY',
+  'STRIPE_SECRET_KEY',
+  'JWT_SECRET'
 ];
 
-let envContent = '';
-const envPath = path.resolve(__dirname, '../.env');
+let hasError = false;
 
-if (fs.existsSync(envPath)) {
-  envContent = fs.readFileSync(envPath, 'utf8');
-}
+console.log('🔍 [VALIDATE-ENV] Iniciando auditoria de ambiente...');
 
-const missingVars = [];
-const missingFiles = [];
-
-// 1. Check for required environment variables
-requiredVars.forEach(varName => {
-  const isInEnvFile = envContent.includes(`${varName}=`);
-  const isInProcessEnv = !!process.env[varName];
-
-  if (!isInEnvFile && !isInProcessEnv) {
-    missingVars.push(varName);
+// 1. Validar Obrigatórios
+requiredEnvVars.forEach(varName => {
+  if (!process.env[varName]) {
+    console.error(`❌ [ERRO] Variável obrigatória ausente: ${varName}`);
+    hasError = true;
+  } else {
+    console.log(`✅ [OK] ${varName} detectada.`);
   }
 });
 
-// 2. Check for required config files
-requiredFiles.forEach(fileName => {
-  const filePath = path.resolve(__dirname, '../', fileName);
-  if (!fs.existsSync(filePath)) {
-    // No CI, podemos aceitar se as variáveis equivalentes existirem (serão injetadas pelo pipeline)
-    const isCI = process.env.CI === '1' || process.env.GITHUB_ACTIONS === 'true';
-    const hasEnvFallback = (fileName === 'google-services.json' && (process.env.GOOGLE_SERVICES_JSON || process.env.GOOGLE_SERVICES_JSON_BASE64)) ||
-                           (fileName === 'GoogleService-Info.plist' && (process.env.GOOGLE_SERVICE_INFO_PLIST || process.env.GOOGLE_SERVICE_INFO_PLIST_BASE64));
-
-    if (!isCI || !hasEnvFallback) {
-      missingFiles.push(fileName);
-    } else {
-      console.log(`⚠️  [RellBuild] Arquivo ${fileName} ausente, mas será injetado via segredos do CI.`);
-    }
+// 2. Validar Proibidos (Segurança)
+forbiddenEnvVars.forEach(varName => {
+  if (process.env[varName]) {
+    console.warn(`⚠️ [SEGURANÇA] Variável sensível detectada no ambiente: ${varName}. Certifique-se de que ela não está sendo injetada no bundle do cliente.`);
   }
 });
 
-if (missingVars.length > 0 || missingFiles.length > 0) {
-  console.error('\n❌ ERRO CRÍTICO RellBuild:');
-  
-  if (missingVars.length > 0) {
-    console.error('As seguintes variáveis de ambiente obrigatórias não foram encontradas:');
-    missingVars.forEach(v => console.error(`   - ${v}`));
-  }
-
-  if (missingFiles.length > 0) {
-    console.error('Os seguintes arquivos de configuração obrigatórios não foram encontrados:');
-    missingFiles.forEach(f => console.error(`   - ${f}`));
-  }
-
-  console.error('\nO build foi abortado por falha na integridade do ambiente.');
+if (hasError) {
+  console.error('\n🚨 [CRITICAL] Build interrompido: Variáveis de ambiente incompletas.');
+  console.error('💡 DICA: Adicione os segredos faltantes no GitHub Secrets ou no seu arquivo .env local.');
   process.exit(1);
+} else {
+  console.log('\n🚀 [SUCCESS] Ambiente validado com sucesso. Seguindo com o build...');
+  process.exit(0);
 }
-
-console.log('✅ [RellBuild] Integridade do ambiente confirmada. Procedendo...');

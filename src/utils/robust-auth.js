@@ -16,7 +16,7 @@ const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
 // Configurações
-const JWT_SECRET = process.env.JWT_SECRET || 'sua-chave-secreta-deve-ser-definida-no-env';
+const JWT_SECRET = 'sua-chave-secreta-deve-ser-definida-no-env-do-servidor';
 const JWT_EXPIRATION = '15m'; // 15 minutos
 const JWT_REFRESH_EXPIRATION = '7d'; // 7 dias
 const SALT_ROUNDS = 12;

@@ -1,5 +1,5 @@
-import React from 'react';
-import { LogBox, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { LogBox, View, AppState, AppStateStatus } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
@@ -9,12 +9,35 @@ import { CartProvider } from './contexts/CartContext';
 import { LocationProvider } from './contexts/LocationContext';
 import { ThemeProvider, useAppTheme } from './components/ThemeProvider';
 import { initSentry } from './config/sentry';
+import { initOneSignal } from './config/onesignal';
+import { ENV } from './config/env';
 
-// Inicializar Sentry (protegido por variáveis de ambiente)
+// 🛡️ Monitoramento e Resiliência
+import { initErrorGuard } from './core/monitoring/errorGuard';
+import { logEvent, logInfo } from './core/monitoring/logger';
+import { runHealthCheck } from './core/monitoring/healthCheck';
+import { ErrorBoundary } from './core/monitoring/ErrorBoundary';
+import { transportManager } from './core/monitoring/TransportManager';
+import { DiagnosticScreen } from './core/monitoring/DiagnosticScreen';
+import { TouchableOpacity, Text } from 'react-native';
+
+// Inicializar Proteção Global de Erros
+initErrorGuard();
+
+// 🔍 Diagnóstico de Inicialização (Env Guardian)
+logEvent('APP_START', '🚀 App Iniciado com Monitoramento Ativo');
+const health = runHealthCheck(ENV);
+
+if (__DEV__) {
+  console.log('🧠 [HEALTH-CHECK]:', health);
+}
+
+// Inicializar Serviços Críticos
 try {
   initSentry();
+  initOneSignal();
 } catch (error) {
-  console.error('Erro ao inicializar Sentry:', error);
+  console.error('❌ Erro na inicialização de serviços:', error);
 }
 
 // Ignorar warnings específicos durante desenvolvimento
@@ -27,6 +50,23 @@ if (LogBox) {
 
 function ThemedApp() {
   const { isDark, theme } = useAppTheme();
+
+  // 🔄 Gerenciamento do Ciclo de Vida para Monitoramento (Etapa 7)
+  useEffect(() => {
+    // Tentar enviar logs pendentes na inicialização
+    transportManager.flushLogs();
+
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        logInfo('APP_START', '📱 App voltou para o foreground');
+        transportManager.flushLogs();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
   
   // Mesclar o tema do Paper com o nosso tema customizado
   const paperTheme = isDark 
@@ -76,19 +116,42 @@ function ThemedApp() {
 }
 
 export default function App() {
-  console.log('App: Renderizando árvore completa de Providers com Proteção 440');
-  
+  const [showDiagnostic, setShowDiagnostic] = React.useState(false);
+
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <LocationProvider>
-            <CartProvider>
-              <ThemedApp />
-            </CartProvider>
-          </LocationProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <LocationProvider>
+              <CartProvider>
+                <ThemedApp />
+                {__DEV__ && !showDiagnostic && (
+                  <TouchableOpacity 
+                    style={{ 
+                      position: 'absolute', 
+                      bottom: 20, 
+                      right: 20, 
+                      backgroundColor: 'rgba(0,0,0,0.5)', 
+                      padding: 8, 
+                      borderRadius: 20,
+                      zIndex: 9999
+                    }} 
+                    onPress={() => setShowDiagnostic(true)}
+                  >
+                    <Text style={{ color: '#FFF', fontSize: 10 }}>🛠️ DIAG</Text>
+                  </TouchableOpacity>
+                )}
+                {__DEV__ && showDiagnostic && (
+                  <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 10000 }}>
+                    <DiagnosticScreen onClose={() => setShowDiagnostic(false)} />
+                  </View>
+                )}
+              </CartProvider>
+            </LocationProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
