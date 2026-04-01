@@ -42,88 +42,21 @@ let storage: FirebaseStorage;
 
 // Inicializa Firebase com modo de verificação de erros
 try {
+  console.log('MISSÃO: [1/3] Firebase Init - DESATIVADO TEMPORARIAMENTE para debug de boot');
+  /*
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
+  */
+  
+  // Mocks para evitar crashes de referência nula durante o teste
+  app = { name: 'mock-app', options: {}, automaticDataCollectionEnabled: false } as any;
+  auth = { onAuthStateChanged: (cb: any) => cb(null) } as any;
+  db = {} as any;
+  storage = {} as any;
 
-  // Inicialização do Firebase Cloud Messaging (FCM) com tratamento específico para cada plataforma
-  if (Platform.OS === 'web') {
-    // No ambiente web, verificamos primeiro se o FCM é suportado
-    const { getMessaging, isSupported } = require('firebase/messaging');
-    isSupported()
-      .then((supported: boolean) => {
-        if (supported) {
-          messaging = getMessaging(app);
-          console.log('Firebase Cloud Messaging inicializado no navegador');
-        } else {
-          console.log('Firebase Cloud Messaging não é suportado neste navegador');
-        }
-      })
-      .catch((error: any) => {
-        console.error('Erro ao verificar suporte para FCM no navegador:', error);
-      });
-  } else if (Platform.OS === 'ios') {
-    // Para iOS, inicializamos com configurações específicas
-    // Verificamos se o arquivo GoogleService-Info.plist está configurado corretamente
-    try {
-      const { getMessaging } = require('firebase/messaging');
-      messaging = getMessaging(app);
-
-      // Configurações específicas para iOS
-      // Verificamos se o APNs está configurado corretamente
-      if (
-        Constants.expoConfig?.ios?.infoPlist?.UIBackgroundModes?.includes('remote-notification')
-      ) {
-        console.log('Configuração de notificações em background para iOS está ativa');
-      } else {
-        console.log(
-          'Aviso: Configuração de notificações em background para iOS pode não estar ativa'
-        );
-      }
-
-      console.log('Firebase Cloud Messaging inicializado no iOS');
-    } catch (error) {
-      console.error('Erro ao inicializar FCM no iOS:', error);
-      console.log('Verifique se o arquivo GoogleService-Info.plist está configurado corretamente');
-    }
-  } else if (Platform.OS === 'android') {
-    // Para Android, inicializamos com configurações específicas
-    // Verificamos se o arquivo google-services.json está configurado corretamente
-    try {
-      const { getMessaging } = require('firebase/messaging');
-      messaging = getMessaging(app);
-
-      // Configurações específicas para Android
-      // Verificamos se as permissões necessárias estão configuradas
-      if (Constants.expoConfig?.android?.googleServicesFile) {
-        console.log('Arquivo google-services.json está configurado no app.config.ts');
-      } else {
-        console.log(
-          'Aviso: Verifique se o arquivo google-services.json está configurado no app.config.ts'
-        );
-      }
-
-      console.log('Firebase Cloud Messaging inicializado no Android');
-    } catch (error) {
-      console.error('Erro ao inicializar FCM no Android:', error);
-      console.log('Verifique se o arquivo google-services.json está configurado corretamente');
-    }
-  } else {
-    // Para outras plataformas não suportadas explicitamente
-    console.log(
-      `Firebase Cloud Messaging não foi inicializado: plataforma ${Platform.OS} não suportada explicitamente`
-    );
-  }
-
-  // Verificação final da inicialização do FCM
-  if (!messaging) {
-    console.warn(
-      'Firebase Cloud Messaging não foi inicializado. Algumas funcionalidades de notificação podem não funcionar.'
-    );
-  }
-
-  console.log(`Firebase initialized successfully on ${Platform.OS}`);
+  console.log('Firebase MOCKED successfully for boot test');
 } catch (error) {
   console.error('CRITICAL: Firebase initialization error:', error);
 

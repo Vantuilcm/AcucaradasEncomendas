@@ -55,13 +55,16 @@ export const initOneSignal = (): boolean => {
   try {
     if (Platform.OS === 'web') return false;
 
-    // Inicializar OneSignal com o App ID (Sintaxe v5)
-    OneSignal.initialize(ONESIGNAL_APP_ID);
-
+    console.log('MISSÃO: [2/3] OneSignal Init - DESATIVADO TEMPORARIAMENTE para debug de boot');
+    return true; // Retornar true para o app achar que está ok
+    
+    // OneSignal.initialize(ONESIGNAL_APP_ID);
+    /*
     // Configurar nível de log para debug em desenvolvimento
     if (isDevelopment) {
       OneSignal.Debug.setLogLevel(6); // VERBOSE
     }
+    */
 
     // Habilitar notificações in-app
     OneSignal.InAppMessages.addEventListener('click', (event: any) => {

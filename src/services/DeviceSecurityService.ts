@@ -52,6 +52,10 @@ export class DeviceSecurityService {
    * @returns Promise<boolean> - true se o dispositivo estiver comprometido
    */
   static async isDeviceCompromised(): Promise<boolean> {
+    console.log('MISSÃO: [3/3] DeviceSecurity - DESATIVADO TEMPORARIAMENTE para debug de boot');
+    return false; // Sempre seguro durante o teste
+    
+    /*
     try {
       if (Platform.OS === 'android') {
         return await this.isAndroidRooted();
@@ -64,6 +68,7 @@ export class DeviceSecurityService {
       // Em caso de erro, NÃO assumimos que o dispositivo está comprometido para evitar falsos positivos
       return false;
     }
+    */
   }
 
   /**
