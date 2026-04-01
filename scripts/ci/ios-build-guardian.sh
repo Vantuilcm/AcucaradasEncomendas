@@ -41,6 +41,21 @@ fi
 # 2. NORMALIZAÇÃO E EXPORTAÇÃO DA ASC API KEY
 echo "[INFO] Normalizando credenciais da App Store Connect API..."
 
+# 2.0 FIREBASE SETUP (MISSÃO: CORRIGIR ERRO DE GOOGLE SERVICE)
+if [[ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]]; then
+    echo "🔥 [FIREBASE] Configurando GoogleService-Info.plist via base64..."
+    echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist
+    echo "[INFO] Validando GoogleService-Info.plist:"
+    ls -la GoogleService-Info.plist
+    if grep -q "PLIST" GoogleService-Info.plist || grep -q "xml" GoogleService-Info.plist; then
+        echo "✅ [SUCCESS] GoogleService-Info.plist criado e validado."
+    else
+        echo "⚠️ [WARNING] GoogleService-Info.plist pode estar corrompido ou mal formatado."
+    fi
+else
+    echo "⚠️ [WARNING] GOOGLE_SERVICE_INFO_PLIST não encontrada. O build pode falhar se o Firebase for obrigatório."
+fi
+
 # CASO 1 — BASE64:
 if [[ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]]; then
     echo "🔑 [CASO 1] Decodificando chave via Base64..."
