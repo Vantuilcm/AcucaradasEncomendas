@@ -129,7 +129,6 @@ run_build() {
     --platform ios \
     --profile production_v13 \
     --non-interactive \
-    --output="build-$(date +%s).ipa" \
     2>&1 | tee build_output.log 2>&1
   local exit_code=$?
   set -e
