@@ -8,7 +8,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import usePermissions from '../hooks/usePermissions';
-import { useNotifications } from '../hooks/useNotifications';
 import { UserUtils } from '../utils/UserUtils';
 import { secureLoggingService } from '../services/SecureLoggingService';
 

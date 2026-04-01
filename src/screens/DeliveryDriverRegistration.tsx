@@ -65,7 +65,7 @@ export default function DeliveryDriverRegistration() {
     if (Platform.OS !== 'web') {
       (async () => {
         try {
-          const { status } = await Camera.requestCameraPermissionsAsync();
+          const { status } = await (Camera as any).requestCameraPermissionsAsync();
           setHasPermission(status === 'granted');
         } catch (error) {
           console.error('Erro ao solicitar permissões da câmera:', error);
