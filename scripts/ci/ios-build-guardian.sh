@@ -1,28 +1,54 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V2 - Ultra Stable)
+# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V2.1 - Hybrid Auth)
 # Missão: Executar Build iOS 100% estável, automatizado e resiliente via GitHub Actions + EAS Cloud.
+# Suporte: Apple ID (2FA) ou ASC API Key (Recomendado para CI).
 
 echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS..."
 echo "------------------------------------------------------------"
 
 ## ETAPA 1 — PRÉ-VALIDAÇÃO (FAIL FAST)
 
-# 1.1 Variáveis obrigatórias
-MISSING_VARS=()
-[ -z "${EXPO_TOKEN:-}" ] && MISSING_VARS+=("EXPO_TOKEN")
-[ -z "${EXPO_APPLE_ID:-}" ] && MISSING_VARS+=("EXPO_APPLE_ID")
-[ -z "${EXPO_APPLE_APP_SPECIFIC_PASSWORD:-}" ] && MISSING_VARS+=("EXPO_APPLE_APP_SPECIFIC_PASSWORD")
-[ -z "${EXPO_APPLE_TEAM_ID:-}" ] && MISSING_VARS+=("EXPO_APPLE_TEAM_ID")
-[ -z "${GOOGLE_SERVICE_INFO_PLIST:-}" ] && MISSING_VARS+=("GOOGLE_SERVICE_INFO_PLIST")
+# 1.1 Variáveis obrigatórias base
+MISSING_BASE_VARS=()
+[ -z "${EXPO_TOKEN:-}" ] && MISSING_BASE_VARS+=("EXPO_TOKEN")
+[ -z "${EXPO_APPLE_TEAM_ID:-}" ] && MISSING_BASE_VARS+=("EXPO_APPLE_TEAM_ID")
+[ -z "${GOOGLE_SERVICE_INFO_PLIST:-}" ] && MISSING_BASE_VARS+=("GOOGLE_SERVICE_INFO_PLIST")
 
-if [ ${#MISSING_VARS[@]} -ne 0 ]; then
-    echo "❌ [ERRO] Variáveis obrigatórias ausentes: ${MISSING_VARS[*]}"
+if [ ${#MISSING_BASE_VARS[@]} -ne 0 ]; then
+    echo "❌ [ERRO] Variáveis base ausentes: ${MISSING_BASE_VARS[*]}"
     exit 1
 fi
 
-# 1.2 Governança de Arquivos (Anti-Signing Manual)
+# 1.2 Validação de Autenticação (Apple ID ou ASC API Key)
+AUTH_METHOD=""
+
+# Verificar ASC API Key (Prioridade)
+if [ -n "${EXPO_ASC_KEY_ID:-}" ] && [ -n "${EXPO_ASC_ISSUER_ID:-}" ] && { [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ] || [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; }; then
+    AUTH_METHOD="ASC_API_KEY"
+    echo "🔑 [AUTH] Utilizando App Store Connect API Key (Admin)."
+    
+    # Normalizar Private Key para arquivo se necessário pelo EAS
+    if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ] && [ -z "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
+        echo "🔑 [INFO] Decodificando ASC Private Key de Base64..."
+        echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode > AuthKey.p8
+        export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
+    elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
+        echo "$EXPO_ASC_PRIVATE_KEY" > AuthKey.p8
+        export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
+    fi
+# Verificar Apple ID
+elif [ -n "${EXPO_APPLE_ID:-}" ] && [ -n "${EXPO_APPLE_APP_SPECIFIC_PASSWORD:-}" ]; then
+    AUTH_METHOD="APPLE_ID"
+    echo "🔑 [AUTH] Utilizando Apple ID + App Specific Password."
+else
+    echo "❌ [ERRO] Nenhuma credencial de autenticação Apple válida encontrada."
+    echo "💡 [DICA] Configure (EXPO_APPLE_ID + EXPO_APPLE_APP_SPECIFIC_PASSWORD) OU (EXPO_ASC_KEY_ID + EXPO_ASC_ISSUER_ID + EXPO_ASC_PRIVATE_KEY)."
+    exit 1
+fi
+
+# 1.3 Governança de Arquivos (Anti-Signing Manual)
 echo "[INFO] Validando governança de credenciais..."
 forbidden_files=("credentials.json" "*.p12" "*.mobileprovision")
 for pattern in "${forbidden_files[@]}"; do
@@ -33,7 +59,7 @@ for pattern in "${forbidden_files[@]}"; do
     fi
 done
 
-# 1.3 Firebase Setup (Blindagem)
+# 1.4 Firebase Setup (Blindagem)
 echo "📲 [FIREBASE] Criando GoogleService-Info.plist..."
 if echo "$GOOGLE_SERVICE_INFO_PLIST" | grep -q "<plist"; then
     echo "🔍 Formato detectado: XML (texto puro)"
@@ -52,7 +78,7 @@ if ! grep -q "<plist" GoogleService-Info.plist; then
 fi
 echo "✅ [SUCCESS] GoogleService-Info.plist válido."
 
-# 1.4 Expo Config Validation (Bundle ID)
+# 1.5 Expo Config Validation (Bundle ID)
 echo "[INFO] Validando Expo Config..."
 BUNDLE_ID=$(npx expo config --json | jq -r '.ios.bundleIdentifier // empty')
 if [ "$BUNDLE_ID" != "com.acucaradas.encomendas" ]; then
@@ -64,7 +90,10 @@ fi
 echo "🧹 [INFO] Limpando ambiente de build..."
 rm -rf ios/build
 rm -rf node_modules/.cache
-unset IOS_DIST_CERT_BASE64 IOS_PROV_PROFILE_BASE64 IOS_CERT_PASSWORD EXPO_APP_STORE_CONNECT_API_KEY
+# Limpar variáveis que podem causar conflito se estivermos usando API Key
+if [ "$AUTH_METHOD" = "ASC_API_KEY" ]; then
+    unset EXPO_APPLE_ID EXPO_APPLE_PASSWORD EXPO_APPLE_APP_SPECIFIC_PASSWORD
+fi
 echo "🛡️ Ambiente limpo e pronto."
 
 ## ETAPA 3 — EXECUÇÃO DO BUILD (PADRÃO OFICIAL EAS CLOUD)
@@ -75,7 +104,6 @@ run_eas_build() {
   echo "🏗️ [BUILD] Tentativa $attempt de build iOS no EAS Cloud..."
   
   # Executa EAS Build e captura a URL do build
-  # --no-wait para disparar e não travar o runner
   set +e
   BUILD_LOG=$(eas build --platform ios --profile production --non-interactive --no-wait 2>&1)
   local exit_code=$?
@@ -134,6 +162,6 @@ else
     echo "STATUS: FAILURE"
     echo "MOTIVO: Falha ao disparar build após $MAX_RETRIES tentativas."
     echo "ETAPA: ETAPA 3 (EAS BUILD)"
-    echo "DICA: Verifique se o EXPO_TOKEN tem permissão de Admin e se o Apple ID está autenticado no EAS."
+    echo "DICA: Verifique se o EXPO_TOKEN tem permissão de Admin e se as credenciais ($AUTH_METHOD) estão corretas."
     exit 1
 fi
