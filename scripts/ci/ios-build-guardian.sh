@@ -41,20 +41,42 @@ fi
 # 2. NORMALIZAÇÃO E EXPORTAÇÃO DA ASC API KEY
 echo "[INFO] Normalizando credenciais da App Store Connect API..."
 
-# 2.0 FIREBASE SETUP (MISSÃO: CORRIGIR ERRO DE GOOGLE SERVICE)
-if [[ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]]; then
-    echo "🔥 [FIREBASE] Configurando GoogleService-Info.plist via base64..."
-    echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist
-    echo "[INFO] Validando GoogleService-Info.plist:"
-    ls -la GoogleService-Info.plist
-    if grep -q "PLIST" GoogleService-Info.plist || grep -q "xml" GoogleService-Info.plist; then
-        echo "✅ [SUCCESS] GoogleService-Info.plist criado e validado."
-    else
-        echo "⚠️ [WARNING] GoogleService-Info.plist pode estar corrompido ou mal formatado."
-    fi
-else
-    echo "⚠️ [WARNING] GOOGLE_SERVICE_INFO_PLIST não encontrada. O build pode falhar se o Firebase for obrigatório."
+# 2.0 FIREBASE SETUP (MISSÃO: BLINDAR DEFINITIVAMENTE A GERAÇÃO DO GoogleService-Info.plist)
+echo "📲 [FIREBASE] Criando GoogleService-Info.plist..."
+
+# Validação inicial
+if [ -z "${GOOGLE_SERVICE_INFO_PLIST:-}" ]; then
+    echo "❌ ERRO CRÍTICO: GOOGLE_SERVICE_INFO_PLIST está vazio"
+    exit 1
 fi
+
+# Detectar formato automaticamente
+if echo "$GOOGLE_SERVICE_INFO_PLIST" | grep -q "<plist"; then
+    echo "🔍 Formato detectado: XML (texto puro)"
+    echo "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
+else
+    echo "🔍 Formato detectado: BASE64"
+    # Tenta decodificar, falha se o base64 for inválido
+    if ! echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist 2>/dev/null; then
+        echo "❌ ERRO: Falha ao decodificar BASE64"
+        exit 1
+    fi
+fi
+
+# Validação do arquivo gerado
+echo "📄 Validando GoogleService-Info.plist..."
+
+if grep -q "<plist" GoogleService-Info.plist; then
+    echo "✅ [SUCCESS] GoogleService-Info.plist válido e pronto"
+else
+    echo "❌ ERRO: Arquivo inválido após geração"
+    echo "Conteúdo gerado (primeiras 5 linhas):"
+    head -n 5 GoogleService-Info.plist
+    exit 1
+fi
+
+# Debug visual
+ls -la GoogleService-Info.plist
 
 # CASO 1 — BASE64:
 if [[ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]]; then
