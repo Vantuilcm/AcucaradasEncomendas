@@ -55,6 +55,7 @@ yarn-error.log
 
 # Environment variables
 .env*
+!.env.production.template
 
 # Expo
 .expo/
