@@ -13,6 +13,13 @@ BRANCH_NAME="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
 COMMIT_MSG="${GITHUB_EVENT_PATH:+$(jq -r '.head_commit.message' "$GITHUB_EVENT_PATH")}"
 COMMIT_MSG="${COMMIT_MSG:-$(git log -1 --pretty=%B)}"
 
+# Bloqueio de Produção: apenas commits com [release] podem ir para CLOUD/Main
+if [[ "$BRANCH_NAME" == "main" ]] && [[ "$COMMIT_MSG" != *"[release]"* ]]; then
+    echo "❌ [BLOCK] Builds na branch main EXIGEM a tag [release] no commit."
+    echo "💡 Sugestão: Use 'git commit --allow-empty -m \"build: trigger release [release]\"' para disparar."
+    exit 1
+fi
+
 echo "🛡️ [STATE-ENGINE] Validando lock e duplicidade..."
 node scripts/build-state-check.js lock
 node scripts/build-state-check.js check
@@ -146,11 +153,11 @@ if run_build_with_retry "$BUILD_MODE"; then
     node scripts/build-state-check.js success
     exit 0
 else
-    echo "🚨 [CRITICAL] Falha persistente no modo $BUILD_MODE após $MAX_RETRIES tentativas."
+    echo "🚨 [ALERT] Falha persistente no modo $BUILD_MODE após $MAX_RETRIES tentativas."
     
     # Lógica de Fallback Automático: LOCAL -> CLOUD
     if [ "$BUILD_MODE" == "LOCAL" ]; then
-        echo "🔄 [FALLBACK] Iniciando recuperação automática via CLOUD (EAS Cloud)..."
+        echo "🔄 [FALLBACK-ALERT] Iniciando recuperação automática via CLOUD (EAS Cloud)..."
         if run_build_with_retry "CLOUD"; then
             echo "✅ [RECOVERED] Build concluído via CLOUD após falha no LOCAL!"
             export CURRENT_VERSION=$(grep "version:" app.config.ts | sed "s/.*'\(.*\)'.*/\1/")
@@ -160,7 +167,7 @@ else
         fi
     fi
     
-    echo "❌ [FATAL] O pipeline esgotou todas as tentativas de recuperação (LOCAL e CLOUD)."
+    echo "❌ [FATAL-ALERT] O pipeline esgotou todas as tentativas de recuperação (LOCAL e CLOUD)."
     echo "💡 Sugestão: Verifique os logs acima para erros de dependência ou credenciais."
     exit 1
 fi
