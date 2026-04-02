@@ -5,10 +5,10 @@
     "version": "1.1.6",
     "ios": {
       "bundleIdentifier": "com.acucaradas.encomendas",
-      "buildNumber": "460"
+      "buildNumber": "462"
     },
     "android": {
-      "versionCode": 460
+      "versionCode": 462
     },
     "extra": {
       "eas": {
