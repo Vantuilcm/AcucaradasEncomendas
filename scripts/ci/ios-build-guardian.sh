@@ -137,6 +137,25 @@ if ! grep -q "BEGIN PRIVATE KEY" AuthKey.p8; then
 fi
 echo "✅ [CONFIG] AuthKey.p8 validada com sucesso."
 
+# 2.5 Gerar GoogleService-Info.plist (Firebase iOS)
+echo "🔧 [CONFIG] Gerando GoogleService-Info.plist..."
+
+if [ -n "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
+    # Usamos Node para decodificação resiliente
+    node -e "const fs = require('fs'); let b64 = process.env.GOOGLE_SERVICES_INFO_PLIST_BASE64.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/'); try { fs.writeFileSync('GoogleService-Info.plist', Buffer.from(b64, 'base64')); } catch (e) { console.error('FALHA DECODER GOOGLE:', e.message); process.exit(1); }"
+    
+    if [ -f "GoogleService-Info.plist" ]; then
+        echo "✅ [SUCCESS] GoogleService-Info.plist criado com sucesso."
+        ls -la | grep GoogleService
+    else
+        echo "❌ [FATAL] Arquivo GoogleService-Info.plist não foi criado após decodificação."
+        exit 1
+    fi
+else
+    echo "❌ [FATAL] GOOGLE_SERVICES_INFO_PLIST_BASE64 não encontrado no ambiente."
+    exit 1
+fi
+
 ## ETAPA 3 — EXECUÇÃO DO BUILD COM RETRY E FALLBACK
 
 MAX_RETRIES=2

@@ -10,7 +10,8 @@ const requiredEnvVars = [
   'EXPO_APPLE_TEAM_ID',
   'EXPO_ASC_ISSUER_ID',
   'EXPO_ASC_KEY_ID',
-  'EXPO_ASC_PRIVATE_KEY_BASE64'
+  'EXPO_ASC_PRIVATE_KEY_BASE64',
+  'GOOGLE_SERVICES_INFO_PLIST_BASE64'
 ];
 
 const forbiddenEnvVars = [
