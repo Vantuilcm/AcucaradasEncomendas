@@ -49,9 +49,27 @@ echo "🧹 [INFO] Limpando ambiente (DEEP CLEAN)..."
 rm -rf ios .expo dist node_modules/.cache
 # Nota: node_modules é mantido se o cache do GitHub Actions estiver ativo para velocidade.
 
-# 2.2 Version Bump (Fonte Única de Verdade)
-echo "🏷️ [VERSION] Incrementando buildNumber..."
-node scripts/version-bump.js
+# --- INÍCIO DA EXECUÇÃO ---
+echo "🚀 [START] Iniciando iOS Build Guardian v2.1..."
+echo "📍 [CWD] Diretório Atual: $(pwd)"
+echo "🕒 [TIME] $(date)"
+echo "👤 [USER] $(whoami)"
+
+# 2.1 Verificação de Ambiente (Fail-Fast Precoce)
+echo "🔍 [CHECK] Verificando Variáveis Críticas..."
+if [ -z "${EXPO_TOKEN:-}" ]; then
+    echo "❌ [FATAL] EXPO_TOKEN não está definido nos secrets."
+    exit 1
+fi
+echo "✅ [OK] EXPO_TOKEN detectado."
+
+if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
+    LEN=${#EXPO_ASC_PRIVATE_KEY_BASE64}
+    echo "✅ [OK] EXPO_ASC_PRIVATE_KEY_BASE64 detectado (Tamanho: $LEN)."
+else
+    echo "❌ [FATAL] EXPO_ASC_PRIVATE_KEY_BASE64 ausente."
+    exit 1
+fi
 
 # 2.3 ASC Build Check (Proteção contra duplicidade)
 echo "🛡️ [CHECK] Verificando duplicidade no App Store Connect..."
@@ -99,22 +117,21 @@ if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
     
     # Detecção Inteligente: Se já começar com '-----BEGIN', não decodificar
     if [[ "${EXPO_ASC_PRIVATE_KEY_BASE64}" == *"BEGIN PRIVATE KEY"* ]]; then
-        echo "⚠️ [WARN] EXPO_ASC_PRIVATE_KEY_BASE64 parece conter o texto RAW (PEM). Usando sem decodificar."
+        echo "⚠️ [WARN] EXPO_ASC_PRIVATE_KEY_BASE64 contém PEM direto. Salvando..."
         echo "${EXPO_ASC_PRIVATE_KEY_BASE64}" > AuthKey.p8
     else
         echo "🛡️ [SECURE] Decodificando Base64 via Node..."
-        # Usamos Node para decodificar, pois é mais resiliente a whitespaces e formatos (standard/url-safe)
         node -e "const fs = require('fs'); let b64 = process.env.EXPO_ASC_PRIVATE_KEY_BASE64.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/'); try { fs.writeFileSync('AuthKey.p8', Buffer.from(b64, 'base64')); } catch (e) { console.error('FALHA DECODER:', e.message); process.exit(1); }"
     fi
 elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
-    # Bloquear se for multiline direto (formato inválido para GitHub Secrets sem Base64)
+    # Se for multiline PEM direto, aceitar mas avisar
     if [[ "${EXPO_ASC_PRIVATE_KEY}" == *"BEGIN PRIVATE KEY"* ]]; then
-        echo "❌ [ERRO] EXPO_ASC_PRIVATE_KEY no formato RAW detectada. Isso causa erros no GitHub Actions."
-        echo "💡 Solução: Converta sua chave para BASE64 e use EXPO_ASC_PRIVATE_KEY_BASE64."
-        exit 1
+        echo "⚠️ [WARN] EXPO_ASC_PRIVATE_KEY detectada em formato PEM. Salvando..."
+        echo "${EXPO_ASC_PRIVATE_KEY}" > AuthKey.p8
+    else
+        echo "🛡️ [SECURE] Normalizando ASC Private Key (Legacy String)..."
+        echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
     fi
-    echo "🛡️ [SECURE] Normalizando ASC Private Key (Legacy String)..."
-    echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
 else
     MISSING_VARS+=("EXPO_ASC_PRIVATE_KEY_BASE64")
 fi
