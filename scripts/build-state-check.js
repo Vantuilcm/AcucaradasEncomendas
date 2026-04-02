@@ -23,6 +23,20 @@ function getCommitHash() {
     }
 }
 
+function readJson(filePath, defaultValue) {
+    if (!fs.existsSync(filePath)) return defaultValue;
+    try {
+        let content = fs.readFileSync(filePath, 'utf8');
+        // Remover BOM (Byte Order Mark) e espaços extras que quebram o JSON
+        content = content.replace(/^\uFEFF/, '').trim();
+        if (!content || content === '') return defaultValue;
+        return JSON.parse(content);
+    } catch (e) {
+        log(`Aviso: Erro ao ler ${path.basename(filePath)}. Resetando para padrão.`);
+        return defaultValue;
+    }
+}
+
 function check() {
     const action = process.argv[2] || 'check';
     const currentCommit = getCommitHash();
@@ -38,7 +52,7 @@ function check() {
                 commit: currentCommit,
                 timestamp: new Date().toISOString(),
                 pid: process.pid
-            }));
+            }), 'utf8');
             log('Lock criado com sucesso.');
             process.exit(0);
         } catch (e) {
@@ -48,7 +62,7 @@ function check() {
                 console.error(`❌ [ERROR] Build em andamento detectado (LOCK local). Abortando.`);
                 process.exit(1);
             }
-            fs.writeFileSync(localLock, 'locked');
+            fs.writeFileSync(localLock, 'locked', 'utf8');
             process.exit(0);
         }
     }
@@ -63,13 +77,11 @@ function check() {
 
     // 2. Verificar duplicidade de commit
     if (action === 'check') {
-        if (fs.existsSync(STATE_FILE)) {
-            const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-            if (state.last_success_commit === currentCommit && !process.env.FORCE_BUILD) {
-                console.error(`⚠️ [DUPLICATE] Este commit (${currentCommit.substring(0, 7)}) já foi buildado com sucesso anteriormente.`);
-                console.error('💡 Dica: Use FORCE_BUILD=1 para forçar um novo build deste commit.');
-                process.exit(1);
-            }
+        const state = readJson(STATE_FILE, {});
+        if (state.last_success_commit === currentCommit && !process.env.FORCE_BUILD) {
+            console.error(`⚠️ [DUPLICATE] Este commit (${currentCommit.substring(0, 7)}) já foi buildado com sucesso anteriormente.`);
+            console.error('💡 Dica: Use FORCE_BUILD=1 para forçar um novo build deste commit.');
+            process.exit(1);
         }
         log('Verificação de estado concluída. Prosseguindo...');
         process.exit(0);
@@ -91,15 +103,12 @@ function check() {
             last_success_timestamp: buildData.timestamp,
             last_version: buildData.version,
             last_bn: buildData.buildNumber
-        }, null, 2));
+        }, null, 2), 'utf8');
 
         // Adicionar ao histórico
-        let history = [];
-        if (fs.existsSync(HISTORY_FILE)) {
-            history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
-        }
+        let history = readJson(HISTORY_FILE, []);
         history.unshift(buildData);
-        fs.writeFileSync(HISTORY_FILE, JSON.stringify(history.slice(0, 50), null, 2));
+        fs.writeFileSync(HISTORY_FILE, JSON.stringify(history.slice(0, 50), null, 2), 'utf8');
 
         log('Estado de sucesso registrado e histórico atualizado.');
         process.exit(0);
