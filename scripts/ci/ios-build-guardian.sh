@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V4.0 - EAS Cloud Guard)
-# Missão: Executar Build iOS 100% estável no EAS Cloud, garantindo normalização de credenciais.
+# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V5.0 - Local CI Edition)
+# Missão: Executar Build iOS 100% estável no GitHub Actions (Runner Local), evitando filas do EAS Cloud.
 # Suporte: ASC API Key (Obrigatório para CI).
 
-echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS (EAS CLOUD V4.0)..."
+echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS (LOCAL CI V5.0)..."
 echo "------------------------------------------------------------"
 
 ## ETAPA 1 — PRÉ-VALIDAÇÃO (FAIL FAST)
@@ -192,9 +192,9 @@ run_eas_build() {
   local build_profile=${PROFILE:-"production_v13"}
   echo "🏗️ [BUILD] Tentativa $attempt de build iOS (Perfil: $build_profile)..."
   
-  # Executa EAS Build
+  # Executa EAS Build Local no Runner
   set +e
-  EXPO_DEBUG=1 eas build --platform ios --profile "$build_profile" --non-interactive
+  EXPO_DEBUG=1 eas build --platform ios --profile "$build_profile" --local --non-interactive
   local exit_code=$?
   set -e
   
@@ -239,12 +239,12 @@ echo "------------------------------------------------------------"
 echo "📊 RESUMO FINAL:"
 if [ "$SUCCESS" = true ]; then
     echo "STATUS: SUCCESS"
-    echo "TIPO: EAS CLOUD BUILD"
+    echo "TIPO: GITHUB RUNNER LOCAL BUILD"
     echo "TEMPO: ${DURATION}s"
     exit 0
 else
     echo "STATUS: FAILURE"
-    echo "MOTIVO: Falha no build EAS Cloud após $MAX_RETRIES tentativas."
-    echo "DICA: Verifique se as credenciais ASC API Key no GitHub Secrets estão corretas."
+    echo "MOTIVO: Falha no build local após $MAX_RETRIES tentativas."
+    echo "DICA: Verifique se as credenciais ASC API Key no GitHub Secrets estão corretas e se o runner macOS tem espaço em disco."
     exit 1
 fi

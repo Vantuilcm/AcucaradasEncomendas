@@ -12,8 +12,8 @@ on:
 
 jobs:
   build:
-    name: 🏗️ RellBuild Pipeline
-    runs-on: ubuntu-latest
+    name: 🏗️ RellBuild Pipeline (Local Runner)
+    runs-on: macos-latest
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       # Apple Store Connect API Key (Obrigatório para modo não-interativo)
