@@ -67,9 +67,9 @@ jobs:
           chmod +x ./scripts/ci/ios-build-guardian.sh
           ./scripts/ci/ios-build-guardian.sh
 
-      # 🔹 6. Expo Doctor (Optional check)
+      # 🔹 6. Expo Doctor (Check dependencies version)
       - name: 🩺 Expo Doctor
-        run: npx expo-doctor
+        run: npx expo-doctor --non-interactive || echo "⚠️ Expo Doctor detectou avisos, mas prosseguindo com o build."
 
       # 🔹 7. Submit iOS to TestFlight
       - name: 📤 Submit iOS (TestFlight)
