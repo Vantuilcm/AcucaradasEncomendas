@@ -16,9 +16,8 @@ on:
 jobs:
   ios-hybrid-pipeline:
     name: 🍎 Hybrid Pipeline
-    # Se for main ou tiver [release], usa ubuntu-latest (Cloud Build é mais leve no runner)
-    # Se for outra branch, usa macos-latest (Local Build exige macOS)
-    runs-on: ${{ (github.ref_name == 'main' || contains(github.event.head_commit.message, '[release]')) && 'ubuntu-latest' || 'macos-latest' }}
+    # Como o build agora é forçado LOCAL via scripts, precisamos SEMPRE de macOS
+    runs-on: macos-latest
     
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
