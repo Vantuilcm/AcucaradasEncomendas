@@ -10,7 +10,7 @@ export default ({ config }) => {
   
   // Se o runNumber for muito baixo (ex: recém resetado), usamos a base do app.json + runNumber
   // Isso garante que sempre subiremos a versão
-  const buildNumberValue = Math.max(baseVersion, (runNumber || 0) + 388); 
+  const buildNumberValue = Math.max(baseVersion, (runNumber || 0) + 390); 
   const buildNumber = buildNumberValue.toString();
   const versionCode = buildNumberValue;
 
