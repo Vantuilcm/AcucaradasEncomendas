@@ -181,6 +181,7 @@ if [ -n "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
         // Validação rigorosa do conteúdo
         if (!decoded.includes('<?xml') || !decoded.includes('<plist')) {
             console.error('❌ [FATAL] Conteúdo decodificado não contém marcadores PLIST/XML válidos.');
+            console.log('🔍 [DEBUG] Primeiros 50 caracteres do conteúdo decodificado:', decoded.substring(0, 50).replace(/\n/g, ' '));
             process.exit(1);
         }
         
