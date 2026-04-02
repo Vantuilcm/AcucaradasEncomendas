@@ -86,8 +86,22 @@ MISSING_VARS=()
 [ -z "${EXPO_TOKEN:-}" ] && MISSING_VARS+=("EXPO_TOKEN")
 [ -z "${EXPO_ASC_KEY_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_KEY_ID")
 [ -z "${EXPO_ASC_ISSUER_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_ISSUER_ID")
-if [ -z "${EXPO_ASC_PRIVATE_KEY:-}" ] && [ -z "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
-    MISSING_VARS+=("EXPO_ASC_PRIVATE_KEY")
+
+# 2.4 Normalizar Private Key (Prioridade BASE64)
+if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
+    echo "🛡️ [SECURE] Decodificando ASC Private Key (Base64)..."
+    echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode > AuthKey.p8
+elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
+    # Bloquear se for multiline direto (formato inválido para GitHub Secrets sem Base64)
+    if [[ "${EXPO_ASC_PRIVATE_KEY}" == *"BEGIN PRIVATE KEY"* ]]; then
+        echo "❌ [ERRO] EXPO_ASC_PRIVATE_KEY no formato RAW detectada. Isso causa erros no GitHub Actions."
+        echo "💡 Solução: Converta sua chave para BASE64 e use EXPO_ASC_PRIVATE_KEY_BASE64."
+        exit 1
+    fi
+    echo "🛡️ [SECURE] Normalizando ASC Private Key (Legacy String)..."
+    echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
+else
+    MISSING_VARS+=("EXPO_ASC_PRIVATE_KEY_BASE64")
 fi
 
 if [ ${#MISSING_VARS[@]} -ne 0 ]; then
@@ -95,13 +109,14 @@ if [ ${#MISSING_VARS[@]} -ne 0 ]; then
     exit 1
 fi
 
-# 2.4 Normalizar Private Key
-if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
-    echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode > AuthKey.p8
-elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
-    echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
-fi
 export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
+
+# Validar se a chave foi gerada corretamente
+if ! grep -q "BEGIN PRIVATE KEY" AuthKey.p8; then
+    echo "❌ [ERRO] Falha ao gerar AuthKey.p8: Formato de chave privada inválido."
+    exit 1
+fi
+echo "✅ [CONFIG] AuthKey.p8 validada com sucesso."
 
 ## ETAPA 3 — EXECUÇÃO DO BUILD COM RETRY E FALLBACK
 

@@ -6,44 +6,53 @@
 
 const requiredEnvVars = [
   'EXPO_PUBLIC_API_URL',
-  'EXPO_PUBLIC_PROJECT_ID',
-  'EXPO_PUBLIC_APP_NAME',
-  'EXPO_PUBLIC_FIREBASE_API_KEY',
-  'EXPO_PUBLIC_FIREBASE_APP_ID',
-  'EXPO_PUBLIC_ONESIGNAL_APP_ID',
-  'EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY'
+  'EXPO_TOKEN',
+  'EXPO_APPLE_TEAM_ID',
+  'EXPO_ASC_ISSUER_ID',
+  'EXPO_ASC_KEY_ID',
+  'EXPO_ASC_PRIVATE_KEY_BASE64'
 ];
 
 const forbiddenEnvVars = [
-  'FIREBASE_API_KEY',
-  'STRIPE_SECRET_KEY',
-  'JWT_SECRET'
+  'EXPO_APP_STORE_CONNECT_API_KEY' // Obsoleta e perigosa por conflito
 ];
 
 let hasError = false;
 
-console.log('🔍 [VALIDATE-ENV] Iniciando auditoria de ambiente...');
+console.log('🔍 [VALIDATE-ENV] Iniciando auditoria de ambiente baseada nos secrets do GitHub...');
 
-// 1. Validar Obrigatórios
+// 1. Validar Obrigatórios e Formato
 requiredEnvVars.forEach(varName => {
-  if (!process.env[varName]) {
-    console.error(`❌ [ERRO] Variável obrigatória ausente: ${varName}`);
+  const value = process.env[varName];
+  if (!value || value.trim() === '') {
+    console.error(`❌ [ERRO] Variável obrigatória ausente ou vazia: ${varName}`);
     hasError = true;
   } else {
-    console.log(`✅ [OK] ${varName} detectada.`);
+    // Validação extra para chaves Base64
+    if (varName === 'EXPO_ASC_PRIVATE_KEY_BASE64') {
+      const isBase64 = /^[A-Za-z0-9+/=]+$/.test(value.replace(/\s/g, ''));
+      if (!isBase64) {
+        console.error(`❌ [ERRO] Formato inválido para ${varName}: Não é um Base64 válido.`);
+        hasError = true;
+      } else {
+        console.log(`✅ [OK] ${varName} detectada e validada.`);
+      }
+    } else {
+      console.log(`✅ [OK] ${varName} detectada.`);
+    }
   }
 });
 
-// 2. Validar Proibidos (Segurança)
+// 2. Validar Proibidos (Segurança/Conflito)
 forbiddenEnvVars.forEach(varName => {
   if (process.env[varName]) {
-    console.warn(`⚠️ [SEGURANÇA] Variável sensível detectada no ambiente: ${varName}. Certifique-se de que ela não está sendo injetada no bundle do cliente.`);
+    console.warn(`⚠️ [CONFLITO] Variável obsoleta detectada: ${varName}. Remova-a dos Secrets do GitHub para evitar falhas de autenticação.`);
   }
 });
 
 if (hasError) {
-  console.error('\n🚨 [CRITICAL] Build interrompido: Variáveis de ambiente incompletas.');
-  console.error('💡 DICA: Adicione os segredos faltantes no GitHub Secrets ou no seu arquivo .env local.');
+  console.error('\n🚨 [CRITICAL] Build interrompido: Variáveis de ambiente incompletas ou inválidas.');
+  console.error('💡 DICA: Certifique-se de que EXPO_ASC_PRIVATE_KEY_BASE64 está em Base64.');
   process.exit(1);
 } else {
   console.log('\n🚀 [SUCCESS] Ambiente validado com sucesso. Seguindo com o build...');
