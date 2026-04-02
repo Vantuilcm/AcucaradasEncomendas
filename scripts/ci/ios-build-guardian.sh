@@ -89,44 +89,65 @@ elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
 fi
 export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
 
-## ETAPA 3 — EXECUÇÃO DO BUILD
+## ETAPA 3 — EXECUÇÃO DO BUILD COM RETRY E FALLBACK
 
-run_build() {
+MAX_RETRIES=2
+
+run_build_with_retry() {
     local mode=$1
     local profile=${PROFILE:-"production_v13"}
+    local attempt=1
     
-    echo "🏗️ [BUILD] Iniciando build iOS no modo: $mode (Perfil: $profile)..."
+    while [ $attempt -le $MAX_RETRIES ]; do
+        echo "🏗️ [BUILD] Tentativa $attempt de $MAX_RETRIES no modo: $mode (Perfil: $profile)..."
+        
+        set +e
+        if [ "$mode" == "LOCAL" ]; then
+            # Limpeza rápida antes de cada tentativa local
+            rm -rf ios .expo
+            npx expo prebuild --platform ios --no-install --non-interactive
+            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive
+        else
+            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --non-interactive
+        fi
+        local exit_code=$?
+        set -e
+        
+        if [ $exit_code -eq 0 ]; then
+            return 0
+        fi
+        
+        echo "⚠️ [ATTEMPT FAILED] Tentativa $attempt falhou com código $exit_code."
+        
+        # Log detalhado em caso de falha
+        if [ $attempt -lt $MAX_RETRIES ]; then
+            echo "🔄 [RETRY] Aguardando 10 segundos antes da próxima tentativa..."
+            sleep 10
+        fi
+        
+        attempt=$((attempt + 1))
+    done
     
-    set +e
-    if [ "$mode" == "LOCAL" ]; then
-        # Garantir prebuild para build local
-        npx expo prebuild --platform ios --no-install --non-interactive
-        EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive
-    else
-        EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --non-interactive
-    fi
-    local exit_code=$?
-    set -e
-    
-    return $exit_code
+    return 1
 }
 
-# Tenta o build no modo detectado
-if run_build "$BUILD_MODE"; then
+# Fluxo Principal de Execução
+if run_build_with_retry "$BUILD_MODE"; then
     echo "✅ [SUCCESS] Build concluído com sucesso no modo $BUILD_MODE!"
     exit 0
 else
-    echo "⚠️ [WARNING] Falha no build modo $BUILD_MODE."
+    echo "🚨 [CRITICAL] Falha persistente no modo $BUILD_MODE após $MAX_RETRIES tentativas."
     
     # Lógica de Fallback Automático: LOCAL -> CLOUD
     if [ "$BUILD_MODE" == "LOCAL" ]; then
-        echo "🔄 [FALLBACK] Tentando build via CLOUD (EAS Cloud) para garantir entrega..."
-        if run_build "CLOUD"; then
-            echo "✅ [SUCCESS] Build concluído via CLOUD após falha no LOCAL!"
+        echo "🔄 [FALLBACK] Iniciando recuperação automática via CLOUD (EAS Cloud)..."
+        if run_build_with_retry "CLOUD"; then
+            echo "✅ [RECOVERED] Build concluído via CLOUD após falha no LOCAL!"
             exit 0
         fi
     fi
     
-    echo "❌ [ERROR] Falha crítica em todos os modos de build disponíveis."
+    echo "❌ [FATAL] O pipeline esgotou todas as tentativas de recuperação (LOCAL e CLOUD)."
+    echo "💡 Sugestão: Verifique os logs acima para erros de dependência ou credenciais."
     exit 1
 fi
