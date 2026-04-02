@@ -2,60 +2,18 @@
   "expo": {
     "name": "Açucaradas Encomendas",
     "slug": "acucaradas-encomendas",
-    "version": "1.1.5",
-    "web": {
-      "favicon": "./assets/app-icon.png",
-      "bundler": "metro"
+    "version": "1.1.6",
+    "ios": {
+      "bundleIdentifier": "com.acucaradas.encomendas",
+      "buildNumber": "460"
     },
-    "scheme": "acucaradas-encomendas",
-    "plugins": [
-      "@sentry/react-native/expo",
-      "expo-apple-authentication",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "deploymentTarget": "15.1"
-          },
-          "android": {
-            "enableJetifier": true,
-            "newArchEnabled": false
-          }
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#ffffff"
-        }
-      ],
-      [
-        "@stripe/stripe-react-native",
-        {
-          "merchantIdentifier": "merchant.com.acucaradas.encomendas"
-        }
-      ],
-      [
-        "onesignal-expo-plugin",
-        {
-          "mode": "production"
-        }
-      ],
-      "./plugins/withAndroidNamespaceFix"
-    ],
-    "updates": {
-      "url": "https://u.expo.dev/6090106b-e327-4744-bce5-9ddb0d037045",
-      "fallbackToCacheTimeout": 0
+    "android": {
+      "versionCode": 460
     },
     "extra": {
       "eas": {
         "projectId": "6090106b-e327-4744-bce5-9ddb0d037045"
       }
-    },
-    "owner": "acucaradaencomendas",
-    "runtimeVersion": {
-      "policy": "appVersion"
     }
   }
 }
