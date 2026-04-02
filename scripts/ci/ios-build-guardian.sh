@@ -50,7 +50,7 @@ rm -rf ios .expo dist node_modules/.cache
 # Nota: node_modules é mantido se o cache do GitHub Actions estiver ativo para velocidade.
 
 # --- INÍCIO DA EXECUÇÃO ---
-echo "🚀 [START] Iniciando iOS Build Guardian v2.1..."
+echo "🚀 [START] Iniciando iOS Build Guardian v2.2 (NO-STRICT-XML-CHECK)..."
 echo "📍 [CWD] Diretório Atual: $(pwd)"
 echo "🕒 [TIME] $(date)"
 echo "👤 [USER] $(whoami)"
