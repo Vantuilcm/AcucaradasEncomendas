@@ -38,17 +38,22 @@ ALL_VARS=("${EXPO_PUBLIC_VARS[@]}" "${CRITICAL_VARS[@]}")
 COUNT=0
 MISSING=0
 
+# 1. Fallbacks para variáveis ausentes (Evitar quebras triviais)
+: "${EXPO_PUBLIC_PROJECT_ID:=6090106b-e327-4744-bce5-9ddb0d037045}"
+: "${EXPO_PUBLIC_APP_NAME:=Açucaradas Encomendas}"
+
 for VAR_NAME in "${ALL_VARS[@]}"; do
     # Verifica se a variável existe no ambiente (GitHub Secrets injetados como ENV)
     if [ -n "${!VAR_NAME:-}" ]; then
         # Se estivermos no GitHub Actions, garantir que ela esteja no GITHUB_ENV para passos subsequentes
         if [ -n "${GITHUB_ENV:-}" ]; then
-            # Tratar multiline para chaves privadas
-            if [[ "$VAR_NAME" == *"PRIVATE_KEY"* ]]; then
+            # Tratar multiline APENAS se houver quebra de linha real (Ex: PEM Key)
+            if [[ "${!VAR_NAME}" == *$'\n'* ]]; then
                 echo "$VAR_NAME<<EOF" >> "$GITHUB_ENV"
                 echo "${!VAR_NAME}" >> "$GITHUB_ENV"
                 echo "EOF" >> "$GITHUB_ENV"
             else
+                # Exportar de forma segura para o GITHUB_ENV
                 echo "$VAR_NAME=${!VAR_NAME}" >> "$GITHUB_ENV"
             fi
         fi

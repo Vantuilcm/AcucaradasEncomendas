@@ -30,12 +30,24 @@ requiredEnvVars.forEach(varName => {
   } else {
     // Validação extra para chaves Base64
     if (varName === 'EXPO_ASC_PRIVATE_KEY_BASE64') {
-      const isBase64 = /^[A-Za-z0-9+/=]+$/.test(value.replace(/\s/g, ''));
+      const cleanValue = value.replace(/\s/g, '');
+      // Permitir Base64 padrão e URL-safe (- e _)
+      const isBase64 = /^[A-Za-z0-9+/=_ -]+$/.test(cleanValue);
+      
       if (!isBase64) {
         console.error(`❌ [ERRO] Formato inválido para ${varName}: Não é um Base64 válido.`);
+        
+        // Diagnóstico útil sem vazar a chave
+        if (value.includes('BEGIN PRIVATE KEY')) {
+          console.error('💡 DICA: Você parece ter colado o conteúdo do arquivo .p8 DIRETAMENTE no secret.');
+          console.error('   O pipeline espera o conteúdo CONVERTIDO para Base64.');
+          console.error('   Comando para converter: base64 -w 0 seu-arquivo.p8');
+        } else if (value.length < 50) {
+          console.error(`   A chave parece curta demais (${value.length} caracteres). Verifique o segredo.`);
+        }
         hasError = true;
       } else {
-        console.log(`✅ [OK] ${varName} detectada e validada.`);
+        console.log(`✅ [OK] ${varName} detectada e validada (Base64).`);
       }
     } else {
       console.log(`✅ [OK] ${varName} detectada.`);

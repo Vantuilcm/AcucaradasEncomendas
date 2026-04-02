@@ -90,7 +90,8 @@ MISSING_VARS=()
 # 2.4 Normalizar Private Key (Prioridade BASE64)
 if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
     echo "🛡️ [SECURE] Decodificando ASC Private Key (Base64)..."
-    echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode > AuthKey.p8
+    # Remover espaços e quebras antes de decodificar para máxima compatibilidade
+    echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | tr -d '[:space:]' | base64 --decode > AuthKey.p8
 elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
     # Bloquear se for multiline direto (formato inválido para GitHub Secrets sem Base64)
     if [[ "${EXPO_ASC_PRIVATE_KEY}" == *"BEGIN PRIVATE KEY"* ]]; then
