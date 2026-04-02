@@ -231,7 +231,8 @@ run_build_with_retry() {
             # O EAS Cloud as vezes falha se o arquivo for gerado dinamicamente e não estiver "visto" pelo git
             # mas como usamos --non-interactive, vamos garantir que ele exista.
             cp GoogleService-Info.plist ./ios/GoogleService-Info.plist 2>/dev/null || true
-            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --non-interactive
+            echo "🚀 [EXEC] Iniciando build LOCAL no GitHub Actions (Runner)..."
+            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive
         fi
         local exit_code=$?
         set -e
