@@ -7,17 +7,20 @@
 const fs = require('fs');
 const path = require('path');
 
-const TEMPLATE_PATH = path.join(__dirname, '../.env.production.template');
+const TEMPLATE_PATH = path.resolve(process.cwd(), '.env.production.template');
 
 function log(msg) {
     console.log(`🔍 [ENV-SYNC] ${msg}`);
 }
 
 function check() {
-    log('Iniciando auditoria de sincronização de ambiente...');
+    log(`Iniciando auditoria de sincronização de ambiente... (CWD: ${process.cwd()})`);
+    log(`Buscando template em: ${TEMPLATE_PATH}`);
 
     if (!fs.existsSync(TEMPLATE_PATH)) {
         console.error(`❌ [ERRO] Template ${TEMPLATE_PATH} não encontrado.`);
+        console.log('Arquivos no diretório raiz:');
+        fs.readdirSync(process.cwd()).filter(f => f.startsWith('.env')).forEach(f => console.log(` - ${f}`));
         process.exit(1);
     }
 
