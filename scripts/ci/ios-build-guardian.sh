@@ -35,7 +35,28 @@ echo "🧹 [INFO] Limpando ambiente (DEEP CLEAN)..."
 rm -rf ios .expo dist node_modules/.cache
 # Nota: node_modules é mantido se o cache do GitHub Actions estiver ativo para velocidade.
 
-# 2.2 Validação de ENV
+# 2.2 Version Bump (Fonte Única de Verdade)
+echo "🏷️ [VERSION] Incrementando buildNumber..."
+node scripts/version-bump.js
+
+# 2.3 ASC Build Check (Proteção contra duplicidade)
+echo "🛡️ [CHECK] Verificando duplicidade no App Store Connect..."
+CURRENT_BN=$(grep "buildNumber:" app.config.ts | sed 's/[^0-9]*//g')
+
+# Usamos 'eas build:list' para ver se o número já foi usado
+# Se falhar (por falta de login no EAS), o build continua normalmente
+set +e
+BN_EXISTS=$(npx eas-cli build:list --platform ios --status finished --limit 10 --non-interactive | grep "Build number: $CURRENT_BN" || true)
+set -e
+
+if [ -n "$BN_EXISTS" ]; then
+    echo "⚠️ [DUPLICATE] Build $CURRENT_BN detectado em builds anteriores. Forçando novo incremento..."
+    node scripts/version-bump.js
+    CURRENT_BN=$(grep "buildNumber:" app.config.ts | sed 's/[^0-9]*//g')
+    echo "✅ [FIXED] Novo buildNumber definido: $CURRENT_BN"
+fi
+
+# 2.4 Validação de ENV
 echo "🧪 [VALIDATE] Validando variáveis de runtime..."
 node scripts/validate-env.js
 
