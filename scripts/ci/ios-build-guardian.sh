@@ -113,14 +113,23 @@ echo "✅ [SUCCESS] GoogleService-Info.plist válido."
 # 1.5 Expo Config Validation (Bundle ID)
 echo "[INFO] Validando Expo Config..."
 if ! command -v jq &> /dev/null; then
-    echo "⚠️ [WARNING] jq não encontrado. Instalando..."
-    sudo apt-get update && sudo apt-get install -y jq || true
+    echo "⚠️ [WARNING] jq não encontrado. Tentando instalar via brew (macOS) ou apt (linux)..."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        brew install jq || echo "⚠️ Falha ao instalar jq via brew"
+    else
+        sudo apt-get update && sudo apt-get install -y jq || echo "⚠️ Falha ao instalar jq via apt"
+    fi
 fi
 
-BUNDLE_ID=$(npx expo config --json | jq -r '.ios.bundleIdentifier // empty')
-if [ "$BUNDLE_ID" != "com.acucaradas.encomendas" ]; then
-    echo "❌ [ERRO] bundleIdentifier incorreto: $BUNDLE_ID (esperado: com.acucaradas.encomendas)"
-    exit 1
+# Fallback se jq ainda não estiver disponível
+if ! command -v jq &> /dev/null; then
+    echo "⚠️ [WARNING] jq ainda não disponível. Pulando validação de bundleIdentifier."
+else
+    BUNDLE_ID=$(npx expo config --json | jq -r '.ios.bundleIdentifier // empty')
+    if [ "$BUNDLE_ID" != "com.acucaradas.encomendas" ]; then
+        echo "❌ [ERRO] bundleIdentifier incorreto: $BUNDLE_ID (esperado: com.acucaradas.encomendas)"
+        exit 1
+    fi
 fi
 
 ## ETAPA 2 — LIMPEZA PROFUNDA E CONFLITOS (ANTI-CONFLITO)
