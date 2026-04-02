@@ -169,13 +169,9 @@ if [ -n "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
         exit 1
     fi
 
-    # PD94bWw = '<?xml' em Base64
-    if [[ ! "$B64_CLEAN" == PD94bWw* ]]; then
-        echo "❌ [FATAL] GOOGLE_SERVICES_INFO_PLIST_BASE64 não começa com o cabeçalho XML esperado (PD94bWw)."
-        exit 1
-    fi
-
     # 2. Decodificar e 3. Validar conteúdo via Node
+    # Removida a validação de prefixo PD94bWw via shell por ser muito instável (BOM, whitespaces, etc)
+    # A validação real agora é feita dentro do Node.js após a decodificação.
     node -e "
     const fs = require('fs');
     const b64 = process.env.GOOGLE_SERVICES_INFO_PLIST_BASE64.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
