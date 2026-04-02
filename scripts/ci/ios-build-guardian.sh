@@ -119,6 +119,7 @@ if [ ${#MISSING_VARS[@]} -ne 0 ]; then
 fi
 
 export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
+export EXPO_ASC_PRIVATE_KEY=$(cat AuthKey.p8)
 
 # Validar se a chave foi gerada corretamente
 if ! grep -q "BEGIN PRIVATE KEY" AuthKey.p8; then
