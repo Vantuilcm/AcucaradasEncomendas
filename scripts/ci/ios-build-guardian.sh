@@ -81,7 +81,13 @@ node scripts/validate-env.js
 echo "🛡️ [SYNC-CHECK] Auditando sincronia com template de produção..."
 node scripts/env-sync-check.js
 
-# 2.3 Variáveis obrigatórias base
+# 2.2 Limpeza de Conflitos (Garantir uso exclusivo de API Key)
+unset IOS_DIST_CERT_BASE64
+unset IOS_PROV_PROFILE_BASE64
+unset IOS_CERT_PASSWORD
+unset EXPO_APP_STORE_CONNECT_API_KEY
+
+# 2.3 Validar Obrigatórios
 MISSING_VARS=()
 [ -z "${EXPO_TOKEN:-}" ] && MISSING_VARS+=("EXPO_TOKEN")
 [ -z "${EXPO_ASC_KEY_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_KEY_ID")
