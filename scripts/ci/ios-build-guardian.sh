@@ -64,6 +64,9 @@ chmod +x scripts/load-env.sh
 echo "🧪 [VALIDATE] Validando variáveis de runtime (FAIL FAST)..."
 node scripts/validate-env.js
 
+echo "🛡️ [SYNC-CHECK] Auditando sincronia com template de produção..."
+node scripts/env-sync-check.js
+
 # 2.3 Variáveis obrigatórias base
 MISSING_VARS=()
 [ -z "${EXPO_TOKEN:-}" ] && MISSING_VARS+=("EXPO_TOKEN")
