@@ -91,7 +91,7 @@ MISSING_VARS=()
 if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
     echo "🛡️ [SECURE] Decodificando ASC Private Key (Base64 via Node)..."
     # Usamos Node para decodificar, pois é mais resiliente a whitespaces e formatos (standard/url-safe)
-    node -e "const fs = require('fs'); const b64 = process.env.EXPO_ASC_PRIVATE_KEY_BASE64.replace(/[^A-Za-z0-9+\/=_ -]/g, ''); fs.writeFileSync('AuthKey.p8', Buffer.from(b64, 'base64'));"
+    node -e "const fs = require('fs'); let b64 = process.env.EXPO_ASC_PRIVATE_KEY_BASE64.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/'); fs.writeFileSync('AuthKey.p8', Buffer.from(b64, 'base64'));"
 elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
     # Bloquear se for multiline direto (formato inválido para GitHub Secrets sem Base64)
     if [[ "${EXPO_ASC_PRIVATE_KEY}" == *"BEGIN PRIVATE KEY"* ]]; then
@@ -115,6 +115,9 @@ export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
 # Validar se a chave foi gerada corretamente
 if ! grep -q "BEGIN PRIVATE KEY" AuthKey.p8; then
     echo "❌ [ERRO] Falha ao gerar AuthKey.p8: Formato de chave privada inválido."
+    echo "🔍 [DEBUG] Primeiros 100 caracteres do arquivo decodificado:"
+    head -c 100 AuthKey.p8 || true
+    echo -e "\n------------------------------------------------------------"
     exit 1
 fi
 echo "✅ [CONFIG] AuthKey.p8 validada com sucesso."
