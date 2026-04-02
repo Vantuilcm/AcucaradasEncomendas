@@ -141,14 +141,39 @@ echo "✅ [CONFIG] AuthKey.p8 validada com sucesso."
 echo "🔧 [CONFIG] Gerando GoogleService-Info.plist..."
 
 if [ -n "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
-    # Usamos Node para decodificação resiliente
-    node -e "const fs = require('fs'); let b64 = process.env.GOOGLE_SERVICES_INFO_PLIST_BASE64.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/'); try { fs.writeFileSync('GoogleService-Info.plist', Buffer.from(b64, 'base64')); } catch (e) { console.error('FALHA DECODER GOOGLE:', e.message); process.exit(1); }"
+    # Validação Básica de Tamanho e Formato (PD94bWw = <?xml em Base64)
+    B64_CLEAN=$(echo "${GOOGLE_SERVICES_INFO_PLIST_BASE64}" | tr -d '[:space:]')
+    B64_LEN=${#B64_CLEAN}
+    
+    if [ "$B64_LEN" -lt 500 ]; then
+        echo "❌ [FATAL] GOOGLE_SERVICES_INFO_PLIST_BASE64 parece ser muito curto ($B64_LEN caracteres). Verifique o Secret no GitHub."
+        exit 1
+    fi
+
+    # Usamos Node para decodificação resiliente e validação XML
+    node -e "
+    const fs = require('fs');
+    const b64 = process.env.GOOGLE_SERVICES_INFO_PLIST_BASE64.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    try {
+        const decoded = Buffer.from(b64, 'base64').toString('utf-8');
+        if (!decoded.includes('<?xml') || !decoded.includes('<plist')) {
+            console.error('❌ [ERRO] O conteúdo decodificado não é um arquivo PLIST válido.');
+            process.exit(1);
+        }
+        fs.writeFileSync('GoogleService-Info.plist', decoded);
+        console.log('✅ [SUCCESS] GoogleService-Info.plist validado e salvo.');
+    } catch (e) {
+        console.error('❌ [FALHA DECODER GOOGLE]:', e.message);
+        process.exit(1);
+    }
+    "
     
     if [ -f "GoogleService-Info.plist" ]; then
-        echo "✅ [SUCCESS] GoogleService-Info.plist criado com sucesso."
-        ls -la | grep GoogleService
+        echo "🔍 [DEBUG] Primeiras 5 linhas do arquivo gerado:"
+        head -n 5 GoogleService-Info.plist
+        ls -la GoogleService-Info.plist
     else
-        echo "❌ [FATAL] Arquivo GoogleService-Info.plist não foi criado após decodificação."
+        echo "❌ [FATAL] Arquivo GoogleService-Info.plist não foi criado."
         exit 1
     fi
 else
@@ -175,6 +200,10 @@ run_build_with_retry() {
             npx expo prebuild --platform ios --no-install --non-interactive
             EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive
         else
+            # Garantir que o arquivo GoogleService-Info.plist esteja no lugar certo antes do build cloud
+            # O EAS Cloud as vezes falha se o arquivo for gerado dinamicamente e não estiver "visto" pelo git
+            # mas como usamos --non-interactive, vamos garantir que ele exista.
+            cp GoogleService-Info.plist ./ios/GoogleService-Info.plist 2>/dev/null || true
             EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --non-interactive
         fi
         local exit_code=$?
