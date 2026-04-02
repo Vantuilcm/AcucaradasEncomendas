@@ -20,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config.ios,
     supportsTablet: true,
     bundleIdentifier: "com.acucaradas.encomendas",
-    buildNumber: "443", // Controlado pelo scripts/version-bump.js
+    buildNumber: "456", // Controlado pelo scripts/version-bump.js
     appleTeamId: "7L68YF5S29",
     entitlements: {
       "com.apple.developer.applesignin": ["Default"]
@@ -46,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: "#ffffff"
     },
     package: "com.acucaradas.encomendas",
-    versionCode: 443, // Sincronizado com iOS
+    versionCode: 456, // Sincronizado com iOS
     permissions: [
       "CAMERA",
       "READ_EXTERNAL_STORAGE",
