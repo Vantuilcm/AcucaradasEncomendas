@@ -57,7 +57,11 @@ if [ -n "$BN_EXISTS" ]; then
 fi
 
 # 2.4 Validação de ENV
-echo "🧪 [VALIDATE] Validando variáveis de runtime..."
+echo "⚙️ [CONFIG] Carregando variáveis de ambiente (LOAD-ENV)..."
+chmod +x scripts/load-env.sh
+./scripts/load-env.sh
+
+echo "🧪 [VALIDATE] Validando variáveis de runtime (FAIL FAST)..."
 node scripts/validate-env.js
 
 # 2.3 Variáveis obrigatórias base
