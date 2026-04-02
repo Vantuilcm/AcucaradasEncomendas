@@ -65,3 +65,15 @@ jobs:
         run: |
           chmod +x ./scripts/ci/ios-build-guardian.sh
           ./scripts/ci/ios-build-guardian.sh
+
+      - name: 📦 Upload iOS Artifact (.ipa)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-ipa
+          path: |
+            *.ipa
+            build-*.ipa
+            application-*.ipa
+          if-no-files-found: warn
+          retention-days: 7
