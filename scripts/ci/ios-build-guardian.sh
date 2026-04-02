@@ -141,41 +141,54 @@ echo "✅ [CONFIG] AuthKey.p8 validada com sucesso."
 echo "🔧 [CONFIG] Gerando GoogleService-Info.plist..."
 
 if [ -n "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
-    # Validação Básica de Tamanho e Formato (PD94bWw = <?xml em Base64)
+    # 1. Validação do Base64 antes de usar
     B64_CLEAN=$(echo "${GOOGLE_SERVICES_INFO_PLIST_BASE64}" | tr -d '[:space:]')
     B64_LEN=${#B64_CLEAN}
     
-    if [ "$B64_LEN" -lt 500 ]; then
-        echo "❌ [FATAL] GOOGLE_SERVICES_INFO_PLIST_BASE64 parece ser muito curto ($B64_LEN caracteres). Verifique o Secret no GitHub."
+    echo "🔍 [DEBUG] Validando GOOGLE_SERVICES_INFO_PLIST_BASE64 (Tamanho: $B64_LEN)..."
+    
+    if [ "$B64_LEN" -lt 1000 ]; then
+        echo "❌ [FATAL] GOOGLE_SERVICES_INFO_PLIST_BASE64 muito curto ($B64_LEN < 1000). Verifique o Secret."
         exit 1
     fi
 
-    # Usamos Node para decodificação resiliente e validação XML
+    # PD94bWw = '<?xml' em Base64
+    if [[ ! "$B64_CLEAN" == PD94bWw* ]]; then
+        echo "❌ [FATAL] GOOGLE_SERVICES_INFO_PLIST_BASE64 não começa com o cabeçalho XML esperado (PD94bWw)."
+        exit 1
+    fi
+
+    # 2. Decodificar e 3. Validar conteúdo via Node
     node -e "
     const fs = require('fs');
     const b64 = process.env.GOOGLE_SERVICES_INFO_PLIST_BASE64.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
     try {
         const decoded = Buffer.from(b64, 'base64').toString('utf-8');
+        
+        // Validação rigorosa do conteúdo
         if (!decoded.includes('<?xml') || !decoded.includes('<plist')) {
-            console.error('❌ [ERRO] O conteúdo decodificado não é um arquivo PLIST válido.');
+            console.error('❌ [FATAL] Conteúdo decodificado não contém marcadores PLIST/XML válidos.');
             process.exit(1);
         }
+        
         fs.writeFileSync('GoogleService-Info.plist', decoded);
-        console.log('✅ [SUCCESS] GoogleService-Info.plist validado e salvo.');
+        console.log('✅ [SUCCESS] GoogleService-Info.plist decodificado e validado.');
     } catch (e) {
-        console.error('❌ [FALHA DECODER GOOGLE]:', e.message);
+        console.error('❌ [FATAL] Erro ao processar Base64:', e.message);
         process.exit(1);
     }
-    "
-    
-    if [ -f "GoogleService-Info.plist" ]; then
-        echo "🔍 [DEBUG] Primeiras 5 linhas do arquivo gerado:"
-        head -n 5 GoogleService-Info.plist
-        ls -la GoogleService-Info.plist
-    else
-        echo "❌ [FATAL] Arquivo GoogleService-Info.plist não foi criado."
+    " || exit 1
+
+    # 4. Abortar se arquivo não existir (redundância)
+    if [ ! -f "GoogleService-Info.plist" ]; then
+        echo "❌ [FATAL] GoogleService-Info.plist não foi gerado."
         exit 1
     fi
+
+    # 5. Logar primeiras 3 linhas
+    echo "📄 [DEBUG] Primeiras 3 linhas do arquivo:"
+    head -n 3 GoogleService-Info.plist
+    echo "------------------------------------------------------------"
 else
     echo "❌ [FATAL] GOOGLE_SERVICES_INFO_PLIST_BASE64 não encontrado no ambiente."
     exit 1
