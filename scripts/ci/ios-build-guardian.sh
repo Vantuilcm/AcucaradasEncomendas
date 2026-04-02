@@ -8,10 +8,17 @@ set -euo pipefail
 echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS (HYBRID V6.0)..."
 echo "------------------------------------------------------------"
 
-## ETAPA 1 — DETECÇÃO DE CONTEXTO
+## ETAPA 1 — DETECÇÃO DE CONTEXTO E ESTADO (STATE ENGINE)
 BRANCH_NAME="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
 COMMIT_MSG="${GITHUB_EVENT_PATH:+$(jq -r '.head_commit.message' "$GITHUB_EVENT_PATH")}"
 COMMIT_MSG="${COMMIT_MSG:-$(git log -1 --pretty=%B)}"
+
+echo "🛡️ [STATE-ENGINE] Validando lock e duplicidade..."
+node scripts/build-state-check.js lock
+node scripts/build-state-check.js check
+
+# Garantir unlock ao sair (sucesso ou falha)
+trap "node scripts/build-state-check.js unlock" EXIT
 
 BUILD_MODE="LOCAL" # Default para segurança e velocidade
 
@@ -134,6 +141,9 @@ run_build_with_retry() {
 # Fluxo Principal de Execução
 if run_build_with_retry "$BUILD_MODE"; then
     echo "✅ [SUCCESS] Build concluído com sucesso no modo $BUILD_MODE!"
+    export CURRENT_VERSION=$(grep "version:" app.config.ts | sed "s/.*'\(.*\)'.*/\1/")
+    export CURRENT_BN=$(grep "buildNumber:" app.config.ts | sed 's/[^0-9]*//g')
+    node scripts/build-state-check.js success
     exit 0
 else
     echo "🚨 [CRITICAL] Falha persistente no modo $BUILD_MODE após $MAX_RETRIES tentativas."
@@ -143,6 +153,9 @@ else
         echo "🔄 [FALLBACK] Iniciando recuperação automática via CLOUD (EAS Cloud)..."
         if run_build_with_retry "CLOUD"; then
             echo "✅ [RECOVERED] Build concluído via CLOUD após falha no LOCAL!"
+            export CURRENT_VERSION=$(grep "version:" app.config.ts | sed "s/.*'\(.*\)'.*/\1/")
+            export CURRENT_BN=$(grep "buildNumber:" app.config.ts | sed 's/[^0-9]*//g')
+            node scripts/build-state-check.js success
             exit 0
         fi
     fi
