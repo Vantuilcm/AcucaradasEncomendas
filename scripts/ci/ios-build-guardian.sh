@@ -89,9 +89,17 @@ MISSING_VARS=()
 
 # 2.4 Normalizar Private Key (Prioridade BASE64)
 if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
-    echo "🛡️ [SECURE] Decodificando ASC Private Key (Base64 via Node)..."
-    # Usamos Node para decodificar, pois é mais resiliente a whitespaces e formatos (standard/url-safe)
-    node -e "const fs = require('fs'); let b64 = process.env.EXPO_ASC_PRIVATE_KEY_BASE64.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/'); fs.writeFileSync('AuthKey.p8', Buffer.from(b64, 'base64'));"
+    echo "🛡️ [SECURE] Normalizando ASC Private Key (EXPO_ASC_PRIVATE_KEY_BASE64)..."
+    
+    # Detecção Inteligente: Se já começar com '-----BEGIN', não decodificar
+    if [[ "${EXPO_ASC_PRIVATE_KEY_BASE64}" == *"BEGIN PRIVATE KEY"* ]]; then
+        echo "⚠️ [WARN] EXPO_ASC_PRIVATE_KEY_BASE64 parece conter o texto RAW (PEM). Usando sem decodificar."
+        echo "${EXPO_ASC_PRIVATE_KEY_BASE64}" > AuthKey.p8
+    else
+        echo "🛡️ [SECURE] Decodificando Base64 via Node..."
+        # Usamos Node para decodificar, pois é mais resiliente a whitespaces e formatos (standard/url-safe)
+        node -e "const fs = require('fs'); let b64 = process.env.EXPO_ASC_PRIVATE_KEY_BASE64.trim().replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/'); try { fs.writeFileSync('AuthKey.p8', Buffer.from(b64, 'base64')); } catch (e) { console.error('FALHA DECODER:', e.message); process.exit(1); }"
+    fi
 elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
     # Bloquear se for multiline direto (formato inválido para GitHub Secrets sem Base64)
     if [[ "${EXPO_ASC_PRIVATE_KEY}" == *"BEGIN PRIVATE KEY"* ]]; then

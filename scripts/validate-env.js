@@ -31,21 +31,17 @@ requiredEnvVars.forEach(varName => {
     // Validação extra para chaves Base64
     if (varName === 'EXPO_ASC_PRIVATE_KEY_BASE64') {
       const cleanValue = value.replace(/\s/g, '');
+      // Se contiver os delimitadores PEM, é válido mas com ressalva
+      const isPem = value.includes('BEGIN PRIVATE KEY');
+      
       // Permitir Base64 padrão e URL-safe (- e _)
       const isBase64 = /^[A-Za-z0-9+/=_ -]+$/.test(cleanValue);
       
-      if (!isBase64) {
-        console.error(`❌ [ERRO] Formato inválido para ${varName}: Não é um Base64 válido.`);
-        
-        // Diagnóstico útil sem vazar a chave
-        if (value.includes('BEGIN PRIVATE KEY')) {
-          console.error('💡 DICA: Você parece ter colado o conteúdo do arquivo .p8 DIRETAMENTE no secret.');
-          console.error('   O pipeline espera o conteúdo CONVERTIDO para Base64.');
-          console.error('   Comando para converter: base64 -w 0 seu-arquivo.p8');
-        } else if (value.length < 50) {
-          console.error(`   A chave parece curta demais (${value.length} caracteres). Verifique o segredo.`);
-        }
+      if (!isBase64 && !isPem) {
+        console.error(`❌ [ERRO] Formato inválido para ${varName}: Não é um Base64 nem PEM válido.`);
         hasError = true;
+      } else if (isPem) {
+        console.log(`⚠️ [WARN] ${varName} detectada como formato PEM (RAW). O pipeline irá normalizar.`);
       } else {
         console.log(`✅ [OK] ${varName} detectada e validada (Base64).`);
       }
