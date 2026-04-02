@@ -78,11 +78,6 @@ credentials/
 google-service-account*.json
 .runtimeconfig.json
 firebase-adminsdk-*.json
-.env
-.env.local
-.env.*
-.env*.local
-
 # Temporários e Backups
 backup-protecao/
 temp_install/
