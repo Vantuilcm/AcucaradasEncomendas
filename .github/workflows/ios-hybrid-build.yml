@@ -1,0 +1,53 @@
+name: 🍏 iOS Hybrid Build (LOCAL & CLOUD)
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+  workflow_dispatch:
+    inputs:
+      FORCE_BUILD_MODE:
+        description: 'Forçar modo de build (LOCAL ou CLOUD)'
+        required: false
+        default: ''
+
+jobs:
+  ios-hybrid-pipeline:
+    name: 🍎 Hybrid Pipeline
+    # Se for main ou tiver [release], usa ubuntu-latest (Cloud Build é mais leve no runner)
+    # Se for outra branch, usa macos-latest (Local Build exige macOS)
+    runs-on: ${{ (github.ref_name == 'main' || contains(github.event.head_commit.message, '[release]')) && 'ubuntu-latest' || 'macos-latest' }}
+    
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+      FORCE_BUILD_MODE: ${{ github.event.inputs.FORCE_BUILD_MODE }}
+      PROFILE: "production_v13"
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: ⚙️ Setup EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: 🛡️ iOS-BUILD-GUARDIAN (Hybrid Mode)
+        run: |
+          chmod +x ./scripts/ci/ios-build-guardian.sh
+          ./scripts/ci/ios-build-guardian.sh
