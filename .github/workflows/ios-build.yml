@@ -14,7 +14,7 @@ on:
 jobs:
   ios-hybrid-pipeline:
     name: 🍎 Hybrid Pipeline
-    # Como o build agora é forçado LOCAL via scripts, precisamos SEMPRE de macOS
+    # Forçando trigger para validar o novo nome do workflow
     runs-on: macos-latest
     
     env:
