@@ -70,27 +70,27 @@ else
     exit 1
 fi
 
-# 2.3 ASC Build Check (Proteção contra duplicidade)
-echo "🛡️ [CHECK] Verificando duplicidade no App Store Connect..."
-CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
+# 2.3 EAS Build Check (Proteção contra duplicidade via EAS)
+echo "🛡️ [CHECK] Verificando duplicidade no EAS Cloud..."
+COMMIT_HASH=$(git rev-parse --short HEAD)
+TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+echo "📝 [LOG] Commit: $COMMIT_HASH"
+echo "🕒 [LOG] Timestamp: $TIMESTAMP"
 
-if [ "$CURRENT_BN" == "null" ] || [ -z "$CURRENT_BN" ]; then
-    echo "⚠️ [WARN] buildNumber não encontrado no app.json. Tentando app.config.js..."
-    CURRENT_BN=$(grep "buildNumber:" app.config.js | sed 's/[^0-9]*//g' | head -n 1)
-fi
-
-# Usamos 'eas build:list' para ver se o número já foi usado
-# Se falhar (por falta de login no EAS), o build continua normalmente
+# Consultar último build no EAS para este commit
+# Se o commit já foi buildado com sucesso, abortamos para economizar recursos
 set +e
-BN_EXISTS=$(npx eas-cli build:list --platform ios --status finished --limit 10 --non-interactive | grep "Build number: $CURRENT_BN" || true)
+# Buscamos builds com status 'finished' para este commit
+LAST_BUILD_FOR_COMMIT=$(npx eas-cli build:list --platform ios --status finished --limit 5 --non-interactive | grep "$COMMIT_HASH" || true)
 set -e
 
-if [ -n "$BN_EXISTS" ]; then
-    echo "⚠️ [DUPLICATE] Build $CURRENT_BN detectado em builds anteriores. Forçando novo incremento..."
-    node scripts/version-bump.js
-    CURRENT_BN=$(grep "buildNumber:" app.config.js | sed 's/[^0-9]*//g')
-    echo "✅ [FIXED] Novo buildNumber definido: $CURRENT_BN"
+if [ -n "$LAST_BUILD_FOR_COMMIT" ]; then
+    echo "⚠️ [DUPLICATE] Este commit ($COMMIT_HASH) já possui um build finalizado no EAS."
+    echo "💡 [INFO] Cancelando execução do pipeline para evitar duplicidade e desperdício de recursos."
+    exit 0
 fi
+
+echo "✅ [VALID] Nenhum build prévio detectado para o commit $COMMIT_HASH. Prosseguindo..."
 
 # 2.4 Validação de ENV
 echo "⚙️ [CONFIG] Carregando variáveis de ambiente (LOAD-ENV)..."
@@ -259,8 +259,17 @@ run_build_with_retry() {
 # Fluxo Principal de Execução
 if run_build_with_retry "$BUILD_MODE"; then
     echo "✅ [SUCCESS] Build concluído com sucesso no modo $BUILD_MODE!"
+    
+    # Obter o buildNumber do EAS se estivermos no modo CLOUD
+    if [ "$BUILD_MODE" == "CLOUD" ]; then
+        echo "🔍 [INFO] Buscando buildNumber gerado no EAS..."
+        export CURRENT_BN=$(npx eas-cli build:list --platform ios --status finished --limit 1 --non-interactive | grep "Build number:" | head -n 1 | awk '{print $NF}')
+        echo "📊 [RESULT] Build Number (EAS): $CURRENT_BN"
+    else
+        export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
+    fi
+    
     export CURRENT_VERSION=$(jq -r '.expo.version' app.json)
-    export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
     node scripts/build-state-check.js success
     exit 0
 else
@@ -271,8 +280,12 @@ else
         echo "🔄 [FALLBACK-ALERT] Iniciando recuperação automática via CLOUD (EAS Cloud)..."
         if run_build_with_retry "CLOUD"; then
             echo "✅ [RECOVERED] Build concluído via CLOUD após falha no LOCAL!"
+            
+            echo "🔍 [INFO] Buscando buildNumber gerado no EAS..."
+            export CURRENT_BN=$(npx eas-cli build:list --platform ios --status finished --limit 1 --non-interactive | grep "Build number:" | head -n 1 | awk '{print $NF}')
+            echo "📊 [RESULT] Build Number (EAS): $CURRENT_BN"
+            
             export CURRENT_VERSION=$(jq -r '.expo.version' app.json)
-            export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
             node scripts/build-state-check.js success
             exit 0
         fi
