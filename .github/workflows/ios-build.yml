@@ -14,7 +14,7 @@ on:
 jobs:
   ios-hybrid-pipeline:
     name: 🍎 Hybrid Pipeline
-    # Forçando trigger para validar o novo nome do workflow
+    # Forçando trigger para validar o novo nome do workflow (v2)
     runs-on: macos-latest
     
     env:
