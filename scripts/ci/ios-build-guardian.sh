@@ -70,6 +70,30 @@ else
     exit 1
 fi
 
+# 2.2 Normalização da ASC Private Key (Obrigatório para LOCAL builds)
+echo "🔑 [AUTH] Normalizando ASC Private Key..."
+if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
+    echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode > AuthKey.p8
+    echo "✅ [OK] AuthKey.p8 gerada a partir do Base64."
+elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
+    # Converter \n literais para quebras de linha reais
+    echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
+    echo "✅ [OK] AuthKey.p8 gerada a partir da String."
+fi
+
+if [ -f "AuthKey.p8" ]; then
+    if grep -q "BEGIN PRIVATE KEY" AuthKey.p8 && grep -q "END PRIVATE KEY" AuthKey.p8; then
+        echo "✅ [OK] AuthKey.p8 validada com sucesso."
+        # Exportar caminho para o EAS CLI
+        export EXPO_ASC_PRIVATE_KEY_PATH="./AuthKey.p8"
+    else
+        echo "❌ [ERROR] AuthKey.p8 inválida (cabeçalho/rodapé ausente)."
+        exit 1
+    fi
+else
+    echo "⚠️ [WARN] AuthKey.p8 não pôde ser gerada. Builds locais podem falhar."
+fi
+
 # 2.3 EAS Build Check (Proteção contra duplicidade via EAS)
 echo "🛡️ [CHECK] Verificando duplicidade no EAS Cloud..."
 COMMIT_HASH=$(git rev-parse --short HEAD)
@@ -225,24 +249,37 @@ run_build_with_retry() {
         echo "🏗️ [BUILD] Tentativa $attempt de $MAX_RETRIES no modo: $mode (Perfil: $profile)..."
         
         set +e
+        local current_exit_code=0
         if [ "$mode" == "LOCAL" ]; then
             # Limpeza rápida antes de cada tentativa local
             rm -rf ios .expo
             npx expo prebuild --platform ios --no-install --non-interactive
             EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive
+            current_exit_code=$?
         else
             # MODO CLOUD (EAS Cloud Native)
             echo "🚀 [EXEC] Iniciando build CLOUD no EAS Cloud..."
-            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --non-interactive
+            # Usar um arquivo temporário para capturar a saída e manter o exit code
+            set +e
+            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --non-interactive 2>&1 | tee /tmp/build_log.txt
+            current_exit_code=$?
+            set -e
+            
+            # Detecção de Erro de Cota (Free Plan Limit)
+            if [ $current_exit_code -ne 0 ] && grep -q "EasBuildFreeTierIosLimitExceededError" /tmp/build_log.txt; then
+                echo "⚠️ [QUOTA-EXCEEDED] Limite do plano gratuito do Expo atingido!"
+                echo "🔄 [FALLBACK-AUTO] Forçando modo LOCAL para burlar o limite do Cloud..."
+                # Chamada recursiva para tentar localmente
+                run_build_with_retry "LOCAL"
+                return $?
+            fi
         fi
-        local exit_code=$?
-        set -e
         
-        if [ $exit_code -eq 0 ]; then
+        if [ $current_exit_code -eq 0 ]; then
             return 0
         fi
         
-        echo "⚠️ [ATTEMPT FAILED] Tentativa $attempt falhou com código $exit_code."
+        echo "⚠️ [ATTEMPT FAILED] Tentativa $attempt falhou com código $current_exit_code."
         
         # Log detalhado em caso de falha
         if [ $attempt -lt $MAX_RETRIES ]; then
