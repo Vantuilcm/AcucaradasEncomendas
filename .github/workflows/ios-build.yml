@@ -1,11 +1,9 @@
-name: 🍏 iOS Hybrid Build (LOCAL & CLOUD)
+name: 🚀 Build & Submit Mobile (EAS Cloud)
 
 on:
   push:
     branches:
       - main
-      - develop
-      - 'feature/*'
   workflow_dispatch:
     inputs:
       FORCE_BUILD_MODE:

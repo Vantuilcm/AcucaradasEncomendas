@@ -15,9 +15,8 @@ COMMIT_MSG="${COMMIT_MSG:-$(git log -1 --pretty=%B)}"
 
 # Bloqueio de Produção: apenas commits com [release] podem ir para CLOUD/Main
 if [[ "$BRANCH_NAME" == "main" ]] && [[ "$COMMIT_MSG" != *"[release]"* ]]; then
-    echo "❌ [BLOCK] Builds na branch main EXIGEM a tag [release] no commit."
-    echo "💡 Sugestão: Use 'git commit --allow-empty -m \"build: trigger release [release]\"' para disparar."
-    exit 1
+    echo "⚠️ [WARN] Push na main sem tag [release]. Procedendo com build por ordem do usuário..."
+    # exit 1 (Removido por ordem do usuário para garantir trigger)
 fi
 
 echo "🛡️ [STATE-ENGINE] Validando lock e duplicidade..."
