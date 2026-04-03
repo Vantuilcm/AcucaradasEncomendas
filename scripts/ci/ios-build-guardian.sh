@@ -72,7 +72,12 @@ fi
 
 # 2.3 ASC Build Check (Proteção contra duplicidade)
 echo "🛡️ [CHECK] Verificando duplicidade no App Store Connect..."
-CURRENT_BN=$(grep "buildNumber:" app.config.js | sed 's/[^0-9]*//g')
+CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
+
+if [ "$CURRENT_BN" == "null" ] || [ -z "$CURRENT_BN" ]; then
+    echo "⚠️ [WARN] buildNumber não encontrado no app.json. Tentando app.config.js..."
+    CURRENT_BN=$(grep "buildNumber:" app.config.js | sed 's/[^0-9]*//g' | head -n 1)
+fi
 
 # Usamos 'eas build:list' para ver se o número já foi usado
 # Se falhar (por falta de login no EAS), o build continua normalmente
@@ -254,8 +259,8 @@ run_build_with_retry() {
 # Fluxo Principal de Execução
 if run_build_with_retry "$BUILD_MODE"; then
     echo "✅ [SUCCESS] Build concluído com sucesso no modo $BUILD_MODE!"
-    export CURRENT_VERSION=$(grep "version:" app.json | sed "s/.*\"\(.*\)\".*/\1/")
-    export CURRENT_BN=$(grep "buildNumber:" app.config.js | sed 's/[^0-9]*//g')
+    export CURRENT_VERSION=$(jq -r '.expo.version' app.json)
+    export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
     node scripts/build-state-check.js success
     exit 0
 else
@@ -266,8 +271,8 @@ else
         echo "🔄 [FALLBACK-ALERT] Iniciando recuperação automática via CLOUD (EAS Cloud)..."
         if run_build_with_retry "CLOUD"; then
             echo "✅ [RECOVERED] Build concluído via CLOUD após falha no LOCAL!"
-            export CURRENT_VERSION=$(grep "version:" app.json | sed "s/.*\"\(.*\)\".*/\1/")
-            export CURRENT_BN=$(grep "buildNumber:" app.config.js | sed 's/[^0-9]*//g')
+            export CURRENT_VERSION=$(jq -r '.expo.version' app.json)
+            export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
             node scripts/build-state-check.js success
             exit 0
         fi
