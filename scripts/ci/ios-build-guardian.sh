@@ -72,7 +72,7 @@ fi
 
 # 2.3 ASC Build Check (Proteção contra duplicidade)
 echo "🛡️ [CHECK] Verificando duplicidade no App Store Connect..."
-CURRENT_BN=$(grep "buildNumber:" app.config.ts | sed 's/[^0-9]*//g')
+CURRENT_BN=$(grep "buildNumber:" app.config.js | sed 's/[^0-9]*//g')
 
 # Usamos 'eas build:list' para ver se o número já foi usado
 # Se falhar (por falta de login no EAS), o build continua normalmente
@@ -83,7 +83,7 @@ set -e
 if [ -n "$BN_EXISTS" ]; then
     echo "⚠️ [DUPLICATE] Build $CURRENT_BN detectado em builds anteriores. Forçando novo incremento..."
     node scripts/version-bump.js
-    CURRENT_BN=$(grep "buildNumber:" app.config.ts | sed 's/[^0-9]*//g')
+    CURRENT_BN=$(grep "buildNumber:" app.config.js | sed 's/[^0-9]*//g')
     echo "✅ [FIXED] Novo buildNumber definido: $CURRENT_BN"
 fi
 
@@ -226,12 +226,9 @@ run_build_with_retry() {
             npx expo prebuild --platform ios --no-install --non-interactive
             EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive
         else
-            # Garantir que o arquivo GoogleService-Info.plist esteja no lugar certo antes do build cloud
-            # O EAS Cloud as vezes falha se o arquivo for gerado dinamicamente e não estiver "visto" pelo git
-            # mas como usamos --non-interactive, vamos garantir que ele exista.
-            cp GoogleService-Info.plist ./ios/GoogleService-Info.plist 2>/dev/null || true
-            echo "🚀 [EXEC] Iniciando build LOCAL no GitHub Actions (Runner)..."
-            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive
+            # MODO CLOUD (EAS Cloud Native)
+            echo "🚀 [EXEC] Iniciando build CLOUD no EAS Cloud..."
+            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --non-interactive
         fi
         local exit_code=$?
         set -e
@@ -257,8 +254,8 @@ run_build_with_retry() {
 # Fluxo Principal de Execução
 if run_build_with_retry "$BUILD_MODE"; then
     echo "✅ [SUCCESS] Build concluído com sucesso no modo $BUILD_MODE!"
-    export CURRENT_VERSION=$(grep "version:" app.config.ts | sed "s/.*'\(.*\)'.*/\1/")
-    export CURRENT_BN=$(grep "buildNumber:" app.config.ts | sed 's/[^0-9]*//g')
+    export CURRENT_VERSION=$(grep "version:" app.json | sed "s/.*\"\(.*\)\".*/\1/")
+    export CURRENT_BN=$(grep "buildNumber:" app.config.js | sed 's/[^0-9]*//g')
     node scripts/build-state-check.js success
     exit 0
 else
@@ -269,8 +266,8 @@ else
         echo "🔄 [FALLBACK-ALERT] Iniciando recuperação automática via CLOUD (EAS Cloud)..."
         if run_build_with_retry "CLOUD"; then
             echo "✅ [RECOVERED] Build concluído via CLOUD após falha no LOCAL!"
-            export CURRENT_VERSION=$(grep "version:" app.config.ts | sed "s/.*'\(.*\)'.*/\1/")
-            export CURRENT_BN=$(grep "buildNumber:" app.config.ts | sed 's/[^0-9]*//g')
+            export CURRENT_VERSION=$(grep "version:" app.json | sed "s/.*\"\(.*\)\".*/\1/")
+            export CURRENT_BN=$(grep "buildNumber:" app.config.js | sed 's/[^0-9]*//g')
             node scripts/build-state-check.js success
             exit 0
         fi
