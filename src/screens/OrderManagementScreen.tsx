@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import {
   Text,
   Card,
@@ -18,6 +18,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
+import { OrderService } from '../services/OrderService';
+import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { Order, OrderStatus } from '../types/Order';
 import { formatCurrency } from '../utils/formatters';
 import { useAppTheme } from '../components/ThemeProvider';
@@ -37,167 +39,35 @@ export function OrderManagementScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  // Removed unused useAuth hook
+  const { user } = useAuth();
   const { isProdutor, isAdmin, isEntregador } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<OrderFilter>('all');
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
 
+  const orderService = useMemo(() => OrderService.getInstance(), []);
+
   useEffect(() => {
-    loadOrders();
-  }, []);
+    const unsubscribe = orderService.subscribeToAllOrders((realtimeOrders) => {
+      setOrders(realtimeOrders);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [orderService]);
 
   useEffect(() => {
     filterOrders();
-  }, [searchQuery, filterStatus, orders]);
+  }, [searchQuery, filterStatus, orders, user]);
 
   const loadOrders = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Simulação de carregamento de dados
-      // No futuro, isso seria uma chamada para a API
-      setTimeout(() => {
-        const mockOrders: Order[] = [
-          {
-            id: '1',
-            userId: 'user_1',
-            status: 'pending',
-            items: [
-              {
-                id: '1',
-                productId: 'prod_1',
-                name: 'Bolo de Chocolate',
-                quantity: 1,
-                unitPrice: 45.9,
-                totalPrice: 45.9,
-              },
-            ],
-            totalAmount: 45.9,
-            deliveryAddress: {
-              id: 'addr_1',
-              street: 'Rua das Flores',
-              number: '123',
-              city: 'São Paulo',
-              state: 'SP',
-              zipCode: '01234-567',
-              neighborhood: 'Jardim das Flores',
-            },
-            createdAt: new Date(Date.now() - 30 * 60000).toISOString(), // 30 min atrás
-            updatedAt: new Date(Date.now() - 30 * 60000).toISOString(),
-            isScheduledOrder: false,
-            paymentMethod: { type: 'credit_card', id: 'pm_1' },
-          },
-          {
-            id: '2',
-            userId: 'user_2',
-            status: 'confirmed',
-            items: [
-              {
-                id: '2',
-                productId: 'prod_2',
-                name: 'Cupcake de Baunilha',
-                quantity: 6,
-                unitPrice: 8.5,
-                totalPrice: 51.0,
-              },
-            ],
-            totalAmount: 51.0,
-            deliveryAddress: {
-              id: 'addr_2',
-              street: 'Av. Paulista',
-              number: '1000',
-              city: 'São Paulo',
-              state: 'SP',
-              zipCode: '01310-100',
-              neighborhood: 'Bela Vista',
-            },
-            createdAt: new Date(Date.now() - 2 * 60 * 60000).toISOString(), // 2 horas atrás
-            updatedAt: new Date(Date.now() - 2 * 60 * 60000).toISOString(),
-            isScheduledOrder: false,
-            paymentMethod: { type: 'pix', id: 'pm_2' },
-          },
-          {
-            id: '3',
-            userId: 'user_3',
-            status: 'preparing',
-            items: [
-              {
-                id: '3',
-                productId: 'prod_3',
-                name: 'Torta de Limão',
-                quantity: 1,
-                unitPrice: 40.0,
-                totalPrice: 40.0,
-              },
-              {
-                id: '4',
-                productId: 'prod_4',
-                name: 'Docinhos (50 un)',
-                quantity: 1,
-                unitPrice: 75.0,
-                totalPrice: 75.0,
-              },
-            ],
-            totalAmount: 115.0,
-            deliveryAddress: {
-              id: 'addr_3',
-              street: 'Rua Augusta',
-              number: '500',
-              city: 'São Paulo',
-              state: 'SP',
-              zipCode: '01305-000',
-              neighborhood: 'Consolação',
-            },
-            createdAt: new Date(Date.now() - 5 * 60 * 60000).toISOString(), // 5 horas atrás
-            updatedAt: new Date(Date.now() - 5 * 60 * 60000).toISOString(),
-            isScheduledOrder: false,
-            paymentMethod: { type: 'credit_card', id: 'pm_3' },
-          },
-          {
-            id: '4',
-            userId: 'user_4',
-            status: 'delivered',
-            items: [
-              {
-                id: '5',
-                productId: 'prod_5',
-                name: 'Bolo de Morango',
-                quantity: 1,
-                unitPrice: 55.0,
-                totalPrice: 55.0,
-              },
-            ],
-            totalAmount: 55.0,
-            deliveryAddress: {
-              id: 'addr_4',
-              street: 'Rua Oscar Freire',
-              number: '300',
-              city: 'São Paulo',
-              state: 'SP',
-              zipCode: '01426-000',
-              neighborhood: 'Jardim Paulista',
-            },
-            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60000).toISOString(), // 2 dias atrás
-            updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60000).toISOString(),
-            isScheduledOrder: false,
-            paymentMethod: { type: 'pix', id: 'pm_4' },
-          },
-        ];
-
-        setOrders(mockOrders);
-        setLoading(false);
-      }, 1000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar pedidos');
-      setLoading(false);
-    }
+    setRefreshing(true);
+    // Simular refresh manual
+    setTimeout(() => setRefreshing(false), 500);
   };
 
   const filterOrders = () => {
@@ -218,6 +88,23 @@ export function OrderManagementScreen() {
     // Filtrar por status
     if (filterStatus !== 'all') {
       filtered = filtered.filter(order => order.status === filterStatus);
+    }
+
+    // Filtrar por papel do usuário
+    if (!isAdmin && user) {
+      const userId = (user as any).id || (user as any).uid;
+      
+      if (isProdutor) {
+        // Produtor só vê pedidos vinculados a ele
+        filtered = filtered.filter(order => order.producerId === userId);
+      } else if (isEntregador) {
+        // Entregador só vê pedidos prontos (disponíveis para todos)
+        // OU pedidos em que ele já está atribuído como motorista
+        filtered = filtered.filter(order => 
+          order.status === 'ready' || 
+          (order.deliveryDriver?.id === userId)
+        );
+      }
     }
 
     setFilteredOrders(filtered);
@@ -271,16 +158,15 @@ export function OrderManagementScreen() {
     }
   };
 
-  const updateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
-    setOrders(
-      orders.map(order => {
-        if (order.id === orderId) {
-          return { ...order, status: newStatus };
-        }
-        return order;
-      })
-    );
-    setMenuVisible(null);
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      await orderService.updateOrderStatus(orderId, newStatus);
+      // O onSnapshot cuidará de atualizar a lista de pedidos automaticamente
+      setMenuVisible(null);
+    } catch (error) {
+      console.error('Erro ao atualizar status do pedido:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar o status do pedido.');
+    }
   };
 
   const showStatusOptions = (orderId: string) => {
@@ -305,6 +191,42 @@ export function OrderManagementScreen() {
       />
     );
   }
+
+  const handleAdvanceStatus = async (orderId: string, currentStatus: OrderStatus) => {
+    // Lógica especial para entregador assumir pedido
+    if (isEntregador && currentStatus === 'ready' && user) {
+      try {
+        const userId = (user as any).id || (user as any).uid;
+        const driverService = new DeliveryDriverService();
+        const driverData = await driverService.getDriverByUserId(userId);
+        
+        if (!driverData) {
+          Alert.alert('Erro', 'Perfil de entregador não encontrado');
+          return;
+        }
+
+        // Atribuir entregador ao pedido antes de avançar
+        await orderService.updateOrder(orderId, {
+          deliveryDriver: {
+            id: driverData.id,
+            name: driverData.name,
+            phone: driverData.phone,
+            vehicle: driverData.vehicle.model,
+            plate: driverData.vehicle.plate
+          }
+        });
+      } catch (err) {
+        console.error('Erro ao atribuir entregador:', err);
+        Alert.alert('Erro', 'Não foi possível assumir a entrega');
+        return;
+      }
+    }
+
+    const nextStatus = getNextStatus(currentStatus);
+    if (nextStatus !== currentStatus) {
+      updateOrderStatus(orderId, nextStatus);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -337,8 +259,6 @@ export function OrderManagementScreen() {
         style={styles.scrollView}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        {error && <ErrorMessage message={error} onRetry={loadOrders} />}
-
         {filteredOrders.length === 0 ? (
           <View style={styles.emptyState}>
             <Text variant="bodyLarge">Nenhum pedido encontrado</Text>
@@ -466,7 +386,7 @@ export function OrderManagementScreen() {
                   {order.status !== 'delivered' && order.status !== 'cancelled' && (
                     <Button
                       mode="contained"
-                      onPress={() => updateOrderStatus(order.id, getNextStatus(order.status))}
+                      onPress={() => handleAdvanceStatus(order.id, order.status)}
                       style={[styles.advanceButton, { backgroundColor: theme.colors.primary }]}
                     >
                       Avançar Status

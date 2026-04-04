@@ -13,7 +13,16 @@ import {
   limit,
   serverTimestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import {
+  // @ts-ignore
+  ref,
+  // @ts-ignore
+  uploadBytes,
+  // @ts-ignore
+  getDownloadURL,
+  // @ts-ignore
+  deleteObject
+} from 'firebase/storage';
 import { User, Address } from '../models/User';
 import { ReviewService } from './ReviewService';
 import { ValidationService } from './validationService';

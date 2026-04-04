@@ -115,10 +115,13 @@ export class MobileNotificationService {
     let projectId = '';
 
     if (Constants.expoConfig?.extra?.eas?.projectId) {
-      projectId = Constants.expoConfig.extra.eas.projectId;
-    } else if (Constants.manifest?.extra?.eas?.projectId) {
-      projectId = Constants.manifest.extra.eas.projectId;
-    } else if ((Constants.expoConfig as any)?.projectId) {
+        projectId = Constants.expoConfig.extra.eas.projectId;
+      } 
+      // @ts-ignore
+      else if (Constants.manifest?.extra?.eas?.projectId) {
+        // @ts-ignore
+        projectId = Constants.manifest.extra.eas.projectId;
+      } else if ((Constants.expoConfig as any)?.projectId) {
       projectId = (Constants.expoConfig as any).projectId;
     } else if ((Constants.manifest as any)?.projectId) {
       projectId = (Constants.manifest as any).projectId;

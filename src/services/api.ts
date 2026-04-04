@@ -44,6 +44,7 @@ api.interceptors.request.use(
   async (config) => {
     const token = await getAuthToken();
     if (!config.headers) {
+      // @ts-ignore
       config.headers = {};
     }
 

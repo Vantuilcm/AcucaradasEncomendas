@@ -8,36 +8,21 @@ import {
   Searchbar,
   Chip,
   IconButton,
-  Dialog,
-  Portal,
-  TextInput,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { useAppTheme } from '../components/ThemeProvider';
 
-import { usePermissions } from '../hooks/usePermissions';
-
-// Tipo para produtos
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  category: string;
-  available: boolean;
-  stock: number;
-}
+import { ProductService } from '../services/ProductService';
+import { Product } from '../types/Product';
 
 export function ProductManagementScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
-  // Removed unused useAuth hook
   const { isProdutor, isAdmin } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -47,15 +32,8 @@ export function ProductManagementScreen() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
-  const [isEditDialogVisible, setIsEditDialogVisible] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [tempProductData, setTempProductData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    stock: '',
-    available: true,
-  });
+  
+  const productService = useMemo(() => ProductService.getInstance(), []);
 
   useEffect(() => {
     loadProducts();
@@ -70,60 +48,14 @@ export function ProductManagementScreen() {
       setLoading(true);
       setError(null);
 
-      // Simulação de carregamento de dados
-      // No futuro, isso seria uma chamada para a API
-      setTimeout(() => {
-        const mockProducts: Product[] = [
-          {
-            id: '1',
-            name: 'Bolo de Chocolate',
-            description: 'Delicioso bolo de chocolate com cobertura de brigadeiro.',
-            price: 45.9,
-            imageUrl: 'https://example.com/bolo-chocolate.jpg',
-            category: 'Bolos',
-            available: true,
-            stock: 5,
-          },
-          {
-            id: '2',
-            name: 'Cupcake de Baunilha',
-            description: 'Cupcake de baunilha com cobertura de buttercream.',
-            price: 8.5,
-            imageUrl: 'https://example.com/cupcake-baunilha.jpg',
-            category: 'Cupcakes',
-            available: true,
-            stock: 20,
-          },
-          {
-            id: '3',
-            name: 'Torta de Limão',
-            description: 'Torta de limão com merengue.',
-            price: 40.0,
-            imageUrl: 'https://example.com/torta-limao.jpg',
-            category: 'Tortas',
-            available: true,
-            stock: 3,
-          },
-          {
-            id: '4',
-            name: 'Bolo de Morango',
-            description: 'Bolo recheado com creme e morangos frescos.',
-            price: 55.0,
-            imageUrl: 'https://example.com/bolo-morango.jpg',
-            category: 'Bolos',
-            available: false,
-            stock: 0,
-          },
-        ];
+      const allProducts = await productService.listarProdutos();
+      setProducts(allProducts);
 
-        setProducts(mockProducts);
+      // Extrair categorias únicas
+      const uniqueCategories = [...new Set(allProducts.map(p => p.categoria))];
+      setCategories(uniqueCategories);
 
-        // Extrair categorias únicas
-        const uniqueCategories = [...new Set(mockProducts.map(p => p.category))];
-        setCategories(uniqueCategories);
-
-        setLoading(false);
-      }, 1000);
+      setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar produtos');
       setLoading(false);
@@ -135,16 +67,17 @@ export function ProductManagementScreen() {
 
     // Filtrar por texto de busca
     if (searchQuery) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         product =>
-          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.description.toLowerCase().includes(searchQuery.toLowerCase())
+          product.nome.toLowerCase().includes(query) ||
+          (product.descricao && product.descricao.toLowerCase().includes(query))
       );
     }
 
     // Filtrar por categoria
     if (selectedCategory) {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+      filtered = filtered.filter(product => product.categoria === selectedCategory);
     }
 
     setFilteredProducts(filtered);
@@ -163,15 +96,13 @@ export function ProductManagementScreen() {
     });
   };
 
-  const toggleProductAvailability = (productId: string) => {
-    setProducts(
-      products.map(product => {
-        if (product.id === productId) {
-          return { ...product, available: !product.available };
-        }
-        return product;
-      })
-    );
+  const toggleProductAvailability = async (productId: string, currentStatus: boolean) => {
+    try {
+      await productService.atualizarProduto(productId, { disponivel: !currentStatus });
+      await loadProducts();
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível atualizar a disponibilidade do produto.');
+    }
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -182,8 +113,13 @@ export function ProductManagementScreen() {
       },
       {
         text: 'Excluir',
-        onPress: () => {
-          setProducts(products.filter(product => product.id !== productId));
+        onPress: async () => {
+          try {
+            await productService.excluirProduto(productId);
+            await loadProducts();
+          } catch (err) {
+            Alert.alert('Erro', 'Não foi possível excluir o produto.');
+          }
         },
         style: 'destructive',
       },
@@ -191,50 +127,11 @@ export function ProductManagementScreen() {
   };
 
   const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setTempProductData({
-      name: product.name,
-      description: product.description,
-      price: product.price.toString(),
-      stock: product.stock.toString(),
-      available: product.available,
-    });
-    setIsEditDialogVisible(true);
+    (navigation as any).navigate('AddEditProduct', { product, isEditing: true });
   };
 
-  const saveProductChanges = () => {
-    if (!editingProduct) return;
-
-    const price = parseFloat(tempProductData.price);
-    const stock = parseInt(tempProductData.stock);
-
-    if (isNaN(price) || price <= 0) {
-      Alert.alert('Erro', 'Por favor, informe um preço válido.');
-      return;
-    }
-
-    if (isNaN(stock) || stock < 0) {
-      Alert.alert('Erro', 'Por favor, informe um estoque válido.');
-      return;
-    }
-
-    setProducts(
-      products.map(product => {
-        if (product.id === editingProduct.id) {
-          return {
-            ...product,
-            name: tempProductData.name,
-            description: tempProductData.description,
-            price: price,
-            stock: stock,
-            available: tempProductData.available,
-          };
-        }
-        return product;
-      })
-    );
-
-    setIsEditDialogVisible(false);
+  const handleAddProduct = () => {
+    (navigation as any).navigate('AddEditProduct', { isEditing: false });
   };
 
   if (loading && !refreshing) {
@@ -317,33 +214,33 @@ export function ProductManagementScreen() {
               <Card.Content style={styles.productContent}>
                 <View style={styles.productInfo}>
                   <View style={styles.productHeader}>
-                    <Text variant="titleMedium">{product.name}</Text>
+                    <Text variant="titleMedium">{product.nome}</Text>
                     <Chip
                       mode="flat"
                       style={[
                         styles.statusChip,
                         {
-                          backgroundColor: product.available
+                          backgroundColor: product.disponivel
                             ? theme.colors.success
                             : theme.colors.error,
                         },
                       ]}
                     >
-                      {product.available ? 'Disponível' : 'Indisponível'}
+                      {product.disponivel ? 'Disponível' : 'Indisponível'}
                     </Chip>
                   </View>
 
                   <Text variant="bodyMedium" style={styles.description}>
-                    {product.description}
+                    {product.descricao}
                   </Text>
 
                   <View style={styles.productDetails}>
-                    <Text variant="bodySmall">Categoria: {product.category}</Text>
-                    <Text variant="bodySmall">Estoque: {product.stock} unidades</Text>
+                    <Text variant="bodySmall">Categoria: {product.categoria}</Text>
+                    <Text variant="bodySmall">Estoque: {product.estoque} unidades</Text>
                   </View>
 
                   <Text variant="titleSmall" style={styles.price}>
-                    {formatCurrency(product.price)}
+                    {formatCurrency(product.preco)}
                   </Text>
                 </View>
 
@@ -355,10 +252,10 @@ export function ProductManagementScreen() {
                     onPress={() => handleEditProduct(product)}
                   />
                   <IconButton
-                    icon={product.available ? 'eye-off' : 'eye'}
-                    iconColor={product.available ? theme.colors.error : theme.colors.success}
+                    icon={product.disponivel ? 'eye-off' : 'eye'}
+                    iconColor={product.disponivel ? theme.colors.error : theme.colors.success}
                     size={20}
-                    onPress={() => toggleProductAvailability(product.id)}
+                    onPress={() => toggleProductAvailability(product.id, product.disponivel)}
                   />
                   <IconButton
                     icon="delete"
@@ -376,68 +273,9 @@ export function ProductManagementScreen() {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => (navigation as any).navigate('AddEditProduct')}
+        onPress={handleAddProduct}
         color={theme.colors.background}
       />
-
-      <Portal>
-        <Dialog visible={isEditDialogVisible} onDismiss={() => setIsEditDialogVisible(false)}>
-          <Dialog.Title>Editar Produto</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              label="Nome do produto"
-              value={tempProductData.name}
-              onChangeText={text => setTempProductData({ ...tempProductData, name: text })}
-              style={styles.dialogInput}
-            />
-            <TextInput
-              label="Descrição"
-              value={tempProductData.description}
-              onChangeText={text => setTempProductData({ ...tempProductData, description: text })}
-              multiline
-              numberOfLines={3}
-              style={styles.dialogInput}
-            />
-            <TextInput
-              label="Preço (R$)"
-              value={tempProductData.price}
-              onChangeText={text => setTempProductData({ ...tempProductData, price: text })}
-              keyboardType="numeric"
-              style={styles.dialogInput}
-            />
-            <TextInput
-              label="Estoque"
-              value={tempProductData.stock}
-              onChangeText={text => setTempProductData({ ...tempProductData, stock: text })}
-              keyboardType="numeric"
-              style={styles.dialogInput}
-            />
-            <View style={styles.availabilityToggle}>
-              <Text>Disponível para venda</Text>
-              <Button
-                mode={tempProductData.available ? 'contained' : 'outlined'}
-                onPress={() =>
-                  setTempProductData({ ...tempProductData, available: !tempProductData.available })
-                }
-                style={[
-                  styles.toggleButton,
-                  {
-                    backgroundColor: tempProductData.available
-                      ? theme.colors.success
-                      : 'transparent',
-                  },
-                ]}
-              >
-                {tempProductData.available ? 'Sim' : 'Não'}
-              </Button>
-            </View>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setIsEditDialogVisible(false)}>Cancelar</Button>
-            <Button onPress={saveProductChanges}>Salvar</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
     </SafeAreaView>
   );
 }

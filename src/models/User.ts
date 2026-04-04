@@ -20,6 +20,12 @@ export interface User {
   ultimoLogin?: Date;
   isAdmin?: boolean;
   role?: string;
+  referralCode?: string;
+  referredBy?: string;
+  referralCount?: number;
+  totalReferralValue?: number;
+  cityId?: string;
+  region?: string;
   perfil?: {
     fotoPerfil?: string;
     notificacoes?: {

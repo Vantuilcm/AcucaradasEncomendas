@@ -36,6 +36,19 @@ if (__DEV__) {
 try {
   initSentry();
   initOneSignal();
+  
+  // Teste controlado do Sentry (Executa apenas em builds de produção reais)
+  if (__DEV__ === false) {
+    setTimeout(() => {
+      // @ts-ignore
+      if (global.SENTRY_TEST_EXECUTED !== true) {
+        // @ts-ignore
+        global.SENTRY_TEST_EXECUTED = true;
+        console.log('🧪 [SENTRY-TEST] Disparando erro de teste de produção...');
+        throw new Error("SENTRY_TEST_PROD_V2");
+      }
+    }, 4000);
+  }
 } catch (error) {
   console.error('❌ Erro na inicialização de serviços:', error);
 }

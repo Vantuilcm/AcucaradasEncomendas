@@ -29,16 +29,28 @@ trap "node scripts/build-state-check.js unlock" EXIT
 BUILD_MODE="LOCAL" # Default para segurança e velocidade
 
 if [[ "$BRANCH_NAME" == "main" ]] || [[ "$COMMIT_MSG" == *"[release]"* ]]; then
-    BUILD_MODE="CLOUD"
-    echo "🚀 [CONTEXTO] Produção/Release detectada. Modo: CLOUD (EAS Cloud)."
+    BUILD_MODE="LOCAL" # Evolução: Forçar LOCAL em produção para economizar créditos
+    echo "🚀 [CONTEXTO] Produção/Release detectada. Modo: LOCAL (GitHub Runner - Forçado)."
 else
+    BUILD_MODE="LOCAL"
     echo "🧪 [CONTEXTO] Branch de desenvolvimento detectada. Modo: LOCAL (GitHub Runner)."
 fi
 
-# Sobrescrever via ENV se necessário
+# Sobrescrever via ENV se necessário (Prioridade Máxima)
 if [ -n "${FORCE_BUILD_MODE:-}" ]; then
     BUILD_MODE="$FORCE_BUILD_MODE"
     echo "⚠️ [OVERRIDE] Modo de build forçado via ENV: $BUILD_MODE"
+fi
+
+# 2.0 Hardening: Fail-Fast macOS
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    echo "❌ [FATAL] Este pipeline requer um ambiente macOS (GitHub macos-latest)."
+    exit 1
+fi
+
+if ! command -v xcodebuild &> /dev/null; then
+    echo "❌ [FATAL] xcodebuild não encontrado. Xcode é obrigatório para build LOCAL."
+    exit 1
 fi
 
 ## ETAPA 2 — PRÉ-VALIDAÇÃO E LIMPEZA (FAIL FAST)
@@ -253,7 +265,18 @@ run_build_with_retry() {
         if [ "$mode" == "LOCAL" ]; then
             # Limpeza rápida antes de cada tentativa local
             rm -rf ios .expo
-            npx expo prebuild --platform ios --no-install --non-interactive
+            
+            echo "🔧 [PREBUILD] Executando npx expo prebuild..."
+            npx expo prebuild --platform ios --non-interactive
+            
+            if [ -d "ios" ]; then
+                echo "📦 [PODS] Instalando CocoaPods..."
+                cd ios
+                pod install || echo "⚠️ [WARN] pod install falhou, tentando via eas build..."
+                cd ..
+            fi
+
+            echo "🏗️ [EXEC] Iniciando eas build LOCAL..."
             EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive
             current_exit_code=$?
         else
@@ -297,6 +320,23 @@ run_build_with_retry() {
 if run_build_with_retry "$BUILD_MODE"; then
     echo "✅ [SUCCESS] Build concluído com sucesso no modo $BUILD_MODE!"
     
+    # --- GARANTIA DE OUTPUT (.IPA) ---
+    echo "📦 [ARTIFACT] Localizando IPA gerada..."
+    mkdir -p dist
+    
+    # Localizar IPA no diretório atual ou subdiretórios
+    IPA_FILE=$(find . -maxdepth 2 -name "*.ipa" | head -n 1)
+    
+    if [ -n "$IPA_FILE" ]; then
+        echo "✅ [FOUND] IPA localizada em: $IPA_FILE"
+        cp "$IPA_FILE" ./dist/app.ipa
+        echo "🚀 [READY] IPA movida para: ./dist/app.ipa"
+    else
+        echo "❌ [ERROR] Build finalizou com sucesso mas o arquivo .ipa não foi encontrado."
+        exit 1
+    fi
+    # ---------------------------------
+    
     # Obter o buildNumber do EAS se estivermos no modo CLOUD
     if [ "$BUILD_MODE" == "CLOUD" ]; then
         echo "🔍 [INFO] Buscando buildNumber gerado no EAS..."
@@ -307,6 +347,23 @@ if run_build_with_retry "$BUILD_MODE"; then
     fi
     
     export CURRENT_VERSION=$(jq -r '.expo.version' app.json)
+    
+    # --- LOG E AUDITORIA ---
+    echo "📊 [AUDIT] Gerando log de auditoria..."
+    mkdir -p build-logs
+    cat <<EOF > build-logs/ios-build-log.json
+{
+  "status": "success",
+  "mode": "$BUILD_MODE",
+  "version": "$CURRENT_VERSION",
+  "buildNumber": "$CURRENT_BN",
+  "commit": "$(git rev-parse HEAD)",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "branch": "$BRANCH_NAME"
+}
+EOF
+    # -----------------------
+
     node scripts/build-state-check.js success
     exit 0
 else

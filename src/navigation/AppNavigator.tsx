@@ -31,8 +31,10 @@ import { AddressScreen } from '../screens/AddressScreen';
 import { PaymentMethodsScreen } from '../screens/PaymentMethodsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import AdminPanelScreen from '../screens/AdminPanelScreen';
+import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
 import { ProductManagementScreen } from '../screens/ProductManagementScreen';
 import { OrderManagementScreen } from '../screens/OrderManagementScreen';
+import { InventoryManagementScreen } from '../screens/InventoryManagementScreen';
 import { AddEditProductScreen } from '../screens/AddEditProductScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 import { NotificationSettingsScreenV2 } from '../screens/NotificationSettingsScreenV2';
@@ -75,7 +77,9 @@ export type RootStackParamList = {
   PaymentMethods: undefined;
   EditProfile: undefined;
   AdminPanel: undefined;
+  AdminDashboard: undefined;
   ProductManagement: undefined;
+  InventoryManagement: undefined;
   OrderManagement: undefined;
   AddEditProduct: undefined;
   NotificationSettings: undefined;
@@ -357,6 +361,11 @@ const AppNavigator = () => {
                       options={{ title: 'Painel de Administração' }}
                     />
                     <Stack.Screen
+                      name="AdminDashboard"
+                      component={AdminDashboardScreen}
+                      options={{ title: 'Dashboard Administrativo' }}
+                    />
+                    <Stack.Screen
                       name="PremiumTest"
                       component={PremiumTestScreen}
                       options={{ title: 'Testes Premium' }}
@@ -370,6 +379,11 @@ const AppNavigator = () => {
                       name="OrderManagement"
                       component={OrderManagementScreen}
                       options={{ title: 'Gerenciar Pedidos' }}
+                    />
+                    <Stack.Screen
+                      name="InventoryManagement"
+                      component={InventoryManagementScreen}
+                      options={{ title: 'Gerenciar Estoque' }}
                     />
                     <Stack.Screen
                       name="AddEditProduct"

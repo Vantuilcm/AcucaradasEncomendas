@@ -397,12 +397,180 @@ exports.executePaymentSplit = functions.https.onCall(async (data, context) => {
       results: results.map(r => r.id),
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });
-
-    return { success: true, transfers: results.map(r => r.id) };
+    return { success: true, splitId: orderId };
   } catch (error) {
-    console.error('❌ [Stripe] Erro no Split de Pagamento:', error);
-    throw new functions.https.HttpsError('internal', `Erro no split: ${error.message}`);
+    console.error('❌ [Stripe] Erro ao executar split:', error);
+    throw new functions.https.HttpsError('internal', error.message);
   }
+});
+
+// ======================================================
+// 🍰 MOTOR DE CRESCIMENTO (GROWTH ENGINE)
+// ======================================================
+
+/**
+ * TRIGGER: Gerar Referral Code automaticamente para novos usuários
+ */
+exports.onUserCreateGrowth = functions.auth.user().onCreate(async (user) => {
+  const name = user.displayName || 'DOCE';
+  const prefix = name.substring(0, 4).toUpperCase().replace(/\s/g, '');
+  const suffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+  const referralCode = `${prefix}${suffix}`;
+
+  const userRef = db.collection('usuarios').doc(user.uid);
+  const userRef2 = db.collection('users').doc(user.uid);
+
+  const update = {
+    referralCode,
+    referralCount: 0,
+    totalReferralValue: 0,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+
+  await Promise.all([
+    userRef.set(update, { merge: true }),
+    userRef2.set(update, { merge: true })
+  ]);
+
+  console.log(`🍰 [Growth] Referral code ${referralCode} gerado para ${user.uid}`);
+});
+
+/**
+ * TRIGGER: Growth Loop e Ciclo de Indicação após entrega
+ */
+exports.onOrderUpdateGrowth = functions.firestore
+  .document('orders/{orderId}')
+  .onUpdate(async (change, context) => {
+    const newData = change.after.data();
+    const oldData = change.before.data();
+
+    // Apenas disparar quando mudar para 'delivered'
+    if (newData.status === 'delivered' && oldData.status !== 'delivered') {
+      const userId = newData.userId;
+      const orderId = context.params.orderId;
+      const totalAmount = newData.totalAmount;
+
+      // 1. Verificar se o usuário foi indicado por alguém
+      const userDoc = await db.collection('usuarios').doc(userId).get();
+      const userData = userDoc.data();
+
+      if (userData && userData.referredBy) {
+        const referrerId = userData.referredBy;
+
+        // Buscar log de indicação pendente
+        const referralSnap = await db.collection('referrals')
+          .where('referrerId', '==', referrerId)
+          .where('referredId', '==', userId)
+          .where('status', '==', 'pending')
+          .limit(1)
+          .get();
+
+        if (!referralSnap.empty) {
+          const referralDoc = referralSnap.docs[0];
+          
+          // Finalizar ciclo de indicação
+          await referralDoc.ref.update({
+            status: 'completed',
+            orderId: orderId,
+            valueGenerated: totalAmount,
+            completedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+
+          // Premiar quem indicou (Estatísticas + Notificação via log para o app processar ou enviar direto via OneSignal se integrado)
+          const referrerRef = db.collection('usuarios').doc(referrerId);
+          await referrerRef.update({
+            referralCount: admin.firestore.FieldValue.increment(1),
+            totalReferralValue: admin.firestore.FieldValue.increment(totalAmount)
+          });
+
+          console.log(`🍰 [Growth] Ciclo de indicação finalizado para referrer ${referrerId}`);
+        }
+      }
+
+      // 2. Growth Loop: Enviar convite de indicação via log de automação
+      await db.collection('sales_automation_events').add({
+        userId,
+        eventType: 'GROWTH_LOOP_TRIGGER',
+        triggeredAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'pending',
+        metadata: { orderId, referralCode: userData?.referralCode }
+      });
+    }
+  });
+
+/**
+ * SCHEDULE: Reengajamento (7 dias sem comprar) e Recuperação de Carrinho
+ */
+exports.scheduledGrowthAutomation = functions.pubsub.schedule('every 4 hours').onRun(async (context) => {
+  console.log('🍰 [Growth] Iniciando automações agendadas...');
+  
+  const sevenDaysAgo = admin.firestore.Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+  const tenMinutesAgo = admin.firestore.Timestamp.fromDate(new Date(Date.now() - 10 * 60 * 1000));
+
+  // 1. Recuperação de Carrinho (Checkouts parados há mais de 10 min)
+  const abandonedSnap = await db.collection('sales_automation_events')
+    .where('eventType', '==', 'CHECKOUT_STARTED')
+    .where('status', '==', 'pending')
+    .where('triggeredAt', '<=', tenMinutesAgo)
+    .limit(50)
+    .get();
+
+  for (const doc of abandonedSnap.docs) {
+    // Aqui enviaríamos notificação via OneSignal REST API ou marcaríamos para o app enviar
+    await doc.ref.update({ status: 'processed_server', processedAt: admin.firestore.FieldValue.serverTimestamp() });
+  }
+
+  // 2. Reengajamento (Usuários sem pedidos há 7 dias)
+  const usersSnap = await db.collection('usuarios')
+    .where('role', '==', 'customer')
+    .limit(100)
+    .get();
+
+  for (const userDoc of usersSnap.docs) {
+    const userId = userDoc.id;
+    const lastOrderSnap = await db.collection('orders')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    let shouldReengage = false;
+    if (lastOrderSnap.empty) {
+      const createdAt = userDoc.data().dataCriacao;
+      if (createdAt && createdAt.toMillis() < sevenDaysAgo.toMillis()) shouldReengage = true;
+    } else {
+      const lastOrderDate = lastOrderSnap.docs[0].data().createdAt;
+      if (lastOrderDate && lastOrderDate.toMillis() < sevenDaysAgo.toMillis()) shouldReengage = true;
+    }
+
+    if (shouldReengage) {
+      // Verificar anti-spam de 7 dias
+      const antiSpamSnap = await db.collection('growth_events')
+        .where('userId', '==', userId)
+        .where('eventType', '==', 'REENGAGEMENT_7D')
+        .where('timestamp', '>=', sevenDaysAgo)
+        .limit(1)
+        .get();
+
+      if (antiSpamSnap.empty) {
+        await db.collection('sales_automation_events').add({
+          userId,
+          eventType: 'REENGAGEMENT_TRIGGER',
+          triggeredAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'pending',
+          metadata: { type: '7_DAYS_INACTIVE', coupon: 'VOLTOU20' }
+        });
+
+        await db.collection('growth_events').add({
+          userId,
+          eventType: 'REENGAGEMENT_7D',
+          timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    }
+  }
+
+  return null;
 });
 
 /**
@@ -546,3 +714,151 @@ async function updateRiskScore(uid, points, reason) {
     return { uid, newScore, newStatus };
   });
 }
+
+// ======================================================
+// 🍰 AUTOMAÇÃO DE VENDAS (DAEMON)
+// ======================================================
+
+/**
+ * Helper para enviar notificação via OneSignal REST API
+ */
+async function sendOneSignalNotification(userId, title, message, data = {}) {
+  const https = require('https');
+  
+  // Obter chaves das configurações do Firebase
+  const ONESIGNAL_APP_ID = functions.config().onesignal?.app_id;
+  const ONESIGNAL_REST_KEY = functions.config().onesignal?.rest_key;
+
+  if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_KEY) {
+    console.warn('⚠️ [Automation] OneSignal keys não configuradas no Firebase Functions');
+    return false;
+  }
+
+  const payload = JSON.stringify({
+    app_id: ONESIGNAL_APP_ID,
+    include_external_user_ids: [userId],
+    headings: { en: title, pt: title },
+    contents: { en: message, pt: message },
+    data: data
+  });
+
+  const options = {
+    hostname: 'onesignal.com',
+    path: '/api/v1/notifications',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Authorization': `Basic ${ONESIGNAL_REST_KEY}`
+    }
+  };
+
+  return new Promise((resolve) => {
+    const req = https.request(options, (res) => {
+      resolve(res.statusCode === 200);
+    });
+    req.on('error', (e) => {
+      console.error(`❌ [OneSignal] Erro: ${e.message}`);
+      resolve(false);
+    });
+    req.write(payload);
+    req.end();
+  });
+}
+
+/**
+ * Daemon de Automação de Vendas: Roda a cada 5 minutos
+ * Processa carrinhos abandonados, falhas de pagamento e promoções
+ */
+exports.checkSalesAutomation = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
+  const now = new Date();
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+
+  let processed = 0;
+  let sent = 0;
+  let errors = 0;
+
+  try {
+    // 1. Buscar CHECKOUT_STARTED pendentes (Carrinho Abandonado)
+    const abandonedSnap = await db.collection('sales_automation_events')
+      .where('eventType', '==', 'CHECKOUT_STARTED')
+      .where('status', '==', 'pending')
+      .where('triggeredAt', '<=', tenMinutesAgo)
+      .get();
+
+    for (const doc of abandonedSnap.docs) {
+      processed++;
+      const event = doc.data();
+      
+      // Anti-spam: Verificar se já recebeu notificação nas últimas 12h
+      const recentSentSnap = await db.collection('sales_automation_events')
+        .where('userId', '==', event.userId)
+        .where('status', '==', 'sent')
+        .where('triggeredAt', '>=', twelveHoursAgo)
+        .limit(1)
+        .get();
+
+      if (!recentSentSnap.empty) {
+        await doc.ref.update({ status: 'skipped', reason: 'anti-spam' });
+        continue;
+      }
+
+      // Enviar Notificação
+      const success = await sendOneSignalNotification(
+        event.userId,
+        "🍰 Seu pedido está te esperando",
+        "Finalize agora antes que acabe seu doce favorito!",
+        { type: 'CART_RECOVERY', eventId: doc.id }
+      );
+
+      if (success) {
+        await doc.ref.update({ status: 'sent', processedAt: admin.firestore.FieldValue.serverTimestamp() });
+        sent++;
+      } else {
+        await doc.ref.update({ status: 'failed' });
+        errors++;
+      }
+    }
+
+    // 2. Buscar PAYMENT_FAILED pendentes (Recuperação de Venda)
+    const failedPaymentSnap = await db.collection('sales_automation_events')
+      .where('eventType', '==', 'PAYMENT_FAILED')
+      .where('status', '==', 'pending')
+      .get();
+
+    for (const doc of failedPaymentSnap.docs) {
+      processed++;
+      const event = doc.data();
+
+      // Enviar Notificação de Recuperação de Pagamento
+      const success = await sendOneSignalNotification(
+        event.userId,
+        "⚠️ Problema no seu pagamento",
+        "Houve um erro no seu pagamento. Tente novamente com outro cartão ou PIX.",
+        { type: 'PAYMENT_RECOVERY', eventId: doc.id }
+      );
+
+      if (success) {
+        await doc.ref.update({ status: 'sent', processedAt: admin.firestore.FieldValue.serverTimestamp() });
+        sent++;
+      } else {
+        await doc.ref.update({ status: 'failed' });
+        errors++;
+      }
+    }
+
+    // 3. Registrar execução do Daemon
+    await db.collection('sales_automation_runs').add({
+      executedAt: admin.firestore.FieldValue.serverTimestamp(),
+      processed,
+      sent,
+      errors
+    });
+
+    console.info(`✅ [Automation-Daemon] Executado: ${processed} processados, ${sent} enviados.`);
+    return { success: true, processed, sent };
+  } catch (error) {
+    console.error('❌ [Automation-Daemon] Erro crítico:', error);
+    return { success: false, error: error.message };
+  }
+});

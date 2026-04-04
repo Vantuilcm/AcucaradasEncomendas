@@ -31,6 +31,7 @@ import { secureLoggingService } from './SecureLoggingService';
 import { SecureStorageService } from './SecureStorageService';
 import { User } from '../models/User';
 import { UserUtils } from '../utils/UserUtils';
+import { GrowthService } from './GrowthService';
 
 export class AuthService {
   private static instance: AuthService;
@@ -69,12 +70,14 @@ export class AuthService {
     name: string;
     phone: string;
     address?: string;
+    referralCode?: string; // Novo campo opcional
   }): Promise<User> {
     if (!userData) {
       throw new Error('Dados do usuário não fornecidos');
     }
     try {
       const validationService = ValidationService.getInstance();
+      const growthService = GrowthService.getInstance();
 
       // Validar dados do usuário
       if (!userData.email || !validationService.validateEmail(userData.email)) {
@@ -128,6 +131,9 @@ export class AuthService {
         loggingService.error('Erro ao atualizar perfil do usuário', profileError as Error);
       }
 
+      // Gerar código de indicação único para o novo usuário
+      const myReferralCode = growthService.generateReferralCode(userData.name);
+
       // Criar documento do usuário no Firestore
       const userDoc = {
         uid: firebaseUser.uid,
@@ -139,10 +145,25 @@ export class AuthService {
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
         role: 'customer',
-        active: true
+        active: true,
+        referralCode: myReferralCode, // Salvar código gerado
+        referralCount: 0,
+        totalReferralValue: 0
       };
 
       await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
+      
+      // Salvar também na coleção 'usuarios' se houver duplicidade de coleção no projeto
+      // (Alguns serviços usam 'users', outros 'usuarios'. Sincronizar por segurança)
+      await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
+        ...userDoc,
+        dataCriacao: serverTimestamp()
+      });
+
+      // Se o usuário foi indicado por alguém, aplicar a indicação
+      if (userData.referralCode) {
+        await growthService.applyReferral(firebaseUser.uid, userData.referralCode);
+      }
 
       // Gerar token JWT para autenticação na API
       const token = await (firebaseUser as any).getIdToken?.(true);
@@ -152,7 +173,8 @@ export class AuthService {
 
       secureLoggingService.info('Usuário registrado com sucesso', {
         userId: UserUtils.getUserId(firebaseUser),
-        email: userData.email
+        email: userData.email,
+        referralCode: myReferralCode
       });
 
       return {
@@ -162,6 +184,7 @@ export class AuthService {
         telefone: userData.phone,
         dataCriacao: new Date(),
         ultimoLogin: new Date(),
+        referralCode: myReferralCode
       } as User;
     } catch (error: any) {
       secureLoggingService.error('Erro ao registrar usuário', { error: error?.message || 'Erro desconhecido' });

@@ -63,9 +63,13 @@ export interface Order {
 
   createdAt: string;
   updatedAt: string;
+  producerId: string; // ID da loja/produtor responsável pelo pedido
+  deliveryFee: number;
   estimatedDeliveryTime?: string;
   actualDeliveryTime?: string;
   cancellationReason?: string;
+  cityId?: string;
+  region?: string;
 }
 
 export interface OrderFilters {

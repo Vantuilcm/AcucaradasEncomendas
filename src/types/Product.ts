@@ -26,6 +26,8 @@ export interface Product {
   detalhes?: Record<string, string | number>; // Informações adicionais como peso, dimensões, etc.
   tags?: ProductTag[];
   nutricional?: NutricionalInfo;
+  cityId?: string;
+  region?: string;
 }
 
 export interface ProductVariation {

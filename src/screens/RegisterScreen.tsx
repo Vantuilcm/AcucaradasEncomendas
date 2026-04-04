@@ -28,6 +28,7 @@ export function RegisterScreen({ route }: { route?: any }) {
   // Campos Comuns
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   
   // Campos Produtor
   const [documentNumber, setDocumentNumber] = useState(''); // CPF/CNPJ
@@ -146,6 +147,7 @@ export function RegisterScreen({ route }: { route?: any }) {
         email: sanitizedEmail, 
         nome: sanitizedName, 
         role,
+        referralCode: referralCode.trim(),
         ...additionalData
       } as any, password);
       
@@ -282,6 +284,16 @@ export function RegisterScreen({ route }: { route?: any }) {
               onChangeText={setConfirmPassword}
               secureTextEntry
               style={styles.input}
+            />
+
+            <TextInput
+              label="Código de Indicação (Opcional)"
+              value={referralCode}
+              onChangeText={setReferralCode}
+              autoCapitalize="characters"
+              style={styles.input}
+              placeholder="Ex: JOAO123"
+              left={<TextInput.Icon icon="ticket-percent" />}
             />
 
             <View style={styles.termsContainer}>

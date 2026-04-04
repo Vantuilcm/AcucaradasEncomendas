@@ -3,28 +3,16 @@ import { View, StyleSheet, ScrollView, Alert, Image } from 'react-native';
 import { Text, Button, TextInput, Card, Chip, HelperText } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { ErrorMessage } from '../components/ErrorMessage';
-// Usando o mock local em vez do módulo real
-import * as ImagePicker from '../__mocks__/expo-image-picker';
+import * as ImagePicker from 'expo-image-picker';
+import { ProductService } from '../services/ProductService';
+import { Product } from '../types/Product';
 
 import { useAppTheme } from '../components/ThemeProvider';
 
 // Categorias disponíveis
 const CATEGORIES = ['Bolos', 'Cupcakes', 'Tortas', 'Doces', 'Salgados', 'Bebidas'];
-
-// Interface para o produto
-interface Product {
-  id?: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl?: string;
-  category: string;
-  available: boolean;
-  stock: number;
-}
 
 // Interface para os parâmetros da rota
 interface RouteParams {
@@ -37,8 +25,8 @@ export function AddEditProductScreen() {
   const styles = React.useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const route = useRoute();
-  // Removed unused useAuth hook
   const { isProdutor, isAdmin } = usePermissions();
+  const productService = React.useMemo(() => ProductService.getInstance(), []);
   
   // Extrair parâmetros da rota
   const { product, isEditing } = route.params as RouteParams || {};
@@ -53,6 +41,7 @@ export function AddEditProductScreen() {
   });
 
   const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({
     name: false,
     price: false,
@@ -63,16 +52,16 @@ export function AddEditProductScreen() {
   useEffect(() => {
     if (isEditing && product) {
       setProductData({
-        name: product.name,
-        description: product.description,
-        price: product.price.toString(),
-        category: product.category,
-        stock: product.stock.toString(),
-        available: product.available,
+        name: product.nome || '',
+        description: product.descricao || '',
+        price: product.preco?.toString() || '',
+        category: product.categoria || '',
+        stock: product.estoque?.toString() || '0',
+        available: product.disponivel ?? true,
       });
       
-      if (product.imageUrl) {
-        setImage(product.imageUrl);
+      if (product.imagens && product.imagens.length > 0) {
+        setImage(product.imagens[0]);
       }
     }
   }, [isEditing, product]);
@@ -103,22 +92,43 @@ export function AddEditProductScreen() {
     return !Object.values(newErrors).some(error => error);
   };
 
-  const handleSaveProduct = () => {
+  const handleSaveProduct = async () => {
     if (!validateForm()) {
       return;
     }
 
-    // Aqui seria feita a chamada para a API para salvar o produto
-    // Como estamos simulando, apenas mostramos um alerta e voltamos para a tela anterior
-    
-    const successMessage = isEditing ? 'Produto atualizado com sucesso!' : 'Produto adicionado com sucesso!';
+    try {
+      setLoading(true);
+      const payload: Partial<Product> = {
+        nome: productData.name,
+        descricao: productData.description,
+        preco: parseFloat(productData.price),
+        categoria: productData.category,
+        estoque: parseInt(productData.stock),
+        disponivel: productData.available,
+        temEstoque: parseInt(productData.stock) > 0,
+        imagens: image ? [image] : [],
+      };
 
-    Alert.alert('Sucesso', successMessage, [
-      {
-        text: 'OK',
-        onPress: () => navigation.goBack(),
-      },
-    ]);
+      if (isEditing && product?.id) {
+        await productService.atualizarProduto(product.id, payload);
+      } else {
+        await productService.criarProduto(payload);
+      }
+      
+      const successMessage = isEditing ? 'Produto atualizado com sucesso!' : 'Produto adicionado com sucesso!';
+
+      Alert.alert('Sucesso', successMessage, [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (err: any) {
+      Alert.alert('Erro', err.message || 'Não foi possível salvar o produto.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const pickImage = async () => {
@@ -134,8 +144,8 @@ export function AddEditProductScreen() {
     }
 
     // Abrir o seletor de imagens
-    let result = await (ImagePicker.launchImageLibraryAsync as any)({
-      mediaTypes: ['images'],
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
@@ -246,6 +256,7 @@ export function AddEditProductScreen() {
               <Button
                 mode="contained"
                 onPress={pickImage}
+                disabled={loading}
                 style={[styles.imageButton, { backgroundColor: theme.colors.primary }]}
               >
                 {image ? 'Trocar Imagem' : 'Selecionar Imagem'}
@@ -255,13 +266,20 @@ export function AddEditProductScreen() {
         </Card>
 
         <View style={styles.actionsContainer}>
-          <Button mode="outlined" onPress={() => navigation.goBack()} style={styles.cancelButton}>
+          <Button 
+            mode="outlined" 
+            onPress={() => navigation.goBack()} 
+            style={styles.cancelButton}
+            disabled={loading}
+          >
             Cancelar
           </Button>
 
           <Button
             mode="contained"
             onPress={handleSaveProduct}
+            loading={loading}
+            disabled={loading}
             style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
           >
             {isEditing ? 'Atualizar Produto' : 'Salvar Produto'}

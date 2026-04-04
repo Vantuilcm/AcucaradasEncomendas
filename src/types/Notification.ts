@@ -4,6 +4,8 @@ export type NotificationType =
   | 'order_delivered'
   | 'order_cancelled'
   | 'payment_received'
+  | 'delivery_available'
+  | 'delivery_status_update'
   | 'promotion'
   | 'system_update';
 

@@ -4,6 +4,7 @@ import { ENV } from './env';
 
 // IDs do OneSignal vindos do ENV Guardian
 const ONESIGNAL_APP_ID = ENV.EXPO_PUBLIC_ONESIGNAL_APP_ID;
+const ONESIGNAL_REST_API_KEY = (process.env as any).EXPO_PUBLIC_ONESIGNAL_REST_API_KEY;
 
 // Tipos de notificação suportados pelo OneSignal
 export enum OneSignalNotificationType {
@@ -63,6 +64,46 @@ export const initOneSignal = (): boolean => {
   } catch (error) {
     console.error('❌ [ONESIGNAL] Erro ao inicializar:', error);
     Sentry.captureException(error);
+    return false;
+  }
+};
+
+/**
+ * Envia uma notificação push via REST API do OneSignal
+ * Nota: Em produção, isso deve ser feito preferencialmente via Backend.
+ * Mas como o projeto é focado em Expo/Firebase, implementamos aqui para fluxo real.
+ */
+export const sendOneSignalNotification = async (
+  userIds: string[],
+  title: string,
+  message: string,
+  data?: Record<string, any>
+): Promise<boolean> => {
+  if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
+    console.warn('⚠️ [ONESIGNAL] App ID ou REST API Key ausentes. Notificação não enviada.');
+    return false;
+  }
+
+  try {
+    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`
+      },
+      body: JSON.stringify({
+        app_id: ONESIGNAL_APP_ID,
+        include_external_user_ids: userIds,
+        headings: { en: title, pt: title },
+        contents: { en: message, pt: message },
+        data: data || {}
+      })
+    });
+
+    const result = await response.json();
+    return !!result.id;
+  } catch (error) {
+    console.error('❌ [ONESIGNAL] Erro ao enviar notificação:', error);
     return false;
   }
 };

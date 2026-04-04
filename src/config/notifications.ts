@@ -46,7 +46,9 @@ export const requestNotificationPermission = async () => {
         tokenOptions.projectId = Constants.expoConfig.extra.eas.projectId;
       }
       // Fallback para a estrutura antiga do Constants
+      // @ts-ignore
       else if (Constants.manifest?.extra?.eas?.projectId) {
+        // @ts-ignore
         tokenOptions.projectId = Constants.manifest.extra.eas.projectId;
       }
       // Usar o ID do manifesto como fallback

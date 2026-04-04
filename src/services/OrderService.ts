@@ -9,10 +9,15 @@ import {
   limit,
   addDoc,
   updateDoc,
+  // @ts-ignore
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Order, OrderFilters, OrderSummary } from '../types/Order';
+import { Order, OrderFilters, OrderSummary, OrderStatus } from '../types/Order';
 import { loggingService } from './LoggingService';
+import { DeliveryService } from './DeliveryService';
+import { NotificationService } from './NotificationService';
+import { GrowthService } from './GrowthService';
 
 export class OrderService {
   private readonly collectionName = 'orders';
@@ -205,47 +210,6 @@ export class OrderService {
   }
 
   /**
-   * Atualiza o status de um pedido
-   * @param orderId ID do pedido
-   * @param status Novo status
-   * @returns Pedido atualizado
-   */
-  async updateOrderStatus(orderId: string, status: string): Promise<Order> {
-    try {
-      const orderRef = doc(db, this.collectionName, orderId);
-      const orderDoc = await getDoc(orderRef);
-
-      if (!orderDoc.exists()) {
-        throw new Error('Pedido não encontrado');
-      }
-
-      const updateData = {
-        status,
-        updatedAt: new Date()
-      };
-
-      await updateDoc(orderRef, updateData);
-      
-      // Buscar pedido atualizado
-      const updatedOrderDoc = await getDoc(orderRef);
-      
-      loggingService.info('Status do pedido atualizado', { orderId, status });
-      
-      return {
-        id: updatedOrderDoc.id,
-        ...updatedOrderDoc.data()
-      } as Order;
-    } catch (error: any) {
-      loggingService.error('Erro ao atualizar status do pedido', { 
-        orderId, 
-        status, 
-        error: error.message 
-      });
-      throw error;
-    }
-  }
-
-  /**
    * Obtém um resumo dos pedidos do usuário
    * @param userId ID do usuário
    * @returns Resumo dos pedidos
@@ -428,6 +392,247 @@ export class OrderService {
         error: error.message,
       });
       throw error;
+    }
+  }
+
+  /**
+   * Monitora estatísticas gerais de pedidos em tempo real
+   * @param callback Função chamada sempre que os dados mudarem
+   * @returns Função para cancelar o monitoramento
+   */
+  public subscribeToOrderStats(callback: (stats: any) => void): () => void {
+    const ordersRef = collection(db, this.collectionName);
+    const q = query(ordersRef, orderBy('createdAt', 'desc'));
+
+    return onSnapshot(q, (querySnapshot: any) => {
+      const orders = querySnapshot.docs.map((item: any) => {
+        const data = item.data();
+        // Converter timestamps do Firestore para strings ISO para compatibilidade com o tipo Order
+        const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt;
+        const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt;
+        
+        return {
+          id: item.id,
+          ...data,
+          createdAt,
+          updatedAt,
+        };
+      }) as Order[];
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const todayOrders = orders.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        orderDate.setHours(0, 0, 0, 0);
+        return orderDate.getTime() === today.getTime();
+      });
+      
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      
+      const stats = {
+        totalOrders: orders.length,
+        todayOrders: todayOrders.length,
+        totalRevenue,
+        todayRevenue,
+        statusCounts: {
+          pending: orders.filter(o => o.status === 'pending').length,
+          confirmed: orders.filter(o => o.status === 'confirmed').length,
+          preparing: orders.filter(o => o.status === 'preparing').length,
+          ready: orders.filter(o => o.status === 'ready').length,
+          delivering: orders.filter(o => o.status === 'delivering').length,
+          delivered: orders.filter(o => o.status === 'delivered').length,
+          cancelled: orders.filter(o => o.status === 'cancelled').length,
+        },
+        scheduledOrders: orders.filter(o => o.isScheduledOrder).length,
+      };
+
+      callback(stats);
+    }, (error: any) => {
+      loggingService.error('Erro ao monitorar estatísticas de pedidos', { error: error.message });
+    });
+  }
+
+  /**
+   * Monitora todos os pedidos em tempo real (para gestão operacional)
+   * @param callback Função chamada sempre que os dados mudarem
+   * @returns Função para cancelar o monitoramento
+   */
+  public subscribeToAllOrders(callback: (orders: Order[]) => void): () => void {
+    const ordersRef = collection(db, this.collectionName);
+    const q = query(ordersRef, orderBy('createdAt', 'desc'));
+
+    return onSnapshot(q, (querySnapshot: any) => {
+      const orders = querySnapshot.docs.map((item: any) => {
+        const data = item.data();
+        const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt;
+        const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt;
+        
+        return {
+          id: item.id,
+          ...data,
+          createdAt,
+          updatedAt,
+        };
+      }) as Order[];
+      
+      callback(orders);
+    }, (error: any) => {
+      loggingService.error('Erro ao monitorar todos os pedidos', { error: error.message });
+    });
+  }
+
+  /**
+   * Atualiza o status de um pedido
+   * @param orderId ID do pedido
+   * @param status Novo status do pedido
+   * @returns Pedido atualizado
+   */
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+    try {
+      const orderRef = doc(db, this.collectionName, orderId);
+      const orderDoc = await getDoc(orderRef);
+
+      if (!orderDoc.exists()) {
+        throw new Error('Pedido não encontrado');
+      }
+
+      const orderData = orderDoc.data() as unknown as Order;
+      const oldStatus = orderData.status;
+
+      const updateData = {
+        status,
+        updatedAt: new Date()
+      };
+
+      await updateDoc(orderRef, updateData);
+      
+      // Enviar notificações de mudança de status
+      try {
+        const notificationService = NotificationService.getInstance();
+        
+        // Notificação para o cliente
+        await notificationService.createNotification({
+          userId: orderData.userId,
+          type: 'order_status_update',
+          title: 'Atualização do Pedido',
+          message: `O status do seu pedido #${orderId.substring(0, 8)} mudou para: ${this.getStatusLabel(status)}`,
+          priority: 'high',
+          read: false,
+          data: { orderId, status }
+        });
+
+        // Se o pedido for para o produtor e estiver 'confirmed', notificar
+        if (status === 'confirmed' && orderData.producerId) {
+          await notificationService.createNotification({
+            userId: orderData.producerId,
+            type: 'new_order',
+            title: 'Novo Pedido Confirmado',
+            message: `Você tem um novo pedido #${orderId.substring(0, 8)} para preparar.`,
+            priority: 'high',
+            read: false,
+            data: { orderId }
+          });
+        }
+
+        // Se o pedido estiver 'ready', notificar entregadores
+        if (status === 'ready') {
+          // Criar registro na coleção de entregas para que apareça para os entregadores
+          try {
+            const deliveryService = new DeliveryService();
+            await deliveryService.createDelivery({
+              orderId,
+              status: 'pending',
+              userId: orderData.userId,
+              producerId: orderData.producerId,
+              address: orderData.deliveryAddress,
+              totalAmount: orderData.totalAmount,
+              deliveryFee: orderData.deliveryFee || 10,
+              items: orderData.items,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            } as any);
+
+            // Notificar entregadores disponíveis
+            await notificationService.createNotification({
+              userId: 'all_drivers', // Tópico ou lógica para todos os entregadores
+              type: 'delivery_available',
+              title: 'Nova Entrega Disponível',
+              message: `Um novo pedido #${orderId.substring(0, 8)} está pronto para entrega.`,
+              priority: 'high',
+              read: false,
+              data: { orderId }
+            });
+          } catch (deliveryError) {
+            console.error('Erro ao criar registro de entrega:', deliveryError);
+          }
+        }
+
+        // Se o pedido estiver 'delivering', notificar o cliente
+        if (status === 'delivering') {
+          await notificationService.createNotification({
+            userId: orderData.userId,
+            type: 'delivery_status_update',
+            title: 'Pedido Saiu para Entrega',
+            message: `O seu pedido #${orderId.substring(0, 8)} saiu para entrega e chegará em breve!`,
+            priority: 'high',
+            read: false,
+            data: { orderId, status: 'delivering' }
+          });
+        }
+
+        // Se o pedido estiver 'delivered', notificar o cliente e disparar Growth Loop
+        if (status === 'delivered') {
+          await notificationService.createNotification({
+            userId: orderData.userId,
+            type: 'order_delivered',
+            title: 'Pedido Entregue',
+            message: `O seu pedido #${orderId.substring(0, 8)} foi entregue. Bom apetite!`,
+            priority: 'high',
+            read: false,
+            data: { orderId, status: 'delivered' }
+          });
+
+          // 🎯 GROWTH ENGINE: Disparar Growth Loop (Indicação e Fidelidade)
+          try {
+            const growthService = GrowthService.getInstance();
+            await growthService.triggerGrowthLoop({ id: orderId, ...orderData } as Order);
+          } catch (growthError) {
+            console.error('Erro ao disparar Growth Loop:', growthError);
+          }
+        }
+      } catch (notifError) {
+        console.error('Erro ao enviar notificações de status:', notifError);
+      }
+
+      loggingService.info('Status do pedido atualizado', { orderId, oldStatus, newStatus: status });
+      
+      const updatedOrderDoc = await getDoc(orderRef);
+      return {
+        id: updatedOrderDoc.id,
+        ...updatedOrderDoc.data()
+      } as Order;
+    } catch (error: any) {
+      loggingService.error('Erro ao atualizar status do pedido', { 
+        orderId, 
+        status, 
+        error: error.message 
+      });
+      throw error;
+    }
+  }
+
+  private getStatusLabel(status: OrderStatus): string {
+    switch (status) {
+      case 'pending': return 'Pendente';
+      case 'confirmed': return 'Confirmado';
+      case 'preparing': return 'Em Preparação';
+      case 'ready': return 'Pronto para Entrega';
+      case 'delivering': return 'Em Rota de Entrega';
+      case 'delivered': return 'Entregue';
+      case 'cancelled': return 'Cancelado';
+      default: return status;
     }
   }
 

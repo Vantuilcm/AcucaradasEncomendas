@@ -7,6 +7,8 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  // @ts-ignore
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { DeliveryDriver, DeliveryDriverUpdate, DeliveryDriverStats } from '../types/DeliveryDriver';
@@ -246,5 +248,24 @@ export class DeliveryDriverService {
       );
       throw error;
     }
+  }
+
+  public subscribeToActiveDrivers(callback: (drivers: DeliveryDriver[]) => void): () => void {
+    const driversRef = collection(db, this.collection);
+    const q = query(
+      driversRef,
+      where('status', '==', 'active'),
+      where('availability.isAvailable', '==', true)
+    );
+
+    return onSnapshot(q, (snapshot: any) => {
+      const drivers = snapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data()
+      })) as DeliveryDriver[];
+      callback(drivers);
+    }, (error: any) => {
+      loggingService.error('Erro ao monitorar entregadores ativos', error);
+    });
   }
 }

@@ -18,30 +18,41 @@ const isSentryEnabled = () => {
   }
 };
 
+let isSentryInitialized = false;
+
 export const initSentry = () => {
-  console.log('MISSÃO: [4/3] Sentry Init - DESATIVADO TEMPORARIAMENTE para debug de boot');
-  return;
-  
-  /*
-  if (!isSentryEnabled()) {
-    console.log('[Sentry] Monitoramento desativado (ENV desativado ou DSN ausente ou Feature Flag desligada)');
+  if (isSentryInitialized) {
+    console.log('🟡 Sentry já inicializado');
     return;
   }
-  */
+
+  const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+  const isProduction = process.env.NODE_ENV === 'production' || !__DEV__;
+
+  if (!dsn) {
+    console.warn('⚠️ Sentry DSN não configurado. Monitoramento automático desativado.');
+    return;
+  }
+
+  if (!isProduction) {
+    console.log('🟡 Sentry ignorado (ambiente não produção)');
+    return;
+  }
 
   try {
     Sentry.init({
-      dsn: SENTRY_DSN,
-      debug: __DEV__, // Debug apenas em desenvolvimento
-      environment: __DEV__ ? 'development' : 'production',
-      // Adicionar release automaticamente se disponível via Expo Constants
+      dsn,
+      debug: false,
+      environment: 'production',
       release: Constants.expoConfig?.version || '1.0.0',
-      // Não lançar erro se falhar a inicialização
+      tracesSampleRate: 1.0,
+      enableAutoSessionTracking: true,
     });
-    console.log(`[Sentry] Inicializado com sucesso no ambiente: ${__DEV__ ? 'development' : 'production'}`);
+    
+    isSentryInitialized = true;
+    console.log('✅ Sentry iniciado com sucesso em modo PRODUÇÃO');
   } catch (error) {
-    // Falha silenciosa para não quebrar o app
-    console.error('[Sentry] Erro ao inicializar:', error);
+    console.error('❌ Falha ao iniciar Sentry:', error);
   }
 };
 

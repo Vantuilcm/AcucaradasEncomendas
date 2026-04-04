@@ -11,7 +11,6 @@ import { InputValidationService } from '../services/InputValidationService';
 import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { useAppTheme } from '../components/ThemeProvider';
-import { UserUtils } from '../utils/UserUtils';
 
 import { Role } from '../services/PermissionsService';
 
@@ -20,7 +19,6 @@ export default function LoginScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<any>();
   const { login, loading, profileLoading } = useAuth();
-  const [authError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -143,7 +141,7 @@ export default function LoginScreen() {
               style={styles.segmentedButtons}
             />
 
-            {authError && <ErrorMessage message={authError || 'Erro'} />}
+            {error && <ErrorMessage message={error || 'Erro'} />}
 
 
           <TextInput

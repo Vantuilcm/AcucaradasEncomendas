@@ -18,7 +18,7 @@ import {
   NotificationStats,
 } from '../types/Notification';
 import { loggingService } from './LoggingService';
-import { PushNotificationService } from './PushNotificationService';
+import { sendOneSignalNotification } from '../config/onesignal';
 
 export interface NotificacaoDados {
   titulo: string;
@@ -36,12 +36,10 @@ export interface Notificacao extends NotificacaoDados {
 export class NotificationService {
   private readonly collection = 'notifications';
   private readonly preferencesCollection = 'notification_preferences';
-  private readonly pushNotificationService: PushNotificationService;
   private static instance: NotificationService;
   private notificacoes: Map<string, Notificacao>;
 
   private constructor() {
-    this.pushNotificationService = new PushNotificationService();
     this.notificacoes = new Map();
     this.inicializarDadosTeste();
   }
@@ -129,9 +127,9 @@ export class NotificationService {
       // Verificar preferências do usuário
       const preferences = await this.getUserPreferences(notification.userId);
       if (preferences?.enabled && preferences.types[notification.type]) {
-        // Enviar notificação push
-        await this.pushNotificationService.sendPushNotification(
-          notification.userId,
+        // Enviar notificação push via OneSignal
+        await sendOneSignalNotification(
+          [notification.userId],
           notification.title,
           notification.message,
           {
@@ -296,27 +294,13 @@ export class NotificationService {
   }
 
   async registerUserForPushNotifications(userId: string): Promise<void> {
-    try {
-      await this.pushNotificationService.registerForPushNotifications(userId);
-    } catch (error) {
-      loggingService.error('Erro ao registrar usuário para notificações push', {
-        userId,
-        error,
-      });
-      throw error;
-    }
+    // Integração migrada para OneSignal (SDK v5 inicializa globalmente)
+    loggingService.info('Registro de OneSignal tratado via App entry point', { userId });
   }
 
   async unregisterUserFromPushNotifications(userId: string): Promise<void> {
-    try {
-      await this.pushNotificationService.unregisterForPushNotifications(userId);
-    } catch (error) {
-      loggingService.error('Erro ao remover registro de notificações push', {
-        userId,
-        error,
-      });
-      throw error;
-    }
+    // OneSignal lida com opt-out via OneSignal.Notifications.requestPermission(false) ou logout
+    loggingService.info('Remoção de OneSignal tratada via logout/config', { userId });
   }
 
   public async enviarNotificacao(dados: NotificacaoDados): Promise<Notificacao> {

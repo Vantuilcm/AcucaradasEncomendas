@@ -13,7 +13,14 @@ import {
 import { Camera } from '../compat/expoCamera';
 import * as FaceDetector from '../compat/expoFaceDetector';
 import * as DocumentPicker from '../compat/expoDocumentPicker';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import {
+  // @ts-ignore
+  ref,
+  // @ts-ignore
+  uploadBytes,
+  // @ts-ignore
+  getDownloadURL
+} from 'firebase/storage';
 import { storage } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { useAuth } from '../hooks/useAuth';

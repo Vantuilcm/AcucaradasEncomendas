@@ -20,8 +20,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { OrderItem } from '../types/Order';
 import { OrderService } from '../services/OrderService';
 import { PaymentService } from '../services/PaymentService';
+import { ProductService } from '../services/ProductService';
 import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 import { StoreService } from '../services/StoreService';
+import { NotificationService } from '../services/NotificationService';
+import { SalesAutomationService } from '../services/SalesAutomationService';
+import { loggingService } from '../services/LoggingService';
 
 type CheckoutScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Checkout'>;
 type CheckoutScreenRouteProp = RouteProp<RootStackParamList, 'Checkout'>;
@@ -212,6 +216,25 @@ export default function CheckoutScreen() {
 
       const mappedPaymentMethod = paymentMethod === 'creditCard' ? 'credit_card' : 'pix';
 
+      // Registrar início do checkout para automação
+      const automationService = SalesAutomationService.getInstance();
+      await automationService.logAutomationEvent(userId, 'CHECKOUT_STARTED', {
+        cartTotal,
+        itemCount: cart.items.length
+      });
+
+      // 1. Validar estoque antes de qualquer operação
+      const productService = ProductService.getInstance();
+      for (const item of cart.items) {
+        const product = await productService.consultarProduto(item.productId);
+        if (!product || !product.temEstoque || (product.estoque !== undefined && product.estoque < item.quantity)) {
+          Alert.alert('Erro', `O produto ${item.name} não possui estoque suficiente.`);
+          setIsProcessing(false);
+          return;
+        }
+      }
+
+      // 2. Criar pedido (Status Inicial: pending)
       const newOrder = await orderService.createOrder({
         userId,
         items: orderItems,
@@ -237,36 +260,115 @@ export default function CheckoutScreen() {
         isScheduledOrder: !!scheduledDelivery,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        producerId: cart.items[0]?.producerId || '',
       } as any);
 
       let orderForSuccess = newOrder;
 
-      if (paymentMethod === 'creditCard') {
-        const [expMonth, expYear] = expirationDate.split('/');
-        const cardDetails = {
-          number: cardNumber.replace(/\s/g, ''),
-          expMonth: Number(expMonth),
-          expYear: Number(`20${expYear}`),
-          cvc: cvv,
-          holderName: cardholderName,
-        };
+      try {
+        // 3. Processar Pagamento
+        if (paymentMethod === 'creditCard') {
+          const [expMonth, expYear] = expirationDate.split('/');
+          const cardDetails = {
+            number: cardNumber.replace(/\s/g, ''),
+            expMonth: Number(expMonth),
+            expYear: Number(`20${expYear}`),
+            cvc: cvv,
+            holderName: cardholderName,
+          };
 
-        const paymentResult = await paymentService.processCreditCardPayment(newOrder.id, cardDetails);
-        if (!paymentResult) {
-          Alert.alert('Erro', 'Não foi possível processar o pagamento.');
-          return;
+          const paymentResult = await paymentService.processCreditCardPayment(newOrder.id, cardDetails);
+          if (!paymentResult) {
+            throw new Error('Pagamento recusado');
+          }
+
+          const updatedOrder = await orderService.getOrderById(newOrder.id);
+          if (updatedOrder) {
+            orderForSuccess = updatedOrder;
+          }
         }
 
-        const updatedOrder = await orderService.getOrderById(newOrder.id);
-        if (updatedOrder) {
-          orderForSuccess = updatedOrder;
+        // 4. Baixa automática de estoque (Só após confirmação de pagamento para Cartão ou criação para PIX)
+        // Nota: Para PIX, o status continua 'pending' até o webhook confirmar.
+        if (paymentMethod === 'creditCard' || paymentMethod === 'pix') {
+          for (const item of cart.items) {
+            const product = await productService.consultarProduto(item.productId);
+            if (product && product.estoque !== undefined) {
+              const novoEstoque = Math.max(0, product.estoque - item.quantity);
+              await productService.atualizarProduto(item.productId, {
+                estoque: novoEstoque,
+                temEstoque: novoEstoque > 0
+              });
+            }
+          }
         }
+
+        await clearCart();
+        
+        // Registrar sucesso para automação
+        await SalesAutomationService.getInstance().logAutomationEvent(userId, 'PAYMENT_SUCCESS', {
+          orderId: newOrder.id,
+          amount: cartTotal
+        });
+
+        navigation.navigate('OrderCompleted', { order: orderForSuccess });
+      } catch (paymentError: any) {
+        // 5. Rollback: Cancelar pedido se o pagamento falhar
+        console.error('Falha no pagamento:', paymentError);
+        
+        // Registrar falha para automação (Recuperação de Venda)
+        await SalesAutomationService.getInstance().logAutomationEvent(userId, 'PAYMENT_FAILED', {
+          orderId: newOrder.id,
+          error: paymentError?.message
+        });
+
+        // Alerta operacional imediato para Administradores e Produtor
+        try {
+          const notificationService = NotificationService.getInstance();
+          const producerId = cart.items[0]?.producerId || '';
+          
+          // Log estruturado para auditoria
+          loggingService.error('PAYMENT_FAILED', {
+            orderId: newOrder.id,
+            userId: (user as any)?.uid || (user as any)?.id,
+            producerId,
+            error: paymentError?.message || 'Erro desconhecido',
+          });
+
+          // Notificação para o Produtor
+          if (producerId) {
+            await notificationService.createNotification({
+              userId: producerId,
+              type: 'payment_failed' as any,
+              title: '⚠️ Pagamento não concluído',
+              message: `Um cliente tentou comprar, mas o pagamento do pedido #${newOrder.id.substring(0, 8)} falhou.`,
+              priority: 'high',
+              read: false,
+              data: { orderId: newOrder.id, error: paymentError?.message }
+            });
+          }
+
+          // Notificação para Administradores (usando um tópico ou id reservado se existir)
+          await notificationService.createNotification({
+            userId: 'admin_notifications', 
+            type: 'system_update',
+            title: '🚨 Alerta Crítico: Falha de Pagamento',
+            message: `Falha no processamento do pedido #${newOrder.id.substring(0, 8)}. Verifique o log de erros.`,
+            priority: 'high',
+            read: false,
+            data: { orderId: newOrder.id, error: paymentError?.message }
+          });
+
+        } catch (notifError) {
+          console.error('Erro ao enviar notificações de falha de pagamento:', notifError);
+        }
+
+        await orderService.updateOrderStatus(newOrder.id, 'cancelled');
+        Alert.alert('Pagamento Recusado', paymentError.message || 'Não foi possível processar seu pagamento. O pedido foi cancelado.');
       }
-
-      await clearCart();
-      navigation.navigate('OrderCompleted', { order: orderForSuccess });
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível finalizar o pedido. Tente novamente.');
+    } catch (error: any) {
+      console.error('Erro no checkout:', error);
+      Alert.alert('Erro', error.message || 'Não foi possível finalizar o pedido. Tente novamente.');
     } finally {
       setIsProcessing(false);
     }

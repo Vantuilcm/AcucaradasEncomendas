@@ -170,12 +170,16 @@ export class PaymentService {
       await updateDoc(
         orderRef,
         {
-          status: 'confirmado',
+          status: 'confirmed',
           paymentStatus: 'completed',
-          paymentMethod: 'credit_card',
+          paymentMethod: {
+            type: 'credit_card',
+            id: paymentMethodId,
+          },
           stripePaymentIntentId: paymentIntent.id,
           stripePaymentMethodId: paymentMethodId,
           stripeReceiptUrl: receiptUrl,
+          updatedAt: new Date().toISOString(),
         } as any
       );
 
@@ -255,9 +259,12 @@ export class PaymentService {
 
       // 3. Atualizar Order
       await updateDoc(orderRef, {
-        status: 'confirmado',
+        status: 'confirmed',
         paymentStatus: 'completed',
-        paymentMethod: 'credit_card',
+        paymentMethod: {
+          type: 'credit_card',
+          id: result.paymentIntentId || '',
+        },
         paymentDetails: {
           productAmount,
           deliveryFee,
@@ -265,6 +272,7 @@ export class PaymentService {
           producerAmount,
           totalAmount,
         },
+        updatedAt: new Date().toISOString(),
       } as any);
 
       // 4. Enviar Notificações
@@ -286,7 +294,7 @@ export class PaymentService {
       // Para o produtor
       await this.notificationService.createNotification({
         userId: producerId,
-        type: 'payment_received',
+        type: 'new_order',
         title: 'Novo pedido pago',
         message: `Você recebeu um novo pagamento para o pedido #${orderId.substring(0, 8)}.`,
         priority: 'high',
@@ -297,7 +305,7 @@ export class PaymentService {
       // Para o entregador
       await this.notificationService.createNotification({
         userId: deliveryPersonId,
-        type: 'payment_received',
+        type: 'delivery_available',
         title: 'Nova entrega disponível',
         message: `Pagamento confirmado para a entrega do pedido #${orderId.substring(0, 8)}.`,
         priority: 'high',
@@ -973,9 +981,12 @@ export class PaymentService {
       await updateDoc(
         orderRef,
         {
-          status: 'confirmado',
+          status: 'confirmed',
           paymentStatus: 'completed',
-          paymentMethod: 'credit_card',
+          paymentMethod: {
+            type: 'credit_card',
+            id: paymentResult.paymentIntentId || '',
+          },
           stripePaymentIntentId: paymentResult.paymentIntentId,
           stripePaymentMethodId: paymentMethodId,
           stripeReceiptUrl: receiptUrl,
@@ -1023,7 +1034,7 @@ export class PaymentService {
       // Enviar notificação detalhada ao produtor
       await this.notificationService.createNotification({
         userId: producerId,
-        type: 'payment_received',
+        type: 'new_order',
         title: 'Novo pagamento recebido',
         message: `Você recebeu ${formatCurrency(producerAmount)} pelo pedido #${orderId.substring(0, 8)}. Este valor corresponde a 90% do valor dos produtos.`,
         priority: 'high',
@@ -1040,7 +1051,7 @@ export class PaymentService {
       // Enviar notificação detalhada ao entregador
       await this.notificationService.createNotification({
         userId: deliveryPersonId,
-        type: 'payment_received',
+        type: 'delivery_available',
         title: 'Pagamento de entrega recebido',
         message: `Você recebeu ${formatCurrency(deliveryFee)} pela entrega do pedido #${orderId.substring(0, 8)}.`,
         priority: 'high',

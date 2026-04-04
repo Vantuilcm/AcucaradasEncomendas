@@ -1,163 +1,85 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { Text, Button, Card, Chip, Divider, useTheme, IconButton } from 'react-native-paper';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { Text, Button, Card, Chip, Divider, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { OrderService } from '../services/OrderService';
+import { Order, OrderStatus } from '../types/Order';
+import { useAppTheme } from '../components/ThemeProvider';
+import { formatCurrency } from '../utils/formatters';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 
-// Tipos para pedidos
-interface OrderItem {
-  id: string;
-  productId: string;
-  productName: string;
-  quantity: number;
-  price: number;
-  image: string;
-}
-
-interface Address {
-  street: string;
-  number: string;
-  complement?: string;
-  neighborhood: string;
-  city: string;
-  state: string;
-  zipCode: string;
-}
-
-interface Order {
-  id: string;
-  date: string;
-  status: 'pending' | 'preparing' | 'shipping' | 'delivered' | 'canceled';
-  items: OrderItem[];
-  total: number;
-  paymentMethod: string;
-  address: Address;
-  deliveryFee: number;
-  estimatedDelivery?: string;
-  trackingCode?: string;
-}
-
-// Dados de exemplo para o pedido
-const sampleOrder: Order = {
-  id: 'ORD-12345',
-  date: '2023-06-15T14:30:00',
-  status: 'preparing',
-  items: [
-    {
-      id: 'item-1',
-      productId: '1',
-      productName: 'Bolo de Chocolate',
-      quantity: 1,
-      price: 45.99,
-      image: 'https://via.placeholder.com/100',
-    },
-    {
-      id: 'item-2',
-      productId: '4',
-      productName: 'Brigadeiro Gourmet (12 unidades)',
-      quantity: 2,
-      price: 24.99,
-      image: 'https://via.placeholder.com/100',
-    },
-  ],
-  total: 95.97,
-  paymentMethod: 'Cartão de Crédito',
-  address: {
-    street: 'Rua das Flores',
-    number: '123',
-    complement: 'Apto 45',
-    neighborhood: 'Jardim Primavera',
-    city: 'São Paulo',
-    state: 'SP',
-    zipCode: '01234-567',
-  },
-  deliveryFee: 10.00,
-  estimatedDelivery: '2023-06-16T16:00:00',
-  trackingCode: 'TRACK-987654',
-};
-
-// Função para formatar data
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-// Função para obter cor do status
-const getStatusColor = (status: Order['status'], theme: any) => {
-  switch (status) {
-    case 'pending':
-      return theme.colors.warning;
-    case 'preparing':
-      return theme.colors.primary;
-    case 'shipping':
-      return theme.colors.info;
-    case 'delivered':
-      return theme.colors.success;
-    case 'canceled':
-      return theme.colors.error;
-    default:
-      return theme.colors.surface;
-  }
-};
-
-// Função para obter texto do status
-const getStatusText = (status: Order['status']) => {
-  switch (status) {
-    case 'pending':
-      return 'Pendente';
-    case 'preparing':
-      return 'Em Preparação';
-    case 'shipping':
-      return 'Em Transporte';
-    case 'delivered':
-      return 'Entregue';
-    case 'canceled':
-      return 'Cancelado';
-    default:
-      return status;
-  }
-};
+type OrderDetailRouteProp = RouteProp<RootStackParamList, 'OrderDetails'>;
 
 export default function OrderDetailScreen() {
-  const theme = useTheme();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
+  const route = useRoute<OrderDetailRouteProp>();
+  const { orderId } = route.params;
+  
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Simular carregamento do pedido
+  const orderService = useMemo(() => OrderService.getInstance(), []);
+
   useEffect(() => {
     const loadOrder = async () => {
-      // Aqui você faria uma chamada API real usando o orderId da rota
-      // const { orderId } = route.params;
-      
-      // Simulando delay de carregamento
-      setTimeout(() => {
-        setOrder(sampleOrder);
+      try {
+        setLoading(true);
+        const data = await orderService.getOrderById(orderId);
+        if (data) {
+          setOrder(data);
+        } else {
+          Alert.alert('Erro', 'Pedido não encontrado');
+          navigation.goBack();
+        }
+      } catch (err) {
+        console.error('Erro ao carregar pedido:', err);
+        Alert.alert('Erro', 'Não foi possível carregar os detalhes do pedido');
+      } finally {
         setLoading(false);
-      }, 1000);
+      }
     };
 
     loadOrder();
-  }, []);
+  }, [orderId, orderService, navigation]);
 
   const handleContactSupport = () => {
-    // Implementar lógica para contato com suporte
-    console.log('Contatar suporte');
+    Alert.alert('Suporte', 'Funcionalidade de chat com suporte em desenvolvimento.');
   };
 
-  const handleCancelOrder = () => {
-    // Implementar lógica para cancelamento de pedido
-    console.log('Cancelar pedido');
+  const handleCancelOrder = async () => {
+    if (!order) return;
+
+    Alert.alert(
+      'Cancelar Pedido',
+      'Tem certeza que deseja cancelar este pedido?',
+      [
+        { text: 'Não', style: 'cancel' },
+        { 
+          text: 'Sim, Cancelar', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await orderService.cancelOrder(order.id);
+              const updatedOrder = await orderService.getOrderById(order.id);
+              setOrder(updatedOrder);
+              Alert.alert('Sucesso', 'Pedido cancelado com sucesso');
+            } catch (err: any) {
+              Alert.alert('Erro', err.message || 'Não foi possível cancelar o pedido');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
-  if (loading || !order) {
+  if (loading && !order) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -166,10 +88,38 @@ export default function OrderDetailScreen() {
     );
   }
 
+  if (!order) return null;
+
   const subtotal = order.items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + item.totalPrice,
     0
   );
+
+  const getStatusColor = (status: OrderStatus) => {
+    switch (status) {
+      case 'pending': return theme.colors.warning;
+      case 'confirmed': return theme.colors.info;
+      case 'preparing': return theme.colors.secondary;
+      case 'ready': return theme.colors.tertiary;
+      case 'delivering': return theme.colors.primary;
+      case 'delivered': return theme.colors.success;
+      case 'cancelled': return theme.colors.error;
+      default: return theme.colors.outline;
+    }
+  };
+
+  const getStatusLabel = (status: OrderStatus) => {
+    switch (status) {
+      case 'pending': return 'Pendente';
+      case 'confirmed': return 'Confirmado';
+      case 'preparing': return 'Em Preparação';
+      case 'ready': return 'Pronto';
+      case 'delivering': return 'Em Entrega';
+      case 'delivered': return 'Entregue';
+      case 'cancelled': return 'Cancelado';
+      default: return status;
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -181,7 +131,7 @@ export default function OrderDetailScreen() {
             onPress={() => navigation.goBack()}
           />
           <Text variant="headlineSmall" style={styles.headerTitle}>
-            Pedido {order.id}
+            Pedido #{order.id.substring(0, 8)}
           </Text>
           <View style={{ width: 40 }} />
         </View>
@@ -191,10 +141,10 @@ export default function OrderDetailScreen() {
             <View style={styles.statusRow}>
               <Text variant="titleMedium">Status</Text>
               <Chip
-                style={[styles.statusChip, { backgroundColor: getStatusColor(order.status, theme) + '20' }]}
-                textStyle={{ color: getStatusColor(order.status, theme) }}
+                style={[styles.statusChip, { backgroundColor: getStatusColor(order.status) + '20' }]}
+                textStyle={{ color: getStatusColor(order.status) }}
               >
-                {getStatusText(order.status)}
+                {getStatusLabel(order.status)}
               </Chip>
             </View>
             
@@ -202,20 +152,13 @@ export default function OrderDetailScreen() {
             
             <View style={styles.infoRow}>
               <Text variant="bodyMedium">Data do Pedido</Text>
-              <Text variant="bodyMedium">{formatDate(order.date)}</Text>
+              <Text variant="bodyMedium">{new Date(order.createdAt).toLocaleString('pt-BR')}</Text>
             </View>
             
-            {order.estimatedDelivery && (
+            {order.estimatedDeliveryTime && (
               <View style={styles.infoRow}>
                 <Text variant="bodyMedium">Entrega Estimada</Text>
-                <Text variant="bodyMedium">{formatDate(order.estimatedDelivery)}</Text>
-              </View>
-            )}
-            
-            {order.trackingCode && (
-              <View style={styles.infoRow}>
-                <Text variant="bodyMedium">Código de Rastreio</Text>
-                <Text variant="bodyMedium">{order.trackingCode}</Text>
+                <Text variant="bodyMedium">{new Date(order.estimatedDeliveryTime).toLocaleString('pt-BR')}</Text>
               </View>
             )}
           </Card.Content>
@@ -229,12 +172,11 @@ export default function OrderDetailScreen() {
             
             {order.items.map((item) => (
               <View key={item.id} style={styles.itemContainer}>
-                <Card.Cover source={{ uri: item.image }} style={styles.itemImage} />
                 <View style={styles.itemDetails}>
-                  <Text variant="titleSmall">{item.productName}</Text>
+                  <Text variant="titleSmall">{item.name}</Text>
                   <Text variant="bodyMedium">Quantidade: {item.quantity}</Text>
                   <Text variant="bodyMedium" style={styles.itemPrice}>
-                    R$ {(item.price * item.quantity).toFixed(2)}
+                    {formatCurrency(item.totalPrice)}
                   </Text>
                 </View>
               </View>
@@ -245,18 +187,18 @@ export default function OrderDetailScreen() {
             <View style={styles.summaryContainer}>
               <View style={styles.summaryRow}>
                 <Text variant="bodyMedium">Subtotal</Text>
-                <Text variant="bodyMedium">R$ {subtotal.toFixed(2)}</Text>
+                <Text variant="bodyMedium">{formatCurrency(subtotal)}</Text>
               </View>
               
               <View style={styles.summaryRow}>
                 <Text variant="bodyMedium">Taxa de Entrega</Text>
-                <Text variant="bodyMedium">R$ {order.deliveryFee.toFixed(2)}</Text>
+                <Text variant="bodyMedium">{formatCurrency(order.deliveryFee || 0)}</Text>
               </View>
               
               <View style={styles.summaryRow}>
                 <Text variant="titleMedium">Total</Text>
                 <Text variant="titleMedium" style={styles.totalPrice}>
-                  R$ {order.total.toFixed(2)}
+                  {formatCurrency(order.totalAmount)}
                 </Text>
               </View>
             </View>
@@ -270,17 +212,17 @@ export default function OrderDetailScreen() {
             </Text>
             
             <Text variant="bodyMedium">
-              {order.address.street}, {order.address.number}
-              {order.address.complement ? `, ${order.address.complement}` : ''}
+              {order.deliveryAddress.street}, {order.deliveryAddress.number}
+              {order.deliveryAddress.complement ? `, ${order.deliveryAddress.complement}` : ''}
             </Text>
             <Text variant="bodyMedium">
-              {order.address.neighborhood}
+              {order.deliveryAddress.neighborhood}
             </Text>
             <Text variant="bodyMedium">
-              {order.address.city} - {order.address.state}
+              {order.deliveryAddress.city} - {order.deliveryAddress.state}
             </Text>
             <Text variant="bodyMedium">
-              CEP: {order.address.zipCode}
+              CEP: {order.deliveryAddress.zipCode}
             </Text>
           </Card.Content>
         </Card>
@@ -294,28 +236,27 @@ export default function OrderDetailScreen() {
             <View style={styles.paymentRow}>
               <Ionicons name="card-outline" size={24} color={theme.colors.primary} />
               <Text variant="bodyMedium" style={styles.paymentMethod}>
-                {order.paymentMethod}
+                {order.paymentMethod.type === 'credit_card' ? 'Cartão de Crédito' : 'PIX'}
               </Text>
             </View>
           </Card.Content>
         </Card>
 
-        <View style={styles.actionsContainer}>
+        <View style={styles.footer}>
           <Button
-            mode="outlined"
-            icon="headset"
+            mode="contained"
             onPress={handleContactSupport}
-            style={styles.actionButton}
+            style={styles.supportButton}
+            icon="chat"
           >
-            Contatar Suporte
+            Suporte
           </Button>
           
-          {(order.status === 'pending' || order.status === 'preparing') && (
+          {(order.status === 'pending' || order.status === 'confirmed') && (
             <Button
               mode="outlined"
-              icon="close-circle"
               onPress={handleCancelOrder}
-              style={[styles.actionButton, styles.cancelButton]}
+              style={styles.cancelButton}
               textColor={theme.colors.error}
             >
               Cancelar Pedido
@@ -327,52 +268,41 @@ export default function OrderDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   loadingText: {
     marginTop: 16,
+    color: theme.colors.primary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingRight: 16,
   },
   headerTitle: {
     fontWeight: 'bold',
   },
   statusCard: {
     margin: 16,
-    marginTop: 8,
+    borderRadius: 12,
     elevation: 2,
-  },
-  card: {
-    margin: 16,
-    marginTop: 0,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontWeight: 'bold',
-    marginBottom: 12,
   },
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
   statusChip: {
-    height: 30,
+    borderRadius: 8,
   },
   divider: {
     marginVertical: 12,
@@ -380,25 +310,28 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 4,
+    marginBottom: 8,
+  },
+  card: {
+    margin: 16,
+    marginTop: 0,
+    borderRadius: 12,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontWeight: 'bold',
+    marginBottom: 16,
   },
   itemContainer: {
     flexDirection: 'row',
-    marginBottom: 16,
-  },
-  itemImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 8,
+    marginBottom: 12,
   },
   itemDetails: {
     flex: 1,
-    marginLeft: 12,
-    justifyContent: 'center',
   },
   itemPrice: {
     fontWeight: 'bold',
-    marginTop: 4,
+    color: theme.colors.primary,
   },
   summaryContainer: {
     marginTop: 8,
@@ -406,28 +339,27 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 4,
+    marginBottom: 4,
   },
   totalPrice: {
+    color: theme.colors.primary,
     fontWeight: 'bold',
-    color: '#2e7d32',
   },
   paymentRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   paymentMethod: {
-    marginLeft: 8,
+    marginLeft: 12,
   },
-  actionsContainer: {
-    margin: 16,
-    marginTop: 8,
-    marginBottom: 24,
+  footer: {
+    padding: 16,
+    paddingBottom: 32,
   },
-  actionButton: {
-    marginVertical: 8,
+  supportButton: {
+    marginBottom: 12,
   },
   cancelButton: {
-    borderColor: '#f44336',
+    borderColor: theme.colors.error,
   },
 });
