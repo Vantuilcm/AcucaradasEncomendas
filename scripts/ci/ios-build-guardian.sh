@@ -86,28 +86,7 @@ else
 fi
 
 # 2.2 Normalização da ASC Private Key (Obrigatório para LOCAL builds)
-echo "🔑 [AUTH] Normalizando ASC Private Key..."
-if [ -n "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
-    echo "$EXPO_ASC_PRIVATE_KEY_BASE64" | base64 --decode > AuthKey.p8
-    echo "✅ [OK] AuthKey.p8 gerada a partir do Base64."
-elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
-    # Converter \n literais para quebras de linha reais
-    echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
-    echo "✅ [OK] AuthKey.p8 gerada a partir da String."
-fi
-
-if [ -f "AuthKey.p8" ]; then
-    if grep -q "BEGIN PRIVATE KEY" AuthKey.p8 && grep -q "END PRIVATE KEY" AuthKey.p8; then
-        echo "✅ [OK] AuthKey.p8 validada com sucesso."
-        # Exportar caminho para o EAS CLI
-        export EXPO_ASC_PRIVATE_KEY_PATH="./AuthKey.p8"
-    else
-        echo "❌ [ERROR] AuthKey.p8 inválida (cabeçalho/rodapé ausente)."
-        exit 1
-    fi
-else
-    echo "⚠️ [WARN] AuthKey.p8 não pôde ser gerada. Builds locais podem falhar."
-fi
+# Removido bloco duplicado - a normalização agora é feita na Etapa 2.3 centralizada.
 
 # 2.3 EAS Build Check (Proteção contra duplicidade via EAS)
 echo "🛡️ [CHECK] Verificando duplicidade no EAS Cloud..."
@@ -135,6 +114,25 @@ echo "✅ [VALID] Nenhum build prévio detectado para o commit $COMMIT_HASH. Pro
 echo "⚙️ [CONFIG] Carregando variáveis de ambiente (LOAD-ENV)..."
 chmod +x scripts/load-env.sh
 ./scripts/load-env.sh
+
+# 2.4.1 Keychain Setup (Crucial para builds LOCAL em CI)
+setup_macos_keychain() {
+    echo "🔐 [KEYCHAIN] Configurando Keychain para build LOCAL..."
+    KEYCHAIN_NAME="ios-build.keychain"
+    KEYCHAIN_PASSWORD="build"
+
+    # Criar keychain se não existir
+    if ! security show-keychain "$KEYCHAIN_NAME" &>/dev/null; then
+        security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+    fi
+
+    security default-keychain -s "$KEYCHAIN_NAME"
+    security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+    security set-keychain-settings -lut 21600 "$KEYCHAIN_NAME"
+    security list-keychains -d user -s "$KEYCHAIN_NAME" $(security list-keychains -d user | xargs)
+    
+    echo "✅ [KEYCHAIN] Keychain configurada e desbloqueada."
+}
 
 echo "🧪 [VALIDATE] Validando variáveis de runtime (FAIL FAST)..."
 node scripts/validate-env.js
@@ -176,7 +174,10 @@ elif [ -n "${EXPO_ASC_PRIVATE_KEY:-}" ]; then
         echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\n/\n/g' > AuthKey.p8
     fi
 else
-    MISSING_VARS+=("EXPO_ASC_PRIVATE_KEY_BASE64")
+    # Fallback se nenhuma variável estiver disponível mas o arquivo já existir (ex: retry)
+    if [ ! -f "AuthKey.p8" ]; then
+        MISSING_VARS+=("EXPO_ASC_PRIVATE_KEY_BASE64")
+    fi
 fi
 
 if [ ${#MISSING_VARS[@]} -ne 0 ]; then
@@ -186,6 +187,14 @@ fi
 
 export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
 export EXPO_ASC_PRIVATE_KEY=$(cat AuthKey.p8)
+
+# Exportar para GITHUB_ENV conforme missão do agente se estiver no GitHub
+if [ -n "${GITHUB_ENV:-}" ]; then
+    echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> "$GITHUB_ENV"
+    cat AuthKey.p8 >> "$GITHUB_ENV"
+    echo "EOF" >> "$GITHUB_ENV"
+    echo "EXPO_ASC_PRIVATE_KEY_PATH=$(pwd)/AuthKey.p8" >> "$GITHUB_ENV"
+fi
 
 # Validar se a chave foi gerada corretamente
 if ! grep -q "BEGIN PRIVATE KEY" AuthKey.p8; then
@@ -266,7 +275,14 @@ run_build_with_retry() {
         set +e
         local current_exit_code=0
         if [ "$mode" == "LOCAL" ]; then
-            # Limpeza rápida antes de cada tentativa local
+            # 1. Configurar Keychain
+            setup_macos_keychain
+
+            # 2. Sincronizar Credenciais
+            echo "🔄 [SYNC] Sincronizando credenciais ASC via EAS..."
+            npx eas-cli credentials:sync --platform ios --non-interactive
+
+            # 3. Limpeza rápida antes de cada tentativa local
             rm -rf ios .expo
             
             echo "🔧 [PREBUILD] Executando npx expo prebuild..."
@@ -280,7 +296,8 @@ run_build_with_retry() {
             fi
 
             echo "🏗️ [EXEC] Iniciando eas build LOCAL..."
-            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive
+            # Adicionado --verbose para capturar erros detalhados do xcodebuild
+            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive --verbose
             current_exit_code=$?
         else
             # MODO CLOUD (EAS Cloud Native)

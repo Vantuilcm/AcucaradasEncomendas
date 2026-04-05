@@ -59,12 +59,12 @@ jobs:
       - name: 🔄 Enterprise Sync (Build Number)
         run: node scripts/sync-build-with-apple.js
 
-      - name: 🛡️ iOS-BUILD-GUARDIAN (Cloud Mode)
+      - name: 🛡️ iOS-BUILD-GUARDIAN (Local Mode)
         run: |
           chmod +x ./scripts/ci/ios-build-guardian.sh
           ./scripts/ci/ios-build-guardian.sh
         env:
-          FORCE_BUILD_MODE: "CLOUD"
+          FORCE_BUILD_MODE: "LOCAL"
 
       - name: 📦 Upload iOS Artifact (.ipa)
         if: always()

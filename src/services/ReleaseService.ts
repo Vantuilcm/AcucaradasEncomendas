@@ -1,4 +1,11 @@
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  // @ts-ignore
+  onSnapshot, 
+  serverTimestamp
+} from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { loggingService } from './LoggingService';
 
@@ -8,20 +15,22 @@ export interface ReleaseHealth {
   criticalErrors: number;
 }
 
+export interface ReleaseItem {
+  version: string;
+  buildNumber: number;
+  status: 'STABLE' | 'DEGRADED' | 'CRITICAL';
+  channel: 'production' | 'production-safe' | 'production-canary';
+  rollout: number; // 0.1 to 1.0
+  lastCheck: any;
+  rollbackTriggered: boolean;
+  blocked: boolean;
+  health?: ReleaseHealth;
+  anomalies?: string[];
+}
+
 export interface ReleaseState {
   activeReleaseId: string;
-  releases: Record<string, {
-    version: string;
-    buildNumber: number;
-    status: 'STABLE' | 'DEGRADED' | 'CRITICAL';
-    channel: 'production' | 'production-safe' | 'production-canary';
-    rollout: number; // 0.1 to 1.0
-    lastCheck: any;
-    rollbackTriggered: boolean;
-    blocked: boolean;
-    health?: ReleaseHealth;
-    anomalies?: string[];
-  }>;
+  releases: Record<string, ReleaseItem>;
   lastStableReleaseId: string;
 }
 
@@ -44,9 +53,9 @@ export class ReleaseService {
    * Monitora o estado da release em tempo real
    */
   public subscribeToReleaseState(callback: (state: ReleaseState) => void) {
-    return onSnapshot(doc(db, 'system_state', this.RELEASE_DOC_ID), (snap) => {
+    return onSnapshot(doc(db, 'system_state', this.RELEASE_DOC_ID), (snap: any) => {
       if (snap.exists()) {
-        callback(snap.data() as ReleaseState);
+        callback(snap.data() as unknown as ReleaseState);
       }
     });
   }
@@ -57,10 +66,11 @@ export class ReleaseService {
   public async updateReleaseState(state: Partial<ReleaseState>): Promise<void> {
     try {
       const ref = doc(db, 'system_state', this.RELEASE_DOC_ID);
-      await setDoc(ref, {
+      const updateData: any = {
         ...state,
         updatedAt: serverTimestamp()
-      }, { merge: true });
+      };
+      await setDoc(ref, updateData, { merge: true });
       loggingService.info('ReleaseService: Estado atualizado', state);
     } catch (error: any) {
       loggingService.error('ReleaseService: Erro ao atualizar estado', { error: error.message });
@@ -73,7 +83,7 @@ export class ReleaseService {
   public async isReleaseBlocked(): Promise<boolean> {
     const snap = await getDoc(doc(db, 'system_state', this.RELEASE_DOC_ID));
     if (snap.exists()) {
-      const data = snap.data() as ReleaseState;
+      const data = snap.data() as unknown as ReleaseState;
       const activeRelease = data.releases[data.activeReleaseId];
       return activeRelease ? (activeRelease.status === 'CRITICAL' || activeRelease.blocked) : false;
     }
