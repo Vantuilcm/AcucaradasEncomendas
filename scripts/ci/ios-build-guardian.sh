@@ -25,8 +25,7 @@ COMMIT_MSG="${COMMIT_MSG:-$(git log -1 --pretty=%B)}"
 
 # Bloqueio de Produção: apenas commits com [release] podem ir para CLOUD/Main
 if [[ "$BRANCH_NAME" == "main" ]] && [[ "$COMMIT_MSG" != *"[release]"* ]]; then
-    echo "⚠️ [WARN] Push na main sem tag [release]. Procedendo com build por ordem do usuário..."
-    # exit 1 (Removido por ordem do usuário para garantir trigger)
+    echo "⚠️ [WARN] Push na main sem tag [release]. Procedendo com build LOCAL por ordem do usuário..."
 fi
 
 echo "🛡️ [STATE-ENGINE] Validando lock e duplicidade..."
@@ -36,21 +35,9 @@ node scripts/build-state-check.js check
 # Garantir unlock ao sair (sucesso ou falha)
 trap "node scripts/build-state-check.js unlock" EXIT
 
-BUILD_MODE="CLOUD" # Default Enterprise Safe
-
-if [[ "$BRANCH_NAME" == "main" ]] || [[ "$COMMIT_MSG" == *"[release]"* ]]; then
-    BUILD_MODE="CLOUD" # Enterprise: Forçar CLOUD em produção para rastreabilidade total
-    echo "🚀 [CONTEXTO] Produção/Release detectada. Modo: CLOUD (EAS Native)."
-else
-    BUILD_MODE="LOCAL"
-    echo "🧪 [CONTEXTO] Branch de desenvolvimento detectada. Modo: LOCAL (GitHub Runner)."
-fi
-
-# Sobrescrever via ENV se necessário (Prioridade Máxima)
-if [ -n "${FORCE_BUILD_MODE:-}" ]; then
-    BUILD_MODE="$FORCE_BUILD_MODE"
-    echo "⚠️ [OVERRIDE] Modo de build forçado via ENV: $BUILD_MODE"
-fi
+# REGRAS ESTRITAS: SEMPRE LOCAL, NUNCA CLOUD
+BUILD_MODE="LOCAL"
+echo "🚀 [CONTEXTO] Modo LOCAL forçado conforme regras do agente. Nunca usando EAS Cloud."
 
 # 2.0 Hardening: Fail-Fast macOS
 if [[ "$OSTYPE" != "darwin"* ]]; then
@@ -130,20 +117,26 @@ setup_macos_keychain() {
 
     # Criar keychain se não existir
     if ! security show-keychain "$KEYCHAIN_NAME" &>/dev/null; then
+        echo "🔐 [KEYCHAIN] Criando nova keychain..."
         security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
     fi
 
+    echo "🔐 [KEYCHAIN] Desbloqueando e configurando como default..."
     security default-keychain -s "$KEYCHAIN_NAME"
     security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
     security set-keychain-settings -lut 21600 "$KEYCHAIN_NAME"
     
     # 2.4.2 Permitir que qualquer aplicação acesse chaves sem prompt (Crucial para xcodebuild)
     echo "🔐 [KEYCHAIN] Permitindo acesso global às chaves para evitar travamentos..."
-    security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+    security set-key-partition-list -S apple-tool:,apple:,codesign:,security: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
     
-    security list-keychains -d user -s "$KEYCHAIN_NAME" $(security list-keychains -d user | xargs)
+    # Adicionar a keychain à lista de busca explicitamente
+    KEYCHAINS=$(security list-keychains -d user | xargs)
+    if [[ "$KEYCHAINS" != *"$KEYCHAIN_NAME"* ]]; then
+        security list-keychains -d user -s "$KEYCHAIN_NAME" $KEYCHAINS
+    fi
     
-    echo "✅ [KEYCHAIN] Keychain configurada e desbloqueada."
+    echo "✅ [KEYCHAIN] Keychain configurada e desbloqueada com sucesso."
 }
 
 echo "🧪 [VALIDATE] Validando variáveis de runtime (FAIL FAST)..."
@@ -282,67 +275,57 @@ fi
 MAX_RETRIES=2
 
 run_build_with_retry() {
-    local mode=$1
     local profile=${PROFILE:-"production_v13"}
     local attempt=1
     SUBMISSION_STATUS="pending"
     
     while [ $attempt -le $MAX_RETRIES ]; do
-        echo "🏗️ [BUILD] Tentativa $attempt de $MAX_RETRIES no modo: $mode (Perfil: $profile)..."
+        echo "🏗️ [BUILD] Tentativa $attempt de $MAX_RETRIES no modo LOCAL (Perfil: $profile)..."
         
         set +e
         local current_exit_code=0
-        if [ "$mode" == "LOCAL" ]; then
-            # 1. Configurar Keychain
-            setup_macos_keychain
+        
+        # 1. Configurar Keychain
+        setup_macos_keychain
 
-            # 2. Sincronizar Credenciais
-            echo "🔄 [SYNC] Sincronizando credenciais ASC via EAS..."
-            npx eas-cli credentials:sync --platform ios --non-interactive
+        # 2. Sincronizar Credenciais
+        echo "🔄 [SYNC] Sincronizando credenciais ASC via EAS..."
+        npx eas-cli credentials:sync --platform ios --non-interactive
 
-            # 3. Limpeza rápida antes de cada tentativa local
-            rm -rf ios .expo
-            
-            echo "🔧 [PREBUILD] Executando npx expo prebuild..."
-            npx expo prebuild --platform ios --non-interactive
-            
-            if [ -d "ios" ]; then
-                echo "📦 [PODS] Instalando CocoaPods..."
-                cd ios
-                # Tentar instalar pods com correção automática de ambiente se falhar
-                if ! pod install; then
-                    echo "⚠️ [WARN] pod install falhou. Tentando reparar ambiente Ruby..."
-                    brew install libyaml || true
-                    # Reinstalar cocoapods localmente
-                    gem install cocoapods -NV || true
-                    pod install || echo "⚠️ [WARN] pod install falhou novamente, tentando via eas build..."
-                fi
-                cd ..
+        # 3. Limpeza rápida antes de cada tentativa local
+        rm -rf ios .expo
+        
+        echo "🔧 [PREBUILD] Executando npx expo prebuild..."
+        npx expo prebuild --platform ios --non-interactive
+        
+        if [ -d "ios" ]; then
+            echo "📦 [PODS] Instalando CocoaPods..."
+            cd ios
+            # Tentar instalar pods com correção automática de ambiente se falhar
+            if ! pod install; then
+                echo "⚠️ [WARN] pod install falhou. Tentando reparar ambiente Ruby..."
+                brew install libyaml || true
+                # Reinstalar cocoapods localmente
+                gem install cocoapods -NV || true
+                pod install || echo "⚠️ [WARN] pod install falhou novamente."
             fi
-
-            echo "🏗️ [EXEC] Iniciando eas build LOCAL..."
-            # Adicionado CI=1 e timeout de 45 minutos para evitar travamentos infinitos
-            export CI=1
-            EXPO_DEBUG=1 npx eas-cli build --platform ios --profile "$profile" --local --non-interactive
-            current_exit_code=$?
-        else
-            # MODO CLOUD (EAS Cloud Native)
-            echo "🚀 [EXEC] Iniciando build CLOUD no EAS Cloud..."
-            # Usar um arquivo temporário para capturar a saída e manter o exit code
-            set +e
-            EXPO_DEBUG=1 npx eas-cli build --platform ios --profile "$profile" --non-interactive 2>&1 | tee /tmp/build_log.txt
-            current_exit_code=$?
-            set -e
-            
-            # Detecção de Erro de Cota (Free Plan Limit)
-            if [ $current_exit_code -ne 0 ] && grep -q "EasBuildFreeTierIosLimitExceededError" /tmp/build_log.txt; then
-                echo "⚠️ [QUOTA-EXCEEDED] Limite do plano gratuito do Expo atingido!"
-                echo "🔄 [FALLBACK-AUTO] Forçando modo LOCAL para burlar o limite do Cloud..."
-                # Chamada recursiva para tentar localmente
-                run_build_with_retry "LOCAL"
-                return $?
-            fi
+            cd ..
         fi
+
+        echo "🏗️ [EXEC] Iniciando eas build LOCAL..."
+        export CI=1
+        export TERM=dumb
+        export EXPO_NO_TELEMETRY=1
+        export EAS_NO_VCS=1
+        
+        mkdir -p build-logs
+        BUILD_LOG="build-logs/eas-build-local.log"
+        
+        echo "🕒 [TIME] Iniciando build em $(date)"
+        EXPO_DEBUG=1 DEBUG=eas:* npx eas-cli build --platform ios --profile "$profile" --local --non-interactive 2>&1 | tee "$BUILD_LOG"
+        current_exit_code=${PIPESTATUS[0]}
+        set -e
+        echo "🕒 [TIME] Build finalizado em $(date) com código $current_exit_code"
         
         if [ $current_exit_code -eq 0 ]; then
             return 0
@@ -363,20 +346,36 @@ run_build_with_retry() {
 }
 
 # Fluxo Principal de Execução
-if run_build_with_retry "$BUILD_MODE"; then
-    echo "✅ [SUCCESS] Build concluído com sucesso no modo $BUILD_MODE!"
+if run_build_with_retry; then
+    echo "✅ [SUCCESS] Build LOCAL concluído com sucesso!"
     
     # --- GARANTIA DE OUTPUT (.IPA) ---
     echo "📦 [ARTIFACT] Localizando IPA gerada..."
     mkdir -p dist
     
-    # Localizar IPA no diretório atual, subdiretórios ou pasta de saída padrão do EAS
-    IPA_FILE=$(find . -name "*.ipa" -not -path "./node_modules/*" | head -n 1)
+    # 1. Tentar extrair do log do EAS se disponível
+    if [ -f "build-logs/eas-build-local.log" ]; then
+        LOG_IPA=$(grep -oE "/[^ ]+\.ipa" build-logs/eas-build-local.log | tail -n 1 || true)
+        if [ -n "$LOG_IPA" ] && [ -f "$LOG_IPA" ]; then
+            echo "✅ [FOUND-LOG] IPA localizada via log: $LOG_IPA"
+            IPA_FILE="$LOG_IPA"
+        fi
+    fi
+
+    # 2. Busca recursiva se não encontrado no log
+    if [ -z "${IPA_FILE:-}" ]; then
+        echo "🔍 [SEARCH] Buscando IPA recursivamente..."
+        IPA_FILE=$(find . -name "*.ipa" -not -path "./node_modules/*" -not -path "./ios/*" | head -n 1)
+    fi
     
     if [ -n "$IPA_FILE" ]; then
         echo "✅ [FOUND] IPA localizada em: $IPA_FILE"
         cp "$IPA_FILE" ./dist/app.ipa
         echo "🚀 [READY] IPA movida para: ./dist/app.ipa"
+        
+        # Salvar log final para o artefato do GitHub
+        cp "build-logs/eas-build-local.log" "build-logs/ios-build-log.json" || true
+        echo "📝 [LOG] Log do build salvo para upload."
 
         # --- NOVO: SUBMISSÃO AUTOMÁTICA APPLE (LOCAL BUILD FLOW) ---
         echo "📤 [SUBMIT] Iniciando submissão automática para Apple TestFlight..."
@@ -419,15 +418,8 @@ if run_build_with_retry "$BUILD_MODE"; then
     fi
     # ---------------------------------
     
-    # Obter o buildNumber do EAS se estivermos no modo CLOUD
-    if [ "$BUILD_MODE" == "CLOUD" ]; then
-        echo "🔍 [INFO] Buscando buildNumber gerado no EAS..."
-        export CURRENT_BN=$(npx eas-cli build:list --platform ios --status finished --limit 1 --non-interactive | grep "Build number:" | head -n 1 | awk '{print $NF}')
-        echo "📊 [RESULT] Build Number (EAS): $CURRENT_BN"
-    else
-        export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
-    fi
-    
+    # Obter o buildNumber do app.json (Modo LOCAL)
+    export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
     export CURRENT_VERSION=$(jq -r '.expo.version' app.json)
     
     # --- LOG E AUDITORIA ---
@@ -435,7 +427,7 @@ if run_build_with_retry "$BUILD_MODE"; then
     mkdir -p build-logs
     
     # Save metrics via Orchestrator
-    METRICS_JSON="{\"status\":\"success\",\"mode\":\"$BUILD_MODE\",\"version\":\"$CURRENT_VERSION\",\"buildNumber\":\"$CURRENT_BN\",\"commit\":\"$(git rev-parse HEAD)\",\"branch\":\"$BRANCH_NAME\",\"submission\":\"${SUBMISSION_STATUS:-pending}\"}"
+    METRICS_JSON="{\"status\":\"success\",\"mode\":\"LOCAL\",\"version\":\"$CURRENT_VERSION\",\"buildNumber\":\"$CURRENT_BN\",\"commit\":\"$(git rev-parse HEAD)\",\"branch\":\"$BRANCH_NAME\",\"submission\":\"${SUBMISSION_STATUS:-pending}\"}"
     npx ts-node scripts/ci/PipelineOrchestrator.ts metrics "$METRICS_JSON"
     
     # --- NOVO: VALIDAÇÃO PÓS-BUILD (GLOBAL SCALE) ---
@@ -450,32 +442,22 @@ if run_build_with_retry "$BUILD_MODE"; then
     # ---------------------------------
 
     node scripts/build-state-check.js success
+    echo "------------------------------------------------------------"
+    echo "🎯 [MISSÃO CUMPRIDA] IPA gerada e submetida com sucesso!"
+    echo "📱 Versão: $CURRENT_VERSION | Build: $CURRENT_BN"
+    echo "📦 Artefato: ./dist/app.ipa"
+    echo "------------------------------------------------------------"
     exit 0
 else
-    echo "🚨 [ALERT] Falha persistente no modo $BUILD_MODE após $MAX_RETRIES tentativas."
+    echo "🚨 [ALERT] Falha persistente no modo LOCAL após $MAX_RETRIES tentativas."
     
-    # Lógica de Fallback Automático: LOCAL -> CLOUD
-    if [ "$BUILD_MODE" == "LOCAL" ]; then
-        echo "🔄 [FALLBACK-ALERT] Iniciando recuperação automática via CLOUD (EAS Cloud)..."
-        if run_build_with_retry "CLOUD"; then
-            echo "✅ [RECOVERED] Build concluído via CLOUD após falha no LOCAL!"
-            
-            echo "🔍 [INFO] Buscando buildNumber gerado no EAS..."
-            export CURRENT_BN=$(npx eas-cli build:list --platform ios --status finished --limit 1 --non-interactive | grep "Build number:" | head -n 1 | awk '{print $NF}')
-            echo "📊 [RESULT] Build Number (EAS): $CURRENT_BN"
-            
-            export CURRENT_VERSION=$(jq -r '.expo.version' app.json)
-            node scripts/build-state-check.js success
-            exit 0
-        fi
-    fi
-    
-    echo "❌ [FATAL-ALERT] O pipeline esgotou todas as tentativas de recuperação (LOCAL e CLOUD)."
+    # REGRAS ESTRITAS: SEM FALLBACK PARA CLOUD
+    echo "❌ [FATAL-ALERT] O pipeline esgotou todas as tentativas de build LOCAL."
     
     # Save failure status via Orchestrator
-    FAILURE_JSON="{\"status\":\"failed\",\"mode\":\"$BUILD_MODE\",\"commit\":\"$(git rev-parse HEAD)\",\"branch\":\"$BRANCH_NAME\"}"
+    FAILURE_JSON="{\"status\":\"failed\",\"mode\":\"LOCAL\",\"commit\":\"$(git rev-parse HEAD)\",\"branch\":\"$BRANCH_NAME\"}"
     npx ts-node scripts/ci/PipelineOrchestrator.ts metrics "$FAILURE_JSON" || true
     
-    echo "💡 Sugestão: Verifique os logs acima para erros de dependência ou credenciais."
+    echo "💡 Sugestão: Verifique os logs em build-logs/eas-build-local.log para erros de dependência ou credenciais."
     exit 1
 fi

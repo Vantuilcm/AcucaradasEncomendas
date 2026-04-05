@@ -19,6 +19,7 @@
     "web": "expo start --web",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "generate:ipa": "node scripts/generate-ipa.js",
     "test": "jest",
     "clean": "rm -rf node_modules",
     "reinstall": "npm run clean && npm install",

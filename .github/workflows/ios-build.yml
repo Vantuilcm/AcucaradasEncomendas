@@ -1,7 +1,7 @@
 name: 🚀 Build & Submit Mobile (EAS Cloud)
 
 concurrency:
-  group: ios-build-v2
+  group: ios-build-v3
   cancel-in-progress: true
 
 on:
@@ -20,10 +20,11 @@ jobs:
   ios-hybrid-pipeline:
     name: 🍎 Hybrid Pipeline
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     
     env:
       RELEASE_APPROVED: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.release_approved == 'true') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[release]')) }}
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
       EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
@@ -49,6 +50,14 @@ jobs:
       PROFILE: "production_v13"
 
     steps:
+      - name: 🧹 Clean Previous Zombie Processes
+        run: |
+          echo "🧹 [CLEAN] Killing previous zombie build processes..."
+          killall xcodebuild || true
+          killall SWBBuildService || true
+          killall node || true
+          killall tail || true
+
       - name: 🔍 Debug Context
         run: |
           echo "Event: ${{ github.event_name }}"
@@ -63,7 +72,7 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: 🛠️ Hardening macOS Runner Environment
@@ -83,6 +92,10 @@ jobs:
           
           # 5. Fastlane (Optional but good for iOS)
           gem install fastlane -NV
+          
+          # 6. Set CI environment variables
+          echo "CI=true" >> $GITHUB_ENV
+          echo "TERM=dumb" >> $GITHUB_ENV
 
       - name: 📦 Install Dependencies
         run: npm install --legacy-peer-deps
@@ -93,9 +106,11 @@ jobs:
       - name: 🛡️ iOS-BUILD-GUARDIAN (Local Mode)
         run: |
           chmod +x ./scripts/ci/ios-build-guardian.sh
-          ./scripts/ci/ios-build-guardian.sh
+          EXPO_DEBUG=1 ./scripts/ci/ios-build-guardian.sh
         env:
           FORCE_BUILD_MODE: "LOCAL"
+          DEBUG: "eas:*"
+
 
       - name: 📦 Upload iOS Artifact (.ipa)
         if: always()
