@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 45
     
     env:
-      RELEASE_APPROVED: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.release_approved == 'true') || contains(github.event.head_commit.message, '[release]') }}
+      RELEASE_APPROVED: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.release_approved == 'true') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[release]')) }}
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
       EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
@@ -49,11 +49,13 @@ jobs:
       PROFILE: "production_v13"
 
     steps:
-      - name: � Debug Context
+      - name: 🔍 Debug Context
         run: |
           echo "Event: ${{ github.event_name }}"
           echo "Release Approved: $RELEASE_APPROVED"
-          echo "Commit Message: ${{ github.event.head_commit.message }}"
+          if [ "${{ github.event_name }}" == "push" ]; then
+            echo "Commit Message: ${{ github.event.head_commit.message }}"
+          fi
 
       - name: 🏗️ Checkout Repository
         uses: actions/checkout@v4
@@ -86,6 +88,7 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: 🔄 Enterprise Sync (Build Number)
+        run: node scripts/sync-build-with-apple.js
 
       - name: 🛡️ iOS-BUILD-GUARDIAN (Local Mode)
         run: |
