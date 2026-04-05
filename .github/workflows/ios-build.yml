@@ -20,6 +20,7 @@ jobs:
   ios-hybrid-pipeline:
     name: 🍎 Hybrid Pipeline
     runs-on: macos-latest
+    timeout-minutes: 45
     
     env:
       RELEASE_APPROVED: ${{ github.event.inputs.release_approved == 'true' || contains(github.event.head_commit.message, '[release]') }}
@@ -57,14 +58,28 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      - name: 🛠️ Hardening macOS Runner Environment
+        run: |
+          # 1. Fix Xcode path
+          sudo xcode-select -s /Applications/Xcode.app
+          
+          # 2. Fix Ruby/CocoaPods environment (LibYAML issue)
+          brew install libyaml
+          
+          # 3. Fix npm/node-gyp issues
+          npm install -g npm@latest
+          npm install -g node-gyp
+          
+          # 4. Global EAS CLI
+          npm install -g eas-cli@latest
+          
+          # 5. Fastlane (Optional but good for iOS)
+          gem install fastlane -NV
+
       - name: 📦 Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: ⚙️ Setup EAS CLI
-        run: npm install -g eas-cli@latest
-
       - name: 🔄 Enterprise Sync (Build Number)
-        run: node scripts/sync-build-with-apple.js
 
       - name: 🛡️ iOS-BUILD-GUARDIAN (Local Mode)
         run: |
