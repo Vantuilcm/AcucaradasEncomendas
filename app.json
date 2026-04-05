@@ -5,13 +5,16 @@
     "version": "1.1.8",
     "ios": {
       "bundleIdentifier": "com.acucaradas.encomendas",
-      "buildNumber": "465",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "buildNumber": "469",
       "googleServicesFile": "./GoogleService-Info.plist",
       "itsAppUsesNonExemptEncryption": false
     },
     "android": {
       "package": "com.acucaradas.encomendas",
-      "versionCode": 465,
+      "versionCode": 469,
       "googleServicesFile": "./google-services.json"
     },
     "extra": {

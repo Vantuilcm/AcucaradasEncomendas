@@ -9,11 +9,12 @@ const path = require('path');
  * - Automated app.json & package.json synchronization
  */
 async function syncBuildEnterprise() {
-  const lockPath = path.join(__dirname, '../build.lock');
+  const targetApp = process.env.TARGET_APP || 'acucaradas-encomendas';
+  const lockPath = path.join(__dirname, `../build_${targetApp}.lock`);
   const appJsonPath = path.join(__dirname, '../app.json');
   const pkgPath = path.join(__dirname, '../package.json');
 
-  console.log('🛡️ [Enterprise Sync] Iniciando sincronização em modo seguro...');
+  console.log(`🛡️ [Enterprise Sync] Sincronizando app: ${targetApp} em modo seguro...`);
 
   // 1. Build Lock Check
   if (fs.existsSync(lockPath)) {

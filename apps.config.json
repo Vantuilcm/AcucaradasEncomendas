@@ -1,0 +1,30 @@
+{
+  "apps": {
+    "acucaradas-encomendas": {
+      "id": "6090106b-e327-4744-bce5-9ddb0d037045",
+      "name": "Açucaradas Encomendas",
+      "slug": "acucaradas-encomendas",
+      "bundleIdentifier": "com.acucaradas.encomendas",
+      "package": "com.acucaradas.encomendas",
+      "firebase": {
+        "ios": "./GoogleService-Info.plist",
+        "android": "./google-services.json"
+      },
+      "environments": {
+        "production": {
+          "easProfile": "production_v13",
+          "channel": "production"
+        },
+        "preview": {
+          "easProfile": "preview",
+          "channel": "preview"
+        },
+        "development": {
+          "easProfile": "development",
+          "channel": "development"
+        }
+      }
+    }
+  },
+  "defaultApp": "acucaradas-encomendas"
+}

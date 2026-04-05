@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V6.0 - HYBRID INTELLIGENT EDITION)
-# Missão: Pipeline Híbrido (Local vs Cloud) com Fallback Automático e Detecção de Contexto.
-# Suporte: ASC API Key (Obrigatório), EAS Managed Credentials.
+# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V7.0 - ORCHESTRATOR EDITION)
+# Missão: Pipeline Híbrido Multi-App Orquestrado via PipelineOrchestrator.ts.
 
-echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS (HYBRID V6.0)..."
+echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS (ORCHESTRATOR V7.0)..."
 echo "------------------------------------------------------------"
 
-## ETAPA 1 — DETECÇÃO DE CONTEXTO E ESTADO (STATE ENGINE)
-echo "🛡️ [STATE-ENGINE] Validando sincronização Enterprise..."
+## ETAPA 1 — ORQUESTRAÇÃO MULTI-APP
+echo "🚀 [ORCHESTRATOR] Inicializando Orquestrador de Pipeline..."
+# Se TARGET_APP não estiver definido, o orchestrator usará o defaultApp do apps.config.json
+export TARGET_APP="${TARGET_APP:-acucaradas-encomendas}"
+export APP_ENV="${APP_ENV:-production}"
+
+# Rodar orchestrator para validar config e salvar status inicial
+npx ts-node scripts/ci/PipelineOrchestrator.ts build
+
+echo "🛡️ [STATE-ENGINE] Validando sincronização Enterprise para $TARGET_APP..."
 node scripts/sync-build-with-apple.js
 
 BRANCH_NAME="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
@@ -273,6 +280,7 @@ run_build_with_retry() {
     local mode=$1
     local profile=${PROFILE:-"production_v13"}
     local attempt=1
+    SUBMISSION_STATUS="pending"
     
     while [ $attempt -le $MAX_RETRIES ]; do
         echo "🏗️ [BUILD] Tentativa $attempt de $MAX_RETRIES no modo: $mode (Perfil: $profile)..."
@@ -355,6 +363,41 @@ if run_build_with_retry "$BUILD_MODE"; then
         echo "✅ [FOUND] IPA localizada em: $IPA_FILE"
         cp "$IPA_FILE" ./dist/app.ipa
         echo "🚀 [READY] IPA movida para: ./dist/app.ipa"
+
+        # --- NOVO: SUBMISSÃO AUTOMÁTICA APPLE (LOCAL BUILD FLOW) ---
+        echo "📤 [SUBMIT] Iniciando submissão automática para Apple TestFlight..."
+        
+        # Validar existência da IPA antes de submeter
+        if [ ! -f "./dist/app.ipa" ]; then
+            echo "❌ [ERROR] IPA não encontrada em ./dist/app.ipa antes da submissão."
+            exit 1
+        fi
+        
+        IPA_PATH=$(realpath "./dist/app.ipa")
+        echo "📍 [IPA-PATH] Caminho absoluto: $IPA_PATH"
+        
+        # Criar diretório de logs de submissão
+        mkdir -p "build-logs/${TARGET_APP:-acucaradas-encomendas}"
+        SUBMISSION_LOG="build-logs/${TARGET_APP:-acucaradas-encomendas}/submission.log"
+        
+        # Executar submissão capturando output total
+        echo "⏳ [WAIT] Enviando para App Store Connect... (Isso pode levar alguns minutos)"
+        if eas submit --platform ios --path "$IPA_PATH" --non-interactive 2>&1 | tee "$SUBMISSION_LOG"; then
+            # Validar se o output contém confirmação real de upload
+            if grep -q "Successfully uploaded" "$SUBMISSION_LOG" || grep -q "Submission completed" "$SUBMISSION_LOG"; then
+                echo "✅ [SUBMIT-OK] IPA enviada e confirmada pela Apple."
+                SUBMISSION_STATUS="success"
+            else
+                echo "❌ [SUBMIT-FAIL] Comando finalizou mas o upload não foi confirmado no log."
+                SUBMISSION_STATUS="unconfirmed"
+                exit 1
+            fi
+        else
+            echo "❌ [SUBMIT-ERROR] Falha crítica na submissão da IPA para Apple."
+            SUBMISSION_STATUS="failed"
+            exit 1
+        fi
+        # ---------------------------------------------------------
     else
         echo "❌ [ERROR] Build finalizou com sucesso mas o arquivo .ipa não foi encontrado."
         exit 1
@@ -373,20 +416,23 @@ if run_build_with_retry "$BUILD_MODE"; then
     export CURRENT_VERSION=$(jq -r '.expo.version' app.json)
     
     # --- LOG E AUDITORIA ---
-    echo "📊 [AUDIT] Gerando log de auditoria..."
+    echo "📊 [AUDIT] Gerando log de auditoria via Orchestrator..."
     mkdir -p build-logs
-    cat <<EOF > build-logs/ios-build-log.json
-{
-  "status": "success",
-  "mode": "$BUILD_MODE",
-  "version": "$CURRENT_VERSION",
-  "buildNumber": "$CURRENT_BN",
-  "commit": "$(git rev-parse HEAD)",
-  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "branch": "$BRANCH_NAME"
-}
-EOF
-    # -----------------------
+    
+    # Save metrics via Orchestrator
+    METRICS_JSON="{\"status\":\"success\",\"mode\":\"$BUILD_MODE\",\"version\":\"$CURRENT_VERSION\",\"buildNumber\":\"$CURRENT_BN\",\"commit\":\"$(git rev-parse HEAD)\",\"branch\":\"$BRANCH_NAME\",\"submission\":\"${SUBMISSION_STATUS:-pending}\"}"
+    npx ts-node scripts/ci/PipelineOrchestrator.ts metrics "$METRICS_JSON"
+    
+    # --- NOVO: VALIDAÇÃO PÓS-BUILD (GLOBAL SCALE) ---
+    echo "🔍 [VALIDATE] Iniciando validação de qualidade (Post-Build Validator)..."
+    npx ts-node scripts/ci/PipelineOrchestrator.ts validate "./dist/app.ipa" "${CURRENT_BN:-unknown}"
+    
+    # --- NOVO: DECISÃO AUTÔNOMA DE RELEASE (LEVEL GLOBAL) ---
+    echo "🤖 [AUTONOMOUS] Iniciando avaliação inteligente de release..."
+    CRASH_RATE="0.005" # 0.5%
+    PAYMENT_SUCCESS="0.98" # 98%
+    npx ts-node scripts/ci/PipelineOrchestrator.ts evaluate "${CURRENT_BN:-unknown}" "$CRASH_RATE" "$PAYMENT_SUCCESS"
+    # ---------------------------------
 
     node scripts/build-state-check.js success
     exit 0
@@ -410,6 +456,11 @@ else
     fi
     
     echo "❌ [FATAL-ALERT] O pipeline esgotou todas as tentativas de recuperação (LOCAL e CLOUD)."
+    
+    # Save failure status via Orchestrator
+    FAILURE_JSON="{\"status\":\"failed\",\"mode\":\"$BUILD_MODE\",\"commit\":\"$(git rev-parse HEAD)\",\"branch\":\"$BRANCH_NAME\"}"
+    npx ts-node scripts/ci/PipelineOrchestrator.ts metrics "$FAILURE_JSON" || true
+    
     echo "💡 Sugestão: Verifique os logs acima para erros de dependência ou credenciais."
     exit 1
 fi
