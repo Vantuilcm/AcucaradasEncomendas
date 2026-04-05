@@ -1,0 +1,6 @@
+{
+  "maxCrashRate": 0.02,
+  "maxPaymentFailureRate": 0.05,
+  "maxCriticalErrors": 3,
+  "monitorWindowMinutes": 30
+}

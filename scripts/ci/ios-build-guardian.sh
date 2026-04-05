@@ -9,6 +9,9 @@ echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Guardião de Build iOS (HYBRID V6.0
 echo "------------------------------------------------------------"
 
 ## ETAPA 1 — DETECÇÃO DE CONTEXTO E ESTADO (STATE ENGINE)
+echo "🛡️ [STATE-ENGINE] Validando sincronização Enterprise..."
+node scripts/sync-build-with-apple.js
+
 BRANCH_NAME="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
 COMMIT_MSG="${GITHUB_EVENT_PATH:+$(jq -r '.head_commit.message' "$GITHUB_EVENT_PATH")}"
 COMMIT_MSG="${COMMIT_MSG:-$(git log -1 --pretty=%B)}"
@@ -26,11 +29,11 @@ node scripts/build-state-check.js check
 # Garantir unlock ao sair (sucesso ou falha)
 trap "node scripts/build-state-check.js unlock" EXIT
 
-BUILD_MODE="LOCAL" # Default para segurança e velocidade
+BUILD_MODE="CLOUD" # Default Enterprise Safe
 
 if [[ "$BRANCH_NAME" == "main" ]] || [[ "$COMMIT_MSG" == *"[release]"* ]]; then
-    BUILD_MODE="LOCAL" # Evolução: Forçar LOCAL em produção para economizar créditos
-    echo "🚀 [CONTEXTO] Produção/Release detectada. Modo: LOCAL (GitHub Runner - Forçado)."
+    BUILD_MODE="CLOUD" # Enterprise: Forçar CLOUD em produção para rastreabilidade total
+    echo "🚀 [CONTEXTO] Produção/Release detectada. Modo: CLOUD (EAS Native)."
 else
     BUILD_MODE="LOCAL"
     echo "🧪 [CONTEXTO] Branch de desenvolvimento detectada. Modo: LOCAL (GitHub Runner)."

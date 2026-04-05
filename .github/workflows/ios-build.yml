@@ -56,12 +56,15 @@ jobs:
       - name: ⚙️ Setup EAS CLI
         run: npm install -g eas-cli@latest
 
-      - name: 🛡️ iOS-BUILD-GUARDIAN (Hybrid Mode)
+      - name: 🔄 Enterprise Sync (Build Number)
+        run: node scripts/sync-build-with-apple.js
+
+      - name: 🛡️ iOS-BUILD-GUARDIAN (Cloud Mode)
         run: |
           chmod +x ./scripts/ci/ios-build-guardian.sh
           ./scripts/ci/ios-build-guardian.sh
         env:
-          FORCE_BUILD_MODE: "LOCAL"
+          FORCE_BUILD_MODE: "CLOUD"
 
       - name: 📦 Upload iOS Artifact (.ipa)
         if: always()
@@ -85,3 +88,7 @@ jobs:
           EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
           EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+
+      - name: 🛡️ Post-Release Health Check (Release Guardian)
+        if: success()
+        run: node scripts/post-release-monitor.js

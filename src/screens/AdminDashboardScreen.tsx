@@ -25,6 +25,7 @@ import { RecommendationService, ProductRecommendation } from '../services/Recomm
 import { GrowthIntelligenceService, GrowthMetrics } from '../services/GrowthIntelligenceService';
 import { MarketplaceExpansionService, CityExpansionMetrics } from '../services/MarketplaceExpansionService';
 import { AutonomousGrowthOrchestrator, AutonomousAction } from '../services/AutonomousGrowthOrchestrator';
+import { ReleaseService, ReleaseState } from '../services/ReleaseService';
 import { DeliveryDriver } from '../types/DeliveryDriver';
 import { LineChart } from 'react-native-chart-kit';
 import MapView, { Marker } from 'react-native-maps';
@@ -107,6 +108,7 @@ export function AdminDashboardScreen() {
   const growthIntelService = React.useMemo(() => GrowthIntelligenceService.getInstance(), []);
   const marketplaceService = React.useMemo(() => MarketplaceExpansionService.getInstance(), []);
   const autonomousOrchestrator = React.useMemo(() => AutonomousGrowthOrchestrator.getInstance(), []);
+  const releaseService = React.useMemo(() => ReleaseService.getInstance(), []);
 
   const [activeDrivers, setActiveDrivers] = useState<DeliveryDriver[]>([]);
   const [liveOrders, setLiveOrders] = useState<Order[]>([]);
@@ -115,7 +117,8 @@ export function AdminDashboardScreen() {
   const [growthMetrics, setGrowthMetrics] = useState<GrowthMetrics | null>(null);
   const [cityMetrics, setCityMetrics] = useState<CityExpansionMetrics[]>([]);
   const [autonomousActions, setAutonomousActions] = useState<AutonomousAction[]>([]);
-  const [alerts, setAlerts] = useState<{ id: string; type: 'payment' | 'stuck' | 'stock' | 'growth' | 'marketplace' | 'autonomous'; message: string; timestamp: Date }[]>([]);
+  const [releaseState, setReleaseState] = useState<ReleaseState | null>(null);
+  const [alerts, setAlerts] = useState<{ id: string; type: 'payment' | 'stuck' | 'stock' | 'growth' | 'marketplace' | 'autonomous' | 'release'; message: string; timestamp: Date }[]>([]);
   const [stats, setStats] = useState({
     dailySales: 0,
     weeklySales: 0,
@@ -269,12 +272,35 @@ export function AdminDashboardScreen() {
       });
     });
 
+    // Monitorar estado da release (Release Guardian)
+    const unsubscribeRelease = releaseService.subscribeToReleaseState((state: ReleaseState) => {
+      setReleaseState(state);
+      
+      const active = state.releases[state.activeReleaseId];
+      if (active && active.status !== 'STABLE') {
+        const releaseAlert = {
+          id: `release-${active.buildNumber}`,
+          type: 'release' as const,
+          message: `⚠️ RELEASE ${active.status}: v${active.version} (${active.buildNumber})`,
+          timestamp: new Date()
+        };
+        
+        setAlerts(prev => {
+          const filtered = prev.filter(a => a.type !== 'release');
+          return [releaseAlert, ...filtered].slice(0, 10);
+        });
+      } else {
+        setAlerts(prev => prev.filter(a => a.type !== 'release'));
+      }
+    });
+
     return () => {
       clearInterval(watchdogInterval);
       unsubscribeOrders();
       unsubscribeLiveOrders();
       unsubscribeDrivers();
       unsubscribeAutonomous();
+      unsubscribeRelease();
     };
   }, [orderService, driverService, watchdogService]);
 
@@ -519,6 +545,79 @@ export function AdminDashboardScreen() {
             ))}
           </Surface>
         )}
+
+        {/* 🛡️ Release Guardian Status (Global Scale) */}
+        {releaseState && releaseState.releases[releaseState.activeReleaseId] && (() => {
+          const active = releaseState.releases[releaseState.activeReleaseId];
+          return (
+            <Surface style={[styles.releaseGuardianSection, active.status === 'CRITICAL' && { borderColor: theme.colors.error, borderWeight: 2 } as any]}>
+              <View style={styles.sectionHeader}>
+                <Ionicons 
+                  name={active.status === 'STABLE' ? 'shield-checkmark' : 'alert-circle'} 
+                  size={22} 
+                  color={active.status === 'STABLE' ? '#4CAF50' : (active.status === 'CRITICAL' ? theme.colors.error : '#FF9800')} 
+                />
+                <View style={{ marginLeft: 8 }}>
+                  <Text variant="titleMedium" style={styles.sectionTitle}>Release Guardian</Text>
+                  <Text variant="labelSmall" style={{ color: theme.colors.text.secondary }}>ID: {releaseState.activeReleaseId}</Text>
+                </View>
+                <Badge 
+                  style={{ 
+                    backgroundColor: active.status === 'STABLE' ? '#4CAF50' : (active.status === 'CRITICAL' ? theme.colors.error : '#FF9800'),
+                    marginLeft: 'auto'
+                  }}
+                >
+                  {active.status}
+                </Badge>
+              </View>
+              
+              <View style={{ marginTop: 8 }}>
+                <View style={styles.canaryInfo}>
+                  <Ionicons name="git-branch-outline" size={14} color={theme.colors.primary} />
+                  <Text variant="labelSmall" style={{ marginLeft: 4 }}>Canal: {active.channel} ({active.rollout * 100}%)</Text>
+                </View>
+
+                {active.rollbackTriggered && (
+                  <View style={styles.rollbackBanner}>
+                    <Ionicons name="refresh-circle" size={18} color="#FFFFFF" />
+                    <Text style={styles.rollbackText}>ROLLBACK ATIVO {'->'} {releaseState.lastStableReleaseId}</Text>
+                  </View>
+                )}
+
+                {active.anomalies && active.anomalies.length > 0 && (
+                  <View style={styles.anomalyBox}>
+                    {active.anomalies.map((a, i) => (
+                      <Text key={i} variant="bodySmall" style={{ color: '#D32F2F' }}>• {a}</Text>
+                    ))}
+                  </View>
+                )}
+
+                {active.health && (
+                  <View style={styles.healthGrid}>
+                    <View style={styles.healthItem}>
+                      <Text variant="labelSmall">Crash</Text>
+                      <Text variant="bodySmall" style={{ color: active.health.crashRate > 0.02 ? theme.colors.error : theme.colors.success }}>
+                        {(active.health.crashRate * 100).toFixed(2)}%
+                      </Text>
+                    </View>
+                    <View style={styles.healthItem}>
+                      <Text variant="labelSmall">Payment</Text>
+                      <Text variant="bodySmall" style={{ color: active.health.paymentFailureRate > 0.05 ? theme.colors.error : theme.colors.success }}>
+                        {(active.health.paymentFailureRate * 100).toFixed(1)}%
+                      </Text>
+                    </View>
+                    <View style={styles.healthItem}>
+                      <Text variant="labelSmall">Critical</Text>
+                      <Text variant="bodySmall" style={{ color: active.health.criticalErrors > 3 ? theme.colors.error : theme.colors.success }}>
+                        {active.health.criticalErrors}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </Surface>
+          );
+        })()}
 
         {/* 🌍 Marketplace Expansion Intelligence */}
         {cityMetrics.length > 0 && (
@@ -962,6 +1061,58 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
     marginBottom: 8,
     borderLeftWidth: 4,
     borderLeftColor: '#FFD600',
+  },
+  releaseGuardianSection: {
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#F1F8E9',
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#DCEDC8',
+  },
+  rollbackBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.error,
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  rollbackText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 12,
+    marginLeft: 8,
+  },
+  healthGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    backgroundColor: '#FFFFFF',
+    padding: 10,
+    borderRadius: 8,
+  },
+  healthItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  canaryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    padding: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  anomalyBox: {
+    backgroundColor: '#FFEBEE',
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#D32F2F',
   },
   marketplaceSection: {
     margin: 16,

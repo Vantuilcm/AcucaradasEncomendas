@@ -22,7 +22,7 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "autoIncrement": true,
+      "autoIncrement": false,
       "env": {
         "APP_ENV": "preview",
         "EXPO_PUBLIC_APP_ENV": "preview",
@@ -36,7 +36,7 @@
     },
     "production": {
       "distribution": "store",
-      "autoIncrement": true,
+      "autoIncrement": false,
       "credentialsSource": "remote",
       "env": {
         "APP_ENV": "production",
@@ -75,7 +75,7 @@
     },
     "production_v13": {
       "distribution": "store",
-      "autoIncrement": true,
+      "autoIncrement": false,
       "credentialsSource": "remote",
       "env": {
         "APP_ENV": "production",

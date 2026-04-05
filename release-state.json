@@ -1,0 +1,16 @@
+{
+  "activeReleaseId": "1.1.8-465",
+  "releases": {
+    "1.1.8-465": {
+      "version": "1.1.8",
+      "buildNumber": 465,
+      "status": "STABLE",
+      "channel": "production-canary",
+      "rollout": 0.1,
+      "lastCheck": null,
+      "rollbackTriggered": false,
+      "blocked": false
+    }
+  },
+  "lastStableReleaseId": "1.1.7-464"
+}
