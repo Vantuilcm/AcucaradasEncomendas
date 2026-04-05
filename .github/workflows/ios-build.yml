@@ -1,7 +1,7 @@
 name: 🚀 Build & Submit Mobile (EAS Cloud)
 
 concurrency:
-  group: ios-build
+  group: ios-build-v2
   cancel-in-progress: true
 
 on:
@@ -13,7 +13,7 @@ on:
       release_approved:
         description: 'Aprovar release de produção manualmente?'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 45
     
     env:
-      RELEASE_APPROVED: ${{ github.event.inputs.release_approved == 'true' || contains(github.event.head_commit.message, '[release]') }}
+      RELEASE_APPROVED: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.release_approved == 'true') || contains(github.event.head_commit.message, '[release]') }}
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
       EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
@@ -49,7 +49,13 @@ jobs:
       PROFILE: "production_v13"
 
     steps:
-      - name: 📥 Checkout Repository
+      - name: � Debug Context
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Release Approved: $RELEASE_APPROVED"
+          echo "Commit Message: ${{ github.event.head_commit.message }}"
+
+      - name: 🏗️ Checkout Repository
         uses: actions/checkout@v4
 
       - name: 🟢 Setup Node.js
