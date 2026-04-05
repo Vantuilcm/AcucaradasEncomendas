@@ -192,8 +192,13 @@ export EXPO_ASC_PRIVATE_KEY=$(cat AuthKey.p8)
 if [ -n "${GITHUB_ENV:-}" ]; then
     echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> "$GITHUB_ENV"
     cat AuthKey.p8 >> "$GITHUB_ENV"
+    echo "" >> "$GITHUB_ENV"
     echo "EOF" >> "$GITHUB_ENV"
+    
+    # Adicionar outras variáveis ASC necessárias para o plugin local
     echo "EXPO_ASC_PRIVATE_KEY_PATH=$(pwd)/AuthKey.p8" >> "$GITHUB_ENV"
+    echo "EXPO_ASC_KEY_ID=${EXPO_ASC_KEY_ID}" >> "$GITHUB_ENV"
+    echo "EXPO_ASC_ISSUER_ID=${EXPO_ASC_ISSUER_ID}" >> "$GITHUB_ENV"
 fi
 
 # Validar se a chave foi gerada corretamente
@@ -296,8 +301,7 @@ run_build_with_retry() {
             fi
 
             echo "🏗️ [EXEC] Iniciando eas build LOCAL..."
-            # Adicionado --verbose para capturar erros detalhados do xcodebuild
-            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive --verbose
+            EXPO_DEBUG=1 eas build --platform ios --profile "$profile" --local --non-interactive
             current_exit_code=$?
         else
             # MODO CLOUD (EAS Cloud Native)
@@ -344,8 +348,8 @@ if run_build_with_retry "$BUILD_MODE"; then
     echo "📦 [ARTIFACT] Localizando IPA gerada..."
     mkdir -p dist
     
-    # Localizar IPA no diretório atual ou subdiretórios
-    IPA_FILE=$(find . -maxdepth 2 -name "*.ipa" | head -n 1)
+    # Localizar IPA no diretório atual, subdiretórios ou pasta de saída padrão do EAS
+    IPA_FILE=$(find . -name "*.ipa" -not -path "./node_modules/*" | head -n 1)
     
     if [ -n "$IPA_FILE" ]; then
         echo "✅ [FOUND] IPA localizada em: $IPA_FILE"
