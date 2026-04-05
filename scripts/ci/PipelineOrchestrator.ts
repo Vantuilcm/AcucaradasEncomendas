@@ -71,9 +71,15 @@ class PipelineOrchestrator {
     console.log(`🚀 [ORCHESTRATOR] Setting up environment for ${appConfig.name} (${this.currentEnv})`);
 
     // Protected Production Mode Check
-    if (this.currentEnv === 'production' && process.env.RELEASE_APPROVED !== 'true') {
-      console.error('🚨 [ORCHESTRATOR] PRODUCTION build rejected: RELEASE_APPROVED=true is missing!');
-      process.exit(1);
+    const isApproved = process.env.RELEASE_APPROVED === 'true';
+    if (this.currentEnv === 'production') {
+      if (isApproved) {
+        console.log('✅ [ORCHESTRATOR] Production approval granted.');
+      } else {
+        console.error('🚨 [ORCHESTRATOR] PRODUCTION build rejected: RELEASE_APPROVED=true is missing!');
+        console.error('💡 Dica: Adicione "[release]" na mensagem do commit ou use o disparo manual com aprovação.');
+        process.exit(1);
+      }
     }
 
     // Inject environment variables for the build

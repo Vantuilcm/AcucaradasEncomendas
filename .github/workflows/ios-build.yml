@@ -8,14 +8,21 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      release_approved:
+        description: 'Aprovar release de produção manualmente?'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   ios-hybrid-pipeline:
     name: 🍎 Hybrid Pipeline
-    # Forçando trigger para validar o novo nome do workflow (v2)
     runs-on: macos-latest
     
     env:
+      RELEASE_APPROVED: ${{ github.event.inputs.release_approved == 'true' || contains(github.event.head_commit.message, '[release]') }}
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
       EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
