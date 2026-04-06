@@ -45,8 +45,8 @@ echo "🧹 [INFO] Limpando ambiente e artefatos antigos..."
 rm -rf android .expo dist/*.aab *.aab build-logs/*.log
 mkdir -p dist build-logs
 
-# 2.1 Sincronizar Versão IMEDIATAMENTE antes de começar
-echo "🔄 [SYNC] Forçando sincronização de build number..."
+# 2.1 Sincronizar Versão
+echo "🔄 [SYNC] Sincronizando build number..."
 node scripts/sync-build-with-apple.js
 
 # Extrair versão atualizada para log e injeção
@@ -102,7 +102,7 @@ echo "✅ [SUCCESS] Environment ready"
 
 ## ETAPA 3 — EXECUÇÃO DO BUILD
 echo "🔄 [SYNC] Sincronizando credenciais Android via EAS..."
-npx eas-cli credentials:sync --platform android --non-interactive
+npx eas credentials:sync --platform android --non-interactive
 
 echo "🏗️ [PREBUILD] Gerando código nativo Android..."
 npx expo prebuild --platform android --non-interactive
@@ -126,7 +126,7 @@ BUILD_LOG="build-logs/eas-build-android-local.log"
 
 echo "🕒 [TIME] Iniciando build em $(date)"
 set +e
-EXPO_DEBUG=1 DEBUG=eas:* npx eas-cli build --platform android --profile "$PROFILE" --local --non-interactive 2>&1 | tee "$BUILD_LOG"
+EXPO_DEBUG=1 DEBUG=eas:* npx eas build --platform android --profile "$PROFILE" --local --non-interactive 2>&1 | tee "$BUILD_LOG"
 EXIT_CODE=${PIPESTATUS[0]}
 set -e
 echo "🕒 [TIME] Build finalizado em $(date) com código $EXIT_CODE"

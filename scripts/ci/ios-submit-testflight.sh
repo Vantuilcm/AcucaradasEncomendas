@@ -33,7 +33,7 @@ echo "✅ [OK] Variáveis críticas detectadas."
 set +e
 
 # Usar o --latest para pegar o build mais recente gerado localmente ou no EAS
-OUTPUT=$(npx eas-cli submit --platform ios --latest --non-interactive 2>&1)
+OUTPUT=$(npx eas submit --platform ios --latest --non-interactive 2>&1)
 EXIT_CODE=$?
 
 set -e

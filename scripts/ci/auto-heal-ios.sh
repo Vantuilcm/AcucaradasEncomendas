@@ -15,7 +15,7 @@ case $ERROR_CODE in
     echo "[AUTO-HEAL] [INFO] [AÇÃO] Credenciais limpas: Removendo credenciais iOS órfãs no EAS Cloud..."
     
     # Executar reset de credenciais no servidor da Expo
-    npx eas-cli credentials:clear --platform "$PLATFORM" --non-interactive || true
+    npx eas credentials:clear --platform "$PLATFORM" --non-interactive || true
     
     echo "[AUTO-HEAL] [INFO] [AGUARDANDO] 10 segundos para propagação de credenciais limpas..."
     sleep 10

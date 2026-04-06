@@ -109,14 +109,12 @@
     "production": {
       "ios": {
         "appleId": "vantuilcaramez@gmail.com",
-        "ascAppId": "6478954215",
         "appleTeamId": "7L68YF5S29"
       }
     },
     "production_v13": {
       "ios": {
         "appleId": "vantuilcaramez@gmail.com",
-        "ascAppId": "6478954215",
         "appleTeamId": "7L68YF5S29"
       }
     },
