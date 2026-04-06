@@ -50,12 +50,27 @@ if ! command -v xcodebuild &> /dev/null; then
     exit 1
 fi
 
-## ETAPA 2 — PRÉ-VALIDAÇÃO E LIMPEZA (FAIL FAST)
+## ETAPA 2 — PRÉ-VALIDAÇÃO E LIMPEZA
+echo "🧹 [INFO] Limpando ambiente e artefatos antigos..."
+# Limpeza agressiva para evitar submissão de artefatos fantasmas (como o build 347 detectado)
+rm -rf ios .expo dist/*.ipa *.ipa build-logs/*.log
+mkdir -p dist build-logs
 
-# 2.1 Limpeza Profunda (Deep Clean)
-echo "🧹 [INFO] Limpando ambiente (DEEP CLEAN)..."
-rm -rf ios .expo dist node_modules/.cache
-# Nota: node_modules é mantido se o cache do GitHub Actions estiver ativo para velocidade.
+# Verificação de Variáveis Críticas
+MISSING_VARS=()
+[ -z "${EXPO_TOKEN:-}" ] && MISSING_VARS+=("EXPO_TOKEN")
+[ -z "${EXPO_ASC_KEY_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_KEY_ID")
+[ -z "${EXPO_ASC_ISSUER_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_ISSUER_ID")
+
+# 2.1 Sincronizar Versão IMEDIATAMENTE antes de começar
+echo "🔄 [SYNC] Forçando sincronização de build number..."
+node scripts/sync-build-with-apple.js
+
+# Extrair versão atualizada para log e injeção
+export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
+TARGET_VER=$(jq -r '.expo.version' app.json)
+echo "📌 [TARGET] Preparando Build: $TARGET_VER ($CURRENT_BN)"
+echo "💉 [ENV] Injetando CURRENT_BN=$CURRENT_BN para o app.config.js"
 
 # --- INÍCIO DA EXECUÇÃO (v2.3) ---
 echo "🚀 [START] Iniciando iOS Build Guardian v2.3 (FORCE TRIGGER) [release]..."

@@ -40,8 +40,20 @@ PROFILE="${PROFILE:-production_v13}"
 echo "🚀 [CONTEXTO] Modo LOCAL forçado. Nunca usando EAS Cloud."
 
 ## ETAPA 2 — PRÉ-VALIDAÇÃO E LIMPEZA
-echo "🧹 [INFO] Limpando ambiente..."
-rm -rf android .expo dist node_modules/.cache
+echo "🧹 [INFO] Limpando ambiente e artefatos antigos..."
+# Limpeza agressiva para evitar submissão de artefatos antigos
+rm -rf android .expo dist/*.aab *.aab build-logs/*.log
+mkdir -p dist build-logs
+
+# 2.1 Sincronizar Versão IMEDIATAMENTE antes de começar
+echo "🔄 [SYNC] Forçando sincronização de build number..."
+node scripts/sync-build-with-apple.js
+
+# Extrair versão atualizada para log e injeção
+export CURRENT_BN=$(jq -r '.expo.android.versionCode' app.json)
+TARGET_VER=$(jq -r '.expo.version' app.json)
+echo "📌 [TARGET] Preparando Build: $TARGET_VER (VersionCode: $CURRENT_BN)"
+echo "💉 [ENV] Injetando CURRENT_BN=$CURRENT_BN para o app.config.js"
 
 # Verificação de Variáveis
 if [ -z "${EXPO_TOKEN:-}" ]; then
