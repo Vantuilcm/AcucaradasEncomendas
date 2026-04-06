@@ -42,12 +42,17 @@ echo "🧹 [INFO] Limpando ambiente e artefatos antigos..."
 rm -rf android .expo dist/*.aab *.aab build-logs/*.log
 mkdir -p dist build-logs
 
-# Extrair versão atualizada (Source of Truth: Environment ou app.json)
-# O BuildNumberGuardian já sincronizou o arquivo no início do workflow.
-export CURRENT_BN="${VERSION_CODE:-$(jq -r '.expo.android.versionCode' app.json)}"
-TARGET_VER=$(jq -r '.expo.version' app.json)
-echo "📌 [TARGET] Preparando Build: $TARGET_VER (VersionCode: $CURRENT_BN)"
-echo "💉 [ENV] Injetando CURRENT_BN=$CURRENT_BN para o app.config.js"
+# 2.1 Sincronizar Versão
+echo "🔄 [VERSION-LOCK] Sincronizando build number via Lock System..."
+node scripts/ci/version-lock.js --sync
+
+# Extrair versão atualizada (Source of Truth: Environment ou version-state.json)
+export CURRENT_BN=$(jq -r '.buildNumber' version-state.json)
+TARGET_VER=$(jq -r '.version' version-state.json)
+echo "📌 [TARGET] Preparando Build Lock: $TARGET_VER (VersionCode: $CURRENT_BN)"
+echo "💉 [ENV] Injetando VERSION_CODE=$CURRENT_BN para o app.config.js"
+export VERSION_CODE="$CURRENT_BN"
+export CURRENT_BN="$CURRENT_BN"
 
 # Validar Build Number Resolvido pelo Expo (Fail-Fast)
 echo "🔍 [RESOLVE] Validando configuração resolvida do Expo..."
@@ -61,7 +66,7 @@ RESOLVED_VC=$(jq -r '.android.versionCode' build-resolved-config-android.json)
 
 if [ "$RESOLVED_VC" != "$CURRENT_BN" ]; then
     echo "❌ [FATAL] Divergência de VersionCode! Resolvido: $RESOLVED_VC | Esperado: $CURRENT_BN"
-    echo "💡 Dica: Verifique se o app.config.js está injetando CURRENT_BN corretamente."
+    echo "💡 Dica: Verifique se o app.config.js está lendo version-state.json corretamente."
     exit 1
 fi
 echo "✅ [OK] VersionCode resolvido confirmado: $RESOLVED_VC"
@@ -175,9 +180,9 @@ if [ $EXIT_CODE -eq 0 ]; then
         cp "$AAB_FILE" ./dist/app.aab
         echo "🚀 [READY] AAB movida para: ./dist/app.aab"
         
-        # [NEW] Validar buildNumber real no artefato AAB (via BuildNumberGuardian)
+        # [NEW] Validar buildNumber real no artefato AAB (via version-lock)
         echo "🔍 [VALIDATE] Validando integridade do versionCode na AAB..."
-        node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --validate-aab "./dist/app.aab" "$CURRENT_BN"
+        node scripts/ci/version-lock.js --validate-aab "./dist/app.aab" "$CURRENT_BN"
 
         # Validar via Orchestrator
         export CURRENT_BN=$(jq -r '.expo.android.versionCode' app.json)
@@ -187,7 +192,7 @@ if [ $EXIT_CODE -eq 0 ]; then
         node -r ts-node/register scripts/ci/PipelineOrchestrator.ts validate "./dist/app.aab" "$CURRENT_BN"
         
         # [HISTORY] Registrar sucesso no histórico de builds
-        node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --save-history "android" "$CURRENT_BN" "SUCCESS"
+        node scripts/ci/version-lock.js --save-history "android" "$CURRENT_BN" "SUCCESS"
 
         node scripts/build-state-check.js success
         exit 0

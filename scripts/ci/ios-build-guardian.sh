@@ -60,10 +60,13 @@ MISSING_VARS=()
 [ -z "${EXPO_ASC_KEY_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_KEY_ID")
 [ -z "${EXPO_ASC_ISSUER_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_ISSUER_ID")
 
-# Extrair versão atualizada (Source of Truth: Environment ou app.json)
-# O BuildNumberGuardian já sincronizou o arquivo no início do workflow.
-export CURRENT_BN="${BUILD_NUMBER:-$(jq -r '.expo.ios.buildNumber' app.json)}"
-TARGET_VER=$(jq -r '.expo.version' app.json)
+# 2.1 Sincronizar Versão IMEDIATAMENTE antes de começar
+echo "🔄 [VERSION-LOCK] Sincronizando build number via Lock System..."
+node scripts/ci/version-lock.js --sync
+
+# Extrair versão atualizada (Source of Truth: Environment ou version-state.json)
+export CURRENT_BN=$(jq -r '.buildNumber' version-state.json)
+TARGET_VER=$(jq -r '.version' version-state.json)
 
 # VALIDAÇÃO DE SEGURANÇA: Impedir build 347 (Hardcoded Protection)
 if [[ "$CURRENT_BN" == "347" ]]; then
@@ -72,8 +75,10 @@ if [[ "$CURRENT_BN" == "347" ]]; then
     exit 1
 fi
 
-echo "📌 [TARGET] Preparando Build: $TARGET_VER ($CURRENT_BN)"
-echo "💉 [ENV] Injetando CURRENT_BN=$CURRENT_BN para o app.config.js"
+echo "📌 [TARGET] Preparando Build Lock: $TARGET_VER ($CURRENT_BN)"
+echo "💉 [ENV] Injetando BUILD_NUMBER=$CURRENT_BN para o app.config.js"
+export BUILD_NUMBER="$CURRENT_BN"
+export CURRENT_BN="$CURRENT_BN"
 
 # --- INÍCIO DA EXECUÇÃO (v2.3) ---
 echo "🚀 [START] Iniciando iOS Build Guardian v2.3 (FORCE TRIGGER) [release]..."
@@ -295,7 +300,7 @@ RESOLVED_BN=$(jq -r '.ios.buildNumber' build-resolved-config.json)
 
 if [ "$RESOLVED_BN" != "$CURRENT_BN" ]; then
     echo "❌ [FATAL] Divergência de Build Number! Resolvido: $RESOLVED_BN | Esperado: $CURRENT_BN"
-    echo "💡 Dica: Verifique se o app.config.js está injetando CURRENT_BN corretamente."
+    echo "💡 Dica: Verifique se o app.config.js está lendo version-state.json corretamente."
     exit 1
 fi
 echo "✅ [OK] Build Number resolvido confirmado: $RESOLVED_BN"
@@ -411,7 +416,7 @@ if run_build_with_retry; then
 
     # 🔍 [VALIDATE] Validação profunda do Build Number na IPA antes do Submit
     echo "🔍 [VALIDATE] Validando integridade do build na IPA..."
-    node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --validate-ipa "./dist/app.ipa" "$CURRENT_BN"
+    node scripts/ci/version-lock.js --validate-ipa "./dist/app.ipa" "$CURRENT_BN"
     
     # Salvar log final para o artefato do GitHub
     [ -f "build-logs/eas-build-local.log" ] && cp "build-logs/eas-build-local.log" "build-logs/ios-build-log.json" || true
@@ -462,7 +467,7 @@ if run_build_with_retry; then
     node -r ts-node/register scripts/ci/PipelineOrchestrator.ts metrics "$METRICS_JSON"
     
     # [HISTORY] Registrar sucesso no histórico de builds
-    node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --save-history "ios" "$CURRENT_BN" "SUCCESS"
+    node scripts/ci/version-lock.js --save-history "ios" "$CURRENT_BN" "SUCCESS"
 
     # --- NOVO: VALIDAÇÃO PÓS-BUILD (GLOBAL SCALE) ---
     echo "🔍 [VALIDATE] Iniciando validação de qualidade (Post-Build Validator)..."

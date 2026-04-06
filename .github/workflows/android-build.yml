@@ -85,17 +85,16 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: 🛡️ Build Number Guardian (Sync & Validate)
+      - name: 🛡️ Version Lock Guardian (Sync & Validate)
         run: |
-          echo "🔄 [SYNC] Sincronizando e Validando Build Number..."
-          node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --sync
-          node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --validate-android
+          echo "🔄 [SYNC] Sincronizando e Validando Versão via Lock System..."
+          node scripts/ci/version-lock.js --sync
+          node scripts/ci/version-lock.js --validate
           
           # Exportar variáveis para o ambiente do runner
-          VERSION_CODE=$(jq -r '.expo.android.versionCode' app.json)
+          VERSION_CODE=$(jq -r '.buildNumber' version-state.json)
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
           echo "CURRENT_BN=$VERSION_CODE" >> $GITHUB_ENV
-          echo "BUILD_NUMBER=$VERSION_CODE" >> $GITHUB_ENV
 
       - name: 🛡️ Android-BUILD-GUARDIAN (Local Mode)
         run: |

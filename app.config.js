@@ -17,12 +17,20 @@ export default ({ config }) => {
   const isPreview = process.env.APP_ENV === "preview" || process.env.EXPO_PUBLIC_APP_ENV === "preview";
   const sentryEnabled = process.env.EXPO_PUBLIC_SENTRY_ENABLED === "true" || !!process.env.SENTRY_AUTH_TOKEN;
 
-  // 2. // 2. SINCRONIZAÇÃO DE VERSÃO (MODO ZERO DUPLICATION)
-  // O buildNumber agora é gerenciado externamente pelo PipelineOrchestrator e BuildNumberGuardian
-  const buildNumber = process.env.BUILD_NUMBER || process.env.CURRENT_BN || config.ios?.buildNumber || "1";
-  const versionCode = parseInt(process.env.VERSION_CODE || buildNumber || config.android?.versionCode || "1");
+  // 2. SINCRONIZAÇÃO DE VERSÃO (MODO VERSION-LOCK)
+  // Única fonte de verdade: version-state.json ou variáveis de ambiente injetadas
+  let versionState;
+  try {
+    versionState = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'version-state.json'), 'utf-8'));
+  } catch (e) {
+    versionState = { version: config.version, buildNumber: parseInt(config.ios?.buildNumber || "1") };
+  }
 
-  console.log(`🚀 [ORCHESTRATOR] Configurando App: ${appConfig.name} (v${config.version} - BN:${buildNumber} / VC:${versionCode})`);
+  const buildNumber = process.env.BUILD_NUMBER || process.env.CURRENT_BN || versionState.buildNumber.toString();
+  const versionCode = parseInt(process.env.VERSION_CODE || buildNumber);
+  const appVersion = versionState.version || config.version;
+
+  console.log(`🚀 [VERSION-LOCK] Configurando App: ${appConfig.name} (v${appVersion} - BN:${buildNumber} / VC:${versionCode})`);
 
   const plugins = config.plugins || [];
   const finalPlugins = plugins.filter(p => {
@@ -33,6 +41,7 @@ export default ({ config }) => {
 
   return {
     ...config,
+    version: appVersion,
     name: appConfig.name,
     slug: appConfig.slug,
     ios: {
