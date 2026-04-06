@@ -81,13 +81,14 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app
           
           # 2. Fix Ruby/CocoaPods environment (LibYAML issue)
-          brew install libyaml
+          # Silencing brew warnings
+          brew install libyaml || brew link --overwrite libyaml
           
           # 3. Fix npm/node-gyp issues
-          npm install -g npm@latest
+          # REMOVED: npm install -g npm@latest (Known to break Node 22+ on GitHub Runners)
           npm install -g node-gyp
           
-          # 4. Global EAS CLI
+          # 4. Global EAS CLI (Ensuring fresh version)
           npm install -g eas-cli@latest
           
           # 5. Fastlane (Optional but good for iOS)
