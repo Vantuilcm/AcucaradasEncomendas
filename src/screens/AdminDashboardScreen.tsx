@@ -99,6 +99,7 @@ export function AdminDashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Serviços (Instâncias Únicas)
   const orderService = React.useMemo(() => OrderService.getInstance(), []);
   const driverService = React.useMemo(() => new DeliveryDriverService(), []);
   const watchdogService = React.useMemo(() => OrderWatchdogService.getInstance(), []);
@@ -110,6 +111,8 @@ export function AdminDashboardScreen() {
   const autonomousOrchestrator = React.useMemo(() => AutonomousGrowthOrchestrator.getInstance(), []);
   const releaseService = React.useMemo(() => ReleaseService.getInstance(), []);
 
+  // Estado Centralizado
+  const [releaseState, setReleaseState] = useState<ReleaseState | null>(null);
   const [activeDrivers, setActiveDrivers] = useState<DeliveryDriver[]>([]);
   const [liveOrders, setLiveOrders] = useState<Order[]>([]);
   const [demandInsights, setDemandInsights] = useState<ProductDemandInsight[]>([]);
@@ -117,8 +120,8 @@ export function AdminDashboardScreen() {
   const [growthMetrics, setGrowthMetrics] = useState<GrowthMetrics | null>(null);
   const [cityMetrics, setCityMetrics] = useState<CityExpansionMetrics[]>([]);
   const [autonomousActions, setAutonomousActions] = useState<AutonomousAction[]>([]);
-  const [releaseState, setReleaseState] = useState<ReleaseState | null>(null);
   const [alerts, setAlerts] = useState<{ id: string; type: 'payment' | 'stuck' | 'stock' | 'growth' | 'marketplace' | 'autonomous' | 'release'; message: string; timestamp: Date }[]>([]);
+  
   const [stats, setStats] = useState({
     dailySales: 0,
     weeklySales: 0,
@@ -131,34 +134,26 @@ export function AdminDashboardScreen() {
     scheduledOrders: 0,
   });
 
-  useEffect(() => {
-    // Iniciar Watchdog Operacional e Automação de Vendas (Hybrid Mode)
-    watchdogService.checkStuckOrders();
-    automationService.runAutomations();
-    autonomousOrchestrator.runOrchestrationCycle();
-    
-    // Carregar Inteligência de Demanda
-    const loadIntelligence = async () => {
+  // Função para carregar inteligência de dados
+  const loadIntelligence = React.useCallback(async () => {
+    try {
       const insights = await demandService.generateDemandInsights();
       setDemandInsights(insights);
       
       const recs = await recommendationService.generateMarketBasketAnalysis();
       setRecommendations(recs);
-      console.log(`💡 [Intelligence] ${recs.length} recomendações geradas`);
 
-      // 📊 Growth Intelligence
       const metrics = await growthIntelService.calculateMetrics();
       setGrowthMetrics(metrics);
       const growthAlerts = await growthIntelService.detectAnomalies(metrics);
       
-      const newGrowthAlerts = growthAlerts.map((msg, idx) => ({
+      const newGrowthAlerts = growthAlerts.map((msg: string, idx: number) => ({
         id: `growth-${idx}-${Date.now()}`,
         type: 'growth' as const,
         message: msg,
         timestamp: new Date()
       }));
 
-      // 🌍 Marketplace Expansion
       const cities = await marketplaceService.getCityMetrics();
       setCityMetrics(cities);
       
@@ -171,7 +166,6 @@ export function AdminDashboardScreen() {
           timestamp: new Date()
         }));
 
-      // Gerar alertas de estoque baseado em demanda
       const stockAlerts = insights
         .filter(i => i.repositionRequired)
         .map(i => ({
@@ -185,8 +179,17 @@ export function AdminDashboardScreen() {
         const filtered = prev.filter(a => a.type !== 'stock' && a.type !== 'growth' && a.type !== 'marketplace');
         return [...filtered, ...stockAlerts, ...newGrowthAlerts, ...marketplaceAlerts];
       });
-    };
+    } catch (error) {
+      console.error('Erro ao carregar inteligência:', error);
+    }
+  }, [demandService, recommendationService, growthIntelService, marketplaceService]);
 
+  useEffect(() => {
+    // Iniciar Watchdog Operacional e Automação de Vendas
+    watchdogService.checkStuckOrders();
+    automationService.runAutomations();
+    autonomousOrchestrator.runOrchestrationCycle();
+    
     loadIntelligence();
     
     // Configurar Watchdog e Automação para rodar periodicamente
@@ -196,7 +199,7 @@ export function AdminDashboardScreen() {
       loadIntelligence();
     }, 5 * 60 * 1000);
 
-    const unsubscribeOrders = orderService.subscribeToOrderStats((realtimeStats) => {
+    const unsubscribeOrders = orderService.subscribeToOrderStats((realtimeStats: any) => {
       setStats(prev => ({
         ...prev,
         dailySales: realtimeStats.todayRevenue,
@@ -213,18 +216,16 @@ export function AdminDashboardScreen() {
       setLoading(false);
     });
 
-    // Monitorar pedidos ao vivo (últimos 50)
-    const unsubscribeLiveOrders = orderService.subscribeToAllOrders((orders) => {
+    const unsubscribeLiveOrders = orderService.subscribeToAllOrders((orders: Order[]) => {
       setLiveOrders(orders.slice(0, 50));
       
-      // Gerar alertas de pedidos travados baseado no tempo
       const now = new Date();
       const newStuckAlerts = orders
         .filter(o => {
           if (['delivered', 'cancelled'].includes(o.status)) return false;
           const updated = new Date(o.updatedAt);
           const diff = (now.getTime() - updated.getTime()) / (1000 * 60);
-          return diff > 30; // Mais de 30 min parado
+          return diff > 30;
         })
         .map(o => ({
           id: `stuck-${o.id}`,
@@ -244,11 +245,10 @@ export function AdminDashboardScreen() {
       }));
     });
 
-    const unsubscribeDrivers = driverService.subscribeToActiveDrivers((drivers) => {
+    const unsubscribeDrivers = driverService.subscribeToActiveDrivers((drivers: DeliveryDriver[]) => {
       setActiveDrivers(drivers);
     });
 
-    // Monitorar ações autônomas em tempo real
     const autonomousQuery = query(
       collection(db, 'autonomous_actions_log'),
       orderBy('timestamp', 'desc'),
@@ -272,7 +272,6 @@ export function AdminDashboardScreen() {
       });
     });
 
-    // Monitorar estado da release (Release Guardian)
     const unsubscribeRelease = releaseService.subscribeToReleaseState((state: ReleaseState) => {
       setReleaseState(state);
       
@@ -302,14 +301,12 @@ export function AdminDashboardScreen() {
       unsubscribeAutonomous();
       unsubscribeRelease();
     };
-  }, [orderService, driverService, watchdogService]);
+  }, [orderService, driverService, watchdogService, automationService, autonomousOrchestrator, loadIntelligence, releaseService]);
 
   const loadDashboardData = async () => {
-    // Agora o loadDashboardData pode ser apenas para forçar um refresh se necessário,
-    // embora o onSnapshot já cuide disso.
     setRefreshing(true);
-    // Simular um delay pequeno para o UI de refresh
-    setTimeout(() => setRefreshing(false), 500);
+    await loadIntelligence();
+    setRefreshing(false);
   };
 
   const handleRefresh = async () => {
@@ -549,21 +546,27 @@ export function AdminDashboardScreen() {
         {/* 🛡️ Release Guardian Status (Global Scale) */}
         {releaseState && releaseState.releases[releaseState.activeReleaseId] && (() => {
           const active = releaseState.releases[releaseState.activeReleaseId];
+          const isCritical = active.status === 'CRITICAL';
           return (
-            <Surface style={[styles.releaseGuardianSection, active.status === 'CRITICAL' && { borderColor: theme.colors.error, borderWeight: 2 } as any]}>
+            <Surface style={[
+              styles.releaseGuardianSection, 
+              isCritical && { borderColor: theme.colors.error, borderWeight: 2 } as any
+            ]}>
               <View style={styles.sectionHeader}>
                 <Ionicons 
                   name={active.status === 'STABLE' ? 'shield-checkmark' : 'alert-circle'} 
                   size={22} 
-                  color={active.status === 'STABLE' ? '#4CAF50' : (active.status === 'CRITICAL' ? theme.colors.error : '#FF9800')} 
+                  color={active.status === 'STABLE' ? '#4CAF50' : (isCritical ? theme.colors.error : '#FF9800')} 
                 />
                 <View style={{ marginLeft: 8 }}>
-                  <Text variant="titleMedium" style={styles.sectionTitle}>Release Guardian</Text>
-                  <Text variant="labelSmall" style={{ color: theme.colors.text.secondary }}>ID: {releaseState.activeReleaseId}</Text>
+                  <Text variant="titleMedium" style={styles.sectionTitle}>Release Guardian v2</Text>
+                  <Text variant="labelSmall" style={{ color: theme.colors.text.secondary }}>
+                    v{active.version} (Build: {active.buildNumber})
+                  </Text>
                 </View>
                 <Badge 
                   style={{ 
-                    backgroundColor: active.status === 'STABLE' ? '#4CAF50' : (active.status === 'CRITICAL' ? theme.colors.error : '#FF9800'),
+                    backgroundColor: active.status === 'STABLE' ? '#4CAF50' : (isCritical ? theme.colors.error : '#FF9800'),
                     marginLeft: 'auto'
                   }}
                 >
@@ -572,9 +575,24 @@ export function AdminDashboardScreen() {
               </View>
               
               <View style={{ marginTop: 8 }}>
-                <View style={styles.canaryInfo}>
-                  <Ionicons name="git-branch-outline" size={14} color={theme.colors.primary} />
-                  <Text variant="labelSmall" style={{ marginLeft: 4 }}>Canal: {active.channel} ({active.rollout * 100}%)</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <View style={styles.canaryInfo}>
+                    <Ionicons name="git-branch-outline" size={14} color={theme.colors.primary} />
+                    <Text variant="labelSmall" style={{ marginLeft: 4 }}>Rollout: {Math.round(active.rollout * 100)}%</Text>
+                  </View>
+                  <Text variant="labelSmall" style={{ color: theme.colors.text.secondary }}>
+                    Canal: {active.channel}
+                  </Text>
+                </View>
+
+                {/* Progress Bar para Rollout */}
+                <View style={{ height: 4, backgroundColor: '#E0E0E0', borderRadius: 2, marginBottom: 12 }}>
+                  <View style={{ 
+                    height: '100%', 
+                    width: `${active.rollout * 100}%`, 
+                    backgroundColor: active.status === 'STABLE' ? '#4CAF50' : '#FF9800',
+                    borderRadius: 2 
+                  }} />
                 </View>
 
                 {active.rollbackTriggered && (
@@ -595,21 +613,24 @@ export function AdminDashboardScreen() {
                 {active.health && (
                   <View style={styles.healthGrid}>
                     <View style={styles.healthItem}>
-                      <Text variant="labelSmall">Crash</Text>
-                      <Text variant="bodySmall" style={{ color: active.health.crashRate > 0.02 ? theme.colors.error : theme.colors.success }}>
+                      <Text variant="labelSmall">Crash Rate</Text>
+                      <Text variant="bodySmall" style={{ fontWeight: 'bold', color: active.health.crashRate > 0.02 ? theme.colors.error : theme.colors.success }}>
                         {(active.health.crashRate * 100).toFixed(2)}%
                       </Text>
                     </View>
                     <View style={styles.healthItem}>
-                      <Text variant="labelSmall">Payment</Text>
-                      <Text variant="bodySmall" style={{ color: active.health.paymentFailureRate > 0.05 ? theme.colors.error : theme.colors.success }}>
-                        {(active.health.paymentFailureRate * 100).toFixed(1)}%
+                      <Text variant="labelSmall">Payment Success</Text>
+                      <Text variant="bodySmall" style={{ fontWeight: 'bold', color: active.health.paymentFailureRate > 0.05 ? theme.colors.error : theme.colors.success }}>
+                        {(100 - active.health.paymentFailureRate * 100).toFixed(1)}%
                       </Text>
                     </View>
                     <View style={styles.healthItem}>
-                      <Text variant="labelSmall">Critical</Text>
-                      <Text variant="bodySmall" style={{ color: active.health.criticalErrors > 3 ? theme.colors.error : theme.colors.success }}>
-                        {active.health.criticalErrors}
+                      <Text variant="labelSmall">Status Decisão</Text>
+                      <Text variant="bodySmall" style={{ 
+                        fontWeight: 'bold', 
+                        color: active.status === 'STABLE' ? theme.colors.success : theme.colors.error 
+                      }}>
+                        {active.status === 'STABLE' ? 'ESTÁVEL' : 'RISCO'}
                       </Text>
                     </View>
                   </View>

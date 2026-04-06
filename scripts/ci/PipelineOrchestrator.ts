@@ -207,17 +207,41 @@ class PipelineOrchestrator {
     if (decision.decision === 'rollback') {
       await this.rolloutEngine.triggerAutoRollback(decision.reason.join(' | '));
       this.saveStatus('rollback_triggered', { riskLevel: 'critical', reason: decision.reason[0] });
+      this.updateReleaseControl('risk', 0, 'rollback');
     } else if (decision.decision === 'progressive') {
       const rolloutState = this.rolloutEngine.getRolloutState();
       const nextStage = await this.rolloutEngine.advanceRollout(rolloutState.stage);
       this.saveStatus('progressive_rollout', { stage: nextStage, riskLevel: decision.riskLevel });
+      
+      // Map stage to rollout percentage
+      const rolloutMap: Record<string, number> = { 'initial': 10, 'stage1': 30, 'stage2': 60, 'full': 100 };
+      this.updateReleaseControl('stable', rolloutMap[nextStage] || 10, 'stable');
     } else if (decision.decision === 'approve') {
       this.saveStatus('fully_approved', { riskLevel: 'low' });
+      this.updateReleaseControl('stable', 100, 'stable');
     } else if (decision.decision === 'block') {
       this.saveStatus('blocked', { riskLevel: 'high', reason: decision.reason[0] });
+      this.updateReleaseControl('risk', 0, 'blocked');
     }
 
     return decision;
+  }
+
+  /**
+   * Atualiza o Centro de Controle de Release (release-control.json)
+   */
+  private updateReleaseControl(health: string, rollout: number, decision: string) {
+    const controlPath = path.resolve(process.cwd(), 'release-control.json');
+    if (!fs.existsSync(controlPath)) return;
+
+    const data = JSON.parse(fs.readFileSync(controlPath, 'utf-8'));
+    data.health_status = health;
+    data.rollout_percentage = rollout;
+    data.decision = decision;
+    data.last_release_time = new Date().toISOString();
+    
+    fs.writeFileSync(controlPath, JSON.stringify(data, null, 2));
+    console.log(`🎛️ [CONTROL-CENTER] Release Control Center atualizado: ${rollout}% Rollout`);
   }
 
   public async runBuild() {
