@@ -13,7 +13,7 @@ export TARGET_APP="$APP_ID"
 export APP_ENV="$ENVIRONMENT"
 
 # 1. Run Pipeline Orchestrator to validate and setup
-npx ts-node scripts/ci/PipelineOrchestrator.ts build
+node -r ts-node/register scripts/ci/PipelineOrchestrator.ts build
 
 # 2. Trigger the Build Guardian
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -28,4 +28,4 @@ fi
 
 # 3. Output results
 echo "✅ [BUILD-ORCHESTRATOR] Build process finished for $APP_ID."
-npx ts-node scripts/ci/PipelineOrchestrator.ts status
+node -r ts-node/register scripts/ci/PipelineOrchestrator.ts status

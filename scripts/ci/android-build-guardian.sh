@@ -12,7 +12,8 @@ export TARGET_APP="${TARGET_APP:-acucaradas-encomendas}"
 export APP_ENV="${APP_ENV:-production}"
 
 # Rodar orchestrator para validar config e salvar status inicial
-npx ts-node scripts/ci/PipelineOrchestrator.ts build
+# Usando node com registro ts-node para robustez máxima em CI
+node -r ts-node/register scripts/ci/PipelineOrchestrator.ts build
 
 echo "🛡️ [STATE-ENGINE] Validando sincronização Enterprise para $TARGET_APP..."
 node scripts/sync-build-with-apple.js
@@ -102,7 +103,7 @@ if [ $EXIT_CODE -eq 0 ]; then
         export CURRENT_VERSION=$(jq -r '.expo.version' app.json)
         
         echo "🔍 [VALIDATE] Iniciando validação pós-build..."
-        npx ts-node scripts/ci/PipelineOrchestrator.ts validate "./dist/app.aab" "$CURRENT_BN"
+        node -r ts-node/register scripts/ci/PipelineOrchestrator.ts validate "./dist/app.aab" "$CURRENT_BN"
         
         node scripts/build-state-check.js success
         exit 0

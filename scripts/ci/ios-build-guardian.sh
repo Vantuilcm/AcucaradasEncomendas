@@ -14,7 +14,7 @@ export TARGET_APP="${TARGET_APP:-acucaradas-encomendas}"
 export APP_ENV="${APP_ENV:-production}"
 
 # Rodar orchestrator para validar config e salvar status inicial
-npx ts-node scripts/ci/PipelineOrchestrator.ts build
+node -r ts-node/register scripts/ci/PipelineOrchestrator.ts build
 
 echo "🛡️ [STATE-ENGINE] Validando sincronização Enterprise para $TARGET_APP..."
 node scripts/sync-build-with-apple.js
@@ -418,17 +418,17 @@ if run_build_with_retry; then
     
     # Save metrics via Orchestrator
     METRICS_JSON="{\"status\":\"success\",\"mode\":\"LOCAL\",\"version\":\"$CURRENT_VERSION\",\"buildNumber\":\"$CURRENT_BN\",\"commit\":\"$(git rev-parse HEAD)\",\"branch\":\"$BRANCH_NAME\",\"submission\":\"${SUBMISSION_STATUS:-pending}\"}"
-    npx ts-node scripts/ci/PipelineOrchestrator.ts metrics "$METRICS_JSON"
+    node -r ts-node/register scripts/ci/PipelineOrchestrator.ts metrics "$METRICS_JSON"
     
     # --- NOVO: VALIDAÇÃO PÓS-BUILD (GLOBAL SCALE) ---
     echo "🔍 [VALIDATE] Iniciando validação de qualidade (Post-Build Validator)..."
-    npx ts-node scripts/ci/PipelineOrchestrator.ts validate "./dist/app.ipa" "${CURRENT_BN:-unknown}"
+    node -r ts-node/register scripts/ci/PipelineOrchestrator.ts validate "./dist/app.ipa" "${CURRENT_BN:-unknown}"
     
     # --- NOVO: DECISÃO AUTÔNOMA DE RELEASE (LEVEL GLOBAL) ---
     echo "🤖 [AUTONOMOUS] Iniciando avaliação inteligente de release..."
     CRASH_RATE="0.005" # 0.5%
     PAYMENT_SUCCESS="0.98" # 98%
-    npx ts-node scripts/ci/PipelineOrchestrator.ts evaluate "${CURRENT_BN:-unknown}" "$CRASH_RATE" "$PAYMENT_SUCCESS"
+    node -r ts-node/register scripts/ci/PipelineOrchestrator.ts evaluate "${CURRENT_BN:-unknown}" "$CRASH_RATE" "$PAYMENT_SUCCESS"
     # ---------------------------------
 
     node scripts/build-state-check.js success
@@ -446,7 +446,7 @@ else
     
     # Save failure status via Orchestrator
     FAILURE_JSON="{\"status\":\"failed\",\"mode\":\"LOCAL\",\"commit\":\"$(git rev-parse HEAD)\",\"branch\":\"$BRANCH_NAME\"}"
-    npx ts-node scripts/ci/PipelineOrchestrator.ts metrics "$FAILURE_JSON" || true
+    node -r ts-node/register scripts/ci/PipelineOrchestrator.ts metrics "$FAILURE_JSON" || true
     
     echo "💡 Sugestão: Verifique os logs em build-logs/eas-build-local.log para erros de dependência ou credenciais."
     exit 1
