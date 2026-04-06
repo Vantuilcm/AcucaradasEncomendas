@@ -8,12 +8,12 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "481",
+      "buildNumber": "482",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.acucaradas.encomendas",
-      "versionCode": 481,
+      "versionCode": 482,
       "googleServicesFile": "./google-services.json"
     },
     "extra": {
