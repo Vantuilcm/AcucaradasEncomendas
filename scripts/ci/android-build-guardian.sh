@@ -15,9 +15,6 @@ export APP_ENV="${APP_ENV:-production}"
 # Usando node com registro ts-node para robustez máxima em CI
 node -r ts-node/register scripts/ci/PipelineOrchestrator.ts build
 
-echo "🛡️ [STATE-ENGINE] Validando sincronização Enterprise para $TARGET_APP..."
-node scripts/sync-build-with-apple.js
-
 BRANCH_NAME="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
 COMMIT_MSG="${GITHUB_EVENT_PATH:+$(jq -r '.head_commit.message' "$GITHUB_EVENT_PATH")}"
 COMMIT_MSG="${COMMIT_MSG:-$(git log -1 --pretty=%B)}"
@@ -45,12 +42,9 @@ echo "🧹 [INFO] Limpando ambiente e artefatos antigos..."
 rm -rf android .expo dist/*.aab *.aab build-logs/*.log
 mkdir -p dist build-logs
 
-# 2.1 Sincronizar Versão
-echo "🔄 [SYNC] Sincronizando build number..."
-node scripts/sync-build-with-apple.js
-
-# Extrair versão atualizada para log e injeção
-export CURRENT_BN=$(jq -r '.expo.android.versionCode' app.json)
+# Extrair versão atualizada (Source of Truth: Environment ou app.json)
+# O BuildNumberGuardian já sincronizou o arquivo no início do workflow.
+export CURRENT_BN="${VERSION_CODE:-$(jq -r '.expo.android.versionCode' app.json)}"
 TARGET_VER=$(jq -r '.expo.version' app.json)
 echo "📌 [TARGET] Preparando Build: $TARGET_VER (VersionCode: $CURRENT_BN)"
 echo "💉 [ENV] Injetando CURRENT_BN=$CURRENT_BN para o app.config.js"

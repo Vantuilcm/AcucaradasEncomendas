@@ -16,9 +16,6 @@ export APP_ENV="${APP_ENV:-production}"
 # Rodar orchestrator para validar config e salvar status inicial
 node -r ts-node/register scripts/ci/PipelineOrchestrator.ts build
 
-echo "🛡️ [STATE-ENGINE] Validando sincronização Enterprise para $TARGET_APP..."
-node scripts/sync-build-with-apple.js
-
 BRANCH_NAME="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
 COMMIT_MSG="${GITHUB_EVENT_PATH:+$(jq -r '.head_commit.message' "$GITHUB_EVENT_PATH")}"
 COMMIT_MSG="${COMMIT_MSG:-$(git log -1 --pretty=%B)}"
@@ -63,20 +60,16 @@ MISSING_VARS=()
 [ -z "${EXPO_ASC_KEY_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_KEY_ID")
 [ -z "${EXPO_ASC_ISSUER_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_ISSUER_ID")
 
-# 2.1 Sincronizar Versão IMEDIATAMENTE antes de começar
-echo "🔄 [SYNC] Forçando sincronização de build number..."
-node scripts/sync-build-with-apple.js
-
-# Extrair versão atualizada para log e injeção
-export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
+# Extrair versão atualizada (Source of Truth: Environment ou app.json)
+# O BuildNumberGuardian já sincronizou o arquivo no início do workflow.
+export CURRENT_BN="${BUILD_NUMBER:-$(jq -r '.expo.ios.buildNumber' app.json)}"
 TARGET_VER=$(jq -r '.expo.version' app.json)
 
 # VALIDAÇÃO DE SEGURANÇA: Impedir build 347 (Hardcoded Protection)
 if [[ "$CURRENT_BN" == "347" ]]; then
     echo "🚨 [SAFETY-BLOCK] Detectada tentativa de build com o número 347 (Antigo/Inválido)."
-    echo "🔄 [RECOVERY] Forçando nova sincronização..."
-    node scripts/sync-build-with-apple.js
-    export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
+    echo "❌ [ERROR] O pipeline foi interrompido para evitar upload de versão banida."
+    exit 1
 fi
 
 echo "📌 [TARGET] Preparando Build: $TARGET_VER ($CURRENT_BN)"

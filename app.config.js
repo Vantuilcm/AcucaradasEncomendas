@@ -17,12 +17,12 @@ export default ({ config }) => {
   const isPreview = process.env.APP_ENV === "preview" || process.env.EXPO_PUBLIC_APP_ENV === "preview";
   const sentryEnabled = process.env.EXPO_PUBLIC_SENTRY_ENABLED === "true" || !!process.env.SENTRY_AUTH_TOKEN;
 
-  // 2. SINCRONIZAÇÃO DE VERSÃO (MODO ZERO DUPLICATION)
+  // 2. // 2. SINCRONIZAÇÃO DE VERSÃO (MODO ZERO DUPLICATION)
   // O buildNumber agora é gerenciado externamente pelo PipelineOrchestrator e BuildNumberGuardian
   const buildNumber = process.env.BUILD_NUMBER || process.env.CURRENT_BN || config.ios?.buildNumber || "1";
-  const versionCode = parseInt(process.env.VERSION_CODE || buildNumber);
+  const versionCode = parseInt(process.env.VERSION_CODE || buildNumber || config.android?.versionCode || "1");
 
-  console.log(`🚀 [ORCHESTRATOR] Configurando App: ${appConfig.name} (v${config.version} - ${buildNumber})`);
+  console.log(`🚀 [ORCHESTRATOR] Configurando App: ${appConfig.name} (v${config.version} - BN:${buildNumber} / VC:${versionCode})`);
 
   const plugins = config.plugins || [];
   const finalPlugins = plugins.filter(p => {
