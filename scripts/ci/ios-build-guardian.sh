@@ -70,6 +70,15 @@ node scripts/sync-build-with-apple.js
 # Extrair versão atualizada para log e injeção
 export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
 TARGET_VER=$(jq -r '.expo.version' app.json)
+
+# VALIDAÇÃO DE SEGURANÇA: Impedir build 347 (Hardcoded Protection)
+if [[ "$CURRENT_BN" == "347" ]]; then
+    echo "🚨 [SAFETY-BLOCK] Detectada tentativa de build com o número 347 (Antigo/Inválido)."
+    echo "🔄 [RECOVERY] Forçando nova sincronização..."
+    node scripts/sync-build-with-apple.js
+    export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
+fi
+
 echo "📌 [TARGET] Preparando Build: $TARGET_VER ($CURRENT_BN)"
 echo "💉 [ENV] Injetando CURRENT_BN=$CURRENT_BN para o app.config.js"
 
