@@ -1,7 +1,7 @@
-name: 🚀 Build & Submit Mobile (EAS Cloud)
+name: 🚀 Build Android (EAS Local)
 
 concurrency:
-  group: ios-build-v3
+  group: android-build-v1
   cancel-in-progress: true
 
 on:
@@ -17,22 +17,15 @@ on:
         type: boolean
 
 jobs:
-  ios-hybrid-pipeline:
-    name: 🍎 Hybrid Pipeline
-    runs-on: macos-latest
+  android-hybrid-pipeline:
+    name: 🤖 Android Pipeline
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     
     env:
       RELEASE_APPROVED: ${{ github.event.inputs.release_approved == 'true' || contains(github.event.head_commit.message, '[release]') }}
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
-      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
-      EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
-      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
-      GOOGLE_SERVICES_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64 }}
-      # Variáveis EXPO_PUBLIC_* injetadas automaticamente
+      GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
       EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
       EXPO_PUBLIC_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_PROJECT_ID }}
       EXPO_PUBLIC_APP_NAME: ${{ secrets.EXPO_PUBLIC_APP_NAME }}
@@ -50,14 +43,6 @@ jobs:
       PROFILE: "production_v13"
 
     steps:
-      - name: 🧹 Clean Previous Zombie Processes
-        run: |
-          echo "🧹 [CLEAN] Killing previous zombie build processes..."
-          killall xcodebuild || true
-          killall SWBBuildService || true
-          killall node || true
-          killall tail || true
-
       - name: 🔍 Debug Context
         run: |
           echo "Event: ${{ github.event_name }}"
@@ -70,11 +55,11 @@ jobs:
         run: |
           echo "🔍 Checking release approval..."
           if [ "${RELEASE_APPROVED}" != "true" ]; then
-            echo "❌ Production build blocked: RELEASE_APPROVED=false"
+            echo "❌ Android production build blocked: RELEASE_APPROVED=false"
             echo "💡 Dica: Adicione '[release]' na mensagem do commit ou use o disparo manual com aprovação."
             exit 1
           else
-            echo "✅ Production build approved via commit tag or manual trigger"
+            echo "✅ Android production build approved via commit tag or manual trigger"
           fi
 
       - name: 🏗️ Checkout Repository
@@ -86,28 +71,14 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: 🛠️ Hardening macOS Runner Environment
-        run: |
-          # 1. Fix Xcode path
-          sudo xcode-select -s /Applications/Xcode.app
-          
-          # 2. Fix Ruby/CocoaPods environment (LibYAML issue)
-          # Silencing brew warnings
-          brew install libyaml || brew link --overwrite libyaml
-          
-          # 3. Fix npm/node-gyp issues
-          # REMOVED: npm install -g npm@latest (Known to break Node 22+ on GitHub Runners)
-          npm install -g node-gyp
-          
-          # 4. Global EAS CLI (Ensuring fresh version)
-          npm install -g eas-cli@latest
-          
-          # 5. Fastlane (Optional but good for iOS)
-          gem install fastlane -NV
-          
-          # 6. Set CI environment variables
-          echo "CI=true" >> $GITHUB_ENV
-          echo "TERM=dumb" >> $GITHUB_ENV
+      - name: ☕ Setup Java (Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 🛠️ Setup EAS CLI
+        run: npm install -g eas-cli@latest
 
       - name: 📦 Install Dependencies
         run: npm install --legacy-peer-deps
@@ -115,38 +86,20 @@ jobs:
       - name: 🔄 Enterprise Sync (Build Number)
         run: node scripts/sync-build-with-apple.js
 
-      - name: 🛡️ iOS-BUILD-GUARDIAN (Local Mode)
+      - name: 🛡️ Android-BUILD-GUARDIAN (Local Mode)
         run: |
-          chmod +x ./scripts/ci/ios-build-guardian.sh
-          EXPO_DEBUG=1 ./scripts/ci/ios-build-guardian.sh
+          chmod +x ./scripts/ci/android-build-guardian.sh
+          ./scripts/ci/android-build-guardian.sh
         env:
           FORCE_BUILD_MODE: "LOCAL"
-          DEBUG: "eas:*"
 
-
-      - name: 📦 Upload iOS Artifact (.ipa)
+      - name: 📦 Upload Android Artifact (.aab)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-build-ipa
+          name: android-build-aab
           path: |
-            dist/app.ipa
-            build-logs/ios-build-log.json
+            dist/app.aab
+            build-logs/eas-build-android-local.log
           if-no-files-found: warn
           retention-days: 7
-
-      - name: 🚀 Submit to TestFlight
-        if: success()
-        run: |
-          chmod +x scripts/ci/ios-submit-testflight.sh
-          scripts/ci/ios-submit-testflight.sh
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-          EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
-          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
-
-      - name: 🛡️ Post-Release Health Check (Release Guardian)
-        if: success()
-        run: node scripts/post-release-monitor.js

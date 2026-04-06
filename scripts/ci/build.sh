@@ -16,8 +16,15 @@ export APP_ENV="$ENVIRONMENT"
 npx ts-node scripts/ci/PipelineOrchestrator.ts build
 
 # 2. Trigger the Build Guardian
-chmod +x ./scripts/ci/ios-build-guardian.sh
-./scripts/ci/ios-build-guardian.sh
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "🍎 [BUILD] Iniciando fluxo iOS..."
+    chmod +x ./scripts/ci/ios-build-guardian.sh
+    ./scripts/ci/ios-build-guardian.sh
+else
+    echo "🤖 [BUILD] Iniciando fluxo Android..."
+    chmod +x ./scripts/ci/android-build-guardian.sh
+    ./scripts/ci/android-build-guardian.sh
+fi
 
 # 3. Output results
 echo "✅ [BUILD-ORCHESTRATOR] Build process finished for $APP_ID."
