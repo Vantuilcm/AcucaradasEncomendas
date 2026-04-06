@@ -57,7 +57,12 @@ echo "💉 [ENV] Injetando CURRENT_BN=$CURRENT_BN para o app.config.js"
 
 # Validar Build Number Resolvido pelo Expo (Fail-Fast)
 echo "🔍 [RESOLVE] Validando configuração resolvida do Expo..."
-npx expo config --type public > build-resolved-config-android.json
+# Suprimir telemetria e logs para garantir JSON limpo
+EXPO_NO_TELEMETRY=1 npx expo config --type public --json > build-resolved-config-android.json 2>/dev/null || npx expo config --type public > build-resolved-config-android.json
+
+# Limpeza extra: remover linhas que não começam com { (logs de telemetria remanescentes)
+sed -i -n '/^{/,$p' build-resolved-config-android.json
+
 RESOLVED_VC=$(jq -r '.android.versionCode' build-resolved-config-android.json)
 
 if [ "$RESOLVED_VC" != "$CURRENT_BN" ]; then
