@@ -112,8 +112,17 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: 🔄 Enterprise Sync (Build Number)
-        run: node scripts/sync-build-with-apple.js
+      - name: 🛡️ Build Number Guardian (Sync & Validate)
+        run: |
+          echo "🔄 [SYNC] Sincronizando e Validando Build Number..."
+          node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --sync
+          node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --validate-ios
+          
+          # Exportar variáveis para o ambiente do runner
+          BUILD_NUMBER=$(jq -r '.expo.ios.buildNumber' app.json)
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "CURRENT_BN=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "VERSION_CODE=$BUILD_NUMBER" >> $GITHUB_ENV
 
       - name: 🛡️ iOS-BUILD-GUARDIAN (Local Mode)
         run: |

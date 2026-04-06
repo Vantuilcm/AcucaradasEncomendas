@@ -55,6 +55,18 @@ TARGET_VER=$(jq -r '.expo.version' app.json)
 echo "📌 [TARGET] Preparando Build: $TARGET_VER (VersionCode: $CURRENT_BN)"
 echo "💉 [ENV] Injetando CURRENT_BN=$CURRENT_BN para o app.config.js"
 
+# Validar Build Number Resolvido pelo Expo (Fail-Fast)
+echo "🔍 [RESOLVE] Validando configuração resolvida do Expo..."
+npx expo config --type public > build-resolved-config-android.json
+RESOLVED_VC=$(jq -r '.android.versionCode' build-resolved-config-android.json)
+
+if [ "$RESOLVED_VC" != "$CURRENT_BN" ]; then
+    echo "❌ [FATAL] Divergência de VersionCode! Resolvido: $RESOLVED_VC | Esperado: $CURRENT_BN"
+    echo "💡 Dica: Verifique se o app.config.js está injetando CURRENT_BN corretamente."
+    exit 1
+fi
+echo "✅ [OK] VersionCode resolvido confirmado: $RESOLVED_VC"
+
 # Verificação de Variáveis
 if [ -z "${EXPO_TOKEN:-}" ]; then
     echo "❌ [FATAL] EXPO_TOKEN não definido."
@@ -104,12 +116,25 @@ echo "✅ [SUCCESS] Environment ready"
 # Sincronização de credenciais é feita automaticamente pelo EAS Build LOCAL.
 # Apenas garantimos que o ambiente está pronto.
 
+# LIMPEZA CRÍTICA: Remover pasta android se existir (pode estar corrompida)
+if [ -d "android" ]; then
+    echo "🧹 [CLEAN] Removendo pasta 'android' existente para build limpo..."
+    rm -rf android
+fi
+
 echo "🏗️ [PREBUILD] Gerando código nativo Android..."
-npx expo prebuild --platform android --non-interactive
+# Usando --clean para garantir que não há cache corrompido
+npx expo prebuild --platform android --non-interactive --clean
 
 if [ -d "android" ]; then
     echo "✅ [OK] Pasta 'android' gerada. Garantindo permissões do gradlew..."
     chmod +x android/gradlew
+    
+    # GARANTIA: Injetar google-services.json no local correto do projeto nativo
+    if [ -f "google-services.json" ]; then
+        echo "🔧 [CONFIG] Injetando google-services.json em ./android/app/..."
+        cp "google-services.json" "./android/app/google-services.json"
+    fi
 fi
 
 echo "🏗️ [EXEC] Iniciando eas build LOCAL para Android..."
@@ -118,8 +143,9 @@ export TERM=dumb
 export EXPO_NO_TELEMETRY=1
 export EAS_NO_VCS=1
 
-# Garantir que credenciais remotas possam ser baixadas em modo não interativo
-export EAS_NO_VCS=1
+# Otimização de Memória para Runner (7GB total)
+export GRADLE_OPTS="-Dorg.gradle.jvmargs=\"-Xmx4g -XX:MaxMetaspaceSize=1g\" -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
+export JAVA_OPTS="-Xmx4g"
 
 mkdir -p build-logs
 BUILD_LOG="build-logs/eas-build-android-local.log"
@@ -150,6 +176,10 @@ if [ $EXIT_CODE -eq 0 ]; then
         cp "$AAB_FILE" ./dist/app.aab
         echo "🚀 [READY] AAB movida para: ./dist/app.aab"
         
+        # [NEW] Validar buildNumber real no artefato AAB (via BuildNumberGuardian)
+        echo "🔍 [VALIDATE] Validando integridade do versionCode na AAB..."
+        node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --validate-aab "./dist/app.aab" "$CURRENT_BN"
+
         # Validar via Orchestrator
         export CURRENT_BN=$(jq -r '.expo.android.versionCode' app.json)
         export CURRENT_VERSION=$(jq -r '.expo.version' app.json)
@@ -157,6 +187,9 @@ if [ $EXIT_CODE -eq 0 ]; then
         echo "🔍 [VALIDATE] Iniciando validação pós-build..."
         node -r ts-node/register scripts/ci/PipelineOrchestrator.ts validate "./dist/app.aab" "$CURRENT_BN"
         
+        # [HISTORY] Registrar sucesso no histórico de builds
+        node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --save-history "android" "$CURRENT_BN" "SUCCESS"
+
         node scripts/build-state-check.js success
         exit 0
     else

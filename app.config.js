@@ -18,9 +18,9 @@ export default ({ config }) => {
   const sentryEnabled = process.env.EXPO_PUBLIC_SENTRY_ENABLED === "true" || !!process.env.SENTRY_AUTH_TOKEN;
 
   // 2. SINCRONIZAÇÃO DE VERSÃO (MODO ZERO DUPLICATION)
-  // O buildNumber agora é gerenciado externamente pelo PipelineOrchestrator
-  const buildNumber = process.env.CURRENT_BN || config.ios?.buildNumber || "1";
-  const versionCode = parseInt(buildNumber);
+  // O buildNumber agora é gerenciado externamente pelo PipelineOrchestrator e BuildNumberGuardian
+  const buildNumber = process.env.BUILD_NUMBER || process.env.CURRENT_BN || config.ios?.buildNumber || "1";
+  const versionCode = parseInt(process.env.VERSION_CODE || buildNumber);
 
   console.log(`🚀 [ORCHESTRATOR] Configurando App: ${appConfig.name} (v${config.version} - ${buildNumber})`);
 

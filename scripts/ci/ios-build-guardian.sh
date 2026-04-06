@@ -290,6 +290,18 @@ fi
 
 MAX_RETRIES=2
 
+# Validar Build Number Resolvido pelo Expo (Fail-Fast)
+echo "🔍 [RESOLVE] Validando configuração resolvida do Expo..."
+npx expo config --type public > build-resolved-config.json
+RESOLVED_BN=$(jq -r '.ios.buildNumber' build-resolved-config.json)
+
+if [ "$RESOLVED_BN" != "$CURRENT_BN" ]; then
+    echo "❌ [FATAL] Divergência de Build Number! Resolvido: $RESOLVED_BN | Esperado: $CURRENT_BN"
+    echo "💡 Dica: Verifique se o app.config.js está injetando CURRENT_BN corretamente."
+    exit 1
+fi
+echo "✅ [OK] Build Number resolvido confirmado: $RESOLVED_BN"
+
 run_build_with_retry() {
     local attempt=1
     SUBMISSION_STATUS="pending"
@@ -398,6 +410,10 @@ if run_build_with_retry; then
         exit 1
     fi
     echo "🚀 [READY] IPA pronta em: ./dist/app.ipa"
+
+    # 🔍 [VALIDATE] Validação profunda do Build Number na IPA antes do Submit
+    echo "🔍 [VALIDATE] Validando integridade do build na IPA..."
+    node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --validate-ipa "./dist/app.ipa" "$CURRENT_BN"
     
     # Salvar log final para o artefato do GitHub
     [ -f "build-logs/eas-build-local.log" ] && cp "build-logs/eas-build-local.log" "build-logs/ios-build-log.json" || true
@@ -447,6 +463,9 @@ if run_build_with_retry; then
     METRICS_JSON="{\"status\":\"success\",\"mode\":\"LOCAL\",\"version\":\"$CURRENT_VERSION\",\"buildNumber\":\"$CURRENT_BN\",\"commit\":\"$(git rev-parse HEAD)\",\"branch\":\"$BRANCH_NAME\",\"submission\":\"${SUBMISSION_STATUS:-pending}\"}"
     node -r ts-node/register scripts/ci/PipelineOrchestrator.ts metrics "$METRICS_JSON"
     
+    # [HISTORY] Registrar sucesso no histórico de builds
+    node -r ts-node/register scripts/ci/BuildNumberGuardian.ts --save-history "ios" "$CURRENT_BN" "SUCCESS"
+
     # --- NOVO: VALIDAÇÃO PÓS-BUILD (GLOBAL SCALE) ---
     echo "🔍 [VALIDATE] Iniciando validação de qualidade (Post-Build Validator)..."
     node -r ts-node/register scripts/ci/PipelineOrchestrator.ts validate "./dist/app.ipa" "${CURRENT_BN:-unknown}"
