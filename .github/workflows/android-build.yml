@@ -24,6 +24,7 @@ jobs:
     
     env:
       RELEASE_APPROVED: ${{ github.event.inputs.release_approved == 'true' || contains(github.event.head_commit.message, '[release]') }}
+      NODE_ENV: production
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
       EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}

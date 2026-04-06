@@ -164,7 +164,8 @@
         "exclude": [
           "react-native-chart-kit",
           "@react-native-voice/voice",
-          "crypto-js"
+          "crypto-js",
+          "react-native-maps"
         ]
       }
     }

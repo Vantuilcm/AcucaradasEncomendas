@@ -353,70 +353,60 @@ if run_build_with_retry; then
     echo "📦 [ARTIFACT] Localizando IPA gerada..."
     mkdir -p dist
     
-    # 1. Tentar extrair do log do EAS se disponível
-    if [ -f "build-logs/eas-build-local.log" ]; then
-        LOG_IPA=$(grep -oE "/[^ ]+\.ipa" build-logs/eas-build-local.log | tail -n 1 || true)
-        if [ -n "$LOG_IPA" ] && [ -f "$LOG_IPA" ]; then
-            echo "✅ [FOUND-LOG] IPA localizada via log: $LOG_IPA"
-            IPA_FILE="$LOG_IPA"
-        fi
-    fi
-
-    # 2. Busca recursiva se não encontrado no log
-    if [ -z "${IPA_FILE:-}" ]; then
-        echo "🔍 [SEARCH] Buscando IPA recursivamente..."
-        IPA_FILE=$(find . -name "*.ipa" -not -path "./node_modules/*" -not -path "./ios/*" | head -n 1)
-    fi
+    # 1. Debug: Listar todos os arquivos .ipa gerados
+    echo "📦 [DEBUG] Arquivos .ipa encontrados no workspace:"
+    find . -name "*.ipa" -not -path "./node_modules/*"
     
-    if [ -n "$IPA_FILE" ]; then
-        echo "✅ [FOUND] IPA localizada em: $IPA_FILE"
-        cp "$IPA_FILE" ./dist/app.ipa
-        echo "🚀 [READY] IPA movida para: ./dist/app.ipa"
-        
-        # Salvar log final para o artefato do GitHub
-        cp "build-logs/eas-build-local.log" "build-logs/ios-build-log.json" || true
-        echo "📝 [LOG] Log do build salvo para upload."
-
-        # --- NOVO: SUBMISSÃO AUTOMÁTICA APPLE (LOCAL BUILD FLOW) ---
-        echo "📤 [SUBMIT] Iniciando submissão automática para Apple TestFlight..."
-        
-        # Validar existência da IPA antes de submeter
-        if [ ! -f "./dist/app.ipa" ]; then
-            echo "❌ [ERROR] IPA não encontrada em ./dist/app.ipa antes da submissão."
-            exit 1
-        fi
-        
-        IPA_PATH=$(realpath "./dist/app.ipa")
-        echo "📍 [IPA-PATH] Caminho absoluto: $IPA_PATH"
-        
-        # Criar diretório de logs de submissão
-        mkdir -p "build-logs/${TARGET_APP:-acucaradas-encomendas}"
-        SUBMISSION_LOG="build-logs/${TARGET_APP:-acucaradas-encomendas}/submission.log"
-        
-        # Executar submissão capturando output total
-        echo "⏳ [WAIT] Enviando para App Store Connect... (Isso pode levar alguns minutos)"
-        export CI=1
-        if npx eas-cli submit --platform ios --path "$IPA_PATH" --non-interactive 2>&1 | tee "$SUBMISSION_LOG"; then
-            # Validar se o output contém confirmação real de upload
-            if grep -q "Successfully uploaded" "$SUBMISSION_LOG" || grep -q "Submission completed" "$SUBMISSION_LOG"; then
-                echo "✅ [SUBMIT-OK] IPA enviada e confirmada pela Apple."
-                SUBMISSION_STATUS="success"
-            else
-                echo "❌ [SUBMIT-FAIL] Comando finalizou mas o upload não foi confirmado no log."
-                SUBMISSION_STATUS="unconfirmed"
-                exit 1
-            fi
-        else
-            echo "❌ [SUBMIT-ERROR] Falha crítica na submissão da IPA para Apple."
-            SUBMISSION_STATUS="failed"
-            exit 1
-        fi
-        # ---------------------------------------------------------
-    else
-        echo "❌ [ERROR] Build finalizou com sucesso mas o arquivo .ipa não foi encontrado."
+    # 2. Busca dinâmica da IPA
+    IPA_FILE=$(find . -name "*.ipa" -not -path "./node_modules/*" -not -path "./ios/*" | head -n 1)
+    
+    if [ -z "$IPA_FILE" ]; then
+        echo "❌ [FATAL] IPA NOT FOUND - BUILD FAILED"
         exit 1
     fi
-    # ---------------------------------
+    
+    echo "✅ [FOUND] IPA localizada em: $IPA_FILE"
+    cp "$IPA_FILE" ./dist/app.ipa
+    
+    # 3. Validar cópia antes de prosseguir
+    if [ ! -f "dist/app.ipa" ]; then
+        echo "❌ [FATAL] IPA copy failed to dist/app.ipa"
+        exit 1
+    fi
+    echo "🚀 [READY] IPA pronta em: ./dist/app.ipa"
+    
+    # Salvar log final para o artefato do GitHub
+    [ -f "build-logs/eas-build-local.log" ] && cp "build-logs/eas-build-local.log" "build-logs/ios-build-log.json" || true
+
+    # --- NOVO: SUBMISSÃO AUTOMÁTICA APPLE (LOCAL BUILD FLOW) ---
+    echo "📤 [SUBMIT] Iniciando submissão automática para Apple TestFlight..."
+    
+    IPA_PATH=$(realpath "./dist/app.ipa")
+    echo "📍 [IPA-PATH] Caminho absoluto: $IPA_PATH"
+    
+    # Criar diretório de logs de submissão
+    mkdir -p "build-logs/${TARGET_APP:-acucaradas-encomendas}"
+    SUBMISSION_LOG="build-logs/${TARGET_APP:-acucaradas-encomendas}/submission.log"
+    
+    # Executar submissão capturando output total
+    echo "⏳ [WAIT] Enviando para App Store Connect... (Isso pode levar alguns minutos)"
+    export CI=1
+    if npx eas-cli submit --platform ios --path "$IPA_PATH" --non-interactive 2>&1 | tee "$SUBMISSION_LOG"; then
+        # Validar se o output contém confirmação real de upload
+        if grep -q "Successfully uploaded" "$SUBMISSION_LOG" || grep -q "Submission completed" "$SUBMISSION_LOG"; then
+            echo "✅ [SUBMIT-OK] IPA enviada e confirmada pela Apple."
+            SUBMISSION_STATUS="success"
+        else
+            echo "❌ [SUBMIT-FAIL] Comando finalizou mas o upload não foi confirmado no log."
+            SUBMISSION_STATUS="unconfirmed"
+            exit 1
+        fi
+    else
+        echo "❌ [SUBMIT-ERROR] Falha crítica na submissão da IPA para Apple."
+        SUBMISSION_STATUS="failed"
+        exit 1
+    fi
+    # ---------------------------------------------------------
     
     # Obter o buildNumber do app.json (Modo LOCAL)
     export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)

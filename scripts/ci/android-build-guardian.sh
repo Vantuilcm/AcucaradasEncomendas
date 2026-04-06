@@ -48,13 +48,25 @@ if [ -z "${EXPO_TOKEN:-}" ]; then
     exit 1
 fi
 
-# Firebase Android config
+# Firebase Android config (CRITICAL)
 if [ -n "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then
-    echo "🔧 [CONFIG] Gerando google-services.json..."
-    echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
+    echo "🔧 [CONFIG] Gerando google-services.json via Base64..."
+    # Limpar espaços e decodificar com segurança
+    B64_CLEAN=$(echo "${GOOGLE_SERVICES_JSON_BASE64}" | tr -d '[:space:]')
+    echo "$B64_CLEAN" | base64 --decode > google-services.json
+    
+    if [ ! -f google-services.json ] || [ ! -s google-services.json ]; then
+        echo "❌ [FATAL] Falha ao gerar google-services.json. Arquivo vazio ou não encontrado."
+        exit 1
+    fi
+    echo "✅ [OK] google-services.json gerado e validado."
 else
-    echo "⚠️ [WARN] GOOGLE_SERVICES_JSON_BASE64 não encontrado. Verifique se é necessário para este app."
+    echo "❌ [FATAL] GOOGLE_SERVICES_JSON_BASE64 não encontrado no ambiente."
+    exit 1
 fi
+
+echo "✅ [SUCCESS] Firebase config loaded"
+echo "✅ [SUCCESS] Environment ready"
 
 ## ETAPA 3 — EXECUÇÃO DO BUILD
 echo "🏗️ [EXEC] Iniciando eas build LOCAL para Android..."
