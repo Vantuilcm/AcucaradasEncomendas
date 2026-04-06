@@ -6,7 +6,10 @@
     "ios": {
       "bundleIdentifier": "com.acucaradas.encomendas",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Este app precisa da sua localização para calcular o valor da entrega e encontrar endereços próximos.",
+        "NSSpeechRecognitionUsageDescription": "Este app utiliza reconhecimento de voz para facilitar a busca de produtos e comandos por voz.",
+        "NSMicrophoneUsageDescription": "Este app utiliza o microfone para capturar comandos de voz e buscas."
       },
       "buildNumber": "489",
       "googleServicesFile": "./GoogleService-Info.plist"
