@@ -106,7 +106,7 @@ export class GrowthService {
       
       // 1. Verificar se o pedido foi por indicação e completar o ciclo
       const userDoc = await getDocs(query(collection(db, 'usuarios'), where('id', '==', userId), limit(1)));
-      const userData = userDoc.docs[0]?.data() as User;
+      const userData = userDoc.docs[0]?.data() as unknown as User;
 
       if (userData?.referredBy) {
         await this.completeReferralCycle(userData.referredBy, userId, order);
@@ -118,7 +118,7 @@ export class GrowthService {
         type: 'promotion' as any,
         title: "🍰 Amizade Doce",
         message: "Indique um amigo e ganhe 15% de desconto no seu próximo pedido! Use seu código.",
-        priority: 'medium',
+        priority: 'normal',
         read: false,
         data: { type: 'GROWTH_LOOP', referralCode: userData?.referralCode }
       });
@@ -159,7 +159,7 @@ export class GrowthService {
       // Atualizar estatísticas do referrer
       const referrerRef = doc(db, 'usuarios', referrerId);
       const referrerSnap = await getDocs(query(collection(db, 'usuarios'), where('id', '==', referrerId), limit(1)));
-      const referrerData = referrerSnap.docs[0]?.data() as User;
+      const referrerData = referrerSnap.docs[0]?.data() as unknown as User;
 
       await updateDoc(referrerRef, {
         referralCount: (referrerData?.referralCount || 0) + 1,
@@ -218,11 +218,11 @@ export class GrowthService {
 
         if (lastOrderSnap.empty) {
           // Nunca comprou, verificar data de criação
-          const userData = docSnapshot.data() as User;
+          const userData = docSnapshot.data() as unknown as User;
           const createdAt = userData.dataCriacao instanceof Timestamp ? userData.dataCriacao.toDate() : new Date(userData.dataCriacao || 0);
           if (createdAt < sevenDaysAgo) shouldReengage = true;
         } else {
-          const lastOrder = lastOrderSnap.docs[0].data() as Order;
+          const lastOrder = lastOrderSnap.docs[0].data() as unknown as Order;
           const lastOrderDate = new Date(lastOrder.createdAt);
           if (lastOrderDate < sevenDaysAgo) shouldReengage = true;
         }

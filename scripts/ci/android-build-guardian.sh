@@ -101,6 +101,9 @@ echo "✅ [SUCCESS] Firebase config loaded"
 echo "✅ [SUCCESS] Environment ready"
 
 ## ETAPA 3 — EXECUÇÃO DO BUILD
+echo "🔄 [SYNC] Sincronizando credenciais Android via EAS..."
+npx eas-cli credentials:sync --platform android --non-interactive
+
 echo "🏗️ [PREBUILD] Gerando código nativo Android..."
 npx expo prebuild --platform android --non-interactive
 
@@ -123,7 +126,7 @@ BUILD_LOG="build-logs/eas-build-android-local.log"
 
 echo "🕒 [TIME] Iniciando build em $(date)"
 set +e
-npx eas-cli build --platform android --profile "$PROFILE" --local --non-interactive 2>&1 | tee "$BUILD_LOG"
+EXPO_DEBUG=1 DEBUG=eas:* npx eas-cli build --platform android --profile "$PROFILE" --local --non-interactive 2>&1 | tee "$BUILD_LOG"
 EXIT_CODE=${PIPESTATUS[0]}
 set -e
 echo "🕒 [TIME] Build finalizado em $(date) com código $EXIT_CODE"
@@ -163,9 +166,24 @@ if [ $EXIT_CODE -eq 0 ]; then
 else
     echo "❌ [FATAL] Falha no build Android LOCAL."
     echo "------------------------------------------------------------"
-    echo "📄 [LOG-DIAGNOSTIC] Últimas 50 linhas do log de erro:"
+    echo "📄 [LOG-DIAGNOSTIC] Analisando logs de erro..."
+    
+    # Se falhou no Gradle, tentar mostrar o erro real do gradlew
+    if grep -q "gradlew" "$BUILD_LOG"; then
+        echo "🔍 [GRADLE-ERROR] Detectada falha no Gradle. Tentando extrair log nativo..."
+        if [ -d "android" ]; then
+            echo "🐘 [GRADLEW] Executando análise detalhada do erro..."
+            cd android
+            ./gradlew assembleRelease --stacktrace --info | tail -n 100 > ../build-logs/gradle-error-detailed.log || true
+            cd ..
+            echo "📄 [LOG-DETAIL] Primeiras 20 linhas do erro detalhado:"
+            head -n 20 build-logs/gradle-error-detailed.log
+        fi
+    fi
+
+    echo "📄 [LOG-SUMMARY] Últimas 50 linhas do log principal:"
     tail -n 50 "$BUILD_LOG"
     echo "------------------------------------------------------------"
-    echo "💡 Sugestão: Verifique se as credenciais Android estão configuradas no Expo Dashboard."
+    echo "💡 Sugestão: Verifique se as credenciais Android estão configuradas no Expo Dashboard ou se há erros de SDK/NDK no runner."
     exit 1
 fi

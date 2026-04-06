@@ -597,7 +597,7 @@ export class OrderService {
           // 🎯 GROWTH ENGINE: Disparar Growth Loop (Indicação e Fidelidade)
           try {
             const growthService = GrowthService.getInstance();
-            await growthService.triggerGrowthLoop({ id: orderId, ...orderData } as Order);
+            await growthService.triggerGrowthLoop({ ...orderData, id: orderId } as Order);
           } catch (growthError) {
             console.error('Erro ao disparar Growth Loop:', growthError);
           }
@@ -610,8 +610,8 @@ export class OrderService {
       
       const updatedOrderDoc = await getDoc(orderRef);
       return {
-        id: updatedOrderDoc.id,
-        ...updatedOrderDoc.data()
+        ...updatedOrderDoc.data(),
+        id: updatedOrderDoc.id
       } as Order;
     } catch (error: any) {
       loggingService.error('Erro ao atualizar status do pedido', { 

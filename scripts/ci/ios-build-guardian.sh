@@ -408,11 +408,14 @@ if run_build_with_retry; then
     export CI=1
     if npx eas-cli submit --platform ios --path "$IPA_PATH" --non-interactive 2>&1 | tee "$SUBMISSION_LOG"; then
         # Validar se o output contém confirmação real de upload
-        if grep -q "Successfully uploaded" "$SUBMISSION_LOG" || grep -q "Submission completed" "$SUBMISSION_LOG"; then
+        # Adicionadas variações comuns de sucesso do EAS CLI e Apple
+        if grep -qiE "Successfully uploaded|Submission completed|Submitted your app|uploaded to App Store Connect" "$SUBMISSION_LOG"; then
             echo "✅ [SUBMIT-OK] IPA enviada e confirmada pela Apple."
             SUBMISSION_STATUS="success"
         else
             echo "❌ [SUBMIT-FAIL] Comando finalizou mas o upload não foi confirmado no log."
+            echo "🔍 [DEBUG] Conteúdo do log de submissão:"
+            cat "$SUBMISSION_LOG"
             SUBMISSION_STATUS="unconfirmed"
             exit 1
         fi
