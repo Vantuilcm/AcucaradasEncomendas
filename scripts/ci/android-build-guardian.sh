@@ -50,19 +50,38 @@ if [ -z "${EXPO_TOKEN:-}" ]; then
 fi
 
 # Firebase Android config (CRITICAL)
-if [ -n "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then
-    echo "🔧 [CONFIG] Gerando google-services.json via Base64..."
+echo "🔧 [CONFIG] Preparando Firebase config (google-services.json)..."
+
+if [ -f "google-services.json" ]; then
+    echo "✅ [OK] google-services.json já existe no diretório raiz."
+elif [ -n "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then
+    echo "🔧 [CONFIG] Gerando google-services.json via Base64 (env: GOOGLE_SERVICES_JSON_BASE64)..."
     # Limpar espaços e decodificar com segurança
     B64_CLEAN=$(echo "${GOOGLE_SERVICES_JSON_BASE64}" | tr -d '[:space:]')
     echo "$B64_CLEAN" | base64 --decode > google-services.json
+    echo "✅ [OK] google-services.json gerado e validado via Base64."
+elif [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
+    echo "🔧 [CONFIG] Gerando google-services.json via string direta (env: GOOGLE_SERVICES_JSON)..."
+    echo "${GOOGLE_SERVICES_JSON}" > google-services.json
+    echo "✅ [OK] google-services.json gerado via string direta."
+else
+    # Se chegarmos aqui, nenhuma fonte foi encontrada
+    echo "⚠️ [WARN] GOOGLE_SERVICES_JSON_BASE64 não encontrado no ambiente."
+    echo "🔍 [CHECK] Verificando se existe em ./android/app/google-services.json..."
     
-    if [ ! -f google-services.json ] || [ ! -s google-services.json ]; then
-        echo "❌ [FATAL] Falha ao gerar google-services.json. Arquivo vazio ou não encontrado."
+    if [ -f "./android/app/google-services.json" ]; then
+        echo "✅ [OK] Localizado em ./android/app/google-services.json. Copiando para a raiz..."
+        cp "./android/app/google-services.json" "./google-services.json"
+    else
+        echo "❌ [FATAL] Firebase config (google-services.json) não encontrado em nenhuma fonte!"
+        echo "💡 Dica: Verifique os secrets do GitHub ou o arquivo local."
         exit 1
     fi
-    echo "✅ [OK] google-services.json gerado e validado."
-else
-    echo "❌ [FATAL] GOOGLE_SERVICES_JSON_BASE64 não encontrado no ambiente."
+fi
+
+# Validação final do arquivo
+if [ ! -s "google-services.json" ]; then
+    echo "❌ [FATAL] google-services.json gerado está vazio ou inválido."
     exit 1
 fi
 
