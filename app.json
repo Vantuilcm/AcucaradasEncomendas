@@ -11,12 +11,12 @@
         "NSSpeechRecognitionUsageDescription": "Este app utiliza reconhecimento de voz para facilitar a busca de produtos e comandos por voz.",
         "NSMicrophoneUsageDescription": "Este app utiliza o microfone para capturar comandos de voz e buscas."
       },
-      "buildNumber": "489",
+      "buildNumber": "490",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.acucaradas.encomendas",
-      "versionCode": 489,
+      "versionCode": 490,
       "googleServicesFile": "./google-services.json"
     },
     "extra": {
