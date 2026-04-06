@@ -37,7 +37,8 @@ trap "node scripts/build-state-check.js unlock" EXIT
 
 # REGRAS ESTRITAS: SEMPRE LOCAL, NUNCA CLOUD
 BUILD_MODE="LOCAL"
-echo "🚀 [CONTEXTO] Modo LOCAL forçado conforme regras do agente. Nunca usando EAS Cloud."
+PROFILE="${PROFILE:-production_v13}"
+echo "🚀 [CONTEXTO] Modo LOCAL forçado (Perfil: $PROFILE). Nunca usando EAS Cloud."
 
 # 2.0 Hardening: Fail-Fast macOS
 if [[ "$OSTYPE" != "darwin"* ]]; then
@@ -281,12 +282,11 @@ fi
 MAX_RETRIES=2
 
 run_build_with_retry() {
-    local profile=${PROFILE:-"production_v13"}
     local attempt=1
     SUBMISSION_STATUS="pending"
     
     while [ $attempt -le $MAX_RETRIES ]; do
-        echo "🏗️ [BUILD] Tentativa $attempt de $MAX_RETRIES no modo LOCAL (Perfil: $profile)..."
+        echo "🏗️ [BUILD] Tentativa $attempt de $MAX_RETRIES no modo LOCAL (Perfil: $PROFILE)..."
         
         set +e
         local current_exit_code=0
@@ -337,7 +337,7 @@ run_build_with_retry() {
         echo "🕒 [TIME] Iniciando build em $(date)"
         # Adicionando flags de verbose e timeout interno
         set +e
-        EXPO_DEBUG=1 DEBUG=eas:* npx eas build --platform ios --profile "$profile" --local --non-interactive 2>&1 | tee "$BUILD_LOG"
+        EXPO_DEBUG=1 DEBUG=eas:* npx eas build --platform ios --profile "$PROFILE" --local --non-interactive 2>&1 | tee "$BUILD_LOG"
         current_exit_code=${PIPESTATUS[0]}
         set -e
         echo "🕒 [TIME] Build finalizado em $(date) com código $current_exit_code"
@@ -351,7 +351,7 @@ run_build_with_retry() {
         # Analisar erro comum de assinatura no log
         if grep -q "Code signing failed" "$BUILD_LOG" || grep -q "Provisioning profile" "$BUILD_LOG"; then
             echo "❌ [SIGNING-ERROR] Detectado erro de assinatura de código. Verificando credenciais..."
-            npx eas credentials:list --platform ios --profile "$profile" --non-interactive || true
+            npx eas credentials:list --platform ios --profile "$PROFILE" --non-interactive || true
         fi
         
         attempt=$((attempt + 1))
@@ -406,7 +406,7 @@ if run_build_with_retry; then
     # Executar submissão capturando output total
     echo "⏳ [WAIT] Enviando para App Store Connect... (Isso pode levar alguns minutos)"
     export CI=1
-    if npx eas submit --platform ios --path "$IPA_PATH" --non-interactive 2>&1 | tee "$SUBMISSION_LOG"; then
+    if npx eas submit --platform ios --profile "$PROFILE" --path "$IPA_PATH" --non-interactive 2>&1 | tee "$SUBMISSION_LOG"; then
         # Validar se o output contém confirmação real de upload
         # Adicionadas variações comuns de sucesso do EAS CLI e Apple
         if grep -qiE "Successfully uploaded|Submission completed|Submitted your app|uploaded to App Store Connect" "$SUBMISSION_LOG"; then

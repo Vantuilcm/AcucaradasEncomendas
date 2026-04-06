@@ -101,8 +101,8 @@ echo "✅ [SUCCESS] Firebase config loaded"
 echo "✅ [SUCCESS] Environment ready"
 
 ## ETAPA 3 — EXECUÇÃO DO BUILD
-echo "🔄 [SYNC] Sincronizando credenciais Android via EAS..."
-npx eas credentials:sync --platform android --non-interactive
+# Sincronização de credenciais é feita automaticamente pelo EAS Build LOCAL.
+# Apenas garantimos que o ambiente está pronto.
 
 echo "🏗️ [PREBUILD] Gerando código nativo Android..."
 npx expo prebuild --platform android --non-interactive
