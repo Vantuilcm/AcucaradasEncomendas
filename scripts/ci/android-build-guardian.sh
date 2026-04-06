@@ -89,10 +89,21 @@ echo "✅ [SUCCESS] Firebase config loaded"
 echo "✅ [SUCCESS] Environment ready"
 
 ## ETAPA 3 — EXECUÇÃO DO BUILD
+echo "🏗️ [PREBUILD] Gerando código nativo Android..."
+npx expo prebuild --platform android --non-interactive
+
+if [ -d "android" ]; then
+    echo "✅ [OK] Pasta 'android' gerada. Garantindo permissões do gradlew..."
+    chmod +x android/gradlew
+fi
+
 echo "🏗️ [EXEC] Iniciando eas build LOCAL para Android..."
 export CI=1
 export TERM=dumb
 export EXPO_NO_TELEMETRY=1
+export EAS_NO_VCS=1
+
+# Garantir que credenciais remotas possam ser baixadas em modo não interativo
 export EAS_NO_VCS=1
 
 mkdir -p build-logs
@@ -111,11 +122,18 @@ if [ $EXIT_CODE -eq 0 ]; then
     # Localizar AAB
     echo "📦 [ARTIFACT] Localizando AAB gerada..."
     mkdir -p dist
-    AAB_FILE=$(find . -name "*.aab" -not -path "./node_modules/*" | head -n 1)
+    # Busca inteligente: log do EAS ou recursiva
+    AAB_FILE=$(grep -oE "/[^ ]+\.aab" "$BUILD_LOG" | tail -n 1 || true)
     
-    if [ -n "$AAB_FILE" ]; then
+    if [ -z "$AAB_FILE" ] || [ ! -f "$AAB_FILE" ]; then
+        echo "🔍 [SEARCH] Buscando AAB recursivamente..."
+        AAB_FILE=$(find . -name "*.aab" -not -path "./node_modules/*" -not -path "./android/*" | head -n 1)
+    fi
+    
+    if [ -n "$AAB_FILE" ] && [ -f "$AAB_FILE" ]; then
         echo "✅ [FOUND] AAB localizada em: $AAB_FILE"
         cp "$AAB_FILE" ./dist/app.aab
+        echo "🚀 [READY] AAB movida para: ./dist/app.aab"
         
         # Validar via Orchestrator
         export CURRENT_BN=$(jq -r '.expo.android.versionCode' app.json)
@@ -132,5 +150,10 @@ if [ $EXIT_CODE -eq 0 ]; then
     fi
 else
     echo "❌ [FATAL] Falha no build Android LOCAL."
+    echo "------------------------------------------------------------"
+    echo "📄 [LOG-DIAGNOSTIC] Últimas 50 linhas do log de erro:"
+    tail -n 50 "$BUILD_LOG"
+    echo "------------------------------------------------------------"
+    echo "💡 Sugestão: Verifique se as credenciais Android estão configuradas no Expo Dashboard."
     exit 1
 fi
