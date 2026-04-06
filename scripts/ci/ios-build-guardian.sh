@@ -191,30 +191,21 @@ if [ ${#MISSING_VARS[@]} -ne 0 ]; then
 fi
 
 export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
+# Garantir que a variável multiline seja exportada corretamente para o EAS CLI
 export EXPO_ASC_PRIVATE_KEY=$(cat AuthKey.p8)
-
-# Exportar para GITHUB_ENV conforme missão do agente se estiver no GitHub
-if [ -n "${GITHUB_ENV:-}" ]; then
-    echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> "$GITHUB_ENV"
-    cat AuthKey.p8 >> "$GITHUB_ENV"
-    echo "" >> "$GITHUB_ENV"
-    echo "EOF" >> "$GITHUB_ENV"
-    
-    # Adicionar outras variáveis ASC necessárias para o plugin local
-    echo "EXPO_ASC_PRIVATE_KEY_PATH=$(pwd)/AuthKey.p8" >> "$GITHUB_ENV"
-    echo "EXPO_ASC_KEY_ID=${EXPO_ASC_KEY_ID}" >> "$GITHUB_ENV"
-    echo "EXPO_ASC_ISSUER_ID=${EXPO_ASC_ISSUER_ID}" >> "$GITHUB_ENV"
-fi
 
 # Validar se a chave foi gerada corretamente
 if ! grep -q "BEGIN PRIVATE KEY" AuthKey.p8; then
     echo "❌ [ERRO] Falha ao gerar AuthKey.p8: Formato de chave privada inválido."
-    echo "🔍 [DEBUG] Primeiros 100 caracteres do arquivo decodificado:"
-    head -c 100 AuthKey.p8 || true
-    echo -e "\n------------------------------------------------------------"
     exit 1
 fi
 echo "✅ [CONFIG] AuthKey.p8 validada com sucesso."
+
+# Adicionar TEAM_ID se disponível para facilitar assinatura local
+if [ -n "${EXPO_APPLE_TEAM_ID:-}" ]; then
+    export APPLE_TEAM_ID="${EXPO_APPLE_TEAM_ID}"
+    echo "✅ [CONFIG] APPLE_TEAM_ID configurado: ${APPLE_TEAM_ID}"
+fi
 
 # 2.5 Gerar GoogleService-Info.plist (Firebase iOS)
 echo "🔧 [CONFIG] Gerando GoogleService-Info.plist..."
@@ -298,19 +289,22 @@ run_build_with_retry() {
         echo "🔧 [PREBUILD] Executando npx expo prebuild..."
         npx expo prebuild --platform ios --non-interactive
         
-        if [ -d "ios" ]; then
-            echo "📦 [PODS] Instalando CocoaPods..."
-            cd ios
-            # Tentar instalar pods com correção automática de ambiente se falhar
-            if ! pod install; then
-                echo "⚠️ [WARN] pod install falhou. Tentando reparar ambiente Ruby..."
-                brew install libyaml || true
-                # Reinstalar cocoapods localmente
-                gem install cocoapods -NV || true
-                pod install || echo "⚠️ [WARN] pod install falhou novamente."
-            fi
-            cd ..
+        if [ ! -d "ios" ]; then
+            echo "❌ [FATAL] Diretório 'ios' não foi gerado pelo prebuild."
+            return 1
         fi
+
+        echo "📦 [PODS] Instalando CocoaPods..."
+        cd ios
+        # Tentar instalar pods com correção automática de ambiente se falhar
+        if ! pod install; then
+            echo "⚠️ [WARN] pod install falhou. Tentando reparar ambiente Ruby..."
+            brew install libyaml || true
+            # Reinstalar cocoapods localmente
+            gem install cocoapods -NV || true
+            pod install || { echo "❌ [FATAL] pod install falhou permanentemente."; cd ..; return 1; }
+        fi
+        cd ..
 
         echo "🏗️ [EXEC] Iniciando eas build LOCAL..."
         export CI=1
@@ -318,10 +312,16 @@ run_build_with_retry() {
         export EXPO_NO_TELEMETRY=1
         export EAS_NO_VCS=1
         
+        # Exportar variáveis ASC explicitamente com aspas para preservar formato multiline
+        export EXPO_ASC_KEY_ID="${EXPO_ASC_KEY_ID:-}"
+        export EXPO_ASC_ISSUER_ID="${EXPO_ASC_ISSUER_ID:-}"
+        
         mkdir -p build-logs
         BUILD_LOG="build-logs/eas-build-local.log"
         
         echo "🕒 [TIME] Iniciando build em $(date)"
+        # Adicionando flags de verbose e timeout interno
+        set +e
         EXPO_DEBUG=1 DEBUG=eas:* npx eas-cli build --platform ios --profile "$profile" --local --non-interactive 2>&1 | tee "$BUILD_LOG"
         current_exit_code=${PIPESTATUS[0]}
         set -e
@@ -333,10 +333,10 @@ run_build_with_retry() {
         
         echo "⚠️ [ATTEMPT FAILED] Tentativa $attempt falhou com código $current_exit_code."
         
-        # Log detalhado em caso de falha
-        if [ $attempt -lt $MAX_RETRIES ]; then
-            echo "🔄 [RETRY] Aguardando 10 segundos antes da próxima tentativa..."
-            sleep 10
+        # Analisar erro comum de assinatura no log
+        if grep -q "Code signing failed" "$BUILD_LOG" || grep -q "Provisioning profile" "$BUILD_LOG"; then
+            echo "❌ [SIGNING-ERROR] Detectado erro de assinatura de código. Verificando credenciais..."
+            npx eas-cli credentials:list --platform ios --profile "$profile" --non-interactive || true
         fi
         
         attempt=$((attempt + 1))
