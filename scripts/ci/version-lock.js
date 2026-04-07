@@ -32,7 +32,11 @@ class VersionLock {
     const state = this.loadState();
     const appleLatest = this.getAppleLatestBuild();
     
-    const nextBuild = Math.max(state.buildNumber, appleLatest) + 1;
+    // Pegar também o que está no app.json para não regredir se o arquivo estiver à frente
+    const appJson = JSON.parse(fs.readFileSync(this.appJsonPath, 'utf8'));
+    const currentAppBN = parseInt(appJson.expo.ios.buildNumber || '0', 10);
+
+    const nextBuild = Math.max(state.buildNumber, appleLatest, currentAppBN) + 1;
     // Pular o 347 se ele for o próximo
     state.buildNumber = nextBuild === 347 ? 348 : nextBuild;
     
