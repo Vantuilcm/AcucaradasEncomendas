@@ -25,9 +25,6 @@ import { TouchableOpacity, Text } from 'react-native';
 // Inicializar Proteção Global de Erros
 initErrorGuard();
 
-// Manter a Splash Screen visível até que o bootstrap termine
-SplashScreen.preventAutoHideAsync().catch(() => { /* ignorar erros */ });
-
 console.log("🚀 [STARTUP] App module loaded.");
 
 /**
@@ -36,9 +33,9 @@ console.log("🚀 [STARTUP] App module loaded.");
  */
 function safeInit(fn: () => void, name: string) {
   try {
-    console.log(`🔧 [INIT] Inicializando ${name}...`);
+    console.info(`🔧 [INIT] Inicializando ${name}...`);
     fn();
-    console.log(`✅ [INIT] ${name} pronto.`);
+    console.info(`✅ [INIT] ${name} pronto.`);
   } catch (e) {
     console.error(`❌ [INIT ERROR] Falha ao inicializar ${name}:`, e);
     logEvent('INIT_ERROR', `Falha em ${name}: ${e instanceof Error ? e.message : 'Unknown'}`);
@@ -57,52 +54,27 @@ if (LogBox) {
 function ThemedApp() {
   const { isDark, theme } = useAppTheme();
 
-  // 🔄 Gerenciamento do Ciclo de Vida e Inicialização Segura
+  // 🔄 Gerenciamento do Ciclo de Vida para Monitoramento
   useEffect(() => {
     let subscription: any;
     
-    const bootstrap = async () => {
-      console.log("🚀 [STARTUP] App starting bootstrap...");
-      
-      // 1. Pequeno delay para garantir estabilidade do Native Bridge
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 2. Diagnóstico de Inicialização (Env Guardian)
-      logEvent('APP_START', '🚀 App Iniciado com Monitoramento Ativo');
-      runHealthCheck(ENV);
-
-      // 3. Inicialização Segura de Serviços (Agora dentro do ciclo de vida)
-      safeInit(() => { if (typeof initSentry === 'function') initSentry(); }, 'Sentry');
-      safeInit(() => { if (typeof initOneSignal === 'function') initOneSignal(); }, 'OneSignal');
-
-      try {
-        // Tentar enviar logs pendentes na inicialização
-        if (transportManager && typeof transportManager.flushLogs === 'function') {
-          transportManager.flushLogs();
-        }
-
-        subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
-          if (nextAppState === 'active') {
-            logInfo('APP_START', '📱 App voltou para o foreground');
-            if (transportManager && typeof transportManager.flushLogs === 'function') {
-              transportManager.flushLogs();
-            }
-          }
-        });
-      } catch (e) {
-        console.warn('⚠️ Erro no ciclo de vida do monitoramento:', e);
-      } finally {
-        // 4. Esconder a Splash Screen somente após tudo estar pronto
-        try {
-          await SplashScreen.hideAsync();
-          console.log("🚀 [STARTUP] Splash hidden.");
-        } catch (hideError) {
-          console.warn('⚠️ Erro ao esconder splash:', hideError);
-        }
+    try {
+      // Tentar enviar logs pendentes na inicialização
+      if (transportManager && typeof transportManager.flushLogs === 'function') {
+        transportManager.flushLogs();
       }
-    };
 
-    bootstrap();
+      subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+        if (nextAppState === 'active') {
+          logInfo('APP_START', '📱 App voltou para o foreground');
+          if (transportManager && typeof transportManager.flushLogs === 'function') {
+            transportManager.flushLogs();
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('⚠️ Erro no ciclo de vida do monitoramento:', e);
+    }
 
     return () => {
       if (subscription && typeof subscription.remove === 'function') {
@@ -160,7 +132,54 @@ function ThemedApp() {
 }
 
 export default function App() {
-  const [showDiagnostic, setShowDiagnostic] = React.useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
+
+  // 🔄 Bootstrap do App (Nível Raiz)
+  useEffect(() => {
+    const bootstrap = async () => {
+      console.info("🚀 [STARTUP] Root bootstrap starting...");
+      
+      try {
+        // 1. Garantir que a Splash Screen não suma antes do tempo
+        await SplashScreen.preventAutoHideAsync().catch(() => {});
+
+        // 2. Delay maior para estabilidade total do bridge nativo
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // 3. Inicialização de serviços (Safe)
+        safeInit(() => { runHealthCheck(ENV); }, 'HealthCheck');
+        safeInit(() => { if (typeof initSentry === 'function') initSentry(); }, 'Sentry');
+        safeInit(() => { if (typeof initOneSignal === 'function') initOneSignal(); }, 'OneSignal');
+
+        console.info("✅ [STARTUP] Root bootstrap complete.");
+      } catch (e) {
+        console.error("❌ [STARTUP ERROR] Fatal during bootstrap:", e);
+      } finally {
+        setIsReady(true);
+        // Esconder splash após o React renderizar o primeiro frame
+        setTimeout(async () => {
+          try {
+            await SplashScreen.hideAsync();
+            console.info("🚀 [STARTUP] Splash hidden from root.");
+          } catch (e) {
+            console.warn('⚠️ Erro ao esconder splash na raiz:', e);
+          }
+        }, 500);
+      }
+    };
+
+    bootstrap();
+  }, []);
+
+  // Enquanto não está pronto, mostra apenas um container vazio (Splash ainda visível)
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000000' }}>
+        <StatusBar style="light" />
+      </View>
+    );
+  }
 
   return (
     <ErrorBoundary>
