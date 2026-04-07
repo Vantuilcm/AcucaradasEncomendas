@@ -29,24 +29,25 @@ function generateIPA() {
     // 4. Commitar e Push
     console.log(`🚀 [PUSH] Disparando pipeline com tag: [release]`);
     try {
-      // 4.1 Garantir que não existam outros commits locais [release] pendentes
-      console.log('🧹 [GIT] Sincronizando com remote antes do push...');
-      execSync('git pull --rebase origin main', { stdio: 'inherit' });
+      // 4.1 Garantir sincronia
+      console.log('🧹 [GIT] Garantindo sincronia total...');
+      execSync('git add .', { stdio: 'inherit' });
+      try {
+        execSync(`git commit -m "${commitMsg}"`, { stdio: 'inherit' });
+      } catch (e) {
+        console.log('ℹ️ [GIT] Nada novo para commitar.');
+      }
 
-      execSync(`git commit -m "${commitMsg}"`, { stdio: 'inherit' });
+      console.log('🔄 [GIT] Sincronizando com remote...');
       execSync('git push origin main', { stdio: 'inherit' });
+      
       console.log('------------------------------------------------------------');
       console.log('🎯 [SUCESSO] Build disparado! Acompanhe no GitHub Actions.');
       console.log(`🔗 Link: https://github.com/vantuilsilva/AcucaradasEncomendas/actions`);
       console.log('------------------------------------------------------------');
-    } catch (e) {
-      if (e.message.includes('nothing to commit')) {
-        console.log('⚠️ [SKIP] Nada para commitar. Forçando push para garantir trigger...');
-        execSync('git commit --allow-empty -m "build: forçar trigger ipa [release]"', { stdio: 'inherit' });
-        execSync('git push origin main', { stdio: 'inherit' });
-      } else {
-        throw e;
-      }
+    } catch (error) {
+      console.error('❌ [ERRO] Falha no disparo Git:', error.message);
+      process.exit(1);
     }
 
   } catch (error) {
