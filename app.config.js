@@ -50,7 +50,11 @@ export default ({ config }) => {
       ...config.ios,
       bundleIdentifier: appConfig.bundleIdentifier,
       buildNumber: buildNumber.toString(),
-      googleServicesFile: appConfig.firebase.ios
+      googleServicesFile: appConfig.firebase.ios,
+      infoPlist: {
+        ...(config.ios?.infoPlist || {}),
+        ...(appConfig.infoPlist || {})
+      }
     },
     android: {
       ...config.android,

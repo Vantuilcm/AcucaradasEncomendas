@@ -7,6 +7,16 @@
       "bundleIdentifier": "com.acucaradas.encomendas",
       "package": "com.acucaradas.encomendas",
       "scheme": "acucaradas",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Este aplicativo utiliza sua localização para exibir lojas próximas, calcular o tempo de entrega e garantir que o seu pedido chegue ao local correto.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Sua localização é utilizada para oferecer uma experiência personalizada de entrega e notificações sobre o status do seu pedido mesmo em segundo plano.",
+        "NSLocationAlwaysUsageDescription": "Este aplicativo precisa da sua localização para otimizar o rastreamento da entrega e informar sobre promoções em lojas próximas.",
+        "NSSpeechRecognitionUsageDescription": "Este aplicativo utiliza o reconhecimento de voz para permitir que você busque produtos e navegue pelo catálogo usando comandos de voz com facilidade.",
+        "NSMicrophoneUsageDescription": "O acesso ao microfone é necessário para capturar seus comandos de voz durante a busca de produtos e interação com o assistente virtual.",
+        "NSCameraUsageDescription": "O acesso à câmera permite que você tire fotos para o seu perfil e capture imagens de comprovantes de pagamento quando necessário.",
+        "NSPhotoLibraryUsageDescription": "O acesso à galeria permite que você selecione fotos para o seu perfil e anexe imagens a avaliações de produtos."
+      },
       "firebase": {
         "ios": "./GoogleService-Info.plist",
         "android": "./google-services.json"

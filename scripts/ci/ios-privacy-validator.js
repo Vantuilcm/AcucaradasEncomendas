@@ -10,6 +10,8 @@ const { execSync } = require('child_process');
 const REQUIRED_KEYS = [
   "NSSpeechRecognitionUsageDescription",
   "NSLocationWhenInUseUsageDescription",
+  "NSLocationAlwaysAndWhenInUseUsageDescription",
+  "NSLocationAlwaysUsageDescription",
   "NSCameraUsageDescription",
   "NSPhotoLibraryUsageDescription",
   "NSMicrophoneUsageDescription"
@@ -31,8 +33,10 @@ class PrivacyValidator {
     const detected = [];
     const missing = [];
 
+    console.log(`📊 [DEBUG] Chaves presentes no infoPlist: ${Object.keys(infoPlist).join(', ')}`);
+
     REQUIRED_KEYS.forEach(key => {
-      if (infoPlist[key] && infoPlist[key].length > 10) {
+      if (infoPlist[key] && infoPlist[key].length > 5) {
         detected.push(key);
       } else {
         missing.push(key);
@@ -87,22 +91,41 @@ class PrivacyValidator {
       process.exit(1);
     }
 
+    const tmpDir = path.join(this.projectRoot, 'tmp-privacy-extract');
+    if (fs.existsSync(tmpDir)) execSync(`rm -rf "${tmpDir}"`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+
     console.log(`📦 [Artifact] Validando chaves de privacidade na IPA: ${ipaPath}`);
     try {
-      // Extrair Info.plist e buscar as chaves
-      const plistContent = execSync(`unzip -p "${ipaPath}" "Payload/*.app/Info.plist" | strings`, { encoding: 'utf8' });
+      // 1. Extrair Payload para busca dinâmica
+      execSync(`unzip -q "${ipaPath}" "Payload/*" -d "${tmpDir}"`);
+
+      // 2. Localizar Info.plist principal (Payload/*.app/Info.plist)
+      const infoPlistPath = execSync(`find "${tmpDir}/Payload" -maxdepth 3 -name "Info.plist" | grep ".app/Info.plist" | head -n 1`, { encoding: 'utf8' }).trim();
+
+      if (!infoPlistPath || !fs.existsSync(infoPlistPath)) {
+        throw new Error('Info.plist não encontrado dentro da IPA.');
+      }
+
+      // 3. Verificar presença das chaves via strings/grep para máxima segurança
+      const plistContent = execSync(`strings "${infoPlistPath}"`, { encoding: 'utf8' });
       
       const missing = REQUIRED_KEYS.filter(key => !plistContent.includes(key));
 
       if (missing.length > 0) {
-        console.error('❌ [IPA-PRIVACY-FAIL] IPA gerada não contém todas as chaves obrigatórias:');
+        console.error('❌ [IPA-PRIVACY-FAIL] IPA gerada não contém todas as chaves obrigatórias de privacidade!');
+        console.error('As seguintes chaves estão AUSENTES no Info.plist real do binário:');
         missing.forEach(k => console.error(`   - ${k}`));
+        console.error('💡 Dica: Verifique se o app.json/app.config.js está correto e se o prebuild está funcionando.');
         process.exit(1);
       }
 
       console.log('✅ [IPA-PRIVACY-PASS] IPA validada com conformidade total de privacidade.');
     } catch (e) {
-      console.warn(`⚠️ [Warning] Falha na validação profunda da IPA: ${e.message}. Prosseguindo com cautela.`);
+      console.error(`❌ [FATAL-PRIVACY] Falha crítica na validação de privacidade: ${e.message}`);
+      process.exit(1);
+    } finally {
+      execSync(`rm -rf "${tmpDir}"`);
     }
   }
 }

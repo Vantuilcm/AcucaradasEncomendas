@@ -19,7 +19,7 @@ on:
 jobs:
   ios-hybrid-pipeline:
     name: 🍎 Hybrid Pipeline
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 60
     
     env:
@@ -58,10 +58,14 @@ jobs:
           killall node || true
           killall tail || true
 
-      - name: 🔍 Debug Context
+      - name: 🔍 Debug Context & Environment
         run: |
           echo "Event: ${{ github.event_name }}"
           echo "Release Approved: $RELEASE_APPROVED"
+          echo "Xcode version:"
+          xcodebuild -version
+          echo "Available SDKs:"
+          xcodebuild -showsdks
           if [ "${{ github.event_name }}" == "push" ]; then
             echo "Commit Message: ${{ github.event.head_commit.message }}"
           fi

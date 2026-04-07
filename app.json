@@ -7,18 +7,20 @@
       "bundleIdentifier": "com.acucaradas.encomendas",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "Este aplicativo utiliza sua localização para oferecer funcionalidades baseadas em proximidade e calcular valores de entrega.",
-        "NSSpeechRecognitionUsageDescription": "Este aplicativo utiliza reconhecimento de voz para facilitar a busca de produtos e comandos por voz.",
-        "NSMicrophoneUsageDescription": "Este aplicativo pode acessar o microfone para funcionalidades de áudio e comandos de voz.",
-        "NSCameraUsageDescription": "Este aplicativo pode acessar a câmera para captura de imagens quando necessário para o perfil ou pedidos.",
-        "NSPhotoLibraryUsageDescription": "Este aplicativo pode acessar sua galeria para selecionar imagens de produtos ou perfil."
+        "NSLocationWhenInUseUsageDescription": "Este aplicativo utiliza sua localização para exibir lojas próximas, calcular o tempo de entrega e garantir que o seu pedido chegue ao local correto.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Sua localização é utilizada para oferecer uma experiência personalizada de entrega e notificações sobre o status do seu pedido mesmo em segundo plano.",
+        "NSLocationAlwaysUsageDescription": "Este aplicativo precisa da sua localização para otimizar o rastreamento da entrega e informar sobre promoções em lojas próximas.",
+        "NSSpeechRecognitionUsageDescription": "Este aplicativo utiliza o reconhecimento de voz para permitir que você busque produtos e navegue pelo catálogo usando comandos de voz com facilidade.",
+        "NSMicrophoneUsageDescription": "O acesso ao microfone é necessário para capturar seus comandos de voz durante a busca de produtos e interação com o assistente virtual.",
+        "NSCameraUsageDescription": "O acesso à câmera permite que você tire fotos para o seu perfil e capture imagens de comprovantes de pagamento quando necessário.",
+        "NSPhotoLibraryUsageDescription": "O acesso à galeria permite que você selecione fotos para o seu perfil e anexe imagens a avaliações de produtos."
       },
-      "buildNumber": "802",
+      "buildNumber": "803",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.acucaradas.encomendas",
-      "versionCode": 802,
+      "versionCode": 803,
       "googleServicesFile": "./google-services.json"
     },
     "extra": {
