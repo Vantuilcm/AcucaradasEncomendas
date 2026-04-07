@@ -132,9 +132,10 @@ class BuildNumberEnforcer {
       console.log('📦 [UNZIP] Extraindo Payload...');
       execSync(`unzip -q "${ipaPath}" "Payload/*" -d "${tmpDir}"`);
 
-      // 2. Localizar Info.plist dinamicamente
-      console.log('📂 [FIND] Localizando Info.plist dinamicamente...');
-      const infoPlistPath = execSync(`find "${tmpDir}/Payload" -name "Info.plist" | head -n 1`, { encoding: 'utf8' }).trim();
+      // 2. Localizar Info.plist dinamicamente (Garantindo que seja o principal do .app)
+      console.log('📂 [FIND] Localizando Info.plist principal...');
+      // Buscamos o Info.plist que está diretamente dentro de um diretório .app
+      const infoPlistPath = execSync(`find "${tmpDir}/Payload" -maxdepth 3 -name "Info.plist" | grep ".app/Info.plist" | head -n 1`, { encoding: 'utf8' }).trim();
 
       if (!infoPlistPath || !fs.existsSync(infoPlistPath)) {
         throw new Error('Info.plist não encontrado dentro da IPA descompactada.');
