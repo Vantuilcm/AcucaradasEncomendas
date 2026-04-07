@@ -1,26 +1,23 @@
 name: 🚀 Build Android (EAS Local)
 
 concurrency:
-  group: android-build-v1
+  group: app-release-lock
   cancel-in-progress: true
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      release_approved:
-        description: 'Aprovar release de produção manualmente?'
-        required: false
-        default: false
-        type: boolean
+  # workflow_dispatch removido para evitar duplo trigger acidental em produção
+  # workflow_dispatch:
 
 jobs:
   android-hybrid-pipeline:
     name: 🤖 Android Pipeline
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Adicionado filtro de release obrigatório no nível do JOB para paridade com iOS
+    if: contains(github.event.head_commit.message, '[release]')
     
     env:
       RELEASE_APPROVED: ${{ github.event.inputs.release_approved == 'true' || contains(github.event.head_commit.message, '[release]') }}
