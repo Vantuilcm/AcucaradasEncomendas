@@ -10,17 +10,21 @@ const { execSync } = require('child_process');
 const REQUIRED_KEYS = [
   "NSSpeechRecognitionUsageDescription",
   "NSLocationWhenInUseUsageDescription",
+  "NSLocationAlwaysAndWhenInUseUsageDescription",
+  "NSLocationAlwaysUsageDescription",
   "NSCameraUsageDescription",
   "NSPhotoLibraryUsageDescription",
   "NSMicrophoneUsageDescription"
 ];
 
 const DEFAULT_DESCRIPTIONS = {
-  "NSSpeechRecognitionUsageDescription": "Este aplicativo pode utilizar reconhecimento de voz para melhorar a experiência do usuário.",
-  "NSLocationWhenInUseUsageDescription": "Este aplicativo utiliza sua localização para mostrar estabelecimentos próximos.",
-  "NSCameraUsageDescription": "Este aplicativo pode acessar a câmera para fotos ou produtos.",
-  "NSPhotoLibraryUsageDescription": "Este aplicativo pode acessar sua galeria para upload de imagens.",
-  "NSMicrophoneUsageDescription": "Este aplicativo pode acessar o microfone para funcionalidades de áudio."
+  "NSSpeechRecognitionUsageDescription": "Este aplicativo utiliza o reconhecimento de voz para permitir buscas de produtos e navegação por voz.",
+  "NSLocationWhenInUseUsageDescription": "Sua localização é utilizada para exibir lojas próximas e calcular valores de entrega.",
+  "NSLocationAlwaysAndWhenInUseUsageDescription": "Sua localização é utilizada para oferecer uma experiência personalizada de entrega mesmo em segundo plano.",
+  "NSLocationAlwaysUsageDescription": "Este aplicativo precisa da sua localização para otimizar o rastreamento da entrega e informar sobre promoções.",
+  "NSCameraUsageDescription": "O acesso à câmera permite capturar fotos para o seu perfil e pedidos.",
+  "NSPhotoLibraryUsageDescription": "O acesso à galeria permite selecionar fotos para o seu perfil e pedidos.",
+  "NSMicrophoneUsageDescription": "O acesso ao microfone é necessário para comandos de voz e buscas."
 };
 
 class PrivacyValidator {

@@ -27,6 +27,9 @@
         "ios": "./GoogleService-Info.plist",
         "android": "./google-services.json"
       },
+      "plugins": [
+        "./plugins/withIosPermissions"
+      ],
       "environments": {
         "production": {
           "easProfile": "production_v13",

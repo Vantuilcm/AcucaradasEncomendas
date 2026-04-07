@@ -33,7 +33,12 @@ export default ({ config }) => {
   console.log(`🚀 [VERSION-LOCK] Configurando App: ${appConfig.name} (v${appVersion} - BN:${buildNumber} / VC:${versionCode})`);
 
   const plugins = config.plugins || [];
-  const finalPlugins = plugins.filter(p => {
+  const appPlugins = appConfig.plugins || [];
+  
+  // Mesclar plugins do appConfig.json com os do app.json
+  const combinedPlugins = [...new Set([...plugins, ...appPlugins])];
+
+  const finalPlugins = combinedPlugins.filter(p => {
     if (typeof p === 'string' && p === '@sentry/react-native/expo') return sentryEnabled;
     if (Array.isArray(p) && p[0] === '@sentry/react-native/expo') return sentryEnabled;
     return true;
