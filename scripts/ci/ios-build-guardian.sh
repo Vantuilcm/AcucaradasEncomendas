@@ -307,8 +307,8 @@ MAX_RETRIES=2
 
 
 
-# Validar Conformidade de Privacidade (Apple Compliance)
-echo "🛡️ [COMPLIANCE] Validando chaves de privacidade no Info.plist..."
+# Validar Conformidade de Privacidade (Apple Compliance Guardian)
+echo "🛡️ [COMPLIANCE] Injetando e validando chaves de privacidade no Info.plist..."
 node scripts/ci/ios-privacy-validator.js
 
 run_build_with_retry() {
