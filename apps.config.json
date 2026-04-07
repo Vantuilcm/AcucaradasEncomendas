@@ -6,6 +6,7 @@
       "slug": "acucaradas-encomendas",
       "bundleIdentifier": "com.acucaradas.encomendas",
       "package": "com.acucaradas.encomendas",
+      "scheme": "acucaradas",
       "firebase": {
         "ios": "./GoogleService-Info.plist",
         "android": "./google-services.json"

@@ -13,12 +13,12 @@
         "NSCameraUsageDescription": "Este aplicativo pode acessar a câmera para captura de imagens quando necessário para o perfil ou pedidos.",
         "NSPhotoLibraryUsageDescription": "Este aplicativo pode acessar sua galeria para selecionar imagens de produtos ou perfil."
       },
-      "buildNumber": "782",
+      "buildNumber": "802",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.acucaradas.encomendas",
-      "versionCode": 782,
+      "versionCode": 802,
       "googleServicesFile": "./google-services.json"
     },
     "extra": {

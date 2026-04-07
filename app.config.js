@@ -44,6 +44,8 @@ export default ({ config }) => {
     version: appVersion,
     name: appConfig.name,
     slug: appConfig.slug,
+    scheme: appConfig.scheme || "acucaradas",
+    owner: "acucaradaencomendas",
     ios: {
       ...config.ios,
       bundleIdentifier: appConfig.bundleIdentifier,
