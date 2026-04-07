@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LogBox, View, AppState, AppStateStatus } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
+import * as SplashScreen from 'expo-splash-screen';
 import AppNavigator from './navigation/AppNavigator';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
@@ -24,7 +25,10 @@ import { TouchableOpacity, Text } from 'react-native';
 // Inicializar Proteção Global de Erros
 initErrorGuard();
 
-console.log("🚀 [STARTUP] App starting...");
+// Manter a Splash Screen visível até que o bootstrap termine
+SplashScreen.preventAutoHideAsync().catch(() => { /* ignorar erros */ });
+
+console.log("🚀 [STARTUP] App module loaded.");
 
 /**
  * 🛡️ RuntimeCrashDetectorAI - Safe Init Wrapper
@@ -41,19 +45,6 @@ function safeInit(fn: () => void, name: string) {
   }
 }
 
-// 🔍 Diagnóstico de Inicialização (Env Guardian)
-logEvent('APP_START', '🚀 App Iniciado com Monitoramento Ativo');
-const health = runHealthCheck(ENV);
-
-if (__DEV__) {
-  console.log('🧠 [HEALTH-CHECK]:', health);
-}
-
-// Inicialização Segura de Serviços
-safeInit(() => { if (typeof initSentry === 'function') initSentry(); }, 'Sentry');
-safeInit(() => { if (typeof initOneSignal === 'function') initOneSignal(); }, 'OneSignal');
-
-
 // Ignorar warnings específicos durante desenvolvimento
 if (LogBox) {
   LogBox.ignoreLogs([
@@ -66,26 +57,52 @@ if (LogBox) {
 function ThemedApp() {
   const { isDark, theme } = useAppTheme();
 
-  // 🔄 Gerenciamento do Ciclo de Vida para Monitoramento
+  // 🔄 Gerenciamento do Ciclo de Vida e Inicialização Segura
   useEffect(() => {
     let subscription: any;
-    try {
-      // Tentar enviar logs pendentes na inicialização
-      if (transportManager && typeof transportManager.flushLogs === 'function') {
-        transportManager.flushLogs();
-      }
+    
+    const bootstrap = async () => {
+      console.log("🚀 [STARTUP] App starting bootstrap...");
+      
+      // 1. Pequeno delay para garantir estabilidade do Native Bridge
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
-        if (nextAppState === 'active') {
-          logInfo('APP_START', '📱 App voltou para o foreground');
-          if (transportManager && typeof transportManager.flushLogs === 'function') {
-            transportManager.flushLogs();
-          }
+      // 2. Diagnóstico de Inicialização (Env Guardian)
+      logEvent('APP_START', '🚀 App Iniciado com Monitoramento Ativo');
+      runHealthCheck(ENV);
+
+      // 3. Inicialização Segura de Serviços (Agora dentro do ciclo de vida)
+      safeInit(() => { if (typeof initSentry === 'function') initSentry(); }, 'Sentry');
+      safeInit(() => { if (typeof initOneSignal === 'function') initOneSignal(); }, 'OneSignal');
+
+      try {
+        // Tentar enviar logs pendentes na inicialização
+        if (transportManager && typeof transportManager.flushLogs === 'function') {
+          transportManager.flushLogs();
         }
-      });
-    } catch (e) {
-      console.warn('⚠️ Erro no ciclo de vida do monitoramento:', e);
-    }
+
+        subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+          if (nextAppState === 'active') {
+            logInfo('APP_START', '📱 App voltou para o foreground');
+            if (transportManager && typeof transportManager.flushLogs === 'function') {
+              transportManager.flushLogs();
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('⚠️ Erro no ciclo de vida do monitoramento:', e);
+      } finally {
+        // 4. Esconder a Splash Screen somente após tudo estar pronto
+        try {
+          await SplashScreen.hideAsync();
+          console.log("🚀 [STARTUP] Splash hidden.");
+        } catch (hideError) {
+          console.warn('⚠️ Erro ao esconder splash:', hideError);
+        }
+      }
+    };
+
+    bootstrap();
 
     return () => {
       if (subscription && typeof subscription.remove === 'function') {
@@ -93,6 +110,7 @@ function ThemedApp() {
       }
     };
   }, []);
+
   
   // Mesclar o tema do Paper com o nosso tema customizado
   const paperTheme = isDark 

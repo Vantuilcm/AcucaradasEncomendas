@@ -502,6 +502,11 @@ if run_build_with_retry; then
     node -r ts-node/register scripts/ci/PipelineOrchestrator.ts evaluate "${CURRENT_BN:-unknown}" "$CRASH_RATE" "$PAYMENT_SUCCESS"
     # ---------------------------------
 
+    # Salvar log de execução única para este commit
+    echo "📝 [LOG] Registrando execução bem-sucedida do commit..."
+    echo "{\"commit\": \"$(git rev-parse HEAD)\", \"status\": \"SUCCESS\", \"timestamp\": \"$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\"}" > build-logs/build-execution.json
+
+    echo "⚙️ [STATE-ENGINE] Lock removido."
     node scripts/build-state-check.js success
     echo "------------------------------------------------------------"
     echo "🎯 [MISSÃO CUMPRIDA] IPA gerada e submetida com sucesso!"

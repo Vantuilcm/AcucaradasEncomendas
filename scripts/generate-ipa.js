@@ -26,27 +26,24 @@ function generateIPA() {
     
     const commitMsg = `build: gerar ipa v${version} build ${buildNumber} [release]`;
     
-    // 4. Commitar e Push
-    console.log(`🚀 [PUSH] Disparando pipeline com tag: [release]`);
+    // 4. Commitar e Push (REMOVIDO AUTO-PUSH PARA SINGLE TRIGGER)
+    console.log(`🚀 [PUSH] Preparando pipeline com tag: [release]`);
     try {
-      // 4.1 Garantir sincronia
-      console.log('🧹 [GIT] Garantindo sincronia total...');
+      console.log('🧹 [GIT] Garantindo sincronia local...');
       execSync('git add .', { stdio: 'inherit' });
       try {
         execSync(`git commit -m "${commitMsg}"`, { stdio: 'inherit' });
+        console.log('✅ [GIT] Alterações commitadas localmente.');
       } catch (e) {
         console.log('ℹ️ [GIT] Nada novo para commitar.');
       }
 
-      console.log('🔄 [GIT] Sincronizando com remote...');
-      execSync('git push origin main', { stdio: 'inherit' });
-      
       console.log('------------------------------------------------------------');
-      console.log('🎯 [SUCESSO] Build disparado! Acompanhe no GitHub Actions.');
-      console.log(`🔗 Link: https://github.com/vantuilsilva/AcucaradasEncomendas/actions`);
+      console.log('🎯 [SUCESSO] Build preparado localmente!');
+      console.log('👉 EXECUTE MANUALMENTE PARA DISPARAR: git push origin main');
       console.log('------------------------------------------------------------');
     } catch (error) {
-      console.error('❌ [ERRO] Falha no disparo Git:', error.message);
+      console.error('❌ [ERRO] Falha na preparação Git:', error.message);
       process.exit(1);
     }
 

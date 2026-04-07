@@ -28,7 +28,23 @@
         "android": "./google-services.json"
       },
       "plugins": [
-        "./plugins/withIosPermissions"
+        "./plugins/withIosPermissions",
+        "@sentry/react-native/expo",
+        [
+          "onesignal-expo-plugin",
+          {
+            "mode": "production"
+          }
+        ],
+        [
+          "expo-build-properties",
+          {
+            "ios": {
+              "useFrameworks": "static",
+              "deploymentTarget": "15.1"
+            }
+          }
+        ]
       ],
       "environments": {
         "production": {

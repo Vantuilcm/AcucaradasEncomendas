@@ -44,6 +44,17 @@ function check() {
     // 1. Gerenciar LOCK
     if (action === 'lock') {
         const localLock = path.join(__dirname, '../build.lock');
+        const executionLog = path.join(__dirname, '../build-logs/build-execution.json');
+        
+        // 1.1 Validar se o commit já foi executado
+        if (fs.existsSync(executionLog)) {
+            const history = JSON.parse(fs.readFileSync(executionLog, 'utf8'));
+            if (history.commit === currentCommit && history.status === 'SUCCESS') {
+                console.error(`🚫 [SKIP] Este commit (${currentCommit.substring(0,7)}) já foi buildado com sucesso.`);
+                process.exit(1);
+            }
+        }
+
         if (fs.existsSync(localLock)) {
             const lockInfo = readJson(localLock, { timestamp: 'unknown' });
             const lockTime = new Date(lockInfo.timestamp).getTime();
