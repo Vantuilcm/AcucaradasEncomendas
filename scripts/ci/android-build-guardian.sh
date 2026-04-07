@@ -42,31 +42,31 @@ echo "🧹 [INFO] Limpando ambiente e artefatos antigos..."
 rm -rf android .expo dist/*.aab *.aab build-logs/*.log
 mkdir -p dist build-logs
 
-# 2.1 Sincronizar Versão
-echo "🔄 [VERSION-LOCK] Sincronizando build number via Lock System..."
-node scripts/ci/version-lock.js --sync
+# 2.1 Forçar Build Number Único (Enforcer)
+echo "🔄 [ENFORCER] Garantindo build number único..."
+rm -rf android .expo dist/*.aab *.aab build-logs/*.log
+node scripts/ci/force-build-number.js --run
 
-# Extrair versão atualizada (Source of Truth: Environment ou version-state.json)
-export CURRENT_BN=$(jq -r '.buildNumber' version-state.json)
-TARGET_VER=$(jq -r '.version' version-state.json)
-echo "📌 [TARGET] Preparando Build Lock: $TARGET_VER (VersionCode: $CURRENT_BN)"
+# Extrair versão atualizada (Source of Truth: app.json pós-enforce)
+export CURRENT_BN=$(jq -r '.expo.android.versionCode' app.json)
+TARGET_VER=$(jq -r '.expo.version' app.json)
+
+# Sincronizar também o version-lock para consistência total
+echo "{ \"version\": \"$TARGET_VER\", \"buildNumber\": $CURRENT_BN, \"lastUpdated\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\" }" > version-state.json
+
+echo "📌 [TARGET] Preparando Build Enforced: $TARGET_VER (VersionCode: $CURRENT_BN)"
 echo "💉 [ENV] Injetando VERSION_CODE=$CURRENT_BN para o app.config.js"
 export VERSION_CODE="$CURRENT_BN"
-export CURRENT_BN="$CURRENT_BN"
 
 # Validar Build Number Resolvido pelo Expo (Fail-Fast)
 echo "🔍 [RESOLVE] Validando configuração resolvida do Expo..."
-# Suprimir telemetria e logs para garantir JSON limpo
-EXPO_NO_TELEMETRY=1 npx expo config --type public --json > build-resolved-config-android.json 2>/dev/null || npx expo config --type public > build-resolved-config-android.json
-
-# Limpeza extra: remover linhas que não começam com { (logs de telemetria remanescentes)
+EXPO_NO_TELEMETRY=1 npx expo config --type public --json > build-resolved-config-android.json 2>/dev/null
 sed -i -n '/^{/,$p' build-resolved-config-android.json
 
 RESOLVED_VC=$(jq -r '.android.versionCode' build-resolved-config-android.json)
 
 if [ "$RESOLVED_VC" != "$CURRENT_BN" ]; then
     echo "❌ [FATAL] Divergência de VersionCode! Resolvido: $RESOLVED_VC | Esperado: $CURRENT_BN"
-    echo "💡 Dica: Verifique se o app.config.js está lendo version-state.json corretamente."
     exit 1
 fi
 echo "✅ [OK] VersionCode resolvido confirmado: $RESOLVED_VC"

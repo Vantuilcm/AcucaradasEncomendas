@@ -60,25 +60,35 @@ MISSING_VARS=()
 [ -z "${EXPO_ASC_KEY_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_KEY_ID")
 [ -z "${EXPO_ASC_ISSUER_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_ISSUER_ID")
 
-# 2.1 Sincronizar Versão IMEDIATAMENTE antes de começar
-echo "🔄 [VERSION-LOCK] Sincronizando build number via Lock System..."
-node scripts/ci/version-lock.js --sync
+# 2.1 Forçar Build Number Único (Enforcer)
+echo "🔄 [ENFORCER] Garantindo build number único..."
+rm -f app.ipa
+rm -rf dist
+node scripts/ci/force-build-number.js --run
 
-# Extrair versão atualizada (Source of Truth: Environment ou version-state.json)
-export CURRENT_BN=$(jq -r '.buildNumber' version-state.json)
-TARGET_VER=$(jq -r '.version' version-state.json)
+# Extrair versão atualizada (Source of Truth: app.json pós-enforce)
+export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
+TARGET_VER=$(jq -r '.expo.version' app.json)
 
-# VALIDAÇÃO DE SEGURANÇA: Impedir build 347 (Hardcoded Protection)
-if [[ "$CURRENT_BN" == "347" ]]; then
-    echo "🚨 [SAFETY-BLOCK] Detectada tentativa de build com o número 347 (Antigo/Inválido)."
-    echo "❌ [ERROR] O pipeline foi interrompido para evitar upload de versão banida."
-    exit 1
-fi
+# Sincronizar também o version-lock para consistência total
+echo "{ \"version\": \"$TARGET_VER\", \"buildNumber\": $CURRENT_BN, \"lastUpdated\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\" }" > version-state.json
 
-echo "📌 [TARGET] Preparando Build Lock: $TARGET_VER ($CURRENT_BN)"
+echo "📌 [TARGET] Preparando Build Enforced: $TARGET_VER ($CURRENT_BN)"
 echo "💉 [ENV] Injetando BUILD_NUMBER=$CURRENT_BN para o app.config.js"
 export BUILD_NUMBER="$CURRENT_BN"
-export CURRENT_BN="$CURRENT_BN"
+
+# Validar Build Number Resolvido pelo Expo (Fail-Fast)
+echo "🔍 [RESOLVE] Validando configuração resolvida do Expo..."
+EXPO_NO_TELEMETRY=1 npx expo config --type public --json > build-resolved-config.json 2>/dev/null
+sed -i '' -n '/^{/,$p' build-resolved-config.json 2>/dev/null || sed -i -n '/^{/,$p' build-resolved-config.json
+
+RESOLVED_BN=$(jq -r '.ios.buildNumber' build-resolved-config.json)
+
+if [ "$RESOLVED_BN" != "$CURRENT_BN" ]; then
+    echo "❌ [FATAL] Divergência de Build Number! Resolvido: $RESOLVED_BN | Esperado: $CURRENT_BN"
+    exit 1
+fi
+echo "✅ [OK] Build Number resolvido confirmado: $RESOLVED_BN"
 
 # --- INÍCIO DA EXECUÇÃO (v2.3) ---
 echo "🚀 [START] Iniciando iOS Build Guardian v2.3 (FORCE TRIGGER) [release]..."
@@ -288,22 +298,7 @@ fi
 
 MAX_RETRIES=2
 
-# Validar Build Number Resolvido pelo Expo (Fail-Fast)
-echo "🔍 [RESOLVE] Validando configuração resolvida do Expo..."
-# Suprimir telemetria e logs para garantir JSON limpo
-EXPO_NO_TELEMETRY=1 npx expo config --type public --json > build-resolved-config.json 2>/dev/null || npx expo config --type public > build-resolved-config.json
 
-# Limpeza extra: remover linhas que não começam com { (logs de telemetria remanescentes)
-sed -i '' -n '/^{/,$p' build-resolved-config.json 2>/dev/null || sed -i -n '/^{/,$p' build-resolved-config.json
-
-RESOLVED_BN=$(jq -r '.ios.buildNumber' build-resolved-config.json)
-
-if [ "$RESOLVED_BN" != "$CURRENT_BN" ]; then
-    echo "❌ [FATAL] Divergência de Build Number! Resolvido: $RESOLVED_BN | Esperado: $CURRENT_BN"
-    echo "💡 Dica: Verifique se o app.config.js está lendo version-state.json corretamente."
-    exit 1
-fi
-echo "✅ [OK] Build Number resolvido confirmado: $RESOLVED_BN"
 
 # Validar Conformidade de Privacidade (Apple Compliance)
 echo "🛡️ [COMPLIANCE] Validando chaves de privacidade no Info.plist..."
@@ -420,7 +415,7 @@ if run_build_with_retry; then
 
     # 🔍 [VALIDATE] Validação profunda do Build Number na IPA antes do Submit
     echo "🔍 [VALIDATE] Validando integridade do build na IPA..."
-    node scripts/ci/version-lock.js --validate-ipa "./dist/app.ipa" "$CURRENT_BN"
+    node scripts/ci/force-build-number.js --validate-ipa "./dist/app.ipa" "$CURRENT_BN"
     
     # 🛡️ [COMPLIANCE] Validação profunda de privacidade na IPA
     echo "🔍 [COMPLIANCE] Validando chaves de privacidade na IPA final..."
