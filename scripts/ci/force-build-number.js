@@ -111,40 +111,88 @@ class BuildNumberEnforcer {
     return finalBN;
   }
 
-  validateIpa(ipaPath, expectedBN) {
+  validateIpa(ipaPath, expectedBN, expectedVersion, expectedBundleId) {
     if (!fs.existsSync(ipaPath)) {
       console.error(`❌ [FATAL] IPA não encontrada: ${ipaPath}`);
       process.exit(1);
     }
 
+    const tmpDir = path.join(this.projectRoot, 'tmp-ipa-extract');
+    const logDir = path.join(this.projectRoot, 'build-logs', 'acucaradas-encomendas');
+    const validationLogPath = path.join(logDir, 'ipa-validation.json');
+    
+    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+    if (fs.existsSync(tmpDir)) execSync(`rm -rf "${tmpDir}"`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+
+    console.log(`🔍 [VALIDATE] Iniciando validação profunda da IPA: ${ipaPath}`);
+    
     try {
-      console.log(`🔍 [VALIDATE] Inspecionando CFBundleVersion na IPA: ${ipaPath}`);
-      // No macOS, unzip -p funciona bem. No Windows, teríamos problemas, mas esse script roda em CI (macOS)
-      const plistContent = execSync(`unzip -p "${ipaPath}" "Payload/*.app/Info.plist" | strings`, { encoding: 'utf8' });
-      const match = plistContent.match(/CFBundleVersion\s+(\d+)/) || plistContent.match(/<key>CFBundleVersion<\/key>\s*<string>(\d+)<\/string>/);
-      
-      if (match) {
-        const actualBN = parseInt(match[1], 10);
-        const expectedInt = parseInt(expectedBN, 10);
+      // 1. Descompactar a IPA (Payload apenas para rapidez)
+      console.log('📦 [UNZIP] Extraindo Payload...');
+      execSync(`unzip -q "${ipaPath}" "Payload/*" -d "${tmpDir}"`);
 
-        // Atualizar Build Integrity Log
-        const integrity = JSON.parse(fs.readFileSync(this.integrityLogPath, 'utf8'));
-        integrity.actualIpaBN = actualBN;
-        integrity.status = (actualBN === expectedInt) ? 'SUCCESS' : 'MISMATCH';
-        integrity.timestamp = new Date().toISOString();
-        fs.writeFileSync(this.integrityLogPath, JSON.stringify(integrity, null, 2));
+      // 2. Localizar Info.plist dinamicamente
+      console.log('📂 [FIND] Localizando Info.plist dinamicamente...');
+      const infoPlistPath = execSync(`find "${tmpDir}/Payload" -name "Info.plist" | head -n 1`, { encoding: 'utf8' }).trim();
 
-        if (actualBN !== expectedInt) {
-          console.error(`❌ [MISMATCH] IPA Build (${actualBN}) diverge do esperado (${expectedInt})!`);
-          process.exit(1);
-        }
-        console.log(`✅ [CONFIRMED] IPA Build Number: ${actualBN}`);
-      } else {
-        throw new Error('Não foi possível localizar CFBundleVersion no Info.plist');
+      if (!infoPlistPath || !fs.existsSync(infoPlistPath)) {
+        throw new Error('Info.plist não encontrado dentro da IPA descompactada.');
       }
+      console.log(`✅ [FOUND] Info.plist: ${infoPlistPath}`);
+
+      // 3. Extrair metadados via PlistBuddy (macOS only)
+      const getValue = (key) => {
+        try {
+          return execSync(`/usr/libexec/PlistBuddy -c "Print :${key}" "${infoPlistPath}"`, { encoding: 'utf8' }).trim();
+        } catch (e) {
+          // Fallback para plutil se PlistBuddy falhar
+          return execSync(`plutil -extract ${key} raw "${infoPlistPath}"`, { encoding: 'utf8' }).trim();
+        }
+      };
+
+      const actualBN = getValue('CFBundleVersion');
+      const actualVersion = getValue('CFBundleShortVersionString');
+      const actualBundleId = getValue('CFBundleIdentifier');
+
+      console.log(`📊 [METADATA] BN: ${actualBN} | Versão: ${actualVersion} | ID: ${actualBundleId}`);
+
+      // 4. Validar contra o esperado
+      const isBNValid = actualBN === expectedBN.toString();
+      const isVersionValid = actualVersion === expectedVersion;
+      const isBundleIdValid = actualBundleId === expectedBundleId;
+
+      const validationStatus = (isBNValid && isVersionValid && isBundleIdValid) ? 'SUCCESS' : 'MISMATCH';
+
+      // 5. Logar Resultado
+      const validationLog = {
+        ipaPath,
+        infoPlistPath,
+        expected: { bn: expectedBN, version: expectedVersion, bundleId: expectedBundleId },
+        actual: { bn: actualBN, version: actualVersion, bundleId: actualBundleId },
+        checks: { bn: isBNValid, version: isVersionValid, bundleId: isBundleIdValid },
+        validationStatus,
+        timestamp: new Date().toISOString()
+      };
+      fs.writeFileSync(validationLogPath, JSON.stringify(validationLog, null, 2));
+
+      // 6. Fail Fast se houver divergência
+      if (validationStatus === 'MISMATCH') {
+        console.error('❌ [MISMATCH] Divergência detectada nos metadados da IPA!');
+        if (!isBNValid) console.error(`   - CFBundleVersion: Esperado ${expectedBN}, Encontrado ${actualBN}`);
+        if (!isVersionValid) console.error(`   - CFBundleShortVersionString: Esperado ${expectedVersion}, Encontrado ${actualVersion}`);
+        if (!isBundleIdValid) console.error(`   - CFBundleIdentifier: Esperado ${expectedBundleId}, Encontrado ${actualBundleId}`);
+        process.exit(1);
+      }
+
+      console.log(`✅ [VALIDATION-FIXED] IPA validada com sucesso! Pronto para submissão.`);
+
     } catch (e) {
-      console.warn(`⚠️ [Warning] Validação profunda falhou ou Info.plist não encontrado: ${e.message}`);
+      console.error(`❌ [FATAL] Erro na validação profunda: ${e.message}`);
       process.exit(1);
+    } finally {
+      // Limpeza
+      execSync(`rm -rf "${tmpDir}"`);
     }
   }
 
@@ -169,7 +217,9 @@ if (args.includes('--run')) {
 } else if (args.includes('--validate-ipa')) {
   const ipaPath = args[args.indexOf('--validate-ipa') + 1];
   const bn = args[args.indexOf('--validate-ipa') + 2];
-  enforcer.validateIpa(ipaPath, bn);
+  const version = args[args.indexOf('--validate-ipa') + 3];
+  const bundleId = args[args.indexOf('--validate-ipa') + 4];
+  enforcer.validateIpa(ipaPath, bn, version, bundleId);
 } else if (args.includes('--finalize')) {
   const status = args[args.indexOf('--finalize') + 1];
   enforcer.finalize(status);

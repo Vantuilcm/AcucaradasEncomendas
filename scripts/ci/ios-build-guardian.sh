@@ -419,9 +419,12 @@ if run_build_with_retry; then
     fi
     echo "🚀 [READY] IPA pronta em: ./dist/app.ipa"
 
+    # Extrair metadados esperados para validação
+    TARGET_BUNDLE_ID=$(jq -r '.expo.ios.bundleIdentifier' app.json)
+    
     # 🔍 [VALIDATE] Validação profunda do Build Number na IPA antes do Submit
-    echo "🔍 [VALIDATE] Validando integridade do build na IPA..."
-    node scripts/ci/force-build-number.js --validate-ipa "./dist/app.ipa" "$CURRENT_BN"
+    echo "🔍 [VALIDATE] Validando integridade do build na IPA (BN: $CURRENT_BN | VER: $TARGET_VER | ID: $TARGET_BUNDLE_ID)..."
+    node scripts/ci/force-build-number.js --validate-ipa "./dist/app.ipa" "$CURRENT_BN" "$TARGET_VER" "$TARGET_BUNDLE_ID"
     
     # 🛡️ [COMPLIANCE] Validação profunda de privacidade na IPA
     echo "🔍 [COMPLIANCE] Validando chaves de privacidade na IPA final..."
