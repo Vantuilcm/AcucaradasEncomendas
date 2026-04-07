@@ -68,13 +68,14 @@ function ThemedApp() {
 
   // 🔄 Gerenciamento do Ciclo de Vida para Monitoramento
   useEffect(() => {
+    let subscription: any;
     try {
       // Tentar enviar logs pendentes na inicialização
       if (transportManager && typeof transportManager.flushLogs === 'function') {
         transportManager.flushLogs();
       }
 
-      const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
         if (nextAppState === 'active') {
           logInfo('APP_START', '📱 App voltou para o foreground');
           if (transportManager && typeof transportManager.flushLogs === 'function') {
@@ -82,13 +83,15 @@ function ThemedApp() {
           }
         }
       });
-
-      return () => {
-        subscription.remove();
-      };
     } catch (e) {
       console.warn('⚠️ Erro no ciclo de vida do monitoramento:', e);
     }
+
+    return () => {
+      if (subscription && typeof subscription.remove === 'function') {
+        subscription.remove();
+      }
+    };
   }, []);
   
   // Mesclar o tema do Paper com o nosso tema customizado

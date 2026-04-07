@@ -23,6 +23,7 @@ export type LogType =
   | 'AUTH_ERROR'
   | 'NETWORK_ERROR'
   | 'UNKNOWN_ERROR'
+  | 'INIT_ERROR'
   | 'SELF_HEAL_ACTION';
 
 export interface LogEntry {

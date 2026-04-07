@@ -29,8 +29,12 @@ function generateIPA() {
     // 4. Commitar e Push
     console.log(`🚀 [PUSH] Disparando pipeline com tag: [release]`);
     try {
+      // 4.1 Garantir que não existam outros commits locais [release] pendentes
+      console.log('🧹 [GIT] Sincronizando com remote antes do push...');
+      execSync('git pull --rebase origin main', { stdio: 'inherit' });
+
       execSync(`git commit -m "${commitMsg}"`, { stdio: 'inherit' });
-      execSync('git push', { stdio: 'inherit' });
+      execSync('git push origin main', { stdio: 'inherit' });
       console.log('------------------------------------------------------------');
       console.log('🎯 [SUCESSO] Build disparado! Acompanhe no GitHub Actions.');
       console.log(`🔗 Link: https://github.com/vantuilsilva/AcucaradasEncomendas/actions`);
@@ -39,7 +43,7 @@ function generateIPA() {
       if (e.message.includes('nothing to commit')) {
         console.log('⚠️ [SKIP] Nada para commitar. Forçando push para garantir trigger...');
         execSync('git commit --allow-empty -m "build: forçar trigger ipa [release]"', { stdio: 'inherit' });
-        execSync('git push', { stdio: 'inherit' });
+        execSync('git push origin main', { stdio: 'inherit' });
       } else {
         throw e;
       }
