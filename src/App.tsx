@@ -24,6 +24,23 @@ import { TouchableOpacity, Text } from 'react-native';
 // Inicializar Proteção Global de Erros
 initErrorGuard();
 
+console.log("🚀 [STARTUP] App starting...");
+
+/**
+ * 🛡️ RuntimeCrashDetectorAI - Safe Init Wrapper
+ * Inicializa serviços críticos protegendo contra crashes fatais na inicialização.
+ */
+function safeInit(fn: () => void, name: string) {
+  try {
+    console.log(`🔧 [INIT] Inicializando ${name}...`);
+    fn();
+    console.log(`✅ [INIT] ${name} pronto.`);
+  } catch (e) {
+    console.error(`❌ [INIT ERROR] Falha ao inicializar ${name}:`, e);
+    logEvent('INIT_ERROR', `Falha em ${name}: ${e instanceof Error ? e.message : 'Unknown'}`);
+  }
+}
+
 // 🔍 Diagnóstico de Inicialização (Env Guardian)
 logEvent('APP_START', '🚀 App Iniciado com Monitoramento Ativo');
 const health = runHealthCheck(ENV);
@@ -32,13 +49,10 @@ if (__DEV__) {
   console.log('🧠 [HEALTH-CHECK]:', health);
 }
 
-// Inicializar Serviços Críticos
-try {
-  if (typeof initSentry === 'function') initSentry();
-  if (typeof initOneSignal === 'function') initOneSignal();
-} catch (error) {
-  console.error('❌ Erro na inicialização de serviços:', error);
-}
+// Inicialização Segura de Serviços
+safeInit(() => { if (typeof initSentry === 'function') initSentry(); }, 'Sentry');
+safeInit(() => { if (typeof initOneSignal === 'function') initOneSignal(); }, 'OneSignal');
+
 
 // Ignorar warnings específicos durante desenvolvimento
 if (LogBox) {

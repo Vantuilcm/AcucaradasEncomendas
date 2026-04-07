@@ -74,6 +74,10 @@ MISSING_VARS=()
 echo "🔄 [ENFORCER] Garantindo build number único..."
 node scripts/ci/force-build-number.js --run
 
+# 🛡️ [RUNTIME-CHECK] Validar variáveis de ambiente críticas para evitar crash
+echo "🕵️ [RUNTIME] Verificando sanidade das variáveis de ambiente..."
+node scripts/ci/runtime-env-check.js
+
 # Extrair versão atualizada (Source of Truth: app.json pós-enforce)
 export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
 TARGET_VER=$(jq -r '.expo.version' app.json)
