@@ -105,24 +105,26 @@ class PrivacyValidator {
   }
 
   checkResolvedConfig() {
-    console.log('🔍 [RESOLVE] Validando configuração resolvida do Expo para privacidade...');
     try {
-      // Usando o arquivo já gerado pelo guardian ou gerando um temporário
-      const resolvedPath = path.join(this.projectRoot, 'build-resolved-config.json');
-      let config;
+      console.log('🔍 [CONFIG] Validando configuração resolvida do Expo...');
+      const output = execSync('npx expo config --type public --json', { encoding: 'utf8' });
+      // Limpar output de telemetria se necessário
+      const cleanJson = output.substring(output.indexOf('{'));
+      const config = JSON.parse(cleanJson);
+      this.validateConfig(config, 'Expo Config Resolved');
       
-      if (fs.existsSync(resolvedPath)) {
-        config = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
-      } else {
-        const output = execSync('npx expo config --type public --json', { encoding: 'utf8', env: { ...process.env, EXPO_NO_TELEMETRY: '1' } });
-        // Limpar output para pegar apenas o JSON
-        const jsonStr = output.substring(output.indexOf('{'));
-        config = JSON.parse(jsonStr);
+      // Validação Extra: Tentar localizar o Info.plist nativo se ele existir
+      const nativePlist = path.join(this.projectRoot, 'ios/AucaradasEncomendas/Info.plist');
+      if (fs.existsSync(nativePlist)) {
+        console.log('🔍 [NATIVE] Validando Info.plist nativo existente...');
+        const plistContent = fs.readFileSync(nativePlist, 'utf8');
+        const missing = REQUIRED_KEYS.filter(key => !plistContent.includes(`<key>${key}</key>`));
+        if (missing.length > 0) {
+          console.warn(`⚠️ [Warning] Chaves ausentes no Info.plist nativo: ${missing.join(', ')}`);
+        }
       }
-      
-      this.validateConfig(config);
     } catch (e) {
-      console.error(`❌ [RESOLVE-ERROR] Falha ao ler configuração resolvida: ${e.message}`);
+      console.error(`❌ [CONFIG-ERROR] Falha ao validar configuração: ${e.message}`);
       process.exit(1);
     }
   }

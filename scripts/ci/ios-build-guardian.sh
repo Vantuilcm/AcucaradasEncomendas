@@ -334,6 +334,11 @@ run_build_with_retry() {
         echo "🔧 [PREBUILD] Executando npx expo prebuild --clean..."
         npx expo prebuild --platform ios --clean --non-interactive
         
+        # 🍎 [NATIVE-PRIVACY] iOSNativePrivacyFixAI: Forçar injeção no Info.plist nativo
+        echo "💉 [NATIVE] Forçando permissões no Info.plist nativo após prebuild..."
+        chmod +x scripts/ci/ios-force-plist.sh
+        bash scripts/ci/ios-force-plist.sh
+        
         if [ ! -d "ios" ]; then
             echo "❌ [FATAL] Diretório 'ios' não foi gerado pelo prebuild."
             return 1
