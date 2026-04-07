@@ -3,8 +3,16 @@
     "name": "Açucaradas Encomendas",
     "slug": "acucaradas-encomendas",
     "version": "1.1.8",
+    "icon": "./assets/app-icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "bundleIdentifier": "com.acucaradas.encomendas",
+      "supportsTablet": true,
+      "icon": "./assets/app-icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Este aplicativo utiliza sua localização para exibir lojas próximas, calcular o tempo de entrega e garantir que o seu pedido chegue ao local correto.",
@@ -15,12 +23,16 @@
         "NSCameraUsageDescription": "O acesso à câmera permite que você tire fotos para o seu perfil e capture imagens de comprovantes de pagamento quando necessário.",
         "NSPhotoLibraryUsageDescription": "O acesso à galeria permite que você selecione fotos para o seu perfil e anexe imagens a avaliações de produtos."
       },
-      "buildNumber": "803",
+      "buildNumber": "821",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.acucaradas.encomendas",
-      "versionCode": 803,
+      "versionCode": 821,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app-icon.png",
+        "backgroundColor": "#ffffff"
+      },
       "googleServicesFile": "./google-services.json"
     },
     "extra": {

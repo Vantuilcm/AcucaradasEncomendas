@@ -116,16 +116,28 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: 🛡️ Version Lock Guardian (Sync & Validate)
+      - name: 🛡️ Build Number Enforcer (Source of Truth)
         run: |
-          echo "🔄 [SYNC] Sincronizando e Validando Versão via Lock System..."
-          node scripts/ci/version-lock.js --sync
-          node scripts/ci/version-lock.js --validate
+          echo "🔄 [ENFORCE] Sincronizando Build Number (V7.0)..."
+          node scripts/ci/force-build-number.js --run
           
           # Exportar variáveis para o ambiente do runner
-          BUILD_NUMBER=$(jq -r '.buildNumber' version-state.json)
+          BUILD_NUMBER=$(jq -r '.expo.ios.buildNumber' app.json)
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
           echo "CURRENT_BN=$BUILD_NUMBER" >> $GITHUB_ENV
+          
+      - name: 🎨 Verify Assets Integrity
+        run: |
+          echo "🔍 [ASSETS] Verificando integridade das imagens..."
+          if [ ! -f "assets/app-icon.png" ]; then
+            echo "❌ [FATAL] assets/app-icon.png não encontrado!"
+            exit 1
+          fi
+          if [ ! -f "assets/splash.png" ]; then
+            echo "❌ [FATAL] assets/splash.png não encontrado!"
+            exit 1
+          fi
+          echo "✅ [OK] Assets detectados com sucesso."
 
       - name: 🛡️ iOS-BUILD-GUARDIAN (Local Mode)
         run: |

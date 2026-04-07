@@ -43,35 +43,41 @@ function check() {
 
     // 1. Gerenciar LOCK
     if (action === 'lock') {
-        if (fs.existsSync(LOCK_FILE)) {
-            console.error(`❌ [ERROR] Build em andamento detectado (LOCK existe em ${LOCK_FILE}). Abortando.`);
-            process.exit(1);
-        }
-        try {
-            fs.writeFileSync(LOCK_FILE, JSON.stringify({
-                commit: currentCommit,
-                timestamp: new Date().toISOString(),
-                pid: process.pid
-            }), 'utf8');
-            log('Lock criado com sucesso.');
-            process.exit(0);
-        } catch (e) {
-            log('Aviso: Não foi possível criar lock em /tmp (pode ser Windows). Tentando local...');
-            const localLock = path.join(__dirname, '../build.lock');
-            if (fs.existsSync(localLock)) {
-                console.error(`❌ [ERROR] Build em andamento detectado (LOCK local). Abortando.`);
+        const localLock = path.join(__dirname, '../build.lock');
+        if (fs.existsSync(localLock)) {
+            const lockInfo = readJson(localLock, { timestamp: 'unknown' });
+            const lockTime = new Date(lockInfo.timestamp).getTime();
+            const now = new Date().getTime();
+            const diffMinutes = (now - lockTime) / (1000 * 60);
+
+            // Auto-unlock após 60 minutos (zombie protection)
+            if (diffMinutes > 60) {
+                log(`⚠️ [TIMEOUT] Lock detectado de ${diffMinutes.toFixed(1)}m atrás. Removendo automaticamente...`);
+                fs.unlinkSync(localLock);
+            } else {
+                console.error(`❌ [ERROR] Build em andamento detectado (LOCK local). Iniciado há ${diffMinutes.toFixed(1)}m. Abortando.`);
                 process.exit(1);
             }
-            fs.writeFileSync(localLock, 'locked', 'utf8');
-            process.exit(0);
         }
+        
+        fs.writeFileSync(localLock, JSON.stringify({
+            commit: currentCommit,
+            timestamp: new Date().toISOString(),
+            pid: process.pid,
+            github_run_id: process.env.GITHUB_RUN_ID || 'local'
+        }), 'utf8');
+        log('Lock de build criado com sucesso.');
+        process.exit(0);
     }
 
     if (action === 'unlock') {
-        if (fs.existsSync(LOCK_FILE)) fs.unlinkSync(LOCK_FILE);
         const localLock = path.join(__dirname, '../build.lock');
-        if (fs.existsSync(localLock)) fs.unlinkSync(localLock);
-        log('Lock removido.');
+        if (fs.existsSync(localLock)) {
+            fs.unlinkSync(localLock);
+            log('Lock de build removido com sucesso.');
+        } else {
+            log('Aviso: Nenhum lock encontrado para remover.');
+        }
         process.exit(0);
     }
 

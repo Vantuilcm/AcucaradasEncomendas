@@ -25,12 +25,13 @@ if [[ "$BRANCH_NAME" == "main" ]] && [[ "$COMMIT_MSG" != *"[release]"* ]]; then
     echo "⚠️ [WARN] Push na main sem tag [release]. Procedendo com build LOCAL por ordem do usuário..."
 fi
 
-echo "🛡️ [STATE-ENGINE] Validando lock e duplicidade..."
+echo "🛡️ [STATE-ENGINE] Ativando LOCK para impedir builds simultâneos..."
 node scripts/build-state-check.js lock
-node scripts/build-state-check.js check
 
 # Garantir unlock ao sair (sucesso ou falha)
 trap "node scripts/build-state-check.js unlock" EXIT
+
+node scripts/build-state-check.js check
 
 # REGRAS ESTRITAS: SEMPRE LOCAL, NUNCA CLOUD
 BUILD_MODE="LOCAL"

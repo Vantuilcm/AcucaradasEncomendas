@@ -4,6 +4,12 @@
       "id": "6090106b-e327-4744-bce5-9ddb0d037045",
       "name": "Açucaradas Encomendas",
       "slug": "acucaradas-encomendas",
+      "icon": "./assets/app-icon.png",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      },
       "bundleIdentifier": "com.acucaradas.encomendas",
       "package": "com.acucaradas.encomendas",
       "scheme": "acucaradas",

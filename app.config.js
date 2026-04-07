@@ -44,6 +44,12 @@ export default ({ config }) => {
     version: appVersion,
     name: appConfig.name,
     slug: appConfig.slug,
+    icon: appConfig.icon || config.icon || "./assets/app-icon.png",
+    splash: appConfig.splash || config.splash || {
+      image: "./assets/splash.png",
+      resizeMode: "contain",
+      backgroundColor: "#ffffff"
+    },
     scheme: appConfig.scheme || "acucaradas",
     owner: "acucaradaencomendas",
     ios: {
@@ -60,6 +66,10 @@ export default ({ config }) => {
       ...config.android,
       package: appConfig.package,
       versionCode: versionCode,
+      adaptiveIcon: {
+        foregroundImage: appConfig.icon || "./assets/app-icon.png",
+        backgroundColor: "#ffffff"
+      },
       googleServicesFile: appConfig.firebase.android
     },
     extra: {

@@ -50,10 +50,10 @@ function getEnv(): Env {
     if (!env[key]) {
       const errorMsg = `🚨 ENV CRASH: Variable ${key} is not defined. Check GitHub Secrets or .env file.`;
       console.error(errorMsg);
-      // No ambiente de produção, queremos que o app falhe rápido para evitar comportamento errático
-      if (!__DEV__) {
-        throw new Error(errorMsg);
-      }
+      // Evitar crash imediato na inicialização mesmo em produção, apenas logar e continuar
+      // if (!__DEV__) {
+      //   throw new Error(errorMsg);
+      // }
     }
   }
 

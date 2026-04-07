@@ -34,10 +34,8 @@ if (__DEV__) {
 
 // Inicializar Serviços Críticos
 try {
-  initSentry();
-  initOneSignal();
-  
-  // Sentry Test Removido para Produção Definitiva
+  if (typeof initSentry === 'function') initSentry();
+  if (typeof initOneSignal === 'function') initOneSignal();
 } catch (error) {
   console.error('❌ Erro na inicialização de serviços:', error);
 }
@@ -47,27 +45,36 @@ if (LogBox) {
   LogBox.ignoreLogs([
     'Non-serializable values were found in the navigation state',
     'Sending `onAnimatedValueUpdate` with no listeners registered',
+    'Require cycle:',
   ]);
 }
 
 function ThemedApp() {
   const { isDark, theme } = useAppTheme();
 
-  // 🔄 Gerenciamento do Ciclo de Vida para Monitoramento (Etapa 7)
+  // 🔄 Gerenciamento do Ciclo de Vida para Monitoramento
   useEffect(() => {
-    // Tentar enviar logs pendentes na inicialização
-    transportManager.flushLogs();
-
-    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
-        logInfo('APP_START', '📱 App voltou para o foreground');
+    try {
+      // Tentar enviar logs pendentes na inicialização
+      if (transportManager && typeof transportManager.flushLogs === 'function') {
         transportManager.flushLogs();
       }
-    });
 
-    return () => {
-      subscription.remove();
-    };
+      const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+        if (nextAppState === 'active') {
+          logInfo('APP_START', '📱 App voltou para o foreground');
+          if (transportManager && typeof transportManager.flushLogs === 'function') {
+            transportManager.flushLogs();
+          }
+        }
+      });
+
+      return () => {
+        subscription.remove();
+      };
+    } catch (e) {
+      console.warn('⚠️ Erro no ciclo de vida do monitoramento:', e);
+    }
   }, []);
   
   // Mesclar o tema do Paper com o nosso tema customizado
