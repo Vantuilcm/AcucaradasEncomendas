@@ -305,6 +305,10 @@ if [ "$RESOLVED_BN" != "$CURRENT_BN" ]; then
 fi
 echo "✅ [OK] Build Number resolvido confirmado: $RESOLVED_BN"
 
+# Validar Conformidade de Privacidade (Apple Compliance)
+echo "🛡️ [COMPLIANCE] Validando chaves de privacidade no Info.plist..."
+node scripts/ci/ios-privacy-validator.js
+
 run_build_with_retry() {
     local attempt=1
     SUBMISSION_STATUS="pending"
@@ -417,6 +421,10 @@ if run_build_with_retry; then
     # 🔍 [VALIDATE] Validação profunda do Build Number na IPA antes do Submit
     echo "🔍 [VALIDATE] Validando integridade do build na IPA..."
     node scripts/ci/version-lock.js --validate-ipa "./dist/app.ipa" "$CURRENT_BN"
+    
+    # 🛡️ [COMPLIANCE] Validação profunda de privacidade na IPA
+    echo "🔍 [COMPLIANCE] Validando chaves de privacidade na IPA final..."
+    node scripts/ci/ios-privacy-validator.js --check-ipa "./dist/app.ipa"
     
     # Salvar log final para o artefato do GitHub
     [ -f "build-logs/eas-build-local.log" ] && cp "build-logs/eas-build-local.log" "build-logs/ios-build-log.json" || true
