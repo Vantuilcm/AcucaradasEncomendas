@@ -48,11 +48,20 @@ if ! command -v xcodebuild &> /dev/null; then
     exit 1
 fi
 
-## ETAPA 2 — PRÉ-VALIDAÇÃO E LIMPEZA
-echo "🧹 [INFO] Limpando ambiente e artefatos antigos..."
-# Limpeza agressiva para evitar submissão de artefatos fantasmas (como o build 347 detectado)
-rm -rf ios .expo dist/*.ipa *.ipa build-logs/*.log
+## ETAPA 2 — PRÉ-VALIDAÇÃO E LIMPEZA TOTAL (ANTI-CACHE)
+echo "🧹 [INFO] Limpeza TOTAL do ambiente (Anti-Cache)..."
+# Limpeza agressiva solicitada pela missão BuildIntegrityEnforcerAI
+rm -rf node_modules
+rm -rf ios
+rm -rf dist
+rm -f app.ipa
+rm -rf ~/.expo
+rm -rf ~/.eas
+rm -rf .expo
 mkdir -p dist build-logs
+
+echo "📦 [INSTALL] Reinstalando dependências (npm install)..."
+npm install --legacy-peer-deps
 
 # Verificação de Variáveis Críticas
 MISSING_VARS=()
@@ -62,36 +71,33 @@ MISSING_VARS=()
 
 # 2.1 Forçar Build Number Único (Enforcer)
 echo "🔄 [ENFORCER] Garantindo build number único..."
-rm -f app.ipa
-rm -rf dist
 node scripts/ci/force-build-number.js --run
 
 # Extrair versão atualizada (Source of Truth: app.json pós-enforce)
 export CURRENT_BN=$(jq -r '.expo.ios.buildNumber' app.json)
 TARGET_VER=$(jq -r '.expo.version' app.json)
 
-# Sincronizar também o version-lock para consistência total
-echo "{ \"version\": \"$TARGET_VER\", \"buildNumber\": $CURRENT_BN, \"lastUpdated\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\" }" > version-state.json
-
 echo "📌 [TARGET] Preparando Build Enforced: $TARGET_VER ($CURRENT_BN)"
 echo "💉 [ENV] Injetando BUILD_NUMBER=$CURRENT_BN para o app.config.js"
 export BUILD_NUMBER="$CURRENT_BN"
 
-# Validar Build Number Resolvido pelo Expo (Fail-Fast)
+# ETAPA 3 — VALIDAR CONFIG REAL DO EXPO (RESOLVED)
 echo "🔍 [RESOLVE] Validando configuração resolvida do Expo..."
 EXPO_NO_TELEMETRY=1 npx expo config --type public --json > build-resolved-config.json 2>/dev/null
+# Limpeza de logs de telemetria se houver
 sed -i '' -n '/^{/,$p' build-resolved-config.json 2>/dev/null || sed -i -n '/^{/,$p' build-resolved-config.json
 
 RESOLVED_BN=$(jq -r '.ios.buildNumber' build-resolved-config.json)
 
 if [ "$RESOLVED_BN" != "$CURRENT_BN" ]; then
     echo "❌ [FATAL] Divergência de Build Number! Resolvido: $RESOLVED_BN | Esperado: $CURRENT_BN"
+    echo "💡 Verifique se o app.config.js está injetando corretamente o BUILD_NUMBER."
     exit 1
 fi
 echo "✅ [OK] Build Number resolvido confirmado: $RESOLVED_BN"
 
-# --- INÍCIO DA EXECUÇÃO (v2.3) ---
-echo "🚀 [START] Iniciando iOS Build Guardian v2.3 (FORCE TRIGGER) [release]..."
+# --- INÍCIO DA EXECUÇÃO (v3.0 - BuildIntegrityEnforcerAI) ---
+echo "🚀 [START] Iniciando iOS Build Guardian v3.0 (BUILD_SYNC = ENFORCED)..."
 echo "📍 [CWD] Diretório Atual: $(pwd)"
 echo "🕒 [TIME] $(date)"
 echo "👤 [USER] $(whoami)"
@@ -324,8 +330,8 @@ run_build_with_retry() {
         # 3. Limpeza rápida antes de cada tentativa local
         rm -rf ios .expo
         
-        echo "🔧 [PREBUILD] Executando npx expo prebuild..."
-        npx expo prebuild --platform ios --non-interactive
+        echo "🔧 [PREBUILD] Executando npx expo prebuild --clean..."
+        npx expo prebuild --platform ios --clean --non-interactive
         
         if [ ! -d "ios" ]; then
             echo "❌ [FATAL] Diretório 'ios' não foi gerado pelo prebuild."
@@ -439,20 +445,20 @@ if run_build_with_retry; then
     export CI=1
     if npx eas submit --platform ios --profile "$PROFILE" --path "$IPA_PATH" --non-interactive 2>&1 | tee "$SUBMISSION_LOG"; then
         # Validar se o output contém confirmação real de upload
-        # Adicionadas variações comuns de sucesso do EAS CLI e Apple
         if grep -qiE "Successfully uploaded|Submission completed|Submitted your app|uploaded to App Store Connect" "$SUBMISSION_LOG"; then
             echo "✅ [SUBMIT-OK] IPA enviada e confirmada pela Apple."
             SUBMISSION_STATUS="success"
+            node scripts/ci/force-build-number.js --finalize "SUCCESS"
         else
             echo "❌ [SUBMIT-FAIL] Comando finalizou mas o upload não foi confirmado no log."
-            echo "🔍 [DEBUG] Conteúdo do log de submissão:"
-            cat "$SUBMISSION_LOG"
             SUBMISSION_STATUS="unconfirmed"
+            node scripts/ci/force-build-number.js --finalize "FAILED"
             exit 1
         fi
     else
         echo "❌ [SUBMIT-ERROR] Falha crítica na submissão da IPA para Apple."
         SUBMISSION_STATUS="failed"
+        node scripts/ci/force-build-number.js --finalize "FAILED"
         exit 1
     fi
     # ---------------------------------------------------------
