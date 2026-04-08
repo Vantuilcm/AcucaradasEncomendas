@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 /**
- * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3.6: FIREBASE DEFERRED (Zero Import Crash)
- * Esta fase remove o import do Firebase do topo do arquivo e o move para dentro do ciclo de vida.
- * Se o build 908 abrir, confirmamos que o crash acontece no momento do 'import' (linkagem nativa).
+ * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3.7: FIREBASE LAZY LOADING
+ * O build 908 provou que o crash acontece no IMPORT estático.
+ * Esta versão implementa a solução definitiva: Carregamento sob demanda (Lazy).
  */
 
-// Interface mínima
+// Interface completa restaurada
 interface AuthContextData {
   user: any | null;
   isAuthenticated: boolean;
@@ -26,35 +26,42 @@ interface AuthContextData {
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user] = useState<any | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [firebaseInstance, setFirebaseInstance] = useState<any>(null);
 
   useEffect(() => {
-    const init = async () => {
+    const bootstrapLazyFirebase = async () => {
       try {
-        console.log('🛡️ [AUTH] Deferred Init sequence starting...');
+        console.log('🛡️ [AUTH] Starting Lazy Firebase Load...');
         
-        // 🧪 EXPERIMENTO: Importação Dinâmica (Lazy Load)
-        // Se o crash for na linkagem, este código nunca chegará a rodar, 
-        // mas o app pelo menos passará da logo se o import no topo for removido.
+        // 🚀 O SEGREDO: Importar o Firebase apenas DEPOIS que o app já está montado
+        // Isso evita que o erro de linkagem nativa mate o processo de boot.
+        const firebaseModule = await import('../config/firebase');
         
-        /* 
-        const { db } = await import('../config/firebase');
-        console.log('🛡️ [AUTH] Lazy Firestore check:', !!db);
-        */
-
+        if (firebaseModule && firebaseModule.db) {
+          console.log('✅ [AUTH] Firebase Lazy Loaded successfully!');
+          setFirebaseInstance(firebaseModule);
+        }
       } catch (e) {
-        console.error('🛡️ [AUTH] Caught crash during deferred init:', e);
+        console.error('❌ [AUTH] Fatal Lazy Load Error:', e);
       } finally {
         setLoading(false);
         setIsReady(true);
       }
     };
-    init();
+
+    // Pequeno delay extra para garantir que a UI principal já rendenizou
+    const timer = setTimeout(bootstrapLazyFirebase, 1000);
+    return () => clearTimeout(timer);
   }, []);
 
-  const login = async () => {};
+  const login = async () => {
+    if (!firebaseInstance) throw new Error("Firebase not initialized yet");
+    console.log('Login logic will use firebaseInstance.auth');
+  };
+
   const register = async () => {};
   const logout = async () => {};
   const resetPassword = async () => {};
