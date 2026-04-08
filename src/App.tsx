@@ -1,216 +1,82 @@
-import React, { useEffect, useState } from 'react';
-import { LogBox, View, AppState, AppStateStatus, TouchableOpacity, Text } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
-import * as SplashScreen from 'expo-splash-screen';
-import AppNavigator from './navigation/AppNavigator';
-import { AuthProvider } from './contexts/AuthContext';
-import { CartProvider } from './contexts/CartContext';
-import { LocationProvider } from './contexts/LocationContext';
-import { ThemeProvider, useAppTheme } from './components/ThemeProvider';
-import { ENV } from './config/env';
-
-// 🛡️ Monitoramento e Resiliência
-import { initErrorGuard } from './core/monitoring/errorGuard';
-import { logEvent, logInfo } from './core/monitoring/logger';
-import { runHealthCheck } from './core/monitoring/healthCheck';
-import { ErrorBoundary } from './core/monitoring/ErrorBoundary';
-import { transportManager } from './core/monitoring/TransportManager';
-import { DiagnosticScreen } from './core/monitoring/DiagnosticScreen';
-
-// Inicializar Proteção Global de Erros
-initErrorGuard();
 
 /**
- * 🛡️ RuntimeCrashDetectorAI - Safe Init Wrapper
+ * 🛡️ ZeroNativeCrashRecoveryAI - Nível: Vácuo de Código
+ * Versão 875: Sem nenhuma importação customizada do projeto.
+ * Apenas React Native e Expo puro.
  */
-function safeInit(fn: () => void, name: string) {
-  try {
-    console.info(`🔧 [INIT] Inicializando ${name}...`);
-    fn();
-    console.info(`✅ [INIT] ${name} pronto.`);
-  } catch (e) {
-    console.error(`❌ [INIT ERROR] Falha ao inicializar ${name}:`, e);
-    logEvent('INIT_ERROR', `Falha em ${name}: ${e instanceof Error ? e.message : 'Unknown'}`);
-  }
-}
-
-// Ignorar warnings específicos durante desenvolvimento
-if (LogBox) {
-  LogBox.ignoreLogs([
-    'Non-serializable values were found in the navigation state',
-    'Sending `onAnimatedValueUpdate` with no listeners registered',
-    'Require cycle:',
-  ]);
-}
-
-function ThemedApp() {
-  const { isDark, theme } = useAppTheme();
-
-  // 🔄 Gerenciamento do Ciclo de Vida para Monitoramento
-  useEffect(() => {
-    let subscription: any;
-    
-    try {
-      // Tentar enviar logs pendentes na inicialização
-      if (transportManager && typeof transportManager.flushLogs === 'function') {
-        transportManager.flushLogs();
-      }
-
-      subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
-        if (nextAppState === 'active') {
-          logInfo('APP_START', '📱 App voltou para o foreground');
-          if (transportManager && typeof transportManager.flushLogs === 'function') {
-            transportManager.flushLogs();
-          }
-        }
-      });
-    } catch (e) {
-      console.warn('⚠️ Erro no ciclo de vida do monitoramento:', e);
-    }
-
-    return () => {
-      if (subscription && typeof subscription.remove === 'function') {
-        subscription.remove();
-      }
-    };
-  }, []);
-
+export default function App() {
+  console.log('🚀 [STARTUP] App Vácuo (875) montado.');
   
-  // Mesclar o tema do Paper com o nosso tema customizado
-  const paperTheme = isDark 
-    ? { 
-        ...MD3DarkTheme, 
-        colors: { 
-          ...MD3DarkTheme.colors, 
-          primary: theme?.colors?.primary || '#000000', 
-          secondary: theme?.colors?.secondary || '#000000', 
-          tertiary: theme?.colors?.tertiary || '#000000',
-          background: theme?.colors?.background || '#000000', 
-          surface: theme?.colors?.surface || '#000000', 
-          error: theme?.colors?.error || '#FF0000', 
-          onSurface: theme?.colors?.text?.primary || '#FFFFFF', 
-          onBackground: theme?.colors?.text?.primary || '#FFFFFF',
-          surfaceVariant: theme?.colors?.surfaceVariant || '#000000',
-          outline: theme?.colors?.outline || '#000000',
-        },
-        roundness: 3.5, // 3.5 * 4 = 14px (md borderRadius)
-      } 
-    : { 
-        ...MD3LightTheme, 
-        colors: { 
-          ...MD3LightTheme.colors, 
-          primary: theme?.colors?.primary || '#000000', 
-          secondary: theme?.colors?.secondary || '#000000', 
-          tertiary: theme?.colors?.tertiary || '#000000',
-          background: theme?.colors?.background || '#FFFFFF', 
-          surface: theme?.colors?.surface || '#FFFFFF', 
-          error: theme?.colors?.error || '#B00020', 
-          onSurface: theme?.colors?.text?.primary || '#000000', 
-          onBackground: theme?.colors?.text?.primary || '#000000',
-          surfaceVariant: theme?.colors?.surfaceVariant || '#EEEEEE',
-          outline: theme?.colors?.outline || '#79747E',
-        },
-        roundness: 3.5,
-      };
-
   return (
-    <PaperProvider theme={paperTheme}>
-      <View style={{ flex: 1, backgroundColor: theme?.colors?.background || (isDark ? '#000000' : '#FFFFFF') }} testID="app-container">
-        <StatusBar style={isDark ? "light" : "dark"} />
-        {/* Mock de navegação para isolar os Providers de Lógica */}
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: theme?.colors?.text?.primary || '#000', fontSize: 18 }}>
-            Fase 1.1: UI Baseline (Providers de Lógica Removidos)
-          </Text>
-          <Text style={{ color: theme?.colors?.text?.secondary || '#666', marginTop: 10 }}>
-            Se você vê isso, o crash está no Auth, Location ou Cart.
-          </Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
+      <View style={styles.content}>
+        <Text style={styles.title}>Açucaradas - Teste 875</Text>
+        <Text style={styles.status}>VÁCUO DE CÓDIGO ATIVO</Text>
+        <Text style={styles.description}>
+          Se você vê isso, o crash é causado por alguma IMPORTAÇÃO no App.tsx original.
+        </Text>
+        <View style={styles.box}>
+          <Text style={styles.boxText}>Build: 875</Text>
+          <Text style={styles.boxText}>Estado: Isolamento Total</Text>
         </View>
       </View>
-    </PaperProvider>
+    </SafeAreaView>
   );
 }
 
-export default function App() {
-  const [isReady, setIsReady] = useState(false);
-  const [showDiagnostic, setShowDiagnostic] = useState(false);
-
-  // 🔄 Bootstrap do App (Nível Raiz)
-  useEffect(() => {
-    const bootstrap = async () => {
-      console.info("🚀 [STARTUP] Root bootstrap starting (Fase 1: Navigation)...");
-      
-      try {
-        // 1. Garantir que a Splash Screen não suma antes do tempo
-        await SplashScreen.preventAutoHideAsync().catch(() => {});
-
-        // 2. Delay maior para estabilidade total do bridge nativo
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // 3. Inicialização de serviços (Safe)
-        safeInit(() => { runHealthCheck(ENV); }, 'HealthCheck');
-        
-        // Fase 1: Ignorar Sentry e OneSignal para garantir estabilidade da UI
-
-        console.info("✅ [STARTUP] Root bootstrap complete (Fase 1).");
-      } catch (e) {
-        console.error("❌ [STARTUP ERROR] Fatal during bootstrap:", e);
-      } finally {
-        setIsReady(true);
-        // Esconder splash após o React renderizar o primeiro frame
-        setTimeout(async () => {
-          try {
-            await SplashScreen.hideAsync();
-            console.info("🚀 [STARTUP] Splash hidden from root.");
-          } catch (e) {
-            console.warn('⚠️ Erro ao esconder splash na raiz:', e);
-          }
-        }, 500);
-      }
-    };
-
-    bootstrap();
-  }, []);
-
-  // Enquanto não está pronto, mostra apenas um container vazio (Splash ainda visível)
-  if (!isReady) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#000000' }}>
-        <StatusBar style="light" />
-      </View>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <ThemedApp />
-          {__DEV__ && !showDiagnostic && (
-            <TouchableOpacity 
-              style={{ 
-                position: 'absolute', 
-                bottom: 20, 
-                right: 20, 
-                backgroundColor: 'rgba(0,0,0,0.5)', 
-                padding: 8, 
-                borderRadius: 20,
-                zIndex: 9999
-              }} 
-              onPress={() => setShowDiagnostic(true)}
-            >
-              <Text style={{ color: '#FFF', fontSize: 10 }}>🛠️ DIAG</Text>
-            </TouchableOpacity>
-          )}
-          {__DEV__ && showDiagnostic && (
-            <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 10000 }}>
-              <DiagnosticScreen onClose={() => setShowDiagnostic(false)} />
-            </View>
-          )}
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </ErrorBoundary>
-  );
-}
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  status: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#E91E63',
+    backgroundColor: '#FCE4EC',
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  description: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  box: {
+    marginTop: 40,
+    padding: 20,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  boxText: {
+    fontSize: 14,
+    color: '#444',
+    marginVertical: 2,
+    fontFamily: 'System',
+  },
+});
