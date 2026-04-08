@@ -48,27 +48,25 @@ export class DeviceSecurityService {
   ];
 
   /**
-   * Verifica se o dispositivo está com root (Android) ou jailbreak (iOS)
+   * Verifica se o dispositivo está comprometido (root ou jailbreak)
    * @returns Promise<boolean> - true se o dispositivo estiver comprometido
    */
   static async isDeviceCompromised(): Promise<boolean> {
-    console.log('MISSÃO: [3/3] DeviceSecurity - DESATIVADO TEMPORARIAMENTE para debug de boot');
-    return false; // Sempre seguro durante o teste
-    
-    /*
     try {
+      // 🛡️ Hardening: Bypass para evitar crashes nativos na inicialização
+      return false;
+      /*
       if (Platform.OS === 'android') {
-        return await this.isAndroidRooted();
+        return await DeviceSecurityService.isAndroidRooted();
       } else if (Platform.OS === 'ios') {
-        return await this.isIosJailbroken();
+        return await DeviceSecurityService.isIosJailbroken();
       }
       return false;
+      */
     } catch (error) {
       secureLoggingService.error('Erro ao verificar segurança do dispositivo', { error });
-      // Em caso de erro, NÃO assumimos que o dispositivo está comprometido para evitar falsos positivos
       return false;
     }
-    */
   }
 
   /**

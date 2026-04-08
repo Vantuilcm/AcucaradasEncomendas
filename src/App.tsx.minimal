@@ -1,57 +1,32 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 export default function App() {
-  console.log('MISSÃO: [MINIMAL] App Iniciado com SUCESSO - Se você vê esta mensagem, o crash NÃO é nativo');
-  
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="auto" />
-        <View style={styles.content}>
-          <Text style={styles.title}>Açucaradas Encomendas</Text>
-          <Text style={styles.subtitle}>MODO DE DEBUG: App Minimalista</Text>
-          <Text style={styles.status}>Build: 437</Text>
-          <Text style={styles.message}>Se o app abriu, o problema está nos Providers ou Navegação.</Text>
-        </View>
-      </SafeAreaView>
-    </SafeAreaProvider>
+    <View style={styles.container}>
+      <Text style={styles.text}>Açucaradas - Baseline Estável</Text>
+      <Text style={styles.subtext}>Se você está vendo esta tela, o crash nativo foi resolvido.</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
-  title: {
-    fontSize: 24,
+  text: {
+    fontSize: 22,
     fontWeight: 'bold',
+    color: '#000000',
     marginBottom: 10,
-    color: '#E91E63',
   },
-  subtitle: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 20,
-  },
-  status: {
+  subtext: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: 10,
-  },
-  message: {
-    fontSize: 14,
+    color: '#666666',
     textAlign: 'center',
-    color: '#888',
   },
 });
