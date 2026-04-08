@@ -1,15 +1,34 @@
-// 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3.8: Firebase MOCK (Zero Imports)
-// Este arquivo substitui temporariamente o Firebase real para isolar o crash de importação.
+// 🔥 src/config/firebase.ts - Firebase JS-Only (Anti-Crash Version)
+// Esta versão usa apenas o SDK de JavaScript puro para evitar conflitos nativos no iOS.
 
-console.log('🛡️ [FIREBASE] Mock mode active. Zero external imports.');
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { ENV } from './env';
 
-const app = {} as any;
-const auth = {} as any;
-const db = {
-  collection: () => ({ doc: () => ({ get: () => Promise.resolve({ exists: () => false }) }) })
-} as any;
-const messaging = null as any;
-const storage = {} as any;
-const analytics = Promise.resolve(null);
+const firebaseConfig = {
+  apiKey: ENV.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: ENV.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: ENV.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: ENV.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: ENV.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: ENV.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  databaseURL: ENV.EXPO_PUBLIC_FIREBASE_DATABASE_URL,
+};
 
-export { app, auth, db, messaging, storage, analytics };
+// Singleton pattern seguro
+let app: FirebaseApp;
+if (getApps().length === 0) {
+  console.log('🛡️ [FIREBASE] Inicializando JS-SDK (Zero Native)...');
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0];
+}
+
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const messaging = null; // Desativado para evitar crash nativo de FCM
+export { app };

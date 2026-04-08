@@ -1,31 +1,24 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Provider as PaperProvider } from 'react-native-paper';
 import { ThemeProvider } from './components/ThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
 
+import AppNavigator from './navigation/AppNavigator';
+import { CartProvider } from './contexts/CartContext';
+import { LocationProvider } from './contexts/LocationContext';
+
 /**
- * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3: AuthProvider
- * Reintroduzindo o AuthProvider para testar estabilidade.
+ * 🛡️ ZeroNativeCrashRecoveryAI - Versão Estabilizada
+ * O app usa Firebase JS-Only e Lazy Loading para máxima compatibilidade no iOS.
  */
-function AuthContent() {
+function ThemedApp() {
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
-      <View style={styles.content}>
-        <Text style={styles.title}>Açucaradas - Teste 915</Text>
-        <Text style={styles.status}>FASE 1.3.8: FIREBASE MOCK</Text>
-        <Text style={styles.description}>
-          Se o app NÃO CAIR após 1 segundo, o problema é o IMPORT das libs do Firebase.
-        </Text>
-        <View style={styles.box}>
-          <Text style={styles.boxText}>Build: 915</Text>
-          <Text style={styles.boxText}>Estado: Zero Imports no Firebase Config</Text>
-        </View>
-      </View>
-    </SafeAreaView>
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <StatusBar style="light" />
+      <AppNavigator />
+    </View>
   );
 }
 
@@ -33,65 +26,14 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <PaperProvider>
-          <AuthProvider>
-            <AuthContent />
-          </AuthProvider>
-        </PaperProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <CartProvider>
+              <ThemedApp />
+            </CartProvider>
+          </LocationProvider>
+        </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 30,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  status: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2196F3',
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  description: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  box: {
-    marginTop: 40,
-    padding: 20,
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  boxText: {
-    fontSize: 14,
-    color: '#444',
-    marginVertical: 2,
-    fontFamily: 'System',
-  },
-});

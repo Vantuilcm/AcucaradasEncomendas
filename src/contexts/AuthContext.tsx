@@ -38,34 +38,124 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // 🚀 O SEGREDO: Importar o Firebase apenas DEPOIS que o app já está montado
         // Isso evita que o erro de linkagem nativa mate o processo de boot.
-        const firebaseModule = await import('../config/firebase');
+        const firebaseModule: any = await import('../config/firebase');
+        const authModule: any = await import('firebase/auth');
+        const firestoreModule: any = await import('firebase/firestore');
         
-        if (firebaseModule && firebaseModule.db) {
+        if (firebaseModule && firebaseModule.auth) {
           console.log('✅ [AUTH] Firebase Lazy Loaded successfully!');
-          setFirebaseInstance(firebaseModule);
+          
+          // Resolver o problema de importação modular que às vezes coloca tudo em .default
+          const authFunctions = authModule.onAuthStateChanged ? authModule : authModule.default;
+          const firestoreFunctions = firestoreModule.doc ? firestoreModule : firestoreModule.default;
+
+          setFirebaseInstance({
+            ...firebaseModule,
+            authFunctions,
+            firestoreFunctions
+          });
+
+          // Configurar o observador de estado do usuário
+          authFunctions.onAuthStateChanged(firebaseModule.auth, async (firebaseUser: any) => {
+            if (firebaseUser) {
+              console.log('👤 [AUTH] User found:', firebaseUser.email);
+              // Buscar dados extras do Firestore
+              const userRef = firestoreModule.doc(firebaseModule.db, 'users', firebaseUser.uid);
+              const userDoc = await firestoreModule.getDoc(userRef);
+              
+              if (userDoc.exists()) {
+                setUser({ ...userDoc.data(), id: firebaseUser.uid });
+              } else {
+                setUser({ 
+                  id: firebaseUser.uid, 
+                  email: firebaseUser.email, 
+                  name: firebaseUser.displayName 
+                });
+              }
+            } else {
+              console.log('👤 [AUTH] No user found.');
+              setUser(null);
+            }
+            setLoading(false);
+          });
         }
       } catch (e) {
         console.error('❌ [AUTH] Fatal Lazy Load Error:', e);
-      } finally {
         setLoading(false);
+      } finally {
         setIsReady(true);
       }
     };
 
     // Pequeno delay extra para garantir que a UI principal já rendenizou
-    const timer = setTimeout(bootstrapLazyFirebase, 1000);
+    const timer = setTimeout(bootstrapLazyFirebase, 800);
     return () => clearTimeout(timer);
   }, []);
 
-  const login = async () => {
+  const login = async (email: string, password: string) => {
     if (!firebaseInstance) throw new Error("Firebase not initialized yet");
-    console.log('Login logic will use firebaseInstance.auth');
+    try {
+      setLoading(true);
+      const { authFunctions, auth } = firebaseInstance;
+      const userCredential = await authFunctions.signInWithEmailAndPassword(auth, email, password);
+      console.log('✅ [AUTH] Login success:', userCredential.user.email);
+    } catch (error) {
+      console.error('❌ [AUTH] Login error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const register = async () => {};
-  const logout = async () => {};
-  const resetPassword = async () => {};
-  const updateUser = async () => {};
+  const register = async (userData: any, password: string) => {
+    if (!firebaseInstance) throw new Error("Firebase not initialized yet");
+    try {
+      setLoading(true);
+      const { authFunctions, firestoreFunctions, auth, db } = firebaseInstance;
+      const userCredential = await authFunctions.createUserWithEmailAndPassword(auth, userData.email, password);
+      
+      // Criar doc no Firestore
+      const userDoc = {
+        uid: userCredential.user.uid,
+        email: userData.email,
+        name: userData.name,
+        createdAt: firestoreFunctions.serverTimestamp(),
+        role: 'customer'
+      };
+      
+      await firestoreFunctions.setDoc(firestoreFunctions.doc(db, 'users', userCredential.user.uid), userDoc);
+      console.log('✅ [AUTH] Register success');
+    } catch (error) {
+      console.error('❌ [AUTH] Register error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    if (!firebaseInstance) return;
+    try {
+      await firebaseInstance.authFunctions.signOut(firebaseInstance.auth);
+      setUser(null);
+    } catch (error) {
+      console.error('❌ [AUTH] Logout error:', error);
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    if (!firebaseInstance) throw new Error("Firebase not initialized yet");
+    await firebaseInstance.authFunctions.sendPasswordResetEmail(firebaseInstance.auth, email);
+  };
+
+  const updateUser = async (userData: any) => {
+    if (!firebaseInstance || !user) return;
+    const { firestoreFunctions, db } = firebaseInstance;
+    const userRef = firestoreFunctions.doc(db, 'users', user.id);
+    await firestoreFunctions.updateDoc(userRef, userData);
+    setUser((prev: any) => ({ ...prev, ...userData }));
+  };
+
   const validateSession = async () => true;
   const refreshUserActivity = () => {};
 
