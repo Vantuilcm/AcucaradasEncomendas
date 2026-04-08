@@ -2,14 +2,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 
 /**
- * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3.4.1: FIREBASE TEST
- * Reintroduzindo apenas as importações do Firebase para testar se o crash ocorre no import.
- * Se o build 899 abrir, o Firebase está SEGURO.
+ * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3.4.2: EXPO-AUTH-SESSION TEST
+ * Removendo o Firebase (Suspeito 1) e reintroduzindo a expo-auth-session (Suspeito 2).
+ * Se o build 902 abrir, o culpado é oficialmente o Firebase.
  */
 
-// REINTRODUZINDO IMPORTAÇÕES DO FIREBASE (SUSPEITO 1)
-import { db } from '../config/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+// REINTRODUZINDO SUSPEITO 2 (Auth Session)
+import * as Google from 'expo-auth-session/providers/google';
+import * as Facebook from 'expo-auth-session/providers/facebook';
 
 // Interface mínima
 interface AuthContextData {
@@ -35,9 +35,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
 
+  // Testando os Hooks Nativos
+  /*
+  const [, , googlePromptAsync] = Google.useAuthRequest({
+    clientId: 'test',
+  });
+  */
+
   useEffect(() => {
-    console.log('🛡️ [AUTH] Firebase Test initialized.');
-    console.log('🛡️ [AUTH] Firestore instance:', !!db);
+    console.log('🛡️ [AUTH] AuthSession Test initialized.');
     setLoading(false);
     setIsReady(true);
   }, []);
