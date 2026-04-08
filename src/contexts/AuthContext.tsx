@@ -47,13 +47,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profileLoading, setProfileLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
-  const [, setIsDeviceSecure] = useState<boolean>(true);
 
   const authService = AuthService.getInstance();
   const socialAuthService = SocialAuthService.getInstance();
-  const twoFactorAuthService = new TwoFactorAuthService();
+  // const twoFactorAuthService = new TwoFactorAuthService();
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
 
+  // 🛡️ Hardening: Bypassing native auth hooks to isolate crash
+  const googlePromptAsync = async () => ({ type: 'cancel' });
+  const facebookPromptAsync = async () => ({ type: 'cancel' });
+  /*
   const [, , googlePromptAsync] = Google.useAuthRequest({
     clientId: GOOGLE_CLIENT_ID.expo,
     iosClientId: GOOGLE_CLIENT_ID.ios,
@@ -66,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clientId: FACEBOOK_APP_ID,
     scopes: ['public_profile', 'email'],
   });
+  */
 
   // Verificar segurança do dispositivo
   useEffect(() => {

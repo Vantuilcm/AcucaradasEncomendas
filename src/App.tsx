@@ -15,14 +15,14 @@ function AuthContent() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.content}>
-        <Text style={styles.title}>Açucaradas - Teste 883</Text>
-        <Text style={styles.status}>FASE 1.3: AUTH (HARDENED)</Text>
+        <Text style={styles.title}>Açucaradas - Teste 886</Text>
+        <Text style={styles.status}>FASE 1.3.1: AUTH (NO HOOKS)</Text>
         <Text style={styles.description}>
-          Se você vê isso, o crash estava no SecureStore ou DeviceSecurity.
+          Se você vê isso, o crash é causado pelos HOOKS nativos do Google/Facebook.
         </Text>
         <View style={styles.box}>
-          <Text style={styles.boxText}>Build: 883</Text>
-          <Text style={styles.boxText}>Estado: Auth Provider com Bypasses</Text>
+          <Text style={styles.boxText}>Build: 886</Text>
+          <Text style={styles.boxText}>Estado: Auth Provider sem Hooks Nativos</Text>
         </View>
       </View>
     </SafeAreaView>
