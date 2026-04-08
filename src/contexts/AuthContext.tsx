@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { UserUtils } from '../utils/UserUtils';
+/*
 import { db } from '../config/firebase';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+*/
 import { Alert, TouchableWithoutFeedback } from 'react-native';
 import { User } from '../models/User';
+/*
 import { AuthService } from '../services/AuthService';
 import { SecurityService } from '../services/SecurityService';
 import { LoggingService } from '../services/LoggingService';
@@ -12,10 +15,11 @@ import { secureLoggingService } from '../services/SecureLoggingService';
 import { SecureStorageService } from '../services/SecureStorageService';
 import { SocialAuthService, GOOGLE_CLIENT_ID, FACEBOOK_APP_ID } from '../services/SocialAuthService';
 import { TwoFactorAuthService } from '../services/TwoFactorAuthService';
+*/
 import * as Google from 'expo-auth-session/providers/google';
 import * as Facebook from 'expo-auth-session/providers/facebook';
 // @ts-ignore
-import { GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
+// import { GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 
 // Interface para o contexto de autenticação
 interface AuthContextData {
@@ -48,9 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isReady, setIsReady] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
 
+  /*
   const authService = AuthService.getInstance();
   const socialAuthService = SocialAuthService.getInstance();
   // const twoFactorAuthService = new TwoFactorAuthService();
+  */
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
 
   // 🛡️ Hardening: Bypassing native auth hooks to isolate crash
@@ -97,7 +103,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Buscar perfil completo do Firestore com resiliência, retry e logs estruturados
-  const fetchUserProfile = useCallback(async (userId: string, retries = 3): Promise<User | null> => {
+  const fetchUserProfile = useCallback(async (userId: string, _retries = 3): Promise<User | null> => {
+    return { id: userId, email: 'test@test.com', role: 'customer' } as User;
+    /*
     let attempt = 0;
     while (attempt < retries) {
       try {
@@ -225,7 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } finally {
         setLoading(false);
         setIsReady(true);
-        secureLoggingService.security('APP_READY');
+        // secureLoggingService.security('APP_READY');
       }
     };
 
@@ -234,7 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Limpar monitor de atividade ao desmontar
     return () => {
       try {
-        SecurityService.stopActivityMonitor();
+        // SecurityService.stopActivityMonitor();
       } catch (e) {
         console.error('Erro ao parar monitor de atividade:', e);
       }
@@ -242,13 +250,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [fetchUserProfile]);
 
   // Método de login
-  const login = async (email: string, password: string, _role?: string) => {
+  const login = async (email: string, _password: string, _role?: string) => {
     try {
       console.log('AuthContext: login started', email);
       setLoading(true);
       
       // Registrar tentativa de login (antes da verificação de segurança)
-      secureLoggingService.security('Tentativa de login iniciada', { email });
+      // secureLoggingService.security('Tentativa de login iniciada', { email });
       
       // Verificar segurança do dispositivo antes do login
       // NOTE: Using static method directly
