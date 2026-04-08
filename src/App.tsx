@@ -1,30 +1,42 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Provider as PaperProvider } from 'react-native-paper';
+import { ThemeProvider } from './components/ThemeProvider';
 
 /**
- * 🛡️ ZeroNativeCrashRecoveryAI - Nível: Vácuo de Código
- * Versão 875: Sem nenhuma importação customizada do projeto.
- * Apenas React Native e Expo puro.
+ * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.2: UI Providers
+ * Reintroduzindo ThemeProvider e PaperProvider.
  */
-export default function App() {
-  console.log('🚀 [STARTUP] App Vácuo (875) montado.');
-  
+function ThemedContent() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.content}>
-        <Text style={styles.title}>Açucaradas - Teste 875</Text>
-        <Text style={styles.status}>VÁCUO DE CÓDIGO ATIVO</Text>
+        <Text style={styles.title}>Açucaradas - Teste 877</Text>
+        <Text style={styles.status}>FASE 1.2: UI PROVIDERS</Text>
         <Text style={styles.description}>
-          Se você vê isso, o crash é causado por alguma IMPORTAÇÃO no App.tsx original.
+          Se você vê isso, o ThemeProvider e PaperProvider estão SEGUROS.
         </Text>
         <View style={styles.box}>
-          <Text style={styles.boxText}>Build: 875</Text>
-          <Text style={styles.boxText}>Estado: Isolamento Total</Text>
+          <Text style={styles.boxText}>Build: 877</Text>
+          <Text style={styles.boxText}>Estado: Teste de UI Providers</Text>
         </View>
       </View>
     </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <PaperProvider>
+          <ThemedContent />
+        </PaperProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
@@ -48,8 +60,8 @@ const styles = StyleSheet.create({
   status: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#E91E63',
-    backgroundColor: '#FCE4EC',
+    color: '#2196F3',
+    backgroundColor: '#E3F2FD',
     paddingHorizontal: 15,
     paddingVertical: 5,
     borderRadius: 20,
