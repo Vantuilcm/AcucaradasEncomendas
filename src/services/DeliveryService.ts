@@ -1,15 +1,5 @@
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  setDoc,
-  getDocs,
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-} from 'firebase/firestore';
+import { f } from '../config/firebase';
+const { doc, getDoc, updateDoc, setDoc, getDocs, collection, query, where, orderBy, limit } = f;
 import { db } from '../config/firebase';
 import { loggingService } from './LoggingService';
 import {

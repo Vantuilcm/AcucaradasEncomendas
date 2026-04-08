@@ -1,4 +1,11 @@
-import {
+import { db, f } from '../config/firebase';
+import { Order, OrderFilters, OrderSummary, OrderStatus } from '../types/Order';
+import { loggingService } from './LoggingService';
+import { DeliveryService } from './DeliveryService';
+import { NotificationService } from './NotificationService';
+import { GrowthService } from './GrowthService';
+
+const {
   collection,
   query,
   where,
@@ -9,15 +16,8 @@ import {
   limit,
   addDoc,
   updateDoc,
-  // @ts-ignore
   onSnapshot,
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { Order, OrderFilters, OrderSummary, OrderStatus } from '../types/Order';
-import { loggingService } from './LoggingService';
-import { DeliveryService } from './DeliveryService';
-import { NotificationService } from './NotificationService';
-import { GrowthService } from './GrowthService';
+} = f;
 
 export class OrderService {
   private readonly collectionName = 'orders';

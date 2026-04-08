@@ -1,7 +1,8 @@
-import { PaymentService } from '../../services/PaymentService';
+import { f } from '../../config/firebase';
+const { PaymentService } from '../../services/PaymentService';
 import { StripeService } from '../../services/StripeService';
 import { NotificationService } from '../../services/NotificationService';
-import { getDoc, updateDoc, doc } from 'firebase/firestore';
+import { getDoc, updateDoc, doc } = f;
 import { loggingService } from '../../services/LoggingService';
 
 // Ensure we use the real PaymentService

@@ -1,4 +1,6 @@
-import { Platform } from 'react-native';
+import { a } from '../config/firebase';
+const { f } from '../config/firebase';
+const { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { secureLoggingService } from './SecureLoggingService';
 // Importação modificada para resolver problema de compatibilidade
@@ -6,16 +8,13 @@ import { SecurityService } from './SecurityService';
 import { db, auth } from '../config/firebase';
 import { User } from '../models/User';
 import {
-  updateProfile,
-  AuthCredential,
-  signOut,
-} from 'firebase/auth';
+  updateProfile, AuthCredential, signOut } = a;
 import * as FirebaseAuth from 'firebase/auth';
 
 const signInWithCredential = (FirebaseAuth as any).signInWithCredential;
 const OAuthProvider = (FirebaseAuth as any).OAuthProvider;
 import { UserUtils } from '../utils/UserUtils';
-import { collection, query, where, limit, getDocs, addDoc, updateDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, query, where, limit, getDocs, addDoc, updateDoc, doc, setDoc } = f;
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Importação condicional para evitar erros em plataformas não suportadas
 let AppleAuthentication: any = null;

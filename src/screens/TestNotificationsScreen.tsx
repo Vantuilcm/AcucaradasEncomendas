@@ -1,21 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform, FlatList } from 'react-native';
+import { f } from '../config/firebase';
+const { View, StyleSheet, ScrollView, Alert, Platform, FlatList } from 'react-native';
 import { Button, Text, Card, Divider, ActivityIndicator, List } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { PushNotificationService } from '../services/PushNotificationService';
 import * as Notifications from 'expo-notifications';
 import {
-  doc,
-  getDoc,
-  updateDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  setDoc,
-  orderBy,
-  writeBatch,
-} from 'firebase/firestore';
+  doc, getDoc, updateDoc, collection, query, where, getDocs, setDoc, orderBy, writeBatch } = f;
 import { db } from '../config/firebase';
 import { formatDate } from '../utils/formatters';
 import {

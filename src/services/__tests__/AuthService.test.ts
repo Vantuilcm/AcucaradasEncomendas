@@ -1,4 +1,6 @@
-import { AuthService } from '../AuthService';
+import { a } from '../../config/firebase';
+const { f } from '../config/firebase';
+const { AuthService } from '../AuthService';
 import { ValidationService } from '../validationService';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -9,41 +11,17 @@ jest.mock('../validationService');
 
 // Mock firebase/firestore
 jest.mock('firebase/firestore', () => ({
-  getFirestore: jest.fn(),
-  doc: jest.fn(),
-  getDoc: jest.fn(),
-  setDoc: jest.fn(),
-  updateDoc: jest.fn(),
-  collection: jest.fn(),
-  addDoc: jest.fn(),
-  serverTimestamp: jest.fn(() => ({ seconds: 1234567890, nanoseconds: 0 })),
-}));
+  getFirestore: jest.fn(), doc: jest.fn(), getDoc: jest.fn(), setDoc: jest.fn(), updateDoc: jest.fn(), collection: jest.fn(), addDoc: jest.fn(), serverTimestamp: jest.fn(() => ({ seconds: 1234567890, nanoseconds: 0 })), }));
 
-import { getDoc } from 'firebase/firestore';
+import { getDoc } = f;
 
 // Mock firebase/auth
 jest.mock('firebase/auth', () => ({
-  getAuth: jest.fn(),
-  createUserWithEmailAndPassword: jest.fn(),
-  signInWithEmailAndPassword: jest.fn(),
-  signOut: jest.fn(),
-  updatePassword: jest.fn(),
-  sendPasswordResetEmail: jest.fn(),
-  sendEmailVerification: jest.fn(),
-  onAuthStateChanged: jest.fn(),
-  updateProfile: jest.fn(),
-  reauthenticateWithCredential: jest.fn(),
-  EmailAuthProvider: {
-    credential: jest.fn(),
-  },
-}));
+  getAuth: jest.fn(), createUserWithEmailAndPassword: jest.fn(), signInWithEmailAndPassword: jest.fn(), signOut: jest.fn(), updatePassword: jest.fn(), sendPasswordResetEmail: jest.fn(), sendEmailVerification: jest.fn(), onAuthStateChanged: jest.fn(), updateProfile: jest.fn(), reauthenticateWithCredential: jest.fn(), EmailAuthProvider: {
+    credential: jest.fn(), }, }));
 
 const mockCurrentUser = {
-  uid: 'usuario_123',
-  email: 'teste@email.com',
-  displayName: 'Usuário Teste',
-  emailVerified: true,
-};
+  uid: 'usuario_123', email: 'teste@email.com', displayName: 'Usuário Teste', emailVerified: true, };
 
 // Mock config/firebase
 jest.mock('../../config/firebase', () => ({
@@ -51,19 +29,11 @@ jest.mock('../../config/firebase', () => ({
     get currentUser() {
       return mockCurrentUser.uid ? mockCurrentUser : null;
     }
-  },
-  db: {}
+  }, db: {}
 }));
 
 import {
-  createUserWithEmailAndPassword,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  updatePassword,
-} from 'firebase/auth';
+  createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, updatePassword } = a;
 
 describe('AuthService', () => {
   let authService: AuthService;

@@ -1,7 +1,8 @@
-import { Platform } from 'react-native';
-import { messaging , db } from '../config/firebase';
+import { f } from '../config/firebase';
+const { Platform } from 'react-native';
+import { messaging, db } from '../config/firebase';
 import { getToken, onMessage, isSupported } from 'firebase/messaging';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } = f;
 
 import { loggingService } from './LoggingService';
 

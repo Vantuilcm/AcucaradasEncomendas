@@ -1,17 +1,5 @@
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  orderBy,
-  limit,
-  deleteDoc,
-  writeBatch,
-} from 'firebase/firestore';
+import { f } from '../config/firebase';
+const { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, orderBy, limit, deleteDoc, writeBatch } = f;
 import { db } from '../config/firebase';
 import {
   PaymentCard,

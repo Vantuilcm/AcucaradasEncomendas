@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { app, auth, db, a, f } from '../config/firebase';
 
 /**
- * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3.7: FIREBASE LAZY LOADING
- * O build 908 provou que o crash acontece no IMPORT estático.
- * Esta versão implementa a solução definitiva: Carregamento sob demanda (Lazy).
+ * 🛡️ ZeroNativeCrashRecoveryAI - Versão Ultra-Lazy
+ * O app usa Proxy-Lazy-Loading para garantir que o Firebase NUNCA
+ * seja carregado durante o boot do aplicativo.
  */
 
 // Interface completa restaurada
@@ -34,51 +35,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const bootstrapLazyFirebase = async () => {
       try {
-        console.log('🛡️ [AUTH] Starting Lazy Firebase Load...');
+        console.log('🛡️ [AUTH] Starting Ultra-Lazy Firebase Setup...');
         
-        // 🚀 O SEGREDO: Importar o Firebase apenas DEPOIS que o app já está montado
-        // Isso evita que o erro de linkagem nativa mate o processo de boot.
-        const firebaseModule: any = await import('../config/firebase');
-        const authModule: any = await import('firebase/auth');
-        const firestoreModule: any = await import('firebase/firestore');
+        // Agora o firebase.ts cuida de tudo via Proxy!
+        // Ao acessar 'auth', o Proxy fará o require() interno.
         
-        if (firebaseModule && firebaseModule.auth) {
-          console.log('✅ [AUTH] Firebase Lazy Loaded successfully!');
-          
-          // Resolver o problema de importação modular que às vezes coloca tudo em .default
-          const authFunctions = authModule.onAuthStateChanged ? authModule : authModule.default;
-          const firestoreFunctions = firestoreModule.doc ? firestoreModule : firestoreModule.default;
-
-          setFirebaseInstance({
-            ...firebaseModule,
-            authFunctions,
-            firestoreFunctions
-          });
-
-          // Configurar o observador de estado do usuário
-          authFunctions.onAuthStateChanged(firebaseModule.auth, async (firebaseUser: any) => {
-            if (firebaseUser) {
-              console.log('👤 [AUTH] User found:', firebaseUser.email);
-              // Buscar dados extras do Firestore
-              const userRef = firestoreModule.doc(firebaseModule.db, 'users', firebaseUser.uid);
-              const userDoc = await firestoreModule.getDoc(userRef);
-              
-              if (userDoc.exists()) {
-                setUser({ ...userDoc.data(), id: firebaseUser.uid });
-              } else {
-                setUser({ 
-                  id: firebaseUser.uid, 
-                  email: firebaseUser.email, 
-                  name: firebaseUser.displayName 
-                });
-              }
+        // Configurar o observador de estado do usuário
+        a.onAuthStateChanged(auth, async (firebaseUser: any) => {
+          if (firebaseUser) {
+            console.log('👤 [AUTH] User found:', firebaseUser.email);
+            // Buscar dados extras do Firestore
+            const userRef = f.doc(db, 'users', firebaseUser.uid);
+            const userDoc = await f.getDoc(userRef);
+            
+            if (userDoc.exists()) {
+              setUser({ ...userDoc.data(), id: firebaseUser.uid });
             } else {
-              console.log('👤 [AUTH] No user found.');
-              setUser(null);
+              setUser({ 
+                id: firebaseUser.uid, 
+                email: firebaseUser.email, 
+                name: firebaseUser.displayName 
+              });
             }
-            setLoading(false);
-          });
-        }
+          } else {
+            console.log('👤 [AUTH] No user found.');
+            setUser(null);
+          }
+          setLoading(false);
+        });
       } catch (e) {
         console.error('❌ [AUTH] Fatal Lazy Load Error:', e);
         setLoading(false);
@@ -88,16 +72,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // Pequeno delay extra para garantir que a UI principal já rendenizou
-    const timer = setTimeout(bootstrapLazyFirebase, 800);
+    const timer = setTimeout(bootstrapLazyFirebase, 1000);
     return () => clearTimeout(timer);
   }, []);
 
   const login = async (email: string, password: string) => {
-    if (!firebaseInstance) throw new Error("Firebase not initialized yet");
     try {
       setLoading(true);
-      const { authFunctions, auth } = firebaseInstance;
-      const userCredential = await authFunctions.signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await a.signInWithEmailAndPassword(auth, email, password);
       console.log('✅ [AUTH] Login success:', userCredential.user.email);
     } catch (error) {
       console.error('❌ [AUTH] Login error:', error);
@@ -108,22 +90,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (userData: any, password: string) => {
-    if (!firebaseInstance) throw new Error("Firebase not initialized yet");
     try {
       setLoading(true);
-      const { authFunctions, firestoreFunctions, auth, db } = firebaseInstance;
-      const userCredential = await authFunctions.createUserWithEmailAndPassword(auth, userData.email, password);
+      const userCredential = await a.createUserWithEmailAndPassword(auth, userData.email, password);
       
       // Criar doc no Firestore
       const userDoc = {
         uid: userCredential.user.uid,
         email: userData.email,
         name: userData.name,
-        createdAt: firestoreFunctions.serverTimestamp(),
+        createdAt: f.serverTimestamp(),
         role: 'customer'
       };
       
-      await firestoreFunctions.setDoc(firestoreFunctions.doc(db, 'users', userCredential.user.uid), userDoc);
+      await f.setDoc(f.doc(db, 'users', userCredential.user.uid), userDoc);
       console.log('✅ [AUTH] Register success');
     } catch (error) {
       console.error('❌ [AUTH] Register error:', error);
@@ -134,9 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    if (!firebaseInstance) return;
     try {
-      await firebaseInstance.authFunctions.signOut(firebaseInstance.auth);
+      await a.signOut(auth);
       setUser(null);
     } catch (error) {
       console.error('❌ [AUTH] Logout error:', error);
@@ -144,15 +123,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string) => {
-    if (!firebaseInstance) throw new Error("Firebase not initialized yet");
-    await firebaseInstance.authFunctions.sendPasswordResetEmail(firebaseInstance.auth, email);
+    await a.sendPasswordResetEmail(auth, email);
   };
 
   const updateUser = async (userData: any) => {
-    if (!firebaseInstance || !user) return;
-    const { firestoreFunctions, db } = firebaseInstance;
-    const userRef = firestoreFunctions.doc(db, 'users', user.id);
-    await firestoreFunctions.updateDoc(userRef, userData);
+    if (!user) return;
+    const userRef = f.doc(db, 'users', user.id);
+    await f.updateDoc(userRef, userData);
     setUser((prev: any) => ({ ...prev, ...userData }));
   };
 

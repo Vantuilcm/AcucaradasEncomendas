@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PermissionsService, Permission, Role } from '../services/PermissionsService';
+import { useState, useEffect, useCallback } from 'react';
+import { PermissionsService, Permission, Role } from '../services/PermissionsService';
 import { useAuth } from './useAuth';
 import { loggingService } from '../services/LoggingService';
-import { getDoc, doc } from 'firebase/firestore';
-import { db } from '../config/firebase';
 
 interface UsePermissionsReturn {
   loading: boolean;
@@ -26,6 +26,13 @@ export function usePermissions(): UsePermissionsReturn {
   const [userPermissions, setUserPermissions] = useState<Permission[]>([]);
   const permissionsService = PermissionsService.getInstance();
 
+  // Helper para carregar Firebase sob demanda
+  const getFirestore = async () => {
+    const firebase = await import('../config/firebase');
+    const firestore = await import('firebase/firestore');
+    return { db: firebase.db, f: firestore };
+  };
+
   // Carregar papel e permissões do usuário
   useEffect(() => {
     const loadPermissions = async () => {
@@ -42,20 +49,17 @@ export function usePermissions(): UsePermissionsReturn {
         setUserRole(role);
 
         // Obter documento de permissões
-        const permissionsDoc = await getDoc(doc(db, 'permissoes', (user as any).id));
+        const { db, f } = await getFirestore();
+        const permissionsDoc = await f.getDoc(f.doc(db, 'permissoes', (user as any).id));
 
         if (permissionsDoc.exists()) {
           const permissions = permissionsDoc.data()?.permissions as Permission[] || [];
           setUserPermissions(permissions);
         } else {
-          // Se não existir, usar permissões padrão do papel
-          const defaultPermissions = permissionsService.getRolePermissions(role);
-          setUserPermissions(defaultPermissions);
+          setUserPermissions([]);
         }
       } catch (error) {
-        loggingService.error('Erro ao carregar permissões', { error });
-        setUserRole(null);
-        setUserPermissions([]);
+        loggingService.error('Erro ao carregar permissões do usuário', { error });
       } finally {
         setLoading(false);
       }

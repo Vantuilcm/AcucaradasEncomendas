@@ -5,9 +5,10 @@
 
 import { loggingService } from './LoggingService';
 import { User } from '../models/User';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { auth, db, f } from '../config/firebase';
 import { UserUtils } from '../utils/UserUtils';
+
+const { doc, getDoc } = f;
 
 // Interface para informações básicas do usuário
 export interface UserInfo {

@@ -1,18 +1,9 @@
-import { loggingService } from './LoggingService';
+import { f } from '../config/firebase';
+const { loggingService } from './LoggingService';
 import { UserUtils } from '../utils/UserUtils';
 import { db, storage } from '../config/firebase';
 import {
-  doc,
-  getDoc,
-  updateDoc,
-  query,
-  collection,
-  where,
-  getDocs,
-  orderBy,
-  limit,
-  serverTimestamp,
-} from 'firebase/firestore';
+  doc, getDoc, updateDoc, query, collection, where, getDocs, orderBy, limit, serverTimestamp } = f;
 import {
   // @ts-ignore
   ref,

@@ -1,4 +1,5 @@
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { f } from '../config/firebase';
+const { collection, query, where, getDocs, Timestamp } = f;
 import { db } from '../config/firebase';
 import { Order, OrderStatus } from '../types/Order';
 import { OrderService } from './OrderService';

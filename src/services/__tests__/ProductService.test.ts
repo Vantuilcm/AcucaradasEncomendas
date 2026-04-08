@@ -1,17 +1,7 @@
-import { ProductService } from '../ProductService';
+import { f } from '../../config/firebase';
+const { ProductService } from '../ProductService';
 import { 
-  collection, 
-  getDocs, 
-  doc, 
-  getDoc, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc 
-} from 'firebase/firestore';
+  collection, getDocs, doc, getDoc, query, where, orderBy, limit, setDoc, updateDoc, deleteDoc } = f;
 
 // Unmock ProductService to test the real implementation
 jest.unmock('../ProductService');

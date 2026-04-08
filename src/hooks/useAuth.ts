@@ -1,19 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-// @ts-ignore
-import {
-  // @ts-ignore
-  getAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  // @ts-ignore
-  onAuthStateChanged,
-  User,
-  // @ts-ignore
-  GoogleAuthProvider,
-  // @ts-ignore
-  FacebookAuthProvider,
-} from 'firebase/auth';
+import { a } from '../config/firebase';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Facebook from 'expo-auth-session/providers/facebook';
 // import { loggingService } from '../services/LoggingService';
@@ -28,6 +14,16 @@ import { TwoFactorAuthService, TwoFactorAuthResult } from '../services/TwoFactor
 
 import { Role } from '../services/PermissionsService';
 import { UserUtils } from '../utils/UserUtils';
+
+const {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  FacebookAuthProvider,
+} = a;
 
 interface AuthState {
   user: User | null;

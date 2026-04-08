@@ -1,31 +1,6 @@
 import { ValidationService } from './validationService';
 import * as bcrypt from 'bcryptjs';
 import { jwtDecode } from 'jwt-decode';
-import { auth, db } from '../config/firebase';
-import {
-  applyActionCode,
-  confirmPasswordReset,
-  createUserWithEmailAndPassword,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signOut,
-  updateProfile,
-  updatePassword,
-} from 'firebase/auth';
-import { 
-  doc, 
-  setDoc, 
-  getDoc, 
-  updateDoc, 
-  serverTimestamp, 
-  collection, 
-  query, 
-  where, 
-  getDocs 
-} from 'firebase/firestore';
 import { loggingService } from './LoggingService';
 import { secureLoggingService } from './SecureLoggingService';
 import { SecureStorageService } from './SecureStorageService';
@@ -37,6 +12,7 @@ export class AuthService {
   private static instance: AuthService;
   private usuarios: Map<string, any>;
   private tokensRecuperacao: Map<string, any>;
+  private firebaseInstance: any = null;
 
   private constructor() {
     this.usuarios = new Map();
@@ -49,6 +25,21 @@ export class AuthService {
     }
     return AuthService.instance;
   }
+
+  private async getFirebase() {
+    if (this.firebaseInstance) return this.firebaseInstance;
+    try {
+      const firebase = await import('../config/firebase');
+      const auth = await import('firebase/auth');
+      const firestore = await import('firebase/firestore');
+      this.firebaseInstance = { ...firebase, a: auth, f: firestore };
+      return this.firebaseInstance;
+    } catch (e) {
+      secureLoggingService.error('Erro ao carregar Firebase dinamicamente no AuthService', { e });
+      throw e;
+    }
+  }
+
   /**
    * Valida a senha de acordo com os critérios de segurança
    * @param password Senha a ser validada
@@ -76,6 +67,7 @@ export class AuthService {
       throw new Error('Dados do usuário não fornecidos');
     }
     try {
+      const { auth, db, a, f } = await this.getFirebase();
       const validationService = ValidationService.getInstance();
       const growthService = GrowthService.getInstance();
 
@@ -95,16 +87,16 @@ export class AuthService {
       }
 
       // Verificar se o email já está cadastrado no Firestore
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', userData.email));
-      const querySnapshot = await getDocs(q);
+      const usersRef = f.collection(db, 'users');
+      const q = f.query(usersRef, f.where('email', '==', userData.email));
+      const querySnapshot = await f.getDocs(q);
       
       if (!querySnapshot.empty) {
         throw new Error('Email já cadastrado');
       }
 
       // Criar usuário no Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(
+      const userCredential = await a.createUserWithEmailAndPassword(
         auth,
         userData.email,
         userData.password
@@ -117,14 +109,14 @@ export class AuthService {
 
       // Enviar email de verificação
       try {
-        await sendEmailVerification(firebaseUser);
+        await a.sendEmailVerification(firebaseUser);
       } catch (emailError) {
         loggingService.error('Erro ao enviar email de verificação', emailError as Error);
       }
 
       // Atualizar o perfil do usuário
       try {
-        await updateProfile(firebaseUser, {
+        await a.updateProfile(firebaseUser, {
           displayName: userData.name
         });
       } catch (profileError) {
@@ -142,8 +134,8 @@ export class AuthService {
         phone: userData.phone,
         address: userData.address || '',
         emailVerified: firebaseUser.emailVerified,
-        createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp(),
+        createdAt: f.serverTimestamp(),
+        lastLogin: f.serverTimestamp(),
         role: 'customer',
         active: true,
         referralCode: myReferralCode, // Salvar código gerado
@@ -151,13 +143,13 @@ export class AuthService {
         totalReferralValue: 0
       };
 
-      await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
+      await f.setDoc(f.doc(db, 'users', firebaseUser.uid), userDoc);
       
       // Salvar também na coleção 'usuarios' se houver duplicidade de coleção no projeto
       // (Alguns serviços usam 'users', outros 'usuarios'. Sincronizar por segurança)
-      await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
+      await f.setDoc(f.doc(db, 'usuarios', firebaseUser.uid), {
         ...userDoc,
-        dataCriacao: serverTimestamp()
+        dataCriacao: f.serverTimestamp()
       });
 
       // Se o usuário foi indicado por alguém, aplicar a indicação
@@ -203,6 +195,7 @@ export class AuthService {
       throw new Error('Email e senha são obrigatórios');
     }
     try {
+      const { auth, db, a, f } = await this.getFirebase();
       // Validar email
       const validationService = ValidationService.getInstance();
       if (!validationService.validateEmail(email)) {
@@ -210,7 +203,7 @@ export class AuthService {
       }
 
       // Realizar login no Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await a.signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
       if (!firebaseUser) {
@@ -218,17 +211,17 @@ export class AuthService {
       }
 
       // Atualizar último login no Firestore
-      const userRef = doc(db, 'users', firebaseUser.uid);
+      const userRef = f.doc(db, 'users', firebaseUser.uid);
       try {
-        await updateDoc(userRef, {
-          lastLogin: serverTimestamp()
+        await f.updateDoc(userRef, {
+          lastLogin: f.serverTimestamp()
         });
       } catch (updateError) {
         loggingService.error('Erro ao atualizar último login', updateError as Error);
       }
 
       // Buscar dados completos do usuário
-      const userDoc = await getDoc(userRef);
+      const userDoc = await f.getDoc(userRef);
       if (!userDoc.exists()) {
         throw new Error('Usuário não encontrado no banco de dados');
       }
@@ -276,11 +269,12 @@ export class AuthService {
    */
   public async logout(): Promise<void> {
     try {
+      const { auth, a } = await this.getFirebase();
       // Remover token de autenticação do armazenamento seguro
       await SecureStorageService.removeData('authToken');
 
       // Realizar logout no Firebase Authentication
-      await signOut(auth);
+      await a.signOut(auth);
 
       secureLoggingService.info('Logout realizado com sucesso');
     } catch (error: any) {
@@ -298,12 +292,13 @@ export class AuthService {
       throw new Error('Email é obrigatório');
     }
     try {
+      const { auth, a } = await this.getFirebase();
       const validationService = ValidationService.getInstance();
       if (!validationService.validateEmail(email)) {
         throw new Error('Email inválido');
       }
 
-      await sendPasswordResetEmail(auth, email);
+      await a.sendPasswordResetEmail(auth, email);
 
       secureLoggingService.info('Email de recuperação de senha enviado', { email });
     } catch (error: any) {
@@ -322,13 +317,14 @@ export class AuthService {
       throw new Error('Código e nova senha são obrigatórios');
     }
     try {
+      const { auth, a } = await this.getFirebase();
       if (!this.validatePassword(newPassword)) {
         throw new Error(
           'Senha deve conter pelo menos 8 caracteres, uma letra maiúscula, uma letra minúscula, um número e um caractere especial'
         );
       }
 
-      await confirmPasswordReset(auth, code, newPassword);
+      await a.confirmPasswordReset(auth, code, newPassword);
 
       secureLoggingService.info('Senha redefinida com sucesso');
     } catch (error: any) {
@@ -368,6 +364,7 @@ export class AuthService {
       throw new Error('Dados do usuário não fornecidos');
     }
     try {
+      const { auth, db, a, f } = await this.getFirebase();
       const validationService = ValidationService.getInstance();
       const senhaFinal = senha || dadosUsuario.senha || '';
 
@@ -385,7 +382,7 @@ export class AuthService {
         );
       }
 
-      const userCredential = await createUserWithEmailAndPassword(
+      const userCredential = await a.createUserWithEmailAndPassword(
         auth,
         dadosUsuario.email,
         senhaFinal
@@ -397,7 +394,7 @@ export class AuthService {
       }
 
       try {
-        await updateProfile(user, {
+        await a.updateProfile(user, {
           displayName: dadosUsuario.nome,
         });
       } catch (updateError) {
@@ -405,7 +402,7 @@ export class AuthService {
       }
 
       try {
-        await sendEmailVerification(user);
+        await a.sendEmailVerification(user);
       } catch (verifyError) {
         loggingService.error('Erro ao enviar email de verificação', verifyError as Error);
       }
@@ -414,9 +411,9 @@ export class AuthService {
         nome: dadosUsuario.nome || '',
         email: dadosUsuario.email,
         telefone: dadosUsuario.telefone || null,
-        dataCriacao: serverTimestamp(),
+        dataCriacao: f.serverTimestamp(),
         emailVerificado: false,
-        ultimoLogin: serverTimestamp(),
+        ultimoLogin: f.serverTimestamp(),
         role: dadosUsuario.role || 'comprador',
         
         // Dados adicionais baseados no perfil
@@ -429,10 +426,10 @@ export class AuthService {
         courierStatus: dadosUsuario.courierStatus || null,
       };
 
-      await setDoc(doc(db, 'users', user.uid), userData);
+      await f.setDoc(f.doc(db, 'users', user.uid), userData);
       // Mantendo compatibilidade caso outro lugar use 'usuarios'
       try {
-        await setDoc(doc(db, 'usuarios', user.uid), userData);
+        await f.setDoc(f.doc(db, 'usuarios', user.uid), userData);
       } catch (compatError) {
         loggingService.error('Erro ao salvar em coleção legada', compatError as Error);
       }
@@ -510,6 +507,7 @@ export class AuthService {
       throw new Error('Email e senha são obrigatórios');
     }
     try {
+      const { auth, db, a, f } = await this.getFirebase();
       const validationService = ValidationService.getInstance();
 
       if (!validationService.validateEmail(credenciais.email)) {
@@ -517,7 +515,7 @@ export class AuthService {
       }
 
       // Versão Firebase - autenticar usuário
-      const userCredential = await signInWithEmailAndPassword(
+      const userCredential = await a.signInWithEmailAndPassword(
         auth,
         credenciais.email,
         credenciais.senha
@@ -532,7 +530,7 @@ export class AuthService {
       if (!user.emailVerified && !credenciais.ignorarVerificacao) {
         // Reenviar email de verificação
         try {
-          await sendEmailVerification(user);
+          await a.sendEmailVerification(user);
         } catch (verifyError) {
           loggingService.error('Erro ao reenviar verificação', verifyError as Error);
         }
@@ -543,15 +541,15 @@ export class AuthService {
 
       // Atualizar último login no Firestore
       try {
-        await updateDoc(doc(db, 'users', user.uid), {
-          ultimoLogin: serverTimestamp(),
+        await f.updateDoc(f.doc(db, 'users', user.uid), {
+          ultimoLogin: f.serverTimestamp(),
         });
       } catch (e) {
         // Ignora se não existir
       }
       try {
-        await updateDoc(doc(db, 'usuarios', user.uid), {
-          ultimoLogin: serverTimestamp(),
+        await f.updateDoc(f.doc(db, 'usuarios', user.uid), {
+          ultimoLogin: f.serverTimestamp(),
         });
       } catch (e) {
         // Ignora se não existir
@@ -622,6 +620,7 @@ export class AuthService {
     valido: boolean;
   }> {
     try {
+      const { auth, db, f } = await this.getFirebase();
       const decoded: any = jwtDecode(token);
       
       // Validar expiração
@@ -638,7 +637,7 @@ export class AuthService {
       }
 
       // Obter dados adicionais do Firestore
-      const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      const userDoc = await f.getDoc(f.doc(db, 'usuarios', userId));
 
       if (!userDoc.exists()) {
         throw new Error('Usuário não encontrado');
@@ -701,6 +700,7 @@ export class AuthService {
     emailVerificado: boolean;
   }> {
     try {
+      const { auth, a } = await this.getFirebase();
       // Versão Firebase - reautenticar e atualizar senha
       const currentUser = auth.currentUser;
       if (currentUser) {
@@ -709,8 +709,8 @@ export class AuthService {
           throw new Error('Email do usuário não disponível');
         }
 
-        const credential = EmailAuthProvider.credential(currentUser.email, dados.senhaAtual);
-        await reauthenticateWithCredential(currentUser, credential);
+        const credential = a.EmailAuthProvider.credential(currentUser.email, dados.senhaAtual);
+        await a.reauthenticateWithCredential(currentUser, credential);
 
         // Validar nova senha
         if (!this.validatePassword(dados.novaSenha)) {
@@ -720,7 +720,7 @@ export class AuthService {
         }
 
         // Atualizar senha
-        await updatePassword(currentUser, dados.novaSenha);
+        await a.updatePassword(currentUser, dados.novaSenha);
       } else {
         // Versão simulada para compatibilidade
         const usuario = this.usuarios.get(dados.idUsuario);
@@ -781,6 +781,7 @@ export class AuthService {
    */
   public async recuperarSenha(email: string): Promise<any> {
     try {
+      const { auth, a } = await this.getFirebase();
       const validationService = ValidationService.getInstance();
 
       if (!validationService.validateEmail(email)) {
@@ -788,7 +789,7 @@ export class AuthService {
       }
 
       // Versão Firebase - enviar email de recuperação
-      await sendPasswordResetEmail(auth, email);
+      await a.sendPasswordResetEmail(auth, email);
 
       // Versão simulada para compatibilidade
       const usuario = Array.from(this.usuarios.values()).find(u => u.email === email);
@@ -845,6 +846,7 @@ export class AuthService {
     mensagem: string;
   }> {
     try {
+      const { auth, a } = await this.getFirebase();
       // Versão Firebase - confirmar redefinição de senha
       if (dados.actionCode) {
         // Validar nova senha
@@ -854,7 +856,7 @@ export class AuthService {
           );
         }
 
-        await confirmPasswordReset(auth, dados.actionCode, dados.novaSenha);
+        await a.confirmPasswordReset(auth, dados.actionCode, dados.novaSenha);
       } else {
         // Versão simulada com JWT token
         if (!dados.token) {
@@ -933,6 +935,7 @@ export class AuthService {
     email: string;
   }> {
     try {
+      const { auth } = await this.getFirebase();
       // Esta função só pode ser chamada internamente após login
       const currentUser = auth.currentUser;
       if (!currentUser || currentUser.email !== email) {
@@ -960,6 +963,7 @@ export class AuthService {
     mensagem: string;
   }> {
     try {
+      const { auth, a } = await this.getFirebase();
       const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error('Usuário não autenticado');
@@ -969,7 +973,7 @@ export class AuthService {
         return { mensagem: 'Email já foi verificado.' };
       }
 
-      await sendEmailVerification(currentUser);
+      await a.sendEmailVerification(currentUser);
 
       loggingService.info('Email de verificação reenviado', { userId: UserUtils.getUserId(currentUser) });
 

@@ -1,6 +1,7 @@
-import { STRIPE_PUBLISHABLE_KEY, STRIPE_CONFIG } from '../config/stripe';
+import { f } from '../config/firebase';
+const { STRIPE_PUBLISHABLE_KEY, STRIPE_CONFIG } from '../config/stripe';
 import { loggingService } from './LoggingService';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } = f;
 import { db } from '../config/firebase';
 import { api } from './api';
 

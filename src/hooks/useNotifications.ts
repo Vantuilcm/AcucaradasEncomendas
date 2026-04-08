@@ -1,17 +1,14 @@
-import { useEffect, useState, useCallback } from 'react';
+import { f } from '../config/firebase';
+const { useEffect, useState, useCallback } from 'react';
 import { Platform, Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationService } from '../services/NotificationService';
 import { mobileNotificationService } from '../services/MobileNotificationService';
 import {
-  initOneSignal,
-  requestOneSignalPermission,
-  setOneSignalTags,
-  integrateWithExistingNotifications,
-} from '../config/onesignal';
+  initOneSignal, requestOneSignalPermission, setOneSignalTags, integrateWithExistingNotifications, } from '../config/onesignal';
 import { requestNotificationPermission } from '../config/notifications';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } = f;
 import { db } from '../config/firebase';
 import { loggingService } from '../services/LoggingService';
 import { UserUtils } from '../utils/UserUtils';

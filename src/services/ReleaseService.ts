@@ -1,11 +1,5 @@
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  // @ts-ignore
-  onSnapshot, 
-  serverTimestamp
-} from 'firebase/firestore';
+import { f } from '../config/firebase';
+const { doc, getDoc, setDoc, serverTimestamp } = f;
 import { db } from '../config/firebase';
 import { loggingService } from './LoggingService';
 

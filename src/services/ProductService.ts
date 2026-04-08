@@ -1,7 +1,8 @@
-import { Product, ProductFilter, ProductStats } from '../types/Product';
+import { f } from '../config/firebase';
+const { Product, ProductFilter, ProductStats } from '../types/Product';
 import { loggingService } from './LoggingService';
 import { db } from '../config/firebase';
-import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, setDoc, updateDoc, deleteDoc } = f;
 
 export class ProductService {
   private static instance: ProductService;

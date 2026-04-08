@@ -1,13 +1,5 @@
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  deleteDoc,
-  doc,
-  writeBatch,
-} from 'firebase/firestore';
+import { f } from '../config/firebase';
+const { collection, query, where, getDocs, addDoc, deleteDoc, doc, writeBatch } = f;
 import { db } from '../config/firebase';
 import { PaymentMethod, CreditCard, PixPayment } from '../types/PaymentMethod';
 import { loggingService } from './LoggingService';

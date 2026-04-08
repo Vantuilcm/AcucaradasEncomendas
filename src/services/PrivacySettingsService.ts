@@ -1,4 +1,5 @@
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { f } from '../config/firebase';
+const { doc, getDoc, setDoc, updateDoc } = f;
 import { db } from '../config/firebase';
 import { PrivacySettings } from '../types/PrivacySettings';
 import { loggingService } from './LoggingService';

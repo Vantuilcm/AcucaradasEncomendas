@@ -1,4 +1,13 @@
+import { db, f } from '../config/firebase';
 import {
+  Notification,
+  NotificationPreferences,
+  NotificationStats,
+} from '../types/Notification';
+import { loggingService } from './LoggingService';
+import { sendOneSignalNotification } from '../config/onesignal';
+
+const {
   collection,
   query,
   where,
@@ -10,15 +19,7 @@ import {
   deleteDoc,
   orderBy,
   limit,
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
-import {
-  Notification,
-  NotificationPreferences,
-  NotificationStats,
-} from '../types/Notification';
-import { loggingService } from './LoggingService';
-import { sendOneSignalNotification } from '../config/onesignal';
+} = f;
 
 export interface NotificacaoDados {
   titulo: string;

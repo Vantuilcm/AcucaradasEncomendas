@@ -1,12 +1,5 @@
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  limit, 
-  addDoc, 
-  serverTimestamp
-} from 'firebase/firestore';
+import { f } from '../config/firebase';
+const { collection, query, where, getDocs, limit, addDoc, serverTimestamp } = f;
 import { db } from '../config/firebase';
 import { GrowthMetrics, GrowthIntelligenceService } from './GrowthIntelligenceService';
 import { MarketplaceExpansionService, CityExpansionMetrics } from './MarketplaceExpansionService';

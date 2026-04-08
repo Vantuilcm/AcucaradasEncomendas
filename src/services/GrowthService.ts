@@ -1,9 +1,10 @@
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, limit, orderBy, Timestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import { User } from '../models/User';
 import { Order } from '../types/Order';
 import { NotificationService } from './NotificationService';
 import { loggingService } from './LoggingService';
+
+const { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, limit, orderBy, Timestamp } = f;
 
 export interface ReferralLog {
   referrerId: string;

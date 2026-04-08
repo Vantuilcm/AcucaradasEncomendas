@@ -1,4 +1,5 @@
-import { NotificationService } from '../../services/NotificationService';
+import { f } from '../../config/firebase';
+const { NotificationService } from '../../services/NotificationService';
 import { NotificationType } from '../../config/notifications';
 import { db } from '../../config/firebase';
 import Stripe from 'stripe';
@@ -17,34 +18,18 @@ jest.mock('../../services/api', () => ({
       if (url === '/stripe/confirm-payment') {
         return Promise.resolve({
           data: {
-            status: 'succeeded',
-            receiptUrl: 'http://test-receipt.com',
-            charges: { data: [{ receipt_url: 'http://test-receipt.com' }] },
-          },
-        });
+            status: 'succeeded', receiptUrl: 'http://test-receipt.com', charges: { data: [{ receipt_url: 'http://test-receipt.com' }] }, }, });
       }
       if (url === '/stripe/customers') {
         return Promise.resolve({ data: { customerId: 'cus_mock_123' } });
       }
       return Promise.resolve({ data: {} });
-    }),
-    get: jest.fn(),
-  },
-}));
+    }), get: jest.fn(), }, }));
 
 // Mock NotificationService
 jest.mock('../../services/NotificationService', () => {
   const mockNotificationService = {
-    createNotification: jest.fn(),
-    sendPaymentConfirmation: jest.fn(),
-    sendPaymentFailure: jest.fn(),
-    // Add other methods if needed
-  };
-  return {
-    NotificationService: {
-      getInstance: jest.fn().mockReturnValue(mockNotificationService),
-    },
-  };
+    createNotification: jest.fn(), sendPaymentConfirmation: jest.fn(), sendPaymentFailure: jest.fn(), }, };
 });
 
 // Unmock PaymentService to test real logic
@@ -52,26 +37,10 @@ jest.unmock('../../services/PaymentService');
 
 // Mock Firestore
 jest.mock('firebase/firestore', () => ({
-  doc: jest.fn(),
-  getDoc: jest.fn(),
-  updateDoc: jest.fn(),
-  collection: jest.fn(),
-  query: jest.fn(),
-  where: jest.fn(),
-  getDocs: jest.fn(() => Promise.resolve({ docs: [], empty: true })),
-  setDoc: jest.fn(),
-  orderBy: jest.fn(),
-  limit: jest.fn(),
-  deleteDoc: jest.fn(),
-  writeBatch: jest.fn(() => ({
-    commit: jest.fn(),
-    set: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  })),
-}));
+  doc: jest.fn(), getDoc: jest.fn(), updateDoc: jest.fn(), collection: jest.fn(), query: jest.fn(), where: jest.fn(), getDocs: jest.fn(() => Promise.resolve({ docs: [], empty: true })), setDoc: jest.fn(), orderBy: jest.fn(), limit: jest.fn(), deleteDoc: jest.fn(), writeBatch: jest.fn(() => ({
+    commit: jest.fn(), set: jest.fn(), update: jest.fn(), delete: jest.fn(), })), }));
 
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } = f;
 import { PaymentService } from '../../services/PaymentService';
 
 // Mock das dependências

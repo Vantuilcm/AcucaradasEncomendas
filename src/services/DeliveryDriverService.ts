@@ -1,15 +1,5 @@
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  // @ts-ignore
-  onSnapshot,
-} from 'firebase/firestore';
+import { f } from '../config/firebase';
+const { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc } = f;
 import { db } from '../config/firebase';
 import { DeliveryDriver, DeliveryDriverUpdate, DeliveryDriverStats } from '../types/DeliveryDriver';
 import { loggingService } from './LoggingService';

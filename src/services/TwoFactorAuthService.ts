@@ -1,22 +1,10 @@
-import { auth, db } from '../config/firebase';
+import { a } from '../config/firebase';
+const { f } from '../config/firebase';
+const { auth, db } from '../config/firebase';
 import {
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  Timestamp,
-  deleteField,
-  Firestore,
-  serverTimestamp,
-} from 'firebase/firestore';
+  doc, setDoc, getDoc, updateDoc, Timestamp, deleteField, Firestore, serverTimestamp } = f;
 import {
-  sendEmailVerification,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updateEmail,
-  User,
-  Auth,
-} from 'firebase/auth';
+  sendEmailVerification, EmailAuthProvider, reauthenticateWithCredential, updateEmail, User, Auth } = a;
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { loggingService } from './LoggingService';
