@@ -15,14 +15,14 @@ function AuthContent() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.content}>
-        <Text style={styles.title}>Açucaradas - Teste 902</Text>
-        <Text style={styles.status}>FASE 1.3.4.2: AUTH SESSION TEST</Text>
+        <Text style={styles.title}>Açucaradas - Teste 905</Text>
+        <Text style={styles.status}>FASE 1.3.5: SAFE FIREBASE</Text>
         <Text style={styles.description}>
-          Se você vê isso, o Firebase é o culpado. Se quebrar, é a Auth Session.
+          Se você vê isso, o Firebase foi domado com proteção de erro.
         </Text>
         <View style={styles.box}>
-          <Text style={styles.boxText}>Build: 902</Text>
-          <Text style={styles.boxText}>Estado: Auth Provider com AuthSession Imports</Text>
+          <Text style={styles.boxText}>Build: 905</Text>
+          <Text style={styles.boxText}>Estado: Auth Provider com Firebase Safe-Init</Text>
         </View>
       </View>
     </SafeAreaView>

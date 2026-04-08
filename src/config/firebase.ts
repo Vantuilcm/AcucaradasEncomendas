@@ -21,11 +21,17 @@ const firebaseConfig = {
 
 // Singleton pattern para evitar dupla inicialização
 let app: FirebaseApp;
-if (getApps().length === 0) {
-  console.log('🔥 [FIREBASE] Inicializando app principal...');
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApps()[0];
+try {
+  if (getApps().length === 0) {
+    console.log('🔥 [FIREBASE] Inicializando app principal...');
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApps()[0];
+  }
+} catch (e) {
+  console.error('❌ [FIREBASE] Erro fatal na inicialização:', e);
+  // @ts-ignore
+  app = {} as FirebaseApp;
 }
 
 const auth: Auth = getAuth(app);
