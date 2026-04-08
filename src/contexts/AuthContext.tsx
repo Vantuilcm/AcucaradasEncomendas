@@ -1,11 +1,15 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 
 /**
- * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3.3: Auth EXTREME VACUUM
- * Removendo TODAS as importações de bibliotecas externas (Expo Auth Session, Firebase, etc.)
- * para descartar crash de linkagem nativa no momento do import.
+ * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3.4.1: FIREBASE TEST
+ * Reintroduzindo apenas as importações do Firebase para testar se o crash ocorre no import.
+ * Se o build 899 abrir, o Firebase está SEGURO.
  */
+
+// REINTRODUZINDO IMPORTAÇÕES DO FIREBASE (SUSPEITO 1)
+import { db } from '../config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Interface mínima
 interface AuthContextData {
@@ -32,7 +36,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    console.log('🛡️ [AUTH] Extreme Vacuum initialized.');
+    console.log('🛡️ [AUTH] Firebase Test initialized.');
+    console.log('🛡️ [AUTH] Firestore instance:', !!db);
     setLoading(false);
     setIsReady(true);
   }, []);

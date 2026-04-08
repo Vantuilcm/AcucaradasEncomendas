@@ -15,14 +15,14 @@ function AuthContent() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.content}>
-        <Text style={styles.title}>Açucaradas - Teste 896</Text>
-        <Text style={styles.status}>FASE 1.3.3: AUTH (EXTREME VACUUM)</Text>
+        <Text style={styles.title}>Açucaradas - Teste 899</Text>
+        <Text style={styles.status}>FASE 1.3.4.1: FIREBASE TEST</Text>
         <Text style={styles.description}>
-          Se você vê isso, o crash é causado pelo IMPORT de alguma lib no AuthContext (ex: expo-auth-session).
+          Se você vê isso, o Firebase está SEGURO para importação.
         </Text>
         <View style={styles.box}>
-          <Text style={styles.boxText}>Build: 896</Text>
-          <Text style={styles.boxText}>Estado: Auth Provider 100% JS Puro</Text>
+          <Text style={styles.boxText}>Build: 899</Text>
+          <Text style={styles.boxText}>Estado: Auth Provider com Firebase Imports</Text>
         </View>
       </View>
     </SafeAreaView>
