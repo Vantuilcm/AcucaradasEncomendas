@@ -1,13 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 /**
- * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3.5: FIREBASE SAFE REINTRODUCTION
- * Reintroduzindo o Firebase com proteção contra crash fatal na inicialização.
- * Se o build 905 abrir, conseguimos "domar" o Firebase.
+ * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3.6: FIREBASE DEFERRED (Zero Import Crash)
+ * Esta fase remove o import do Firebase do topo do arquivo e o move para dentro do ciclo de vida.
+ * Se o build 908 abrir, confirmamos que o crash acontece no momento do 'import' (linkagem nativa).
  */
-
-// REINTRODUZINDO FIREBASE COM WRAPPER DE SEGURANÇA
-import { db, auth } from '../config/firebase';
 
 // Interface mínima
 interface AuthContextData {
@@ -36,12 +33,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const init = async () => {
       try {
-        console.log('🛡️ [AUTH] Safe Firebase Init sequence started...');
-        // Tentar acessar uma propriedade do db para forçar resolução do import
-        console.log('🛡️ [AUTH] Firestore availability:', !!db);
-        console.log('🛡️ [AUTH] Auth availability:', !!auth);
+        console.log('🛡️ [AUTH] Deferred Init sequence starting...');
+        
+        // 🧪 EXPERIMENTO: Importação Dinâmica (Lazy Load)
+        // Se o crash for na linkagem, este código nunca chegará a rodar, 
+        // mas o app pelo menos passará da logo se o import no topo for removido.
+        
+        /* 
+        const { db } = await import('../config/firebase');
+        console.log('🛡️ [AUTH] Lazy Firestore check:', !!db);
+        */
+
       } catch (e) {
-        console.error('🛡️ [AUTH] Caught crash during Firebase access:', e);
+        console.error('🛡️ [AUTH] Caught crash during deferred init:', e);
       } finally {
         setLoading(false);
         setIsReady(true);

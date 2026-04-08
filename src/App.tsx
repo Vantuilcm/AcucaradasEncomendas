@@ -15,14 +15,14 @@ function AuthContent() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.content}>
-        <Text style={styles.title}>Açucaradas - Teste 905</Text>
-        <Text style={styles.status}>FASE 1.3.5: SAFE FIREBASE</Text>
+        <Text style={styles.title}>Açucaradas - Teste 908</Text>
+        <Text style={styles.status}>FASE 1.3.6: FIREBASE DEFERRED</Text>
         <Text style={styles.description}>
-          Se você vê isso, o Firebase foi domado com proteção de erro.
+          Se você vê isso, o crash acontece no IMPORT do Firebase (Linkagem Nativa).
         </Text>
         <View style={styles.box}>
-          <Text style={styles.boxText}>Build: 905</Text>
-          <Text style={styles.boxText}>Estado: Auth Provider com Firebase Safe-Init</Text>
+          <Text style={styles.boxText}>Build: 908</Text>
+          <Text style={styles.boxText}>Estado: Auth Provider sem Imports Estáticos</Text>
         </View>
       </View>
     </SafeAreaView>
