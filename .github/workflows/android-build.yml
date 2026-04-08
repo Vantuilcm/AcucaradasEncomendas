@@ -1,7 +1,7 @@
 name: 🚀 Build Android (EAS Local)
 
 concurrency:
-  group: app-release-lock
+  group: android-release-lock
   cancel-in-progress: true
 
 on:

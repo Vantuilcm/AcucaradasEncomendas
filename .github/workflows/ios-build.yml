@@ -1,7 +1,7 @@
 name: 🚀 Build & Submit Mobile (EAS Cloud)
 
 concurrency:
-  group: app-release-lock
+  group: ios-release-lock
   cancel-in-progress: true
 
 on:
