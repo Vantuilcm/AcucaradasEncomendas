@@ -119,7 +119,15 @@ function ThemedApp() {
     <PaperProvider theme={paperTheme}>
       <View style={{ flex: 1, backgroundColor: theme?.colors?.background || (isDark ? '#000000' : '#FFFFFF') }} testID="app-container">
         <StatusBar style={isDark ? "light" : "dark"} />
-        <AppNavigator />
+        {/* Mock de navegação para isolar os Providers de Lógica */}
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: theme?.colors?.text?.primary || '#000', fontSize: 18 }}>
+            Fase 1.1: UI Baseline (Providers de Lógica Removidos)
+          </Text>
+          <Text style={{ color: theme?.colors?.text?.secondary || '#666', marginTop: 10 }}>
+            Se você vê isso, o crash está no Auth, Location ou Cart.
+          </Text>
+        </View>
       </View>
     </PaperProvider>
   );
@@ -179,34 +187,28 @@ export default function App() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <ThemeProvider>
-          <AuthProvider>
-            <LocationProvider>
-              <CartProvider>
-                <ThemedApp />
-                {__DEV__ && !showDiagnostic && (
-                  <TouchableOpacity 
-                    style={{ 
-                      position: 'absolute', 
-                      bottom: 20, 
-                      right: 20, 
-                      backgroundColor: 'rgba(0,0,0,0.5)', 
-                      padding: 8, 
-                      borderRadius: 20,
-                      zIndex: 9999
-                    }} 
-                    onPress={() => setShowDiagnostic(true)}
-                  >
-                    <Text style={{ color: '#FFF', fontSize: 10 }}>🛠️ DIAG</Text>
-                  </TouchableOpacity>
-                )}
-                {__DEV__ && showDiagnostic && (
-                  <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 10000 }}>
-                    <DiagnosticScreen onClose={() => setShowDiagnostic(false)} />
-                  </View>
-                )}
-              </CartProvider>
-            </LocationProvider>
-          </AuthProvider>
+          <ThemedApp />
+          {__DEV__ && !showDiagnostic && (
+            <TouchableOpacity 
+              style={{ 
+                position: 'absolute', 
+                bottom: 20, 
+                right: 20, 
+                backgroundColor: 'rgba(0,0,0,0.5)', 
+                padding: 8, 
+                borderRadius: 20,
+                zIndex: 9999
+              }} 
+              onPress={() => setShowDiagnostic(true)}
+            >
+              <Text style={{ color: '#FFF', fontSize: 10 }}>🛠️ DIAG</Text>
+            </TouchableOpacity>
+          )}
+          {__DEV__ && showDiagnostic && (
+            <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 10000 }}>
+              <DiagnosticScreen onClose={() => setShowDiagnostic(false)} />
+            </View>
+          )}
         </ThemeProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
