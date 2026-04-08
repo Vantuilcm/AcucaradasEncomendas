@@ -110,52 +110,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     while (attempt < retries) {
       try {
         setProfileLoading(true);
-        secureLoggingService.security('PROFILE_FETCH_START', { userId, attempt: attempt + 1 });
+        // secureLoggingService.security('PROFILE_FETCH_START', { userId, attempt: attempt + 1 });
         
-        const userRef = doc(db, 'users', userId);
-        const userDoc = await getDoc(userRef);
+        // const userRef = doc(db, 'users', userId);
+        // const userDoc = await getDoc(userRef);
         
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as any;
-          const role = UserUtils.getUserRole(userData);
-          
-          secureLoggingService.security('PROFILE_FOUND', { 
-            userId, 
-            role,
-            email: UserUtils.getUserEmail(userData)
-          });
-          
-          if (role) {
-            secureLoggingService.security('ROLE_RESOLVED', { userId, role });
-          } else {
-            secureLoggingService.warn('ROLE_MISSING', { userId });
-          }
-          
-          return { ...userData, id: userId };
-        } else {
-          secureLoggingService.security('PROFILE_NOT_FOUND', { userId });
-          return null;
-        }
+        // ... (resto do código comentado)
       } catch (error) {
-        attempt++;
-        secureLoggingService.error('FIREBASE_FETCH_ERROR', { 
-          userId, 
-          attempt,
-          error: error instanceof Error ? error.message : 'Erro desconhecido' 
-        });
-        
-        if (attempt >= retries) {
-          return null;
-        }
-        // Espera curta antes do próximo retry (500ms, 1s, 1.5s)
-        await new Promise(resolve => setTimeout(resolve, 500 * attempt));
-      } finally {
-        if (attempt === retries || attempt === 0) {
-          setProfileLoading(false);
-        }
+        // ...
       }
     }
-    return null;
+    */
   }, []);
 
   // Verificar autenticação ao iniciar o app

@@ -28,12 +28,12 @@
         "NSCameraUsageDescription": "O acesso à câmera permite que você tire fotos para o seu perfil e capture imagens de comprovantes de pagamento quando necessário.",
         "NSPhotoLibraryUsageDescription": "O acesso à galeria permite que você selecione fotos para o seu perfil e anexe imagens a avaliações de produtos."
       },
-      "buildNumber": "890",
+      "buildNumber": "893",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.acucaradas.encomendas",
-      "versionCode": 890,
+      "versionCode": 893,
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#ffffff"
