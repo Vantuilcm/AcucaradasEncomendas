@@ -4,24 +4,25 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { ThemeProvider } from './components/ThemeProvider';
+import { AuthProvider } from './contexts/AuthContext';
 
 /**
- * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.2: UI Providers
- * Reintroduzindo ThemeProvider e PaperProvider.
+ * 🛡️ ZeroNativeCrashRecoveryAI - Fase 1.3: AuthProvider
+ * Reintroduzindo o AuthProvider para testar estabilidade.
  */
-function ThemedContent() {
+function AuthContent() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.content}>
-        <Text style={styles.title}>Açucaradas - Teste 877</Text>
-        <Text style={styles.status}>FASE 1.2: UI PROVIDERS</Text>
+        <Text style={styles.title}>Açucaradas - Teste 880</Text>
+        <Text style={styles.status}>FASE 1.3: AUTH PROVIDER</Text>
         <Text style={styles.description}>
-          Se você vê isso, o ThemeProvider e PaperProvider estão SEGUROS.
+          Se você vê isso, o AuthProvider está SEGURO.
         </Text>
         <View style={styles.box}>
-          <Text style={styles.boxText}>Build: 877</Text>
-          <Text style={styles.boxText}>Estado: Teste de UI Providers</Text>
+          <Text style={styles.boxText}>Build: 880</Text>
+          <Text style={styles.boxText}>Estado: Teste de AuthProvider</Text>
         </View>
       </View>
     </SafeAreaView>
@@ -33,7 +34,9 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <PaperProvider>
-          <ThemedContent />
+          <AuthProvider>
+            <AuthContent />
+          </AuthProvider>
         </PaperProvider>
       </ThemeProvider>
     </SafeAreaProvider>
