@@ -15,14 +15,14 @@ function AuthContent() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.content}>
-        <Text style={styles.title}>Açucaradas - Teste 889</Text>
-        <Text style={styles.status}>FASE 1.3.2: AUTH (GHOST MODE)</Text>
+        <Text style={styles.title}>Açucaradas - Teste 896</Text>
+        <Text style={styles.status}>FASE 1.3.3: AUTH (EXTREME VACUUM)</Text>
         <Text style={styles.description}>
-          Se você vê isso, o crash é causado por Firebase ou Singletons no AuthContext.
+          Se você vê isso, o crash é causado pelo IMPORT de alguma lib no AuthContext (ex: expo-auth-session).
         </Text>
         <View style={styles.box}>
-          <Text style={styles.boxText}>Build: 889</Text>
-          <Text style={styles.boxText}>Estado: Auth Provider sem Firebase/Services</Text>
+          <Text style={styles.boxText}>Build: 896</Text>
+          <Text style={styles.boxText}>Estado: Auth Provider 100% JS Puro</Text>
         </View>
       </View>
     </SafeAreaView>
