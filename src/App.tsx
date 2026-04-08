@@ -15,14 +15,14 @@ function AuthContent() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.content}>
-        <Text style={styles.title}>Açucaradas - Teste 880</Text>
-        <Text style={styles.status}>FASE 1.3: AUTH PROVIDER</Text>
+        <Text style={styles.title}>Açucaradas - Teste 883</Text>
+        <Text style={styles.status}>FASE 1.3: AUTH (HARDENED)</Text>
         <Text style={styles.description}>
-          Se você vê isso, o AuthProvider está SEGURO.
+          Se você vê isso, o crash estava no SecureStore ou DeviceSecurity.
         </Text>
         <View style={styles.box}>
-          <Text style={styles.boxText}>Build: 880</Text>
-          <Text style={styles.boxText}>Estado: Teste de AuthProvider</Text>
+          <Text style={styles.boxText}>Build: 883</Text>
+          <Text style={styles.boxText}>Estado: Auth Provider com Bypasses</Text>
         </View>
       </View>
     </SafeAreaView>
