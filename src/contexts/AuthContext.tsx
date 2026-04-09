@@ -39,7 +39,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // No React Native, precisamos garantir que o Auth está inicializado 
         // antes de configurar o observer. Acessar 'currentUser' força a inicialização no Proxy.
         const firebaseAuth = auth;
-        const _initialUser = firebaseAuth.currentUser; 
+        // @ts-ignore - Acesso para disparar o Proxy
+        const _trigger = firebaseAuth.currentUser; 
 
         // Configurar o observador de estado do usuário
         a.onAuthStateChanged(firebaseAuth, async (firebaseUser: any) => {
@@ -52,13 +53,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               
               if (userDoc.exists()) {
                 const data = userDoc.data();
-                setUser({ ...data, id: firebaseUser.uid } as User);
+                setUser({ ...data, id: firebaseUser.uid });
               } else {
                 setUser({ 
                   id: firebaseUser.uid, 
                   email: firebaseUser.email, 
                   nome: firebaseUser.displayName || '' 
-                } as User);
+                });
               }
             } catch (err) {
               console.error('❌ [AUTH] Error fetching user profile:', err);
@@ -66,24 +67,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: firebaseUser.uid, 
                 email: firebaseUser.email, 
                 nome: firebaseUser.displayName || '' 
-              } as User);
+              });
             }
           } else {
             console.log('👤 [AUTH] No user found.');
             setUser(null);
           }
           setLoading(false);
+          setIsReady(true);
         });
       } catch (e) {
         console.error('❌ [AUTH] Fatal Lazy Load Error:', e);
         setLoading(false);
-      } finally {
         setIsReady(true);
       }
     };
 
     // Pequeno delay para garantir que o motor nativo está pronto
-    const timer = setTimeout(bootstrapLazyFirebase, 500);
+    const timer = setTimeout(bootstrapLazyFirebase, 1000);
     return () => clearTimeout(timer);
   }, []);
 

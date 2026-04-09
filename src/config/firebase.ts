@@ -55,7 +55,18 @@ export const a: any = new Proxy({}, {
         console.log('🛡️ [FIREBASE] Lazy Loading Auth Module...');
         _authModule = require('firebase/auth');
       }
-      return _authModule[prop];
+      const val = _authModule[prop];
+      // Se for uma função que aceita auth como primeiro argumento, retornamos o wrapper
+      if (typeof val === 'function') {
+        return (...args: any[]) => {
+          // Se o primeiro argumento for o nosso proxy de auth, extraímos o real
+          if (args[0] && args[0].__isProxy && _auth) {
+            args[0] = _auth;
+          }
+          return val(...args);
+        };
+      }
+      return val;
     } catch (error) {
       console.error(`❌ [FIREBASE] Error loading Auth property ${prop.toString()}:`, error);
       return () => { console.error('Auth function failed'); return null; };
@@ -70,7 +81,21 @@ export const f: any = new Proxy({}, {
         console.log('🛡️ [FIREBASE] Lazy Loading Firestore Module...');
         _firestoreModule = require('firebase/firestore');
       }
-      return _firestoreModule[prop];
+      const val = _firestoreModule[prop];
+      if (typeof val === 'function') {
+        return (...args: any[]) => {
+          // Desembrulhar proxies de db ou refs se passados como argumentos
+          args = args.map(arg => {
+            if (arg && arg.__isProxy) {
+              if (arg === db && _db) return _db;
+              // Aqui poderíamos adicionar lógica para refs de documentos se necessário
+            }
+            return arg;
+          });
+          return val(...args);
+        };
+      }
+      return val;
     } catch (error) {
       console.error(`❌ [FIREBASE] Error loading Firestore property ${prop.toString()}:`, error);
       return () => { console.error('Firestore function failed'); return null; };
