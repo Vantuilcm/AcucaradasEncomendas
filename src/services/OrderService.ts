@@ -50,12 +50,38 @@ export class OrderService {
         q = f.query(q, f.where('status', '==', filters.status));
       }
 
-      const querySnapshot = await f.getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+      const snapshot = await f.getDocs(q);
+      return snapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      } as Order));
     } catch (error) {
       loggingService.error('Erro ao buscar pedidos do usuário', { userId, error });
       throw error;
     }
+  }
+
+  /**
+   * Monitora os pedidos de um usuário em tempo real
+   * @param userId ID do usuário
+   * @param callback Função chamada sempre que os dados mudarem
+   * @returns Função para cancelar o monitoramento
+   */
+  public subscribeToUserOrders(userId: string, callback: (orders: Order[]) => void): () => void {
+    const ordersRef = f.collection(db, this.collectionName);
+    const q = f.query(
+      ordersRef,
+      f.where('userId', '==', userId),
+      f.orderBy('createdAt', 'desc')
+    );
+
+    return f.onSnapshot(q, (querySnapshot: any) => {
+      const orders = querySnapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      })) as Order[];
+      callback(orders);
+    });
   }
 
   async getOrdersByDeliveryDriver(
@@ -64,33 +90,33 @@ export class OrderService {
     lastOrder?: Order
   ): Promise<Order[]> {
     try {
-      const ordersRef = collection(db, this.collectionName);
-      let q = query(
+      const ordersRef = f.collection(db, this.collectionName);
+      let q = f.query(
         ordersRef,
-        where('deliveryDriver.id', '==', driverId),
-        orderBy('createdAt', 'desc'),
-        limit(this.pageSize)
+        f.where('deliveryDriver.id', '==', driverId),
+        f.orderBy('createdAt', 'desc'),
+        f.limit(this.pageSize)
       );
 
       if (lastOrder) {
         // @ts-ignore
-        q = query(
+        const { startAfter } = require('firebase/firestore');
+        q = f.query(
           ordersRef,
-          where('deliveryDriver.id', '==', driverId),
-          orderBy('createdAt', 'desc'),
-          // @ts-ignore
+          f.where('deliveryDriver.id', '==', driverId),
+          f.orderBy('createdAt', 'desc'),
           startAfter(new Date(lastOrder.createdAt)),
-          limit(this.pageSize)
+          f.limit(this.pageSize)
         );
       }
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await f.getDocs(q);
       const orders: Order[] = [];
 
-      for (const doc of querySnapshot.docs) {
+      for (const docSnapshot of querySnapshot.docs) {
         const order = {
-          id: doc.id,
-          ...doc.data(),
+          id: docSnapshot.id,
+          ...docSnapshot.data(),
         } as Order;
         orders.push(order);
       }
@@ -107,7 +133,7 @@ export class OrderService {
   }
 
   /**
-   * Busca um pedido pelo ID
+   * Obtém detalhes de um pedido pelo ID
    * @param orderId ID do pedido
    * @returns Pedido encontrado ou null
    */
@@ -120,15 +146,9 @@ export class OrderService {
         return null;
       }
 
-      return {
-        id: orderDoc.id,
-        ...orderDoc.data(),
-      } as Order;
-    } catch (error: any) {
-      loggingService.error('Erro ao buscar pedido', {
-        orderId,
-        error: error.message,
-      });
+      return { id: orderDoc.id, ...orderDoc.data() } as Order;
+    } catch (error) {
+      loggingService.error('Erro ao buscar pedido por ID', { orderId, error });
       throw error;
     }
   }
@@ -185,10 +205,10 @@ export class OrderService {
    */
   async getOrderSummary(userId: string): Promise<OrderSummary> {
     try {
-      const ordersRef = collection(db, this.collectionName);
-      const q = query(ordersRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+      const ordersRef = f.collection(db, this.collectionName);
+      const q = f.query(ordersRef, f.where('userId', '==', userId), f.orderBy('createdAt', 'desc'));
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await f.getDocs(q);
       const orders = querySnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
@@ -222,8 +242,8 @@ export class OrderService {
    */
   async updateOrder(orderId: string, orderData: Partial<Order>): Promise<Order> {
     try {
-      const orderRef = doc(db, this.collectionName, orderId);
-      const orderDoc = await getDoc(orderRef);
+      const orderRef = f.doc(db, this.collectionName, orderId);
+      const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
         throw new Error('Pedido não encontrado');
@@ -238,10 +258,10 @@ export class OrderService {
         updatedAt: new Date()
       };
 
-      await updateDoc(orderRef, dataToUpdate);
+      await f.updateDoc(orderRef, dataToUpdate);
       
       // Buscar pedido atualizado
-      const updatedOrderDoc = await getDoc(orderRef);
+      const updatedOrderDoc = await f.getDoc(orderRef);
       
       loggingService.info('Pedido atualizado com sucesso', { orderId });
       
@@ -266,8 +286,8 @@ export class OrderService {
    */
   async cancelOrder(orderId: string, reason?: string): Promise<Order> {
     try {
-      const orderRef = doc(db, this.collectionName, orderId);
-      const orderDoc = await getDoc(orderRef);
+      const orderRef = f.doc(db, this.collectionName, orderId);
+      const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
         throw new Error('Pedido não encontrado');
@@ -292,10 +312,10 @@ export class OrderService {
         updatedAt: new Date()
       };
 
-      await updateDoc(orderRef, updateData);
+      await f.updateDoc(orderRef, updateData);
       
       // Buscar pedido atualizado
-      const updatedOrderDoc = await getDoc(orderRef);
+      const updatedOrderDoc = await f.getDoc(orderRef);
       
       loggingService.info('Pedido cancelado', { orderId, reason });
       
@@ -319,11 +339,11 @@ export class OrderService {
    */
   async getOrderStats(): Promise<any> {
     try {
-      const ordersRef = collection(db, this.collectionName);
-      const querySnapshot = await getDocs(ordersRef);
-      const orders = querySnapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data(),
+      const ordersRef = f.collection(db, this.collectionName);
+      const querySnapshot = await f.getDocs(ordersRef);
+      const orders = querySnapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
       })) as Order[];
 
       // Calcular estatísticas
@@ -370,10 +390,10 @@ export class OrderService {
    * @returns Função para cancelar o monitoramento
    */
   public subscribeToOrderStats(callback: (stats: any) => void): () => void {
-    const ordersRef = collection(db, this.collectionName);
-    const q = query(ordersRef, orderBy('createdAt', 'desc'));
+    const ordersRef = f.collection(db, this.collectionName);
+    const q = f.query(ordersRef, f.orderBy('createdAt', 'desc'));
 
-    return onSnapshot(q, (querySnapshot: any) => {
+    return f.onSnapshot(q, (querySnapshot: any) => {
       const orders = querySnapshot.docs.map((item: any) => {
         const data = item.data();
         // Converter timestamps do Firestore para strings ISO para compatibilidade com o tipo Order
@@ -429,10 +449,10 @@ export class OrderService {
    * @returns Função para cancelar o monitoramento
    */
   public subscribeToAllOrders(callback: (orders: Order[]) => void): () => void {
-    const ordersRef = collection(db, this.collectionName);
-    const q = query(ordersRef, orderBy('createdAt', 'desc'));
+    const ordersRef = f.collection(db, this.collectionName);
+    const q = f.query(ordersRef, f.orderBy('createdAt', 'desc'));
 
-    return onSnapshot(q, (querySnapshot: any) => {
+    return f.onSnapshot(q, (querySnapshot: any) => {
       const orders = querySnapshot.docs.map((item: any) => {
         const data = item.data();
         const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt;

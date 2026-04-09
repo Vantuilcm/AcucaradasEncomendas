@@ -194,12 +194,20 @@ export class ProductService {
         if (data.destacado) destacados++;
       });
 
-      return {
-        totalProdutos,
-        categorias: Array.from(categoriasSet),
-        emEstoque,
+      const stats: ProductStats = {
+        total: totalProdutos,
+        categorias: {} as Record<string, number>,
         destacados,
       };
+
+      snapshot.docs.forEach((doc: any) => {
+        const data = doc.data() as Product;
+        if (data.categoria) {
+          stats.categorias![data.categoria] = (stats.categorias![data.categoria] || 0) + 1;
+        }
+      });
+
+      return stats;
     } catch (error: any) {
       loggingService.error('Erro ao obter estatísticas de produtos', { error: error.message });
       throw error;

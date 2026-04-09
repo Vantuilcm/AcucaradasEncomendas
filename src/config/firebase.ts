@@ -23,8 +23,10 @@ let _app: any = null;
 let _auth: any = null;
 let _db: any = null;
 let _messaging: any = null;
+let _storage: any = null;
 let _authModule: any = null;
 let _firestoreModule: any = null;
+let _storageModule: any = null;
 
 /**
  * Obtém a instância do Firebase App de forma preguiçosa
@@ -104,6 +106,37 @@ export const f: any = new Proxy({}, {
 });
 
 /**
+ * 🚀 Proxy para Funções do Storage (s)
+ */
+export const s: any = new Proxy({}, {
+  get: (_target, prop) => {
+    try {
+      if (!_storageModule) {
+        console.log('🛡️ [FIREBASE] Lazy Loading Storage Module...');
+        _storageModule = require('firebase/storage');
+      }
+      const val = _storageModule[prop];
+      if (typeof val === 'function') {
+        return (...args: any[]) => {
+          // Desembrulhar proxies de storage se passados como argumentos
+          args = args.map(arg => {
+            if (arg && arg.__isProxy) {
+              if (arg === storage && _storage) return _storage;
+            }
+            return arg;
+          });
+          return val(...args);
+        };
+      }
+      return val;
+    } catch (error) {
+      console.error(`❌ [FIREBASE] Error loading Storage property ${prop.toString()}:`, error);
+      return () => { console.error('Storage function failed'); return null; };
+    }
+  }
+});
+
+/**
  * 🛡️ Instâncias Lazy (auth, db, messaging)
  */
 export const auth: any = new Proxy({}, {
@@ -176,6 +209,33 @@ export const db: any = new Proxy({}, {
   getPrototypeOf: () => {
     if (!_db) return Object.prototype;
     return Object.getPrototypeOf(_db);
+  }
+});
+
+export const storage: any = new Proxy({}, {
+  get: (_target, prop) => {
+    if (prop === '__isProxy') return true;
+    
+    try {
+      if (!_storage) {
+        console.log('🛡️ [FIREBASE] Initializing Storage Instance...');
+        const { getStorage } = require('firebase/storage');
+        const instance = getAppInstance();
+        _storage = getStorage(instance);
+      }
+      
+      const val = _storage[prop];
+      if (typeof val === 'function') {
+        return val.bind(_storage);
+      }
+      return val;
+    } catch (error) {
+      return null;
+    }
+  },
+  getPrototypeOf: () => {
+    if (!_storage) return Object.prototype;
+    return Object.getPrototypeOf(_storage);
   }
 });
 

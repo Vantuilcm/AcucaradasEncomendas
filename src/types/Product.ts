@@ -69,6 +69,7 @@ export interface ProductFilter {
   precoMin?: number;
   precoMax?: number;
   tagEspecial?: string;
+  tags?: string[];
   busca?: string;
   ordenarPor?: string;
   ordem?: 'asc' | 'desc';

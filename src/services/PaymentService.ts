@@ -166,8 +166,8 @@ export class PaymentService {
   }> {
     try {
       // 1. Buscar dados do pedido
-      const orderRef = doc(db, 'orders', orderId);
-      const orderDoc = await getDoc(orderRef);
+      const orderRef = f.doc(db, 'orders', orderId);
+      const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
         loggingService.error('Pedido não encontrado', undefined, { orderId });
@@ -201,7 +201,7 @@ export class PaymentService {
       );
 
       // 3. Atualizar Order
-      await updateDoc(orderRef, {
+      await f.updateDoc(orderRef, {
         status: 'confirmed',
         paymentStatus: 'completed',
         paymentMethod: {
@@ -279,18 +279,21 @@ export class PaymentService {
     try {
       const q = f.query(f.collection(db, this.cardsCollection), f.where('userId', '==', userId));
       const snapshot = await f.getDocs(q);
-      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as PaymentCard));
-    } catch (error: any) {
-      loggingService.error('Erro ao obter cartões de pagamento', { error: error.message });
-      return [];
+      return snapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      } as PaymentCard));
+    } catch (error) {
+      loggingService.error('Erro ao buscar cartões do usuário', error instanceof Error ? error : undefined, { userId });
+      throw error;
     }
   }
 
   async addPaymentCard(card: Omit<PaymentCard, 'id' | 'createdAt'>): Promise<PaymentCard> {
     try {
-      const cardsRef = collection(db, this.cardsCollection);
-      const docRef = doc(cardsRef);
-      await setDoc(
+      const cardsRef = f.collection(db, this.cardsCollection);
+      const docRef = f.doc(cardsRef);
+      await f.setDoc(
         docRef,
         {
           ...card,
@@ -319,8 +322,8 @@ export class PaymentService {
 
   async removePaymentCard(cardId: string): Promise<void> {
     try {
-      const cardRef = doc(db, this.cardsCollection, cardId);
-      await deleteDoc(cardRef);
+      const cardRef = f.doc(db, this.cardsCollection, cardId);
+      await f.deleteDoc(cardRef);
 
       loggingService.info('Cartão de pagamento removido com sucesso', {
         cardId,
@@ -337,11 +340,11 @@ export class PaymentService {
 
   async setDefaultCard(userId: string, cardId: string): Promise<void> {
     try {
-      const cardsRef = collection(db, this.cardsCollection);
-      const q = query(cardsRef, where('userId', '==', userId));
-      const querySnapshot = await getDocs(q);
+      const cardsRef = f.collection(db, this.cardsCollection);
+      const q = f.query(cardsRef, f.where('userId', '==', userId));
+      const querySnapshot = await f.getDocs(q);
 
-      const batch = writeBatch(db as any);
+      const batch = f.writeBatch(db as any);
       querySnapshot.docs.forEach((docSnapshot: any) => {
         batch.update(docSnapshot.ref, {
           isDefault: docSnapshot.id === cardId,
@@ -368,9 +371,9 @@ export class PaymentService {
     transaction: Omit<PaymentTransaction, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<PaymentTransaction> {
     try {
-      const transactionsRef = collection(db, this.transactionsCollection);
-      const docRef = doc(transactionsRef);
-      await setDoc(
+      const transactionsRef = f.collection(db, this.transactionsCollection);
+      const docRef = f.doc(transactionsRef);
+      await f.setDoc(
         docRef,
         {
           ...transaction,
@@ -405,8 +408,8 @@ export class PaymentService {
     errorMessage?: string
   ): Promise<void> {
     try {
-      const transactionRef = doc(db, this.transactionsCollection, transactionId);
-      await updateDoc(
+      const transactionRef = f.doc(db, this.transactionsCollection, transactionId);
+      await f.updateDoc(
         transactionRef,
         {
           status,
@@ -431,8 +434,8 @@ export class PaymentService {
 
   async getTransactionById(transactionId: string): Promise<PaymentTransaction | null> {
     try {
-      const transactionRef = doc(db, this.transactionsCollection, transactionId);
-      const transactionDoc = await getDoc(transactionRef);
+      const transactionRef = f.doc(db, this.transactionsCollection, transactionId);
+      const transactionDoc = await f.getDoc(transactionRef);
 
       if (!transactionDoc.exists()) {
         return null;
@@ -460,22 +463,22 @@ export class PaymentService {
     } = {}
   ): Promise<PaymentTransaction[]> {
     try {
-      const transactionsRef = collection(db, this.transactionsCollection);
-      let q = query(transactionsRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+      const transactionsRef = f.collection(db, this.transactionsCollection);
+      let q = f.query(transactionsRef, f.where('userId', '==', userId), f.orderBy('createdAt', 'desc'));
 
       if (options.status) {
-        q = query(q, where('status', '==', options.status));
+        q = f.query(q, f.where('status', '==', options.status));
       }
 
       if (options.limit) {
-        q = query(q, limit(options.limit));
+        q = f.query(q, f.limit(options.limit));
       }
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await f.getDocs(q);
 
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
+      return querySnapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
       })) as PaymentTransaction[];
     } catch (error) {
       loggingService.error(
@@ -491,9 +494,9 @@ export class PaymentService {
     refund: Omit<PaymentRefund, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<PaymentRefund> {
     try {
-      const refundsRef = collection(db, this.refundsCollection);
-      const docRef = doc(refundsRef);
-      await setDoc(
+      const refundsRef = f.collection(db, this.refundsCollection);
+      const docRef = f.doc(refundsRef);
+      await f.setDoc(
         docRef,
         {
           ...refund,
@@ -524,8 +527,8 @@ export class PaymentService {
 
   async updateRefundStatus(refundId: string, status: PaymentRefund['status']): Promise<void> {
     try {
-      const refundRef = doc(db, this.refundsCollection, refundId);
-      await updateDoc(
+      const refundRef = f.doc(db, this.refundsCollection, refundId);
+      await f.updateDoc(
         refundRef,
         {
           status,
@@ -605,8 +608,8 @@ export class PaymentService {
 
   async getPaymentSettings(userId: string): Promise<PaymentSettings | null> {
     try {
-      const settingsRef = doc(db, this.settingsCollection, userId);
-      const settingsDoc = await getDoc(settingsRef);
+      const settingsRef = f.doc(db, this.settingsCollection, userId);
+      const settingsDoc = await f.getDoc(settingsRef);
 
       if (!settingsDoc.exists()) {
         return null;
@@ -628,8 +631,8 @@ export class PaymentService {
 
   async updatePaymentSettings(userId: string, updates: Partial<PaymentSettings>): Promise<void> {
     try {
-      const settingsRef = doc(db, this.settingsCollection, userId);
-      await updateDoc(
+      const settingsRef = f.doc(db, this.settingsCollection, userId);
+      await f.updateDoc(
         settingsRef,
         {
           ...updates,
@@ -668,9 +671,9 @@ export class PaymentService {
 
   async addPixKey(pixKey: Omit<PixKey, 'id' | 'createdAt'>): Promise<PixKey> {
     try {
-      const pixKeysRef = collection(db, this.pixKeysCollection);
-      const docRef = doc(pixKeysRef);
-      await setDoc(
+      const pixKeysRef = f.collection(db, this.pixKeysCollection);
+      const docRef = f.doc(pixKeysRef);
+      await f.setDoc(
         docRef,
         {
           ...pixKey,
@@ -699,8 +702,8 @@ export class PaymentService {
 
   async removePixKey(pixKeyId: string): Promise<void> {
     try {
-      const pixKeyRef = doc(db, this.pixKeysCollection, pixKeyId);
-      await deleteDoc(pixKeyRef);
+      const pixKeyRef = f.doc(db, this.pixKeysCollection, pixKeyId);
+      await f.deleteDoc(pixKeyRef);
 
       loggingService.info('Chave PIX removida com sucesso', {
         pixKeyId,
@@ -717,11 +720,11 @@ export class PaymentService {
 
   async setDefaultPixKey(userId: string, pixKeyId: string): Promise<void> {
     try {
-      const pixKeysRef = collection(db, this.pixKeysCollection);
-      const q = query(pixKeysRef, where('userId', '==', userId));
-      const querySnapshot = await getDocs(q);
+      const pixKeysRef = f.collection(db, this.pixKeysCollection);
+      const q = f.query(pixKeysRef, f.where('userId', '==', userId));
+      const querySnapshot = await f.getDocs(q);
 
-      const batch = writeBatch(db as any);
+      const batch = f.writeBatch(db as any);
       querySnapshot.docs.forEach((docSnapshot: any) => {
         batch.update(docSnapshot.ref, {
           isDefault: docSnapshot.id === pixKeyId,

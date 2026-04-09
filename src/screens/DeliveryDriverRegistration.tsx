@@ -13,15 +13,7 @@ import {
 import { Camera } from '../compat/expoCamera';
 import * as FaceDetector from '../compat/expoFaceDetector';
 import * as DocumentPicker from '../compat/expoDocumentPicker';
-import {
-  // @ts-ignore
-  ref,
-  // @ts-ignore
-  uploadBytes,
-  // @ts-ignore
-  getDownloadURL
-} from 'firebase/storage';
-import { storage } from '../config/firebase';
+import { storage, s } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -179,9 +171,9 @@ export default function DeliveryDriverRegistration() {
   const uploadFile = async (uri: string, path: string) => {
     const response = await fetch(uri);
     const blob = await response.blob();
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, blob);
-    return await getDownloadURL(storageRef);
+    const storageRef = s.ref(storage, path);
+    await s.uploadBytes(storageRef, blob);
+    return await s.getDownloadURL(storageRef);
   };
 
   const handleSubmit = async () => {

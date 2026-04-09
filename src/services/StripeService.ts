@@ -1,5 +1,5 @@
 import { db, f } from '../config/firebase';
-import { STRIPE_PUBLISHABLE_KEY, STRIPE_CONFIG } from '../config/stripe';
+import { STRIPE_PUBLISHABLE_KEY } from '../config/stripe';
 import { loggingService } from './LoggingService';
 import { api } from './api';
 
@@ -274,8 +274,8 @@ export class StripeService {
   }> {
     try {
       const paymentIntent = await this.createPaymentIntent(orderId, amount);
-      const producerDoc = await getDoc(doc(db, 'producers', producerId));
-      const deliveryPersonDoc = await getDoc(doc(db, 'delivery_drivers', deliveryPersonId));
+      const producerDoc = await f.getDoc(f.doc(db, 'producers', producerId));
+      const deliveryPersonDoc = await f.getDoc(f.doc(db, 'delivery_drivers', deliveryPersonId));
 
       if (!producerDoc.exists() || !deliveryPersonDoc.exists()) {
         throw new Error('Produtor ou entregador não encontrado');

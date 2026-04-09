@@ -104,7 +104,7 @@ export class GrowthService {
       const userId = order.userId;
       
       // 1. Verificar se o pedido foi por indicação e completar o ciclo
-      const userDoc = await getDocs(query(collection(db, 'usuarios'), where('id', '==', userId), limit(1)));
+      const userDoc = await f.getDocs(f.query(f.collection(db, 'usuarios'), f.where('id', '==', userId), f.limit(1)));
       const userData = userDoc.docs[0]?.data() as unknown as User;
 
       if (userData?.referredBy) {
@@ -134,33 +134,33 @@ export class GrowthService {
   private async completeReferralCycle(referrerId: string, referredId: string, order: Order): Promise<void> {
     try {
       // Buscar o log pendente
-      const q = query(
-        collection(db, 'referrals'),
-        where('referrerId', '==', referrerId),
-        where('referredId', '==', referredId),
-        where('status', '==', 'pending'),
-        limit(1)
+      const q = f.query(
+        f.collection(db, 'referrals'),
+        f.where('referrerId', '==', referrerId),
+        f.where('referredId', '==', referredId),
+        f.where('status', '==', 'pending'),
+        f.limit(1)
       );
 
-      const snapshot = await getDocs(q);
+      const snapshot = await f.getDocs(q);
       if (snapshot.empty) return;
 
       const logId = snapshot.docs[0].id;
 
       // Atualizar log
-      await updateDoc(doc(db, 'referrals', logId), {
+      await f.updateDoc(f.doc(db, 'referrals', logId), {
         status: 'completed',
         orderId: order.id,
         valueGenerated: order.totalAmount,
-        completedAt: serverTimestamp()
+        completedAt: f.serverTimestamp()
       });
 
       // Atualizar estatísticas do referrer
-      const referrerRef = doc(db, 'usuarios', referrerId);
-      const referrerSnap = await getDocs(query(collection(db, 'usuarios'), where('id', '==', referrerId), limit(1)));
+      const referrerRef = f.doc(db, 'usuarios', referrerId);
+      const referrerSnap = await f.getDocs(f.query(f.collection(db, 'usuarios'), f.where('id', '==', referrerId), f.limit(1)));
       const referrerData = referrerSnap.docs[0]?.data() as unknown as User;
 
-      await updateDoc(referrerRef, {
+      await f.updateDoc(referrerRef, {
         referralCount: (referrerData?.referralCount || 0) + 1,
         totalReferralValue: (referrerData?.totalReferralValue || 0) + order.totalAmount
       });
@@ -192,27 +192,27 @@ export class GrowthService {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       
       // Buscar usuários que não compram há 7 dias (simplificado: baseado no último pedido ou data de criação)
-      const q = query(
-        collection(db, 'usuarios'),
-        where('role', '==', 'customer'),
-        limit(50) // Processar em lotes
+      const q = f.query(
+        f.collection(db, 'usuarios'),
+        f.where('role', '==', 'customer'),
+        f.limit(50) // Processar em lotes
       );
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await f.getDocs(q);
       let reengaged = 0;
 
       for (const docSnapshot of querySnapshot.docs) {
         const userId = docSnapshot.id;
         
         // Verificar último pedido
-        const lastOrderQ = query(
-          collection(db, 'orders'),
-          where('userId', '==', userId),
-          orderBy('createdAt', 'desc'),
-          limit(1)
+        const lastOrderQ = f.query(
+          f.collection(db, 'orders'),
+          f.where('userId', '==', userId),
+          f.orderBy('createdAt', 'desc'),
+          f.limit(1)
         );
         
-        const lastOrderSnap = await getDocs(lastOrderQ);
+        const lastOrderSnap = await f.getDocs(lastOrderQ);
         let shouldReengage = false;
 
         if (lastOrderSnap.empty) {
@@ -264,22 +264,22 @@ export class GrowthService {
 
   private async checkAntiSpamGrowth(userId: string, type: string): Promise<boolean> {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const q = query(
-      collection(db, 'growth_events'),
-      where('userId', '==', userId),
-      where('eventType', '==', type),
-      where('timestamp', '>=', sevenDaysAgo),
-      limit(1)
+    const q = f.query(
+      f.collection(db, 'growth_events'),
+      f.where('userId', '==', userId),
+      f.where('eventType', '==', type),
+      f.where('timestamp', '>=', sevenDaysAgo),
+      f.limit(1)
     );
-    const snap = await getDocs(q);
+    const snap = await f.getDocs(q);
     return snap.empty;
   }
 
   private async logGrowthEvent(userId: string, eventType: string): Promise<void> {
-    await addDoc(collection(db, 'growth_events'), {
+    await f.addDoc(f.collection(db, 'growth_events'), {
       userId,
       eventType,
-      timestamp: serverTimestamp()
+      timestamp: f.serverTimestamp()
     });
   }
 }

@@ -24,7 +24,7 @@ const TwoFactorAuthScreen = () => {
   const [countdown, setCountdown] = useState<number>(60);
   const [isResending, setIsResending] = useState<boolean>(false);
   const navigation = useNavigation<any>();
-  const { verify2FACode, generate2FACode, signOut, loading } = useAuth();
+  const { verify2FACode, generate2FACode, logout, loading } = useAuth();
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -54,7 +54,7 @@ const TwoFactorAuthScreen = () => {
             text: 'Sim',
             style: 'destructive',
             onPress: async () => {
-              await signOut();
+              await logout();
               navigation.dispatch(e.data.action);
             },
           },
@@ -110,13 +110,13 @@ const TwoFactorAuthScreen = () => {
     }
 
     try {
-      const result = await verify2FACode(code);
+      const success = await verify2FACode(code);
 
-      if (result.success) {
+      if (success) {
         // Navegar para a tela principal após verificação bem-sucedida
         navigation.replace('MainTabs');
       } else {
-        Alert.alert('Erro', result.error || 'Código inválido. Tente novamente.');
+        Alert.alert('Erro', 'Código inválido. Tente novamente.');
       }
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível verificar o código. Tente novamente.');
@@ -127,17 +127,9 @@ const TwoFactorAuthScreen = () => {
   const handleResendCode = async () => {
     try {
       setIsResending(true);
-      const result = await generate2FACode();
-
-      if (result.success) {
-        setCountdown(60);
-        Alert.alert('Código enviado', 'Um novo código de verificação foi enviado para seu email.');
-      } else {
-        Alert.alert(
-          'Erro',
-          result.error || 'Não foi possível enviar um novo código. Tente novamente mais tarde.'
-        );
-      }
+      await generate2FACode();
+      setCountdown(60);
+      Alert.alert('Código enviado', 'Um novo código de verificação foi enviado para seu email.');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível enviar um novo código. Tente novamente mais tarde.');
     } finally {
@@ -156,7 +148,7 @@ const TwoFactorAuthScreen = () => {
           text: 'Sair',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
+            await logout();
             navigation.replace('Login');
           },
         },

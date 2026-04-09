@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db, a, f } from '../config/firebase';
+import { TwoFactorAuthService } from '../services/TwoFactorAuthService';
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Ultra-Lazy
@@ -21,6 +22,8 @@ interface AuthContextData {
   updateUser: (userData: any) => Promise<void>;
   validateSession: () => Promise<boolean>;
   refreshUserActivity: () => void;
+  verify2FACode: (code: string) => Promise<boolean>;
+  generate2FACode: () => Promise<void>;
   is2FAEnabled?: boolean;
 }
 
@@ -169,6 +172,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const validateSession = async () => true;
   const refreshUserActivity = () => {};
 
+  const verify2FACode = async (code: string) => {
+    const tfaService = new TwoFactorAuthService();
+    const result = await tfaService.verifyCode(code);
+    return result.success;
+  };
+
+  const generate2FACode = async () => {
+    const tfaService = new TwoFactorAuthService();
+    await tfaService.generateAndSendVerificationCode();
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -184,7 +198,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUser,
         validateSession,
         refreshUserActivity,
-        is2FAEnabled: false,
+        verify2FACode,
+        generate2FACode,
+        is2FAEnabled: user?.twoFactorEnabled || false,
       }}
     >
       {children}

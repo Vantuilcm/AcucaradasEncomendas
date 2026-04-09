@@ -54,7 +54,7 @@ export class TwoFactorAuthService {
         return false;
       }
 
-      const userDoc = await f.getDoc(f.doc(this.firestore, this.collection, currentUser.uid));
+      const userDoc = await f.getDoc(f.doc(db, this.collection, currentUser.uid));
       return userDoc.exists() && userDoc.data()?.twoFactorEnabled === true;
     } catch (error: any) {
       secureLoggingService.security('Erro ao verificar status do 2FA', { 
@@ -106,7 +106,7 @@ export class TwoFactorAuthService {
 
       // Atualizar o documento do usuário
       await f.setDoc(
-        f.doc(this.firestore, this.collection, currentUser.uid),
+        f.doc(db, this.collection, currentUser.uid),
         {
           twoFactorEnabled: true,
           email: currentUser.email,
@@ -158,7 +158,7 @@ export class TwoFactorAuthService {
       }
 
       // Atualizar o documento do usuário
-      await f.updateDoc(f.doc(this.firestore, this.collection, currentUser.uid), {
+      await f.updateDoc(f.doc(db, this.collection, currentUser.uid), {
         twoFactorEnabled: false,
         backupCodes: f.deleteField(),
         updatedAt: f.serverTimestamp(),
@@ -346,7 +346,7 @@ export class TwoFactorAuthService {
         };
       }
 
-      const userDoc = await getDoc(doc(this.firestore, this.collection, currentUser.uid));
+      const userDoc = await f.getDoc(f.doc(db, this.collection, currentUser.uid));
       if (!userDoc.exists()) {
         return {
           success: false,
@@ -370,10 +370,10 @@ export class TwoFactorAuthService {
         // Verificar se o código está correto
         if (storedCode === inputCode) {
           // Limpar o código usado
-          await updateDoc(doc(this.firestore, this.collection, currentUser.uid), {
-            verificationCode: deleteField(),
-            codeExpiration: deleteField(),
-            lastVerifiedAt: serverTimestamp(),
+          await f.updateDoc(f.doc(db, this.collection, currentUser.uid), {
+            verificationCode: f.deleteField(),
+            codeExpiration: f.deleteField(),
+            lastVerifiedAt: f.serverTimestamp(),
           } as any);
 
           // Gerar token de sessão para evitar verificações repetidas
@@ -427,7 +427,7 @@ export class TwoFactorAuthService {
         };
       }
 
-      const userDoc = await getDoc(doc(this.firestore, this.collection, currentUser.uid));
+      const userDoc = await f.getDoc(f.doc(db, this.collection, currentUser.uid));
       if (!userDoc.exists()) {
         return {
           success: false,
@@ -454,9 +454,9 @@ export class TwoFactorAuthService {
         // Remover o código usado
         storedBackupCodes.splice(codeIndex, 1);
 
-        await updateDoc(doc(this.firestore, this.collection, currentUser.uid), {
+        await f.updateDoc(f.doc(db, this.collection, currentUser.uid), {
           backupCodes: storedBackupCodes,
-          lastVerifiedAt: serverTimestamp(),
+          lastVerifiedAt: f.serverTimestamp(),
         } as any);
 
         // Gerar token de sessão para evitar verificações repetidas
@@ -508,7 +508,7 @@ export class TwoFactorAuthService {
         };
       }
 
-      await sendEmailVerification(currentUser);
+      await a.sendEmailVerification(currentUser);
 
       loggingService.info('Email de verificação enviado', { userId: currentUser.uid });
 
@@ -539,17 +539,17 @@ export class TwoFactorAuthService {
       }
 
       // Reautenticar usuário antes de alterar email
-      const credential = EmailAuthProvider.credential(currentUser.email, password);
-      await reauthenticateWithCredential(currentUser, credential);
+      const credential = a.EmailAuthProvider.credential(currentUser.email, password);
+      await a.reauthenticateWithCredential(currentUser, credential);
 
       // Atualizar email (irá enviar email de verificação automaticamente)
-      await updateEmail(currentUser, newEmail);
-      await sendEmailVerification(currentUser);
+      await a.updateEmail(currentUser, newEmail);
+      await a.sendEmailVerification(currentUser);
 
       // Atualizar dados no Firestore
-      await updateDoc(doc(this.firestore, this.collection, currentUser.uid), {
+      await f.updateDoc(f.doc(db, this.collection, currentUser.uid), {
         email: newEmail,
-        updatedAt: serverTimestamp(),
+        updatedAt: f.serverTimestamp(),
       } as any);
 
       loggingService.info('Solicitação de atualização de email enviada', {
