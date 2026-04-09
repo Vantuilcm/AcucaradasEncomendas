@@ -58,20 +58,34 @@ export const a: any = new Proxy({}, {
         _authModule = require('firebase/auth');
       }
       const val = _authModule[prop];
-      // Se for uma função que aceita auth como primeiro argumento, retornamos o wrapper
+      
+      // Se for uma função, retornamos um wrapper que garante o unwrapping do proxy
       if (typeof val === 'function') {
         return (...args: any[]) => {
-          // Se o primeiro argumento for o nosso proxy de auth, extraímos o real
-          if (args[0] && args[0].__isProxy && _auth) {
-            args[0] = _auth;
-          }
-          return val(...args);
+          // Unwrapping recursivo de proxies nos argumentos
+          const unwrappedArgs = args.map(arg => {
+            if (arg && typeof arg === 'object' && arg.__isProxy) {
+              // Se for o proxy do Auth, retorna a instância real _auth
+              if (arg === auth && _auth) return _auth;
+              // Se for o proxy do DB, retorna a instância real _db
+              if (arg === db && _db) return _db;
+              // Se for o proxy do Storage, retorna a instância real _storage
+              if (arg === storage && _storage) return _storage;
+            }
+            return arg;
+          });
+          
+          return val(...unwrappedArgs);
         };
       }
       return val;
     } catch (error) {
       console.error(`❌ [FIREBASE] Error loading Auth property ${prop.toString()}:`, error);
-      return () => { console.error('Auth function failed'); return null; };
+      // Retorna uma função dummy para evitar "null is not a function"
+      return () => { 
+        console.error(`🛡️ [FIREBASE] Auth function ${prop.toString()} failed to load.`);
+        return Promise.reject(new Error(`Firebase Auth module not ready for ${prop.toString()}`));
+      };
     }
   }
 });
@@ -84,23 +98,25 @@ export const f: any = new Proxy({}, {
         _firestoreModule = require('firebase/firestore');
       }
       const val = _firestoreModule[prop];
+      
       if (typeof val === 'function') {
         return (...args: any[]) => {
-          // Desembrulhar proxies de db ou refs se passados como argumentos
-          args = args.map(arg => {
-            if (arg && arg.__isProxy) {
+          const unwrappedArgs = args.map(arg => {
+            if (arg && typeof arg === 'object' && arg.__isProxy) {
               if (arg === db && _db) return _db;
-              // Aqui poderíamos adicionar lógica para refs de documentos se necessário
             }
             return arg;
           });
-          return val(...args);
+          return val(...unwrappedArgs);
         };
       }
       return val;
     } catch (error) {
       console.error(`❌ [FIREBASE] Error loading Firestore property ${prop.toString()}:`, error);
-      return () => { console.error('Firestore function failed'); return null; };
+      return () => {
+        console.error(`🛡️ [FIREBASE] Firestore function ${prop.toString()} failed to load.`);
+        return Promise.reject(new Error(`Firebase Firestore module not ready for ${prop.toString()}`));
+      };
     }
   }
 });

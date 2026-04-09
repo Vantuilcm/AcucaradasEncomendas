@@ -94,7 +94,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string, role?: string) => {
     try {
       setLoading(true);
+      console.log('🛡️ [AUTH] Attempting login for:', email);
+      
       const firebaseAuth = auth;
+      // Garante que o módulo de auth está carregado disparando o proxy
+      const _authTrigger = a.signInWithEmailAndPassword;
+      
+      if (typeof _authTrigger !== 'function') {
+        throw new Error('Firebase Auth module not loaded correctly.');
+      }
+
       const userCredential = await a.signInWithEmailAndPassword(firebaseAuth, email, password);
       console.log('✅ [AUTH] Login success:', userCredential.user.email);
       
