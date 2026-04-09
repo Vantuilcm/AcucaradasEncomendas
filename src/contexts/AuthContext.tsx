@@ -24,6 +24,9 @@ interface AuthContextData {
   refreshUserActivity: () => void;
   verify2FACode: (code: string) => Promise<boolean>;
   generate2FACode: () => Promise<void>;
+  signInWithGoogle: (role: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithFacebook: (role: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithApple: (role: string) => Promise<{ success: boolean; error?: string }>;
   is2FAEnabled?: boolean;
   error: string | null;
 }
@@ -208,6 +211,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await tfaService.generateAndSendVerificationCode();
   };
 
+  const signInWithGoogle = async (role: string) => {
+    try {
+      console.log('🛡️ [DEBUG_SOCIAL] Iniciando Google Auth');
+      // TODO: Implementar lógica real de Google Auth para Firebase Web SDK
+      // Por enquanto, retorna erro informativo para debug
+      return { success: false, error: 'Google Auth pendente de implementação no novo Lazy Load' };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const signInWithFacebook = async (role: string) => {
+    return { success: false, error: 'Facebook Auth pendente de implementação' };
+  };
+
+  const signInWithApple = async (role: string) => {
+    return { success: false, error: 'Apple Auth pendente de implementação' };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -225,6 +247,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshUserActivity,
         verify2FACode,
         generate2FACode,
+        signInWithGoogle,
+        signInWithFacebook,
+        signInWithApple,
         is2FAEnabled: user?.twoFactorEnabled || false,
         error,
       }}

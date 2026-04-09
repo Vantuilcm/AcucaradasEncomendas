@@ -129,6 +129,25 @@ export const a = authFunctions;
 export const f = dbFunctions;
 export const s = storageFunctions;
 
-// Instâncias para compatibilidade
-export const auth = { get currentUser() { return getAuth().currentUser; } };
-export const db = { get type() { return 'firestore'; } }; // Apenas para evitar erros de referência direta
+// Instâncias para compatibilidade real (chamam getAuth/getDb por baixo)
+export const auth: any = new Proxy({}, {
+  get: (_, prop) => {
+    const instance = getAuth();
+    return instance[prop];
+  }
+});
+
+export const db: any = new Proxy({}, {
+  get: (_, prop) => {
+    const instance = getDb();
+    return instance[prop];
+  }
+});
+
+export const storage: any = new Proxy({}, {
+  get: (_, prop) => {
+    const instance = getStorage();
+    return instance[prop];
+  }
+});
+
