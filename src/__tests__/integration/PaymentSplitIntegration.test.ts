@@ -1,8 +1,8 @@
 import { f } from '../../config/firebase';
-const { PaymentService } from '../../services/PaymentService';
+import { PaymentService } from '../../services/PaymentService';
 import { StripeService } from '../../services/StripeService';
 import { NotificationService } from '../../services/NotificationService';
-import { getDoc, updateDoc, doc } = f;
+const { getDoc, updateDoc, doc } = f;
 import { loggingService } from '../../services/LoggingService';
 
 // Ensure we use the real PaymentService
@@ -144,7 +144,7 @@ describe('Payment Split Integration Tests', () => {
     // Mock do StripeService
     jest.spyOn(stripeService, 'createPaymentIntent').mockResolvedValue({
       id: 'pi_123456',
-      client_secret: 'pi_123456_secret_789',
+      clientSecret: 'pi_123456_secret_789',
     });
 
     jest.spyOn(stripeService, 'createPaymentMethod').mockResolvedValue('pm_123456');

@@ -1,6 +1,6 @@
 import { f } from '../../config/firebase';
-const { ProductService } from '../ProductService';
-import { 
+import { ProductService } from '../ProductService';
+const { 
   collection, getDocs, doc, getDoc, query, where, orderBy, limit, setDoc, updateDoc, deleteDoc } = f;
 
 // Unmock ProductService to test the real implementation

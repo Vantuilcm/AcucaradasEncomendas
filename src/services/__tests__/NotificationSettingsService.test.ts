@@ -1,6 +1,6 @@
 import { f } from '../../config/firebase';
-const { NotificationSettingsServiceWithCache } from '../NotificationSettingsServiceWithCache';
-import { doc, getDoc, setDoc, updateDoc } = f;
+import { NotificationSettingsServiceWithCache } from '../NotificationSettingsServiceWithCache';
+const { doc, getDoc, setDoc, updateDoc } = f;
 import { loggingService } from '../LoggingService';
 import { CacheManager } from '../../utils/cache';
 

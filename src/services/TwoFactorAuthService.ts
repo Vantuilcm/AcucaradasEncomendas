@@ -1,15 +1,15 @@
 import { a } from '../config/firebase';
-const { f } from '../config/firebase';
-const { auth, db } from '../config/firebase';
-import {
-  doc, setDoc, getDoc, updateDoc, Timestamp, deleteField, Firestore, serverTimestamp } = f;
-import {
-  sendEmailVerification, EmailAuthProvider, reauthenticateWithCredential, updateEmail, User, Auth } = a;
+import { f } from '../config/firebase';
+import { auth, db } from '../config/firebase';
+const {
+  doc, setDoc, getDoc, updateDoc, deleteField, serverTimestamp, Timestamp } = f;
+const {
+  sendEmailVerification, EmailAuthProvider, reauthenticateWithCredential, updateEmail } = a;
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { loggingService } from './LoggingService';
 import { secureLoggingService } from './SecureLoggingService';
-import { getFunctions, httpsCallable, Functions } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
 
 // Tempo de validade do código em segundos (5 minutos)
 const CODE_EXPIRATION_TIME = 5 * 60;
@@ -17,8 +17,6 @@ const CODE_EXPIRATION_TIME = 5 * 60;
 const BACKUP_CODES_COUNT = 10;
 // Comprimento dos códigos de backup
 const BACKUP_CODE_LENGTH = 8;
-
-type AuthWithCurrentUser = Auth & { currentUser: User | null };
 
 export interface TwoFactorAuthResult {
   success: boolean;
@@ -30,13 +28,14 @@ export interface TwoFactorAuthResult {
 export class TwoFactorAuthService {
   // Nome da coleção no Firestore
   private readonly collection = 'usersAuth';
-  private readonly firestore: Firestore;
-  private readonly authService: AuthWithCurrentUser;
-  private readonly functions: Functions;
+  private readonly firestore: any;
+  private readonly authService: any;
+  private readonly functions: any;
 
   constructor() {
     this.firestore = db;
-    this.authService = auth as AuthWithCurrentUser;
+    this.authService = auth;
+    const { getFunctions } = require('firebase/functions');
     this.functions = getFunctions();
   }
 
@@ -376,7 +375,7 @@ export class TwoFactorAuthService {
       }
 
       const storedCode = userData.verificationCode;
-      const codeExpiration = (userData.codeExpiration as unknown as Timestamp)?.toDate();
+      const codeExpiration = (userData.codeExpiration as any)?.toDate();
 
       // Verificar se o código existe e não expirou
       if (storedCode && codeExpiration && codeExpiration >= new Date()) {

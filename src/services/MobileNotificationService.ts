@@ -1,11 +1,11 @@
-import { f } from '../config/firebase';
-const { Platform } from 'react-native';
+import { f, db } from '../config/firebase';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from '../compat/expoDevice';
 import Constants from 'expo-constants';
-import { db } from '../config/firebase';
-import { doc, getDoc, setDoc, deleteDoc } = f;
 import { loggingService } from './LoggingService';
+
+const { doc, setDoc, getDoc, deleteDoc } = f;
 import { NotificationType } from '../types/Notification';
 import { NotificationSettingsServiceWithCache } from './NotificationSettingsServiceWithCache';
 

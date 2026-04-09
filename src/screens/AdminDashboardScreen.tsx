@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { f } from '../config/firebase';
-const { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { Text, Card, Divider, List, Surface, FAB, Badge } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -12,9 +11,9 @@ import { OrderService } from '../services/OrderService';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { OrderWatchdogService } from '../services/OrderWatchdogService';
 import { SalesAutomationService } from '../services/SalesAutomationService';
-import { 
-  collection, query, limit, orderBy } = f;
-import { db } from '../config/firebase';
+const { 
+  collection, query, limit, orderBy, onSnapshot } = f;
+import { db, f } from '../config/firebase';
 import { DemandForecastService, ProductDemandInsight } from '../services/DemandForecastService';
 import { RecommendationService, ProductRecommendation } from '../services/RecommendationService';
 import { GrowthIntelligenceService, GrowthMetrics } from '../services/GrowthIntelligenceService';

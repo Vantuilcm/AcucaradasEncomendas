@@ -1,6 +1,6 @@
 import { f } from '../config/firebase';
-const { Share } from 'react-native';
-import { addDoc, collection, doc, getDoc } = f;
+import { Share } from 'react-native';
+const { addDoc, collection, doc, getDoc } = f;
 import { Product } from '../types/Product';
 import { User } from '../models/User';
 import { db } from '../config/firebase';

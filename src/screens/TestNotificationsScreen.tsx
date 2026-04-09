@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { f } from '../config/firebase';
-const { View, StyleSheet, ScrollView, Alert, Platform, FlatList } from 'react-native';
+import { db, f } from '../config/firebase';
+import { View, StyleSheet, ScrollView, Alert, Platform, FlatList } from 'react-native';
 import { Button, Text, Card, Divider, ActivityIndicator, List } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { PushNotificationService } from '../services/PushNotificationService';
 import * as Notifications from 'expo-notifications';
-import {
+const {
   doc, getDoc, updateDoc, collection, query, where, getDocs, setDoc, orderBy, writeBatch } = f;
-import { db } from '../config/firebase';
 import { formatDate } from '../utils/formatters';
 import {
   getOneSignalUserId,
@@ -115,7 +114,7 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
       }
 
       const querySnapshot = await getDocs(q);
-      const logs = querySnapshot.docs.map(doc => ({
+      const logs = querySnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       })) as NotificationLog[];
@@ -515,7 +514,7 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
 
               // Excluir cada documento em lote
               const batch = writeBatch(db);
-              querySnapshot.docs.forEach(doc => {
+              querySnapshot.docs.forEach((doc: any) => {
                 (batch as any).delete((doc as any).ref);
               });
 

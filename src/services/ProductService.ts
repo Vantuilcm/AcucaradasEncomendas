@@ -1,8 +1,8 @@
 import { f } from '../config/firebase';
-const { Product, ProductFilter, ProductStats } from '../types/Product';
+import { Product, ProductFilter, ProductStats } from '../types/Product';
 import { loggingService } from './LoggingService';
 import { db } from '../config/firebase';
-import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, setDoc, updateDoc, deleteDoc } = f;
+const { collection, getDocs, doc, getDoc, query, where, orderBy, limit, setDoc, updateDoc, deleteDoc } = f;
 
 export class ProductService {
   private static instance: ProductService;
@@ -218,7 +218,7 @@ export class ProductService {
       
       // Processar resultados
       const produtos: Product[] = [];
-      querySnapshot.docs.forEach((doc) => {
+      querySnapshot.docs.forEach((doc: any) => {
         produtos.push({ id: doc.id, ...(doc.data() as any) } as Product);
       });
 
@@ -437,7 +437,7 @@ export class ProductService {
       let semEstoque = 0;
       let categorias: Record<string, number> = {};
       
-      querySnapshot.docs.forEach((doc) => {
+      querySnapshot.docs.forEach((doc: any) => {
         const produto = { id: doc.id, ...(doc.data() as any) } as Product;
         total++;
         
@@ -510,7 +510,7 @@ export class ProductService {
       const querySnapshot = await getDocs(produtosRef);
       const categorias = new Set<string>();
 
-      querySnapshot.docs.forEach(doc => {
+      querySnapshot.docs.forEach((doc: any) => {
         const produto = { id: doc.id, ...(doc.data() as any) } as Product;
         if (produto.categoria) {
           categorias.add(produto.categoria);

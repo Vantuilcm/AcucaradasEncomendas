@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { f } from '../config/firebase';
-const { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, RefreshControl, ScrollView, } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, RefreshControl, ScrollView, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { db } from '../config/firebase';
-import { collection, query, where, getDocs, orderBy, limit } = f;
+const { collection, query, where, getDocs, orderBy, limit } = f;
 import { UserUtils } from '../utils/UserUtils';
 import { User } from '../models/User';
 import usePermissions from '../hooks/usePermissions';

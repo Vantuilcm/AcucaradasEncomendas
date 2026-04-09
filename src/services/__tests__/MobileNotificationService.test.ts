@@ -1,9 +1,9 @@
 import { f } from '../../config/firebase';
-const { MobileNotificationService } from '../MobileNotificationService';
+import { MobileNotificationService } from '../MobileNotificationService';
 import * as Notifications from 'expo-notifications';
 // import * as Device from 'expo-device'; // Removido pois o serviço usa o compat
 import Constants from 'expo-constants';
-import { doc, getDoc, setDoc, deleteDoc } = f;
+const { doc, getDoc, setDoc, deleteDoc } = f;
 import { loggingService } from '../LoggingService';
 import { NotificationSettingsServiceWithCache } from '../NotificationSettingsServiceWithCache';
 

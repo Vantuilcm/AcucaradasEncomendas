@@ -1,8 +1,8 @@
 import { f } from '../config/firebase';
-const { loggingService } from './LoggingService';
+import { loggingService } from './LoggingService';
 import { UserUtils } from '../utils/UserUtils';
 import { db, storage } from '../config/firebase';
-import {
+const {
   doc, getDoc, updateDoc, query, collection, where, getDocs, orderBy, limit, serverTimestamp } = f;
 import {
   // @ts-ignore
@@ -366,7 +366,7 @@ export class UserProfileService {
       );
 
       const pedidosSnap = await getDocs(pedidosQuery);
-      const pedidos = pedidosSnap.docs.map(doc => ({
+      const pedidos = pedidosSnap.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       }));
@@ -433,7 +433,7 @@ export class UserProfileService {
 
       // Se estiver atualizando o próprio usuário, verificar se o CPF pertence a outro usuário
       if (currentUserId) {
-        return querySnapshot.docs.some(doc => doc.id !== currentUserId);
+        return querySnapshot.docs.some((doc: any) => doc.id !== currentUserId);
       }
 
       return true;
@@ -483,11 +483,11 @@ export class UserProfileService {
       // Combinar resultados sem duplicatas
       const results = new Map<string, User>();
 
-      nameResults.docs.forEach(doc => {
+      nameResults.docs.forEach((doc: any) => {
         results.set(doc.id, { id: doc.id, ...doc.data() } as User);
       });
 
-      emailResults.docs.forEach(doc => {
+      emailResults.docs.forEach((doc: any) => {
         if (!results.has(doc.id)) {
           results.set(doc.id, { id: doc.id, ...doc.data() } as User);
         }

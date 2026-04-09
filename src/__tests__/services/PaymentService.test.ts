@@ -1,6 +1,6 @@
 import { f } from '../../config/firebase';
-const { PaymentService } from '../../services/PaymentService';
-import { collection, doc, setDoc, getDoc, updateDoc } = f;
+import { PaymentService } from '../../services/PaymentService';
+const { collection, doc, setDoc, getDoc, updateDoc } = f;
 
 // Mock do Firebase
 jest.mock('firebase/firestore', () => ({

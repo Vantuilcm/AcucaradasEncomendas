@@ -1,20 +1,15 @@
 import { a } from '../config/firebase';
-const { f } from '../config/firebase';
-const { Platform } from 'react-native';
+import { f } from '../config/firebase';
+import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { secureLoggingService } from './SecureLoggingService';
 // Importação modificada para resolver problema de compatibilidade
 import { SecurityService } from './SecurityService';
 import { db, auth } from '../config/firebase';
 import { User } from '../models/User';
-import {
-  updateProfile, AuthCredential, signOut } = a;
-import * as FirebaseAuth from 'firebase/auth';
-
-const signInWithCredential = (FirebaseAuth as any).signInWithCredential;
-const OAuthProvider = (FirebaseAuth as any).OAuthProvider;
+const { updateProfile, signOut, signInWithCredential, OAuthProvider } = a;
 import { UserUtils } from '../utils/UserUtils';
-import { collection, query, where, limit, getDocs, addDoc, updateDoc, doc, setDoc } = f;
+const { collection, query, where, limit, getDocs, addDoc, updateDoc, doc, setDoc } = f;
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Importação condicional para evitar erros em plataformas não suportadas
 let AppleAuthentication: any = null;
@@ -211,7 +206,7 @@ export class SocialAuthService {
   /**
    * Método auxiliar para fazer login no Firebase com uma credencial
    */
-  public async signInWithCredential(credential: AuthCredential, role?: string): Promise<SocialAuthResult> {
+  public async signInWithCredential(credential: any, role?: string): Promise<SocialAuthResult> {
     try {
       const result = await signInWithCredential(auth, credential);
       if (!result || !result.user) {

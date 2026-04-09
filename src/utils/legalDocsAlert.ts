@@ -1,5 +1,4 @@
-import { f } from '../config/firebase';
-const { Platform } from 'react-native';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { LEGAL_DOCUMENTS } from './legalDocuments';
 import { runDomainDiagnostics } from './domainVerifier';
@@ -20,7 +19,7 @@ interface AlertOptions {
 }
 
 const DEFAULT_OPTIONS: AlertOptions = {
-  sendEmail: false, pois requer configuração adicional
+  sendEmail: false, // pois requer configuração adicional
   sendNotification: true, logToConsole: true, logToServer: true, emailRecipients: ['admin@acucaradas.com.br', 'suporte@acucaradas.com.br'], };
 
 /**
@@ -67,7 +66,12 @@ export async function sendLegalDocsAlert(
   if (options.sendNotification && Platform.OS !== 'web') {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title, body, data: { diagnostics }, }, trigger: null, subject: title, body: `${body}\n\nDiagnóstico:\n${JSON.stringify(diagnostics, null, 2)}`, isHtml: false, });
+        title,
+        body: `${body}\n\nDiagnóstico:\n${JSON.stringify(diagnostics, null, 2)}`,
+        data: { diagnostics },
+      },
+      trigger: null,
+    });
   }
 
   // Registrar no servidor (Firebase ou outro backend)
@@ -81,7 +85,7 @@ export async function sendLegalDocsAlert(
  * Função auxiliar para enviar emails
  * Nota: Esta é uma implementação básica que precisa ser adaptada conforme o serviço de email utilizado
  */
-async function sendEmailAlert({
+export async function sendEmailAlert({
   recipients, subject, body, isHtml = false, }: {
   recipients: string[];
   subject: string;
@@ -92,9 +96,18 @@ async function sendEmailAlert({
     // Implementação depende do serviço de email utilizado
     // Exemplo usando API REST:
     const response = await fetch('https://api.acucaradas.com.br/send-alert-email', {
-      method: 'POST', headers: {
-        'Content-Type': 'application/json', Authorization: 'Bearer YOUR_API_KEY', body: JSON.stringify({
-        recipients, subject, body, isHtml, }), });
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_API_KEY',
+      },
+      body: JSON.stringify({
+        recipients,
+        subject,
+        body,
+        isHtml,
+      }),
+    });
 
     if (!response.ok) {
       throw new Error(`Falha ao enviar email: ${response.status}`);
@@ -113,7 +126,7 @@ async function logToServer(data: Record<string, any>): Promise<void> {
     // Implementação depende do backend utilizado
     // Exemplo usando Firebase:
     /*
-    import { getFirestore, collection, addDoc } = f;
+    const { getFirestore, collection, addDoc } = f;
     const db = getFirestore();
     await addDoc(collection(db, 'monitoring_logs'), data);
     */

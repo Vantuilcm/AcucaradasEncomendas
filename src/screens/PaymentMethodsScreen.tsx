@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { f } from '../config/firebase';
-const { View, StyleSheet, ScrollView, Alert, ActivityIndicator, RefreshControl, } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, RefreshControl, } from 'react-native';
 import {
   Card, Text, Button, IconButton, Portal, Modal, SegmentedButtons, TextInput, useTheme, } from 'react-native-paper';
 import { PaymentService } from '../services/PaymentService';
@@ -9,7 +9,7 @@ import { PaymentCard, PixKey } from '../types/Payment';
 import { useAuth } from '../contexts/AuthContext';
 import { PaymentCardForm } from '../components/PaymentCardForm';
 import { db } from '../config/firebase';
-import { doc, getDoc, updateDoc } = f;
+const { doc, getDoc, updateDoc } = f;
 
 type PaymentMethodType = 'card' | 'pix';
 

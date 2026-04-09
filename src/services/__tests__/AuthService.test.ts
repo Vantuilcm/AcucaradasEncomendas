@@ -1,6 +1,6 @@
 import { a } from '../../config/firebase';
-const { f } from '../config/firebase';
-const { AuthService } from '../AuthService';
+import { f } from '../../config/firebase';
+import { AuthService } from '../AuthService';
 import { ValidationService } from '../validationService';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -13,7 +13,7 @@ jest.mock('../validationService');
 jest.mock('firebase/firestore', () => ({
   getFirestore: jest.fn(), doc: jest.fn(), getDoc: jest.fn(), setDoc: jest.fn(), updateDoc: jest.fn(), collection: jest.fn(), addDoc: jest.fn(), serverTimestamp: jest.fn(() => ({ seconds: 1234567890, nanoseconds: 0 })), }));
 
-import { getDoc } = f;
+const { getDoc } = f;
 
 // Mock firebase/auth
 jest.mock('firebase/auth', () => ({
@@ -32,7 +32,7 @@ jest.mock('../../config/firebase', () => ({
   }, db: {}
 }));
 
-import {
+const {
   createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, updatePassword } = a;
 
 describe('AuthService', () => {
@@ -196,7 +196,7 @@ describe('AuthService', () => {
       expect(resultado.usuario.id).toBeDefined();
       expect(resultado.usuario.nome).toBeDefined();
       expect(resultado.usuario.email).toBeDefined();
-      expect(resultado.usuario.senha).toBeUndefined(); // Senha não deve ser retornada
+      expect((resultado.usuario as any).senha).toBeUndefined(); // Senha não deve ser retornada
     });
 
     it('deve rejeitar autenticação com email inválido', async () => {

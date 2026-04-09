@@ -1,5 +1,5 @@
 import { f } from '../../config/firebase';
-const { NotificationService } from '../../services/NotificationService';
+import { NotificationService } from '../../services/NotificationService';
 import { NotificationType } from '../../config/notifications';
 import { db } from '../../config/firebase';
 import Stripe from 'stripe';
@@ -27,10 +27,15 @@ jest.mock('../../services/api', () => ({
     }), get: jest.fn(), }, }));
 
 // Mock NotificationService
-jest.mock('../../services/NotificationService', () => {
-  const mockNotificationService = {
-    createNotification: jest.fn(), sendPaymentConfirmation: jest.fn(), sendPaymentFailure: jest.fn(), }, };
-});
+jest.mock('../../services/NotificationService', () => ({
+  NotificationService: {
+    getInstance: jest.fn(() => ({
+      createNotification: jest.fn(),
+      sendPaymentConfirmation: jest.fn(),
+      sendPaymentFailure: jest.fn(),
+    })),
+  },
+}));
 
 // Unmock PaymentService to test real logic
 jest.unmock('../../services/PaymentService');
@@ -40,7 +45,7 @@ jest.mock('firebase/firestore', () => ({
   doc: jest.fn(), getDoc: jest.fn(), updateDoc: jest.fn(), collection: jest.fn(), query: jest.fn(), where: jest.fn(), getDocs: jest.fn(() => Promise.resolve({ docs: [], empty: true })), setDoc: jest.fn(), orderBy: jest.fn(), limit: jest.fn(), deleteDoc: jest.fn(), writeBatch: jest.fn(() => ({
     commit: jest.fn(), set: jest.fn(), update: jest.fn(), delete: jest.fn(), })), }));
 
-import { doc, getDoc, updateDoc } = f;
+const { doc, getDoc, updateDoc } = f;
 import { PaymentService } from '../../services/PaymentService';
 
 // Mock das dependências

@@ -1,8 +1,8 @@
 import { f } from '../config/firebase';
-const { Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { messaging, db } from '../config/firebase';
 import { getToken, onMessage, isSupported } from 'firebase/messaging';
-import { doc, setDoc, getDoc, updateDoc } = f;
+const { doc, setDoc, getDoc, updateDoc } = f;
 
 import { loggingService } from './LoggingService';
 
@@ -53,6 +53,8 @@ export class FCMService {
       // Configurar listener para mensagens em primeiro plano
       this.setupMessageListener();
 
+      loggingService.info('FCM Service inicializado com sucesso');
+
       return true;
     } catch (error) {
       loggingService.error('Erro ao inicializar FCM', { error });
@@ -65,6 +67,7 @@ export class FCMService {
    */
   private setupMessageListener(): void {
     try {
+      if (!messaging) return;
       onMessage(messaging, payload => {
         if (__DEV__) {
           console.log('Mensagem recebida em primeiro plano:', payload);

@@ -1,9 +1,9 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from '../compat/expoDevice';
 import { f } from '../config/firebase';
-const { Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { db } from '../config/firebase';
-import { doc, setDoc, getDoc, deleteDoc } = f;
+const { doc, setDoc, getDoc, deleteDoc } = f;
 import { loggingService } from './LoggingService';
 
 export class PushNotificationService {

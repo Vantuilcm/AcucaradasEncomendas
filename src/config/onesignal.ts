@@ -69,6 +69,80 @@ export const initOneSignal = (): boolean => {
 };
 
 /**
+ * Solicita permissão explicitamente
+ */
+export const requestOneSignalPermission = async (): Promise<boolean> => {
+  try {
+    return await OneSignal.Notifications.requestPermission(true);
+  } catch (error) {
+    console.error('❌ [ONESIGNAL] Erro ao solicitar permissão:', error);
+    return false;
+  }
+};
+
+/**
+ * Define tags para o usuário atual
+ */
+export const setOneSignalTags = (tags: Record<string, string | number | boolean>) => {
+  try {
+    OneSignal.User.addTags(tags);
+    console.log('🔔 [ONESIGNAL] Tags atualizadas:', tags);
+  } catch (error) {
+    console.error('❌ [ONESIGNAL] Erro ao definir tags:', error);
+  }
+};
+
+/**
+ * Obtém o Player ID / External ID do usuário
+ */
+export const getOneSignalUserId = (): string | null => {
+  try {
+    return (OneSignal.User.pushSubscription as any).id || null;
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
+ * Integração com outras notificações (placeholder se necessário)
+ */
+export const integrateWithExistingNotifications = () => {
+  console.log('🔔 [ONESIGNAL] Integração de notificações ativa.');
+};
+
+/**
+ * Formata dados de notificação do OneSignal
+ */
+export const formatOneSignalNotification = (type: OneSignalNotificationType, data: any) => {
+  let title = 'Notificação';
+  let message = '';
+
+  switch (type) {
+    case OneSignalNotificationType.NEW_ORDER:
+      title = 'Novo Pedido';
+      message = `Seu pedido #${data.orderNumber || ''} foi recebido!`;
+      break;
+    case OneSignalNotificationType.ORDER_STATUS_UPDATE:
+      title = 'Atualização de Pedido';
+      message = `O status do seu pedido mudou para: ${data.status || ''}`;
+      break;
+    case OneSignalNotificationType.PROMOTION:
+      title = data.title || 'Promoção Especial';
+      message = data.message || 'Confira as novidades!';
+      break;
+    default:
+      title = data.title || 'Notificação';
+      message = data.message || '';
+  }
+
+  return {
+    title,
+    message,
+    data: data || {},
+  };
+};
+
+/**
  * Envia uma notificação push via REST API do OneSignal
  * Nota: Em produção, isso deve ser feito preferencialmente via Backend.
  * Mas como o projeto é focado em Expo/Firebase, implementamos aqui para fluxo real.
