@@ -88,11 +88,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearTimeout(timer);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role?: string) => {
     try {
       setLoading(true);
-      const userCredential = await a.signInWithEmailAndPassword(auth, email, password);
+      const firebaseAuth = auth;
+      const userCredential = await a.signInWithEmailAndPassword(firebaseAuth, email, password);
       console.log('✅ [AUTH] Login success:', userCredential.user.email);
+      
+      // Forçar busca de perfil após login
+      const userRef = f.doc(db, 'users', userCredential.user.uid);
+      const userDoc = await f.getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setUser({ ...data, id: userCredential.user.uid });
+      } else {
+        // Se o doc não existir (ex: erro no cadastro anterior), criar um básico ou setar o do auth
+        setUser({ 
+          id: userCredential.user.uid, 
+          email: userCredential.user.email, 
+          nome: userCredential.user.displayName || '',
+          role: role || 'customer'
+        });
+      }
     } catch (error) {
       console.error('❌ [AUTH] Login error:', error);
       throw error;
@@ -104,18 +122,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (userData: any, password: string) => {
     try {
       setLoading(true);
-      const userCredential = await a.createUserWithEmailAndPassword(auth, userData.email, password);
+      const firebaseAuth = auth;
+      const userCredential = await a.createUserWithEmailAndPassword(firebaseAuth, userData.email, password);
       
       // Criar doc no Firestore
       const userDoc = {
         uid: userCredential.user.uid,
         email: userData.email,
-        name: userData.name,
+        nome: userData.nome || userData.name || '',
+        role: userData.role || 'customer',
         createdAt: f.serverTimestamp(),
-        role: 'customer'
+        updatedAt: f.serverTimestamp()
       };
       
       await f.setDoc(f.doc(db, 'users', userCredential.user.uid), userDoc);
+      setUser({ ...userDoc, id: userCredential.user.uid });
       console.log('✅ [AUTH] Register success');
     } catch (error) {
       console.error('❌ [AUTH] Register error:', error);

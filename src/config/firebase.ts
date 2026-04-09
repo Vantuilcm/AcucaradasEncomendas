@@ -119,10 +119,18 @@ export const auth: any = new Proxy({}, {
         const instance = getAppInstance();
         
         try {
-          _auth = initializeAuth(instance, {
-            persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-          });
+          // Garante que o AsyncStorage está disponível antes de inicializar
+          if (!ReactNativeAsyncStorage) {
+            console.warn('⚠️ [FIREBASE] AsyncStorage not found, falling back to memory persistence');
+            _auth = getAuth(instance);
+          } else {
+            _auth = initializeAuth(instance, {
+              persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+            });
+            console.log('✅ [FIREBASE] Auth initialized with AsyncStorage persistence');
+          }
         } catch (e) {
+          console.error('❌ [FIREBASE] initializeAuth failed, using getAuth:', e);
           _auth = getAuth(instance);
         }
       }
@@ -133,6 +141,7 @@ export const auth: any = new Proxy({}, {
       }
       return val;
     } catch (error) {
+      console.error('❌ [FIREBASE] Proxy Auth error:', error);
       return null;
     }
   },
