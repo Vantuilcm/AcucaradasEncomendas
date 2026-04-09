@@ -25,6 +25,7 @@ interface AuthContextData {
   verify2FACode: (code: string) => Promise<boolean>;
   generate2FACode: () => Promise<void>;
   is2FAEnabled?: boolean;
+  error: string | null;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -33,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const bootstrapLazyFirebase = async () => {
@@ -91,26 +93,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string, role?: string) => {
     try {
       setLoading(true);
-      console.log('🛡️ [AUTH] Attempting login for:', email);
+      setError(null); // Limpar erro anterior
+      console.log('🛡️ [DEBUG_LOGIN] INICIANDO PROCESSO');
+      console.log('🛡️ [DEBUG_LOGIN] Email:', email);
       
       const auth = getAuth();
-      const db = getDb();
-
-      console.log('🛡️ [AUTH] Calling signInWithEmailAndPassword...');
-      const userCredential = await authFunctions.signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ [AUTH] Login success for user UID:', userCredential.user.uid);
+      console.log('🛡️ [DEBUG_LOGIN] Instância Auth obtida:', auth ? '✅ OK' : '❌ NULL');
       
-      // Forçar busca de perfil após login
+      const signInFn = authFunctions.signInWithEmailAndPassword;
+      console.log('🛡️ [DEBUG_LOGIN] Função signIn encontrada:', typeof signInFn === 'function' ? '✅ OK' : '❌ NOT_A_FUNCTION');
+
+      if (typeof signInFn !== 'function') {
+        throw new Error('Módulo de Autenticação do Firebase não carregado corretamente (NOT_A_FUNCTION).');
+      }
+
+      console.log('🛡️ [DEBUG_LOGIN] Chamando Firebase SDK...');
+      const userCredential = await signInFn(auth, email, password);
+      console.log('✅ [DEBUG_LOGIN] SUCESSO SDK! UID:', userCredential.user.uid);
+      
+      const db = getDb();
       const userRef = dbFunctions.doc(db, 'users', userCredential.user.uid);
-      console.log('🛡️ [AUTH] Fetching user profile from Firestore...');
+      console.log('🛡️ [DEBUG_LOGIN] Buscando perfil no Firestore...');
       const userDoc = await dbFunctions.getDoc(userRef);
       
       if (userDoc.exists()) {
         const data = userDoc.data();
-        console.log('✅ [AUTH] User profile found in Firestore with role:', data.role);
+        console.log('✅ [DEBUG_LOGIN] Perfil encontrado no Firestore:', data.role);
         setUser({ ...data, id: userCredential.user.uid });
       } else {
-        console.warn('⚠️ [AUTH] User profile not found in Firestore. Using defaults.');
+        console.warn('⚠️ [DEBUG_LOGIN] Perfil não existe no Firestore. Usando defaults.');
         setUser({ 
           id: userCredential.user.uid, 
           email: userCredential.user.email, 
@@ -119,11 +130,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     } catch (error: any) {
-      console.error('❌ [AUTH] Detailed Login Error:', {
-        code: error.code,
-        message: error.message
-      });
-      throw error;
+      // 🚨 NÃO MASCARAR O ERRO - EXPOR TUDO
+      console.error('❌ [DEBUG_LOGIN] ERRO FATAL DETECTADO:');
+      console.error('❌ [DEBUG_LOGIN] CODE:', error.code);
+      console.error('❌ [DEBUG_LOGIN] MESSAGE:', error.message);
+      console.error('❌ [DEBUG_LOGIN] FULL_ERROR:', JSON.stringify(error, null, 2));
+      
+      // Criar uma mensagem de erro técnica e detalhada para o usuário (em ambiente de debug)
+      const technicalError = `[${error.code || 'unknown'}] ${error.message}`;
+      setError(technicalError);
+      throw error; // Repropagar para a tela
     } finally {
       setLoading(false);
     }
@@ -210,6 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         verify2FACode,
         generate2FACode,
         is2FAEnabled: user?.twoFactorEnabled || false,
+        error,
       }}
     >
       {children}

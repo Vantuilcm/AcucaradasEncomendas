@@ -18,11 +18,14 @@ export default function LoginScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<any>();
-  const { login, loading, profileLoading } = useAuth();
+  const { login, loading, profileLoading, error: authError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Combinar erros locais e do AuthContext para exibição
+  const displayError = error || authError;
   const [role, setRole] = useState<string>(Role.COMPRADOR);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
@@ -141,7 +144,7 @@ export default function LoginScreen() {
               style={styles.segmentedButtons}
             />
 
-            {error && <ErrorMessage message={error || 'Erro'} />}
+            {displayError && <ErrorMessage message={displayError} />}
 
 
           <TextInput
