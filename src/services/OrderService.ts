@@ -220,7 +220,7 @@ export class OrderService {
       const q = query(ordersRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
 
       const querySnapshot = await getDocs(q);
-      const orders = querySnapshot.docs.map(doc => ({
+      const orders = querySnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       })) as Order[];
@@ -352,7 +352,7 @@ export class OrderService {
     try {
       const ordersRef = collection(db, this.collectionName);
       const querySnapshot = await getDocs(ordersRef);
-      const orders = querySnapshot.docs.map(doc => ({
+      const orders = querySnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       })) as Order[];

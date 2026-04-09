@@ -107,7 +107,7 @@ export class LocationService {
         addressData.district && addressData.district !== addressData.city ? addressData.district : null,
         addressData.city,
         addressData.region,
-        addressData.postalCode,
+        (addressData as any).postalCode,
       ].filter(Boolean);
 
       return parts.join(', ');
@@ -178,7 +178,6 @@ export class LocationService {
     radius: number = MAX_PROXIMITY_RADIUS
   ): Promise<Store[]> {
     try {
-      const { db, f } = await this.getFirebase();
       // Esta é uma implementação simplificada. No Firebase real, 
       // você provavelmente faria uma consulta filtrada.
       const stores = await this.getNearbyStores(coordinates, radius);

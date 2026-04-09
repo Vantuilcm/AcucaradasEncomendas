@@ -1002,13 +1002,14 @@ export class AuthService {
     mensagem: string;
   }> {
     try {
+      const { auth, db, a, f } = await this.getFirebase();
       // Aplicar o código de verificação
-      await applyActionCode(auth, actionCode);
+      await a.applyActionCode(auth, actionCode);
 
       // Atualizar o status no Firestore
       const currentUser = auth.currentUser;
       if (currentUser) {
-        await updateDoc(doc(db, 'usuarios', currentUser.uid), {
+        await f.updateDoc(f.doc(db, 'usuarios', currentUser.uid), {
           emailVerificado: true,
         });
       }

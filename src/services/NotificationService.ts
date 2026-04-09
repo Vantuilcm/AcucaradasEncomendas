@@ -73,7 +73,7 @@ export class NotificationService {
 
       const querySnapshot = await getDocs(q);
 
-      return querySnapshot.docs.map(doc => ({
+      return querySnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       })) as Notification[];
@@ -177,7 +177,7 @@ export class NotificationService {
       const querySnapshot = await getDocs(q);
 
       const batch = (db as any).batch();
-      querySnapshot.docs.forEach(doc => {
+      querySnapshot.docs.forEach((doc: any) => {
         batch.update((doc as any).ref, { read: true });
       });
 
@@ -264,7 +264,7 @@ export class NotificationService {
       const q = query(notificationsRef, where('userId', '==', userId));
       const querySnapshot = await getDocs(q);
 
-      const notifications = querySnapshot.docs.map(doc => ({
+      const notifications = querySnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       })) as Notification[];

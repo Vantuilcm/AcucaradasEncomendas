@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { app, auth, db, a, f } from '../config/firebase';
+import { auth, db, a, f } from '../config/firebase';
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Ultra-Lazy
@@ -30,7 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
-  const [firebaseInstance, setFirebaseInstance] = useState<any>(null);
 
   useEffect(() => {
     const bootstrapLazyFirebase = async () => {

@@ -4,7 +4,7 @@ import { Order } from '../types/Order';
 import { NotificationService } from './NotificationService';
 import { loggingService } from './LoggingService';
 
-const { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, limit, orderBy, Timestamp } = f;
+const { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, limit, orderBy } = f;
 
 export interface ReferralLog {
   referrerId: string;
@@ -219,8 +219,17 @@ export class GrowthService {
 
         if (lastOrderSnap.empty) {
           // Nunca comprou, verificar data de criação
-          const userData = docSnapshot.data() as unknown as User;
-          const createdAt = userData.dataCriacao instanceof Timestamp ? userData.dataCriacao.toDate() : new Date(userData.dataCriacao || 0);
+          const userData = docSnapshot.data() as any;
+          let createdAt: Date;
+          
+          if (userData.dataCriacao?.toDate) {
+            createdAt = userData.dataCriacao.toDate();
+          } else if (userData.dataCriacao) {
+            createdAt = new Date(userData.dataCriacao);
+          } else {
+            createdAt = new Date(0);
+          }
+          
           if (createdAt < sevenDaysAgo) shouldReengage = true;
         } else {
           const lastOrder = lastOrderSnap.docs[0].data() as unknown as Order;

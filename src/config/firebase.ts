@@ -37,11 +37,11 @@ const getAppInstance = () => {
 
 // Exportar objetos que fingem ser os reais mas só inicializam quando acessados
 export const app = new Proxy({}, {
-  get: (_, prop) => getAppInstance()[prop]
+  get: (_target, prop) => getAppInstance()[prop]
 }) as any;
 
 export const auth = new Proxy({}, {
-  get: (target, prop) => {
+  get: (_target, prop) => {
     if (!_auth) {
       console.log('🛡️ [FIREBASE] Lazy Initialization: Auth...');
       const { getAuth } = require('firebase/auth');
@@ -53,7 +53,7 @@ export const auth = new Proxy({}, {
 }) as any;
 
 export const db = new Proxy({}, {
-  get: (target, prop) => {
+  get: (_target, prop) => {
     if (!_db) {
       console.log('🛡️ [FIREBASE] Lazy Initialization: Firestore...');
       const { getFirestore } = require('firebase/firestore');
@@ -65,7 +65,7 @@ export const db = new Proxy({}, {
 }) as any;
 
 export const storage = new Proxy({}, {
-  get: (target, prop) => {
+  get: (_target, prop) => {
     if (!_storage) {
       console.log('🛡️ [FIREBASE] Lazy Initialization: Storage...');
       const { getStorage } = require('firebase/storage');
@@ -81,7 +81,7 @@ export const storage = new Proxy({}, {
 // sem que o Metro Bundler avalie o módulo 'firebase/firestore' ou 'firebase/auth' no boot.
 
 export const f: any = new Proxy({}, {
-  get: (target, prop) => {
+  get: (_target, prop) => {
     if (!_firestoreFunctions) {
       console.log('🛡️ [FIREBASE] Lazy Loading Firestore Functions...');
       _firestoreFunctions = require('firebase/firestore');
@@ -91,7 +91,7 @@ export const f: any = new Proxy({}, {
 });
 
 export const a: any = new Proxy({}, {
-  get: (target, prop) => {
+  get: (_target, prop) => {
     if (!_authFunctions) {
       console.log('🛡️ [FIREBASE] Lazy Loading Auth Functions...');
       _authFunctions = require('firebase/auth');

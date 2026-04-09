@@ -24,6 +24,7 @@ export type LogType =
   | 'NETWORK_ERROR'
   | 'UNKNOWN_ERROR'
   | 'INIT_ERROR'
+  | 'FIREBASE_RECOVERY'
   | 'SELF_HEAL_ACTION';
 
 export interface LogEntry {

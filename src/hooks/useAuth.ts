@@ -26,7 +26,7 @@ const {
 } = a;
 
 interface AuthState {
-  user: User | null;
+  user: any | null;
   loading: boolean;
   error: string | null;
   is2FAEnabled: boolean;
@@ -46,7 +46,7 @@ interface AuthState {
 }
 
 export function useAuth(): AuthState {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
