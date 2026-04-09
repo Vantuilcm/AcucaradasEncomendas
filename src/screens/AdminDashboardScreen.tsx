@@ -241,13 +241,13 @@ export function AdminDashboardScreen() {
       setActiveDrivers(drivers);
     });
 
-    const autonomousQuery = query(
-      collection(db, 'autonomous_actions_log'),
-      orderBy('timestamp', 'desc'),
-      limit(5)
+    const autonomousQuery = f.query(
+      f.collection(db, 'autonomous_actions_log'),
+      f.orderBy('timestamp', 'desc'),
+      f.limit(5)
     );
     
-    const unsubscribeAutonomous = onSnapshot(autonomousQuery, (snap: any) => {
+    const unsubscribeAutonomous = f.onSnapshot(autonomousQuery, (snap: any) => {
       const actions = snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as AutonomousAction[];
       setAutonomousActions(actions);
       
