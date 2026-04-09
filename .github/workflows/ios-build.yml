@@ -8,12 +8,10 @@ on:
   push:
     branches:
       - main
-  # workflow_dispatch removido para evitar duplo trigger acidental em produção
-  # workflow_dispatch: 
 
 jobs:
   ios-hybrid-pipeline:
-    name: 🍎 Hybrid Pipeline
+    name: Hybrid Pipeline
     runs-on: macos-latest
     timeout-minutes: 60
     if: contains(github.event.head_commit.message, '[release]')
@@ -28,7 +26,6 @@ jobs:
       EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
       EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
       GOOGLE_SERVICES_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64 }}
-      # Variáveis EXPO_PUBLIC_* injetadas automaticamente
       EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
       EXPO_PUBLIC_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_PROJECT_ID }}
       EXPO_PUBLIC_APP_NAME: ${{ secrets.EXPO_PUBLIC_APP_NAME }}
@@ -96,7 +93,6 @@ jobs:
           brew install libyaml || brew link --overwrite libyaml
           
           # 3. Fix npm/node-gyp issues
-          # REMOVED: npm install -g npm@latest (Known to break Node 22+ on GitHub Runners)
           npm install -g node-gyp
           
           # 4. Global EAS CLI (Ensuring fresh version)
@@ -142,7 +138,6 @@ jobs:
         env:
           FORCE_BUILD_MODE: "LOCAL"
           DEBUG: "eas:*"
-
 
       - name: 📦 Upload iOS Artifact (.ipa)
         if: always()
