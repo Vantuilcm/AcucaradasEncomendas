@@ -1,5 +1,6 @@
-// 🔥 src/config/firebase.ts - Firebase JS-Only (Anti-Crash Version)
+// 🔥 src/config/firebase.ts - Firebase JS-Only (Lazy-Getter Version)
 // Esta versão usa apenas o SDK de JavaScript puro para evitar conflitos nativos no iOS.
+// Substituídos Proxies por Lazy Getters para maior compatibilidade e estabilidade.
 
 import { ENV } from './env';
 
@@ -15,280 +16,119 @@ const firebaseConfig = {
 };
 
 // Singleton pattern seguro e 🚀 LAZY
-// O objetivo aqui é NÃO importar 'firebase/auth', 'firebase/firestore', etc.
-// na avaliação do módulo, para evitar que side effects nativos matem o app no boot.
-
-// Variáveis para armazenar as instâncias dos SDKs (Singleton)
 let _app: any = null;
 let _auth: any = null;
 let _db: any = null;
-let _messaging: any = null;
 let _storage: any = null;
-let _authModule: any = null;
-let _firestoreModule: any = null;
-let _storageModule: any = null;
+let _messaging: any = null;
 
 /**
  * Obtém a instância do Firebase App de forma preguiçosa
  */
-const getAppInstance = () => {
-  try {
-    if (!_app) {
-      console.log('🛡️ [FIREBASE] Initializing App Instance...');
-      const { initializeApp, getApps } = require('firebase/app');
-      const apps = getApps();
-      _app = apps.length > 0 ? apps[0] : initializeApp(firebaseConfig);
-      console.log('🛡️ [FIREBASE] App Instance initialized successfully.');
-    }
-    return _app;
-  } catch (error) {
-    console.error('❌ [FIREBASE] Error initializing App Instance:', error);
-    throw error;
+export const getApp = () => {
+  if (!_app) {
+    console.log('🛡️ [FIREBASE] Initializing App Instance...');
+    const { initializeApp, getApps } = require('firebase/app');
+    const apps = getApps();
+    _app = apps.length > 0 ? apps[0] : initializeApp(firebaseConfig);
   }
+  return _app;
 };
 
 /**
- * 🚀 Proxy para Funções do Firebase (a e f)
+ * 🛡️ Lazy Getter para Auth
  */
-export const a: any = new Proxy({}, {
-  get: (_target, prop) => {
-    try {
-      if (!_authModule) {
-        console.log('🛡️ [FIREBASE] Lazy Loading Auth Module...');
-        _authModule = require('firebase/auth');
-      }
-      const val = _authModule[prop];
-      
-      if (typeof val === 'function') {
-        return (...args: any[]) => {
-          // Unwrapping simplificado
-          const unwrappedArgs = args.map(arg => {
-            if (arg && typeof arg === 'object' && arg.__isProxy) {
-              if (arg === auth) {
-                if (!_auth) {
-                  const instance = getAppInstance();
-                  const { getAuth, initializeAuth, getReactNativePersistence } = require('firebase/auth');
-                  const storageModule = require('@react-native-async-storage/async-storage');
-                  const ReactNativeAsyncStorage = storageModule.default || storageModule;
-                  try {
-                    if (ReactNativeAsyncStorage) {
-                      _auth = initializeAuth(instance, {
-                        persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-                      });
-                    } else {
-                      _auth = getAuth(instance);
-                    }
-                  } catch (e) {
-                    _auth = getAuth(instance);
-                  }
-                }
-                return _auth;
-              }
-              if (arg === db) {
-                if (!_db) {
-                  const instance = getAppInstance();
-                  const { getFirestore } = require('firebase/firestore');
-                  _db = getFirestore(instance);
-                }
-                return _db;
-              }
-            }
-            return arg;
-          });
-          
-          return val(...unwrappedArgs);
-        };
-      }
-      return val;
-    } catch (error) {
-      console.error(`❌ [FIREBASE] Error loading Auth property ${prop.toString()}:`, error);
-      return undefined;
-    }
-  }
-});
+export const getAuth = () => {
+  if (!_auth) {
+    console.log('🛡️ [FIREBASE] Initializing Auth Instance...');
+    const { initializeAuth, getReactNativePersistence, getAuth: getFirebaseAuth } = require('firebase/auth');
+    const storageModule = require('@react-native-async-storage/async-storage');
+    const AsyncStorage = storageModule.default || storageModule;
+    const app = getApp();
 
-export const f: any = new Proxy({}, {
-  get: (_target, prop) => {
     try {
-      if (!_firestoreModule) {
-        console.log('🛡️ [FIREBASE] Lazy Loading Firestore Module...');
-        _firestoreModule = require('firebase/firestore');
+      if (AsyncStorage) {
+        _auth = initializeAuth(app, {
+          persistence: getReactNativePersistence(AsyncStorage)
+        });
+        console.log('✅ [FIREBASE] Auth initialized with AsyncStorage');
+      } else {
+        _auth = getFirebaseAuth(app);
+        console.warn('⚠️ [FIREBASE] AsyncStorage not found, using memory persistence');
       }
-      const val = _firestoreModule[prop];
-      
-      if (typeof val === 'function') {
-        return (...args: any[]) => {
-          const unwrappedArgs = args.map(arg => {
-            if (arg && typeof arg === 'object' && arg.__isProxy) {
-              if (arg === db) {
-                if (!_db) {
-                  const instance = getAppInstance();
-                  const { getFirestore } = require('firebase/firestore');
-                  _db = getFirestore(instance);
-                }
-                return _db;
-              }
-            }
-            return arg;
-          });
-          return val(...unwrappedArgs);
-        };
-      }
-      return val;
-    } catch (error) {
-      console.error(`❌ [FIREBASE] Error loading Firestore property ${prop.toString()}:`, error);
-      return undefined;
+    } catch (e) {
+      console.error('❌ [FIREBASE] Auth init error, falling back:', e);
+      _auth = getFirebaseAuth(app);
     }
   }
-});
+  return _auth;
+};
 
 /**
- * 🚀 Proxy para Funções do Storage (s)
+ * 🛡️ Lazy Getter para Firestore
  */
-export const s: any = new Proxy({}, {
-  get: (_target, prop) => {
-    try {
-      if (!_storageModule) {
-        console.log('🛡️ [FIREBASE] Lazy Loading Storage Module...');
-        _storageModule = require('firebase/storage');
-      }
-      const val = _storageModule[prop];
-      if (typeof val === 'function') {
-        return (...args: any[]) => {
-          // Desembrulhar proxies de storage se passados como argumentos
-          args = args.map(arg => {
-            if (arg && arg.__isProxy) {
-              if (arg === storage && _storage) return _storage;
-            }
-            return arg;
-          });
-          return val(...args);
-        };
-      }
-      return val;
-    } catch (error) {
-      console.error(`❌ [FIREBASE] Error loading Storage property ${prop.toString()}:`, error);
-      return () => { console.error('Storage function failed'); return null; };
-    }
+export const getDb = () => {
+  if (!_db) {
+    console.log('🛡️ [FIREBASE] Initializing Firestore Instance...');
+    const { getFirestore } = require('firebase/firestore');
+    _db = getFirestore(getApp());
   }
-});
+  return _db;
+};
 
 /**
- * 🛡️ Instâncias Lazy (auth, db, messaging)
+ * 🛡️ Lazy Getter para Storage
  */
-export const auth: any = new Proxy({}, {
-  get: (_target, prop) => {
-    if (prop === '__isProxy') return true;
-    if (prop === 'toJSON') return () => ({});
-    
-    try {
-      if (!_auth) {
-        console.log('🛡️ [FIREBASE] Initializing Auth Instance...');
-        const { initializeAuth, getReactNativePersistence, getAuth } = require('firebase/auth');
-        const ReactNativeAsyncStorage = require('@react-native-async-storage/async-storage').default;
-        const instance = getAppInstance();
-        
-        try {
-          // Garante que o AsyncStorage está disponível antes de inicializar
-          if (!ReactNativeAsyncStorage) {
-            console.warn('⚠️ [FIREBASE] AsyncStorage not found, falling back to memory persistence');
-            _auth = getAuth(instance);
-          } else {
-            _auth = initializeAuth(instance, {
-              persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-            });
-            console.log('✅ [FIREBASE] Auth initialized with AsyncStorage persistence');
-          }
-        } catch (e) {
-          console.error('❌ [FIREBASE] initializeAuth failed, using getAuth:', e);
-          _auth = getAuth(instance);
-        }
-      }
-      
-      const val = _auth[prop];
-      if (typeof val === 'function') {
-        return val.bind(_auth);
-      }
-      return val;
-    } catch (error) {
-      console.error('❌ [FIREBASE] Proxy Auth error:', error);
-      return null;
-    }
-  },
-  // Delegar operações fundamentais para o objeto real
-  getPrototypeOf: () => {
-    if (!_auth) return Object.prototype;
-    return Object.getPrototypeOf(_auth);
+export const getStorage = () => {
+  if (!_storage) {
+    console.log('🛡️ [FIREBASE] Initializing Storage Instance...');
+    const { getStorage: getFirebaseStorage } = require('firebase/storage');
+    _storage = getFirebaseStorage(getApp());
   }
-});
+  return _storage;
+};
 
-export const db: any = new Proxy({}, {
-  get: (_target, prop) => {
-    if (prop === '__isProxy') return true;
-    
-    try {
-      if (!_db) {
-        console.log('🛡️ [FIREBASE] Initializing Firestore Instance...');
-        const { getFirestore } = require('firebase/firestore');
-        const instance = getAppInstance();
-        _db = getFirestore(instance);
-      }
-      
-      const val = _db[prop];
-      if (typeof val === 'function') {
-        return val.bind(_db);
-      }
-      return val;
-    } catch (error) {
-      return null;
-    }
-  },
-  getPrototypeOf: () => {
-    if (!_db) return Object.prototype;
-    return Object.getPrototypeOf(_db);
-  }
-});
+// Exportar funções auxiliares do Firebase SDK de forma Lazy
+// Isso permite que chamemos 'authFunctions.signInWithEmailAndPassword' sem importar no topo
+export const authFunctions = {
+  get signInWithEmailAndPassword() { return require('firebase/auth').signInWithEmailAndPassword; },
+  get createUserWithEmailAndPassword() { return require('firebase/auth').createUserWithEmailAndPassword; },
+  get signOut() { return require('firebase/auth').signOut; },
+  get onAuthStateChanged() { return require('firebase/auth').onAuthStateChanged; },
+  get sendPasswordResetEmail() { return require('firebase/auth').sendPasswordResetEmail; },
+  get updateProfile() { return require('firebase/auth').updateProfile; },
+  get sendEmailVerification() { return require('firebase/auth').sendEmailVerification; },
+};
 
-export const storage: any = new Proxy({}, {
-  get: (_target, prop) => {
-    if (prop === '__isProxy') return true;
-    
-    try {
-      if (!_storage) {
-        console.log('🛡️ [FIREBASE] Initializing Storage Instance...');
-        const { getStorage } = require('firebase/storage');
-        const instance = getAppInstance();
-        _storage = getStorage(instance);
-      }
-      
-      const val = _storage[prop];
-      if (typeof val === 'function') {
-        return val.bind(_storage);
-      }
-      return val;
-    } catch (error) {
-      return null;
-    }
-  },
-  getPrototypeOf: () => {
-    if (!_storage) return Object.prototype;
-    return Object.getPrototypeOf(_storage);
-  }
-});
+export const dbFunctions = {
+  get doc() { return require('firebase/firestore').doc; },
+  get getDoc() { return require('firebase/firestore').getDoc; },
+  get setDoc() { return require('firebase/firestore').setDoc; },
+  get updateDoc() { return require('firebase/firestore').updateDoc; },
+  get collection() { return require('firebase/firestore').collection; },
+  get query() { return require('firebase/firestore').query; },
+  get where() { return require('firebase/firestore').where; },
+  get getDocs() { return require('firebase/firestore').getDocs; },
+  get addDoc() { return require('firebase/firestore').addDoc; },
+  get deleteDoc() { return require('firebase/firestore').deleteDoc; },
+  get serverTimestamp() { return require('firebase/firestore').serverTimestamp; },
+  get onSnapshot() { return require('firebase/firestore').onSnapshot; },
+  get orderBy() { return require('firebase/firestore').orderBy; },
+  get limit() { return require('firebase/firestore').limit; },
+};
 
-export const messaging = new Proxy({}, {
-  get: (_target, prop) => {
-    if (!_messaging) {
-      try {
-        const instance = getAppInstance();
-        const { getMessaging } = require('firebase/messaging');
-        _messaging = getMessaging(instance);
-      } catch (e) {
-        return null;
-      }
-    }
-    const val = _messaging[prop];
-    return typeof val === 'function' ? val.bind(_messaging) : val;
-  }
-}) as any; 
+export const storageFunctions = {
+  get ref() { return require('firebase/storage').ref; },
+  get uploadBytes() { return require('firebase/storage').uploadBytes; },
+  get getDownloadURL() { return require('firebase/storage').getDownloadURL; },
+  get deleteObject() { return require('firebase/storage').deleteObject; },
+};
 
+// Mapeamento para compatibilidade (a, f, s) para facilitar migração gradual
+export const a = authFunctions;
+export const f = dbFunctions;
+export const s = storageFunctions;
+
+// Instâncias para compatibilidade
+export const auth = { get currentUser() { return getAuth().currentUser; } };
+export const db = { get type() { return 'firestore'; } }; // Apenas para evitar erros de referência direta

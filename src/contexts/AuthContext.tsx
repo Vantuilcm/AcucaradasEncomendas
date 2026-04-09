@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth, db, a, f } from '../config/firebase';
+import { getAuth, getDb, authFunctions, dbFunctions } from '../config/firebase';
 import { TwoFactorAuthService } from '../services/TwoFactorAuthService';
 
 /**
- * 🛡️ ZeroNativeCrashRecoveryAI - Versão Ultra-Lazy
- * O app usa Proxy-Lazy-Loading para garantir que o Firebase NUNCA
- * seja carregado durante o boot do aplicativo.
+ * 🛡️ ZeroNativeCrashRecoveryAI - Versão Lazy-Getter
+ * O app usa Lazy Getters para garantir que o Firebase NUNCA
+ * seja carregado durante o boot do aplicativo no topo do arquivo.
  */
 
 // Interface completa restaurada
@@ -37,22 +37,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const bootstrapLazyFirebase = async () => {
       try {
-        console.log('🛡️ [AUTH] Initializing Lazy Firebase...');
+        console.log('🛡️ [AUTH] Initializing Lazy Firebase with Getters...');
         
-        // No React Native, precisamos garantir que o Auth está inicializado 
-        // antes de configurar o observer. Acessar 'currentUser' força a inicialização no Proxy.
-        const firebaseAuth = auth;
-        // @ts-ignore - Acesso para disparar o Proxy
-        const _trigger = firebaseAuth.currentUser; 
+        const auth = getAuth();
+        const db = getDb();
 
-        // Configurar o observador de estado do usuário
-        a.onAuthStateChanged(firebaseAuth, async (firebaseUser: any) => {
+        // Configurar o observador de estado do usuário usando a função lazy
+        authFunctions.onAuthStateChanged(auth, async (firebaseUser: any) => {
           if (firebaseUser) {
             console.log('👤 [AUTH] User found:', firebaseUser.email);
             try {
               // Buscar dados extras do Firestore
-              const userRef = f.doc(db, 'users', firebaseUser.uid);
-              const userDoc = await f.getDoc(userRef);
+              const userRef = dbFunctions.doc(db, 'users', firebaseUser.uid);
+              const userDoc = await dbFunctions.getDoc(userRef);
               
               if (userDoc.exists()) {
                 const data = userDoc.data();
@@ -96,23 +93,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       console.log('🛡️ [AUTH] Attempting login for:', email);
       
-      const firebaseAuth = auth;
-      // Garante que o módulo de auth está carregado disparando o proxy
-      const _authTrigger = a.signInWithEmailAndPassword;
-      
-      if (typeof _authTrigger !== 'function') {
-        console.error('❌ [AUTH] signInWithEmailAndPassword is not a function:', _authTrigger);
-        throw new Error('Módulo de Autenticação do Firebase não carregado corretamente.');
-      }
+      const auth = getAuth();
+      const db = getDb();
 
       console.log('🛡️ [AUTH] Calling signInWithEmailAndPassword...');
-      const userCredential = await a.signInWithEmailAndPassword(firebaseAuth, email, password);
+      const userCredential = await authFunctions.signInWithEmailAndPassword(auth, email, password);
       console.log('✅ [AUTH] Login success for user UID:', userCredential.user.uid);
       
       // Forçar busca de perfil após login
-      const userRef = f.doc(db, 'users', userCredential.user.uid);
+      const userRef = dbFunctions.doc(db, 'users', userCredential.user.uid);
       console.log('🛡️ [AUTH] Fetching user profile from Firestore...');
-      const userDoc = await f.getDoc(userRef);
+      const userDoc = await dbFunctions.getDoc(userRef);
       
       if (userDoc.exists()) {
         const data = userDoc.data();
@@ -130,8 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error('❌ [AUTH] Detailed Login Error:', {
         code: error.code,
-        message: error.message,
-        stack: error.stack
+        message: error.message
       });
       throw error;
     } finally {
@@ -142,8 +132,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (userData: any, password: string) => {
     try {
       setLoading(true);
-      const firebaseAuth = auth;
-      const userCredential = await a.createUserWithEmailAndPassword(firebaseAuth, userData.email, password);
+      const auth = getAuth();
+      const db = getDb();
+      const userCredential = await authFunctions.createUserWithEmailAndPassword(auth, userData.email, password);
       
       // Criar doc no Firestore
       const userDoc = {
@@ -151,11 +142,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: userData.email,
         nome: userData.nome || userData.name || '',
         role: userData.role || 'customer',
-        createdAt: f.serverTimestamp(),
-        updatedAt: f.serverTimestamp()
+        createdAt: dbFunctions.serverTimestamp(),
+        updatedAt: dbFunctions.serverTimestamp()
       };
       
-      await f.setDoc(f.doc(db, 'users', userCredential.user.uid), userDoc);
+      await dbFunctions.setDoc(dbFunctions.doc(db, 'users', userCredential.user.uid), userDoc);
       setUser({ ...userDoc, id: userCredential.user.uid });
       console.log('✅ [AUTH] Register success');
     } catch (error) {
@@ -168,7 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await a.signOut(auth);
+      await authFunctions.signOut(getAuth());
       setUser(null);
     } catch (error) {
       console.error('❌ [AUTH] Logout error:', error);
@@ -176,13 +167,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string) => {
-    await a.sendPasswordResetEmail(auth, email);
+    await authFunctions.sendPasswordResetEmail(getAuth(), email);
   };
 
   const updateUser = async (userData: any) => {
     if (!user) return;
-    const userRef = f.doc(db, 'users', user.id);
-    await f.updateDoc(userRef, userData);
+    const db = getDb();
+    const userRef = dbFunctions.doc(db, 'users', user.id);
+    await dbFunctions.updateDoc(userRef, userData);
     setUser((prev: any) => ({ ...prev, ...userData }));
   };
 

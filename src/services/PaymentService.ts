@@ -1,4 +1,4 @@
-import { db, f } from '../config/firebase';
+import { getDb, dbFunctions as f } from '../config/firebase';
 import {
   PaymentCard,
   PaymentTransaction,
@@ -40,6 +40,7 @@ export class PaymentService {
   private readonly pixKeysCollection = 'pix_keys';
   private readonly paymentsCollection = 'payments';
   private pagamentos: Map<string, any>;
+  private readonly db = getDb();
 
   private stripeService: StripeService;
   private notificationService: NotificationService;
@@ -82,7 +83,7 @@ export class PaymentService {
   ): Promise<boolean> {
     try {
       // Obter informações do pedido
-      const orderRef = f.doc(db, 'orders', orderId);
+      const orderRef = f.doc(this.db, 'orders', orderId);
       const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
@@ -128,7 +129,7 @@ export class PaymentService {
         } as any);
 
         // Registrar transação
-        await f.addDoc(f.collection(db, this.transactionsCollection), {
+        await f.addDoc(f.collection(this.db, this.transactionsCollection), {
           orderId,
           userId,
           amount,
@@ -166,7 +167,7 @@ export class PaymentService {
   }> {
     try {
       // 1. Buscar dados do pedido
-      const orderRef = f.doc(db, 'orders', orderId);
+      const orderRef = f.doc(this.db, 'orders', orderId);
       const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
@@ -277,7 +278,7 @@ export class PaymentService {
    */
   public async getPaymentCards(userId: string): Promise<PaymentCard[]> {
     try {
-      const q = f.query(f.collection(db, this.cardsCollection), f.where('userId', '==', userId));
+      const q = f.query(f.collection(this.db, this.cardsCollection), f.where('userId', '==', userId));
       const snapshot = await f.getDocs(q);
       return snapshot.docs.map((docSnapshot: any) => ({
         id: docSnapshot.id,
@@ -291,7 +292,7 @@ export class PaymentService {
 
   async addPaymentCard(card: Omit<PaymentCard, 'id' | 'createdAt'>): Promise<PaymentCard> {
     try {
-      const cardsRef = f.collection(db, this.cardsCollection);
+      const cardsRef = f.collection(this.db, this.cardsCollection);
       const docRef = f.doc(cardsRef);
       await f.setDoc(
         docRef,
@@ -322,7 +323,7 @@ export class PaymentService {
 
   async removePaymentCard(cardId: string): Promise<void> {
     try {
-      const cardRef = f.doc(db, this.cardsCollection, cardId);
+      const cardRef = f.doc(this.db, this.cardsCollection, cardId);
       await f.deleteDoc(cardRef);
 
       loggingService.info('Cartão de pagamento removido com sucesso', {
@@ -340,11 +341,11 @@ export class PaymentService {
 
   async setDefaultCard(userId: string, cardId: string): Promise<void> {
     try {
-      const cardsRef = f.collection(db, this.cardsCollection);
+      const cardsRef = f.collection(this.db, this.cardsCollection);
       const q = f.query(cardsRef, f.where('userId', '==', userId));
       const querySnapshot = await f.getDocs(q);
 
-      const batch = f.writeBatch(db as any);
+      const batch = f.writeBatch(this.db as any);
       querySnapshot.docs.forEach((docSnapshot: any) => {
         batch.update(docSnapshot.ref, {
           isDefault: docSnapshot.id === cardId,
@@ -371,7 +372,7 @@ export class PaymentService {
     transaction: Omit<PaymentTransaction, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<PaymentTransaction> {
     try {
-      const transactionsRef = f.collection(db, this.transactionsCollection);
+      const transactionsRef = f.collection(this.db, this.transactionsCollection);
       const docRef = f.doc(transactionsRef);
       await f.setDoc(
         docRef,
@@ -408,7 +409,7 @@ export class PaymentService {
     errorMessage?: string
   ): Promise<void> {
     try {
-      const transactionRef = f.doc(db, this.transactionsCollection, transactionId);
+      const transactionRef = f.doc(this.db, this.transactionsCollection, transactionId);
       await f.updateDoc(
         transactionRef,
         {
@@ -434,7 +435,7 @@ export class PaymentService {
 
   async getTransactionById(transactionId: string): Promise<PaymentTransaction | null> {
     try {
-      const transactionRef = f.doc(db, this.transactionsCollection, transactionId);
+      const transactionRef = f.doc(this.db, this.transactionsCollection, transactionId);
       const transactionDoc = await f.getDoc(transactionRef);
 
       if (!transactionDoc.exists()) {
@@ -463,7 +464,7 @@ export class PaymentService {
     } = {}
   ): Promise<PaymentTransaction[]> {
     try {
-      const transactionsRef = f.collection(db, this.transactionsCollection);
+      const transactionsRef = f.collection(this.db, this.transactionsCollection);
       let q = f.query(transactionsRef, f.where('userId', '==', userId), f.orderBy('createdAt', 'desc'));
 
       if (options.status) {
@@ -494,7 +495,7 @@ export class PaymentService {
     refund: Omit<PaymentRefund, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<PaymentRefund> {
     try {
-      const refundsRef = f.collection(db, this.refundsCollection);
+      const refundsRef = f.collection(this.db, this.refundsCollection);
       const docRef = f.doc(refundsRef);
       await f.setDoc(
         docRef,
@@ -527,7 +528,7 @@ export class PaymentService {
 
   async updateRefundStatus(refundId: string, status: PaymentRefund['status']): Promise<void> {
     try {
-      const refundRef = f.doc(db, this.refundsCollection, refundId);
+      const refundRef = f.doc(this.db, this.refundsCollection, refundId);
       await f.updateDoc(
         refundRef,
         {
@@ -608,7 +609,7 @@ export class PaymentService {
 
   async getPaymentSettings(userId: string): Promise<PaymentSettings | null> {
     try {
-      const settingsRef = f.doc(db, this.settingsCollection, userId);
+      const settingsRef = f.doc(this.db, this.settingsCollection, userId);
       const settingsDoc = await f.getDoc(settingsRef);
 
       if (!settingsDoc.exists()) {
@@ -631,7 +632,7 @@ export class PaymentService {
 
   async updatePaymentSettings(userId: string, updates: Partial<PaymentSettings>): Promise<void> {
     try {
-      const settingsRef = f.doc(db, this.settingsCollection, userId);
+      const settingsRef = f.doc(this.db, this.settingsCollection, userId);
       await f.updateDoc(
         settingsRef,
         {
@@ -660,7 +661,7 @@ export class PaymentService {
    */
   public async getPixKeys(userId: string): Promise<PixKey[]> {
     try {
-      const q = f.query(f.collection(db, this.pixKeysCollection), f.where('userId', '==', userId));
+      const q = f.query(f.collection(this.db, this.pixKeysCollection), f.where('userId', '==', userId));
       const snapshot = await f.getDocs(q);
       return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as PixKey));
     } catch (error: any) {
@@ -671,7 +672,7 @@ export class PaymentService {
 
   async addPixKey(pixKey: Omit<PixKey, 'id' | 'createdAt'>): Promise<PixKey> {
     try {
-      const pixKeysRef = f.collection(db, this.pixKeysCollection);
+      const pixKeysRef = f.collection(this.db, this.pixKeysCollection);
       const docRef = f.doc(pixKeysRef);
       await f.setDoc(
         docRef,
@@ -702,7 +703,7 @@ export class PaymentService {
 
   async removePixKey(pixKeyId: string): Promise<void> {
     try {
-      const pixKeyRef = f.doc(db, this.pixKeysCollection, pixKeyId);
+      const pixKeyRef = f.doc(this.db, this.pixKeysCollection, pixKeyId);
       await f.deleteDoc(pixKeyRef);
 
       loggingService.info('Chave PIX removida com sucesso', {
@@ -720,11 +721,11 @@ export class PaymentService {
 
   async setDefaultPixKey(userId: string, pixKeyId: string): Promise<void> {
     try {
-      const pixKeysRef = f.collection(db, this.pixKeysCollection);
+      const pixKeysRef = f.collection(this.db, this.pixKeysCollection);
       const q = f.query(pixKeysRef, f.where('userId', '==', userId));
       const querySnapshot = await f.getDocs(q);
 
-      const batch = f.writeBatch(db as any);
+      const batch = f.writeBatch(this.db as any);
       querySnapshot.docs.forEach((docSnapshot: any) => {
         batch.update(docSnapshot.ref, {
           isDefault: docSnapshot.id === pixKeyId,
@@ -770,7 +771,7 @@ export class PaymentService {
   }
 
   async savePayment(data: PaymentData) {
-    const paymentsRef = f.collection(db, this.paymentsCollection);
+    const paymentsRef = f.collection(this.db, this.paymentsCollection);
     const paymentRef = f.doc(paymentsRef, data.paymentId);
     const payload = {
       ...data,
@@ -785,7 +786,7 @@ export class PaymentService {
   }
 
   async getPaymentByPaymentId(paymentId: string) {
-    const paymentRef = f.doc(db, this.paymentsCollection, paymentId);
+    const paymentRef = f.doc(this.db, this.paymentsCollection, paymentId);
     const paymentDoc = await f.getDoc(paymentRef);
     if (!paymentDoc.exists()) {
       return null;
@@ -797,7 +798,7 @@ export class PaymentService {
   }
 
   async updatePaymentStatus(paymentId: string, status: 'pending' | 'completed' | 'failed') {
-    const paymentRef = f.doc(db, this.paymentsCollection, paymentId);
+    const paymentRef = f.doc(this.db, this.paymentsCollection, paymentId);
     await f.updateDoc(
       paymentRef,
       {
@@ -809,7 +810,7 @@ export class PaymentService {
   }
 
   async getUserPayments(userId: string) {
-    const paymentsRef = f.collection(db, this.paymentsCollection);
+    const paymentsRef = f.collection(this.db, this.paymentsCollection);
     const q = f.query(paymentsRef, f.where('userId', '==', userId), f.orderBy('createdAt', 'desc'));
     const querySnapshot = await f.getDocs(q);
     return querySnapshot.docs.map((docSnapshot: any) => ({
@@ -836,7 +837,7 @@ export class PaymentService {
   }> {
     try {
       // Obter informações do pedido
-      const orderRef = f.doc(db, 'orders', orderId);
+      const orderRef = f.doc(this.db, 'orders', orderId);
       const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
@@ -859,7 +860,7 @@ export class PaymentService {
       }
 
       // Criar ou obter cliente no Stripe
-      const userRef = f.doc(db, 'users', userId);
+      const userRef = f.doc(this.db, 'users', userId);
       const userDoc = await f.getDoc(userRef);
 
       if (!userDoc.exists()) {
@@ -998,32 +999,58 @@ export class PaymentService {
           orderId: orderId,
           amount: deliveryFee,
           totalOrderAmount: amount,
-          transferId: paymentResult.deliveryPersonTransferId,
         },
-      });
-
-      // Registrar no log
-      loggingService.info('Notificações de pagamento enviadas com sucesso', {
-        orderId,
-        clientAmount: amount,
-        producerAmount,
-        deliveryFee,
       });
 
       return {
         success: true,
-        paymentIntentId: paymentResult.paymentIntentId,
-        appTransferId: paymentResult.appTransferId,
-        producerTransferId: paymentResult.producerTransferId,
-        deliveryPersonTransferId: paymentResult.deliveryPersonTransferId,
+        ...paymentResult,
       };
     } catch (error) {
-      console.error('Error processing payment with split:', error);
       loggingService.error(
-        'Erro ao processar pagamento com divisão',
+        'Erro ao processar pagamento com divisão alternativa',
         error instanceof Error ? error : undefined,
         { orderId }
       );
+      throw error;
+    }
+  }
+
+  async getTransactionHistory(userId: string): Promise<PaymentTransaction[]> {
+    try {
+      const q = f.query(
+        f.collection(this.db, this.transactionsCollection),
+        f.where('userId', '==', userId),
+        f.orderBy('createdAt', 'desc')
+      );
+      const querySnapshot = await f.getDocs(q);
+      return querySnapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      })) as PaymentTransaction[];
+    } catch (error) {
+      loggingService.error(
+        'Erro ao buscar histórico de transações',
+        error instanceof Error ? error : undefined,
+        { userId }
+      );
+      throw error;
+    }
+  }
+
+  async processPixPayment(orderId: string, amount: number): Promise<{ success: boolean; qrCode: string; code: string }> {
+    try {
+      // Simulação de geração de PIX
+      const code = '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-426655440000';
+      const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${code}`;
+      
+      return {
+        success: true,
+        qrCode,
+        code
+      };
+    } catch (error) {
+      loggingService.error('Erro ao processar pagamento PIX', error instanceof Error ? error : undefined, { orderId });
       throw error;
     }
   }
