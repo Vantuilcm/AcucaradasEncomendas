@@ -34,29 +34,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const bootstrapLazyFirebase = async () => {
       try {
-        // @ts-ignore - Liberar o carregamento do Firebase no Proxy
-        global.__FIREBASE_BOOT_ALLOWED__ = true;
-        console.log('🛡️ [AUTH] Boot sequence complete. Allowing SDK load.');
+        console.log('🛡️ [AUTH] Initializing Lazy Firebase...');
         
-        // Agora o firebase.ts cuida de tudo via Proxy!
-        // Ao acessar 'auth', o Proxy fará o require() interno.
-        
+        // No React Native, precisamos garantir que o Auth está inicializado 
+        // antes de configurar o observer. Acessar 'currentUser' força a inicialização no Proxy.
+        const firebaseAuth = auth;
+        const _initialUser = firebaseAuth.currentUser; 
+
         // Configurar o observador de estado do usuário
-        a.onAuthStateChanged(auth, async (firebaseUser: any) => {
+        a.onAuthStateChanged(firebaseAuth, async (firebaseUser: any) => {
           if (firebaseUser) {
             console.log('👤 [AUTH] User found:', firebaseUser.email);
-            // Buscar dados extras do Firestore
-            const userRef = f.doc(db, 'users', firebaseUser.uid);
-            const userDoc = await f.getDoc(userRef);
-            
-            if (userDoc.exists()) {
-              setUser({ ...userDoc.data(), id: firebaseUser.uid });
-            } else {
+            try {
+              // Buscar dados extras do Firestore
+              const userRef = f.doc(db, 'users', firebaseUser.uid);
+              const userDoc = await f.getDoc(userRef);
+              
+              if (userDoc.exists()) {
+                const data = userDoc.data();
+                setUser({ ...data, id: firebaseUser.uid } as User);
+              } else {
+                setUser({ 
+                  id: firebaseUser.uid, 
+                  email: firebaseUser.email, 
+                  nome: firebaseUser.displayName || '' 
+                } as User);
+              }
+            } catch (err) {
+              console.error('❌ [AUTH] Error fetching user profile:', err);
               setUser({ 
                 id: firebaseUser.uid, 
                 email: firebaseUser.email, 
-                name: firebaseUser.displayName 
-              });
+                nome: firebaseUser.displayName || '' 
+              } as User);
             }
           } else {
             console.log('👤 [AUTH] No user found.');
@@ -72,8 +82,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Pequeno delay extra para garantir que a UI principal já rendenizou
-    const timer = setTimeout(bootstrapLazyFirebase, 1000);
+    // Pequeno delay para garantir que o motor nativo está pronto
+    const timer = setTimeout(bootstrapLazyFirebase, 500);
     return () => clearTimeout(timer);
   }, []);
 

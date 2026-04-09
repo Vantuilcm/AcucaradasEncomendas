@@ -18,126 +18,146 @@ const firebaseConfig = {
 // O objetivo aqui é NÃO importar 'firebase/auth', 'firebase/firestore', etc.
 // na avaliação do módulo, para evitar que side effects nativos matem o app no boot.
 
-// Variáveis para armazenar as instâncias dos SDKs
+// Variáveis para armazenar as instâncias dos SDKs (Singleton)
+let _app: any = null;
 let _auth: any = null;
 let _db: any = null;
 let _messaging: any = null;
-let _firestoreFunctions: any = null;
-let _app: any = null;
-
-// Flag global para permitir carregamento do Firebase apenas após o boot seguro
-// @ts-ignore
-if (typeof global.__FIREBASE_BOOT_ALLOWED__ === 'undefined') {
-  // @ts-ignore
-  global.__FIREBASE_BOOT_ALLOWED__ = false;
-}
+let _authModule: any = null;
+let _firestoreModule: any = null;
 
 /**
- * Função interna para obter a instância do App
+ * Obtém a instância do Firebase App de forma preguiçosa
  */
 const getAppInstance = () => {
-  // Bloqueio de segurança: impede o carregamento prematuro do SDK
-  // @ts-ignore
-  if (!global.__FIREBASE_BOOT_ALLOWED__ && !__DEV__) {
-    console.warn('🛡️ [FIREBASE] Bloqueio de carregamento prematuro! Tentativa de acesso antes do boot seguro.');
-    throw new Error('Firebase access blocked during boot sequence for stability.');
-  }
-
-  if (!_app) {
-    const { initializeApp, getApps } = require('firebase/app');
-    const apps = getApps();
-    if (apps.length > 0) {
-      _app = apps[0];
-    } else {
-      console.log('🛡️ [FIREBASE] Initializing Firebase JS-Only Instance...');
-      _app = initializeApp(firebaseConfig);
+  try {
+    if (!_app) {
+      console.log('🛡️ [FIREBASE] Initializing App Instance...');
+      const { initializeApp, getApps } = require('firebase/app');
+      const apps = getApps();
+      _app = apps.length > 0 ? apps[0] : initializeApp(firebaseConfig);
+      console.log('🛡️ [FIREBASE] App Instance initialized successfully.');
     }
+    return _app;
+  } catch (error) {
+    console.error('❌ [FIREBASE] Error initializing App Instance:', error);
+    throw error;
   }
-  return _app;
 };
 
-// Proxy para funções de Autenticação (a)
+/**
+ * 🚀 Proxy para Funções do Firebase (a e f)
+ */
 export const a: any = new Proxy({}, {
   get: (_target, prop) => {
-    // Bloqueio de segurança: impede o carregamento prematuro do SDK
-    // @ts-ignore
-    if (!global.__FIREBASE_BOOT_ALLOWED__ && !__DEV__) {
-      console.warn(`🛡️ [FIREBASE] Bloqueio de acesso a Auth.${prop.toString()} durante o boot.`);
-      return () => { console.warn('Firebase Auth blocked'); return null; };
+    try {
+      if (!_authModule) {
+        console.log('🛡️ [FIREBASE] Lazy Loading Auth Module...');
+        _authModule = require('firebase/auth');
+      }
+      return _authModule[prop];
+    } catch (error) {
+      console.error(`❌ [FIREBASE] Error loading Auth property ${prop.toString()}:`, error);
+      return () => { console.error('Auth function failed'); return null; };
     }
-
-    if (!_auth) {
-      console.log('🛡️ [FIREBASE] Lazy Loading Auth Functions...');
-      _auth = require('firebase/auth');
-    }
-    return _auth[prop];
   }
 });
 
-// Proxy para funções do Firestore (f)
 export const f: any = new Proxy({}, {
   get: (_target, prop) => {
-    // Bloqueio de segurança: impede o carregamento prematuro do SDK
-    // @ts-ignore
-    if (!global.__FIREBASE_BOOT_ALLOWED__ && !__DEV__) {
-      console.warn(`🛡️ [FIREBASE] Bloqueio de acesso a Firestore.${prop.toString()} durante o boot.`);
-      return () => { console.warn('Firebase Firestore blocked'); return null; };
+    try {
+      if (!_firestoreModule) {
+        console.log('🛡️ [FIREBASE] Lazy Loading Firestore Module...');
+        _firestoreModule = require('firebase/firestore');
+      }
+      return _firestoreModule[prop];
+    } catch (error) {
+      console.error(`❌ [FIREBASE] Error loading Firestore property ${prop.toString()}:`, error);
+      return () => { console.error('Firestore function failed'); return null; };
     }
-
-    if (!_firestoreFunctions) {
-      console.log('🛡️ [FIREBASE] Lazy Loading Firestore Functions...');
-      _firestoreFunctions = require('firebase/firestore');
-    }
-    return _firestoreFunctions[prop];
   }
 });
 
-// Exporta as instâncias lazy para compatibilidade
-export const auth = new Proxy({}, {
+/**
+ * 🛡️ Instâncias Lazy (auth, db, messaging)
+ */
+export const auth: any = new Proxy({}, {
   get: (_target, prop) => {
-    // Bloqueio de segurança: impede o carregamento prematuro do SDK
-    // @ts-ignore
-    if (!global.__FIREBASE_BOOT_ALLOWED__ && !__DEV__) {
+    if (prop === '__isProxy') return true;
+    if (prop === 'toJSON') return () => ({});
+    
+    try {
+      if (!_auth) {
+        console.log('🛡️ [FIREBASE] Initializing Auth Instance...');
+        const { initializeAuth, getReactNativePersistence, getAuth } = require('firebase/auth');
+        const ReactNativeAsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const instance = getAppInstance();
+        
+        try {
+          _auth = initializeAuth(instance, {
+            persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+          });
+        } catch (e) {
+          _auth = getAuth(instance);
+        }
+      }
+      
+      const val = _auth[prop];
+      if (typeof val === 'function') {
+        return val.bind(_auth);
+      }
+      return val;
+    } catch (error) {
       return null;
     }
-
-    const instance = getAppInstance();
-    const { getAuth } = require('firebase/auth');
-    const authInstance = getAuth(instance);
-    const val = (authInstance as any)[prop];
-    return typeof val === 'function' ? val.bind(authInstance) : val;
+  },
+  // Delegar operações fundamentais para o objeto real
+  getPrototypeOf: () => {
+    if (!_auth) return Object.prototype;
+    return Object.getPrototypeOf(_auth);
   }
-}) as any;
+});
 
-export const db = new Proxy({}, {
+export const db: any = new Proxy({}, {
   get: (_target, prop) => {
-    // Bloqueio de segurança: impede o carregamento prematuro do SDK
-    // @ts-ignore
-    if (!global.__FIREBASE_BOOT_ALLOWED__ && !__DEV__) {
+    if (prop === '__isProxy') return true;
+    
+    try {
+      if (!_db) {
+        console.log('🛡️ [FIREBASE] Initializing Firestore Instance...');
+        const { getFirestore } = require('firebase/firestore');
+        const instance = getAppInstance();
+        _db = getFirestore(instance);
+      }
+      
+      const val = _db[prop];
+      if (typeof val === 'function') {
+        return val.bind(_db);
+      }
+      return val;
+    } catch (error) {
       return null;
     }
-
-    const instance = getAppInstance();
-    const { getFirestore } = require('firebase/firestore');
-    const dbInstance = getFirestore(instance);
-    const val = (dbInstance as any)[prop];
-    return typeof val === 'function' ? val.bind(dbInstance) : val;
+  },
+  getPrototypeOf: () => {
+    if (!_db) return Object.prototype;
+    return Object.getPrototypeOf(_db);
   }
-}) as any;
+});
 
 export const messaging = new Proxy({}, {
   get: (_target, prop) => {
-    // Bloqueio de segurança: impede o carregamento prematuro do SDK
-    // @ts-ignore
-    if (!global.__FIREBASE_BOOT_ALLOWED__ && !__DEV__) {
-      return null;
+    if (!_messaging) {
+      try {
+        const instance = getAppInstance();
+        const { getMessaging } = require('firebase/messaging');
+        _messaging = getMessaging(instance);
+      } catch (e) {
+        return null;
+      }
     }
-
-    const instance = getAppInstance();
-    const { getMessaging } = require('firebase/messaging');
-    const messagingInstance = getMessaging(instance);
-    const val = (messagingInstance as any)[prop];
-    return typeof val === 'function' ? val.bind(messagingInstance) : val;
+    const val = _messaging[prop];
+    return typeof val === 'function' ? val.bind(_messaging) : val;
   }
 }) as any; 
 
