@@ -1,6 +1,4 @@
-import { f } from '../config/firebase';
-const { collection, query, where, getDocs, Timestamp } = f;
-import { db } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import { Order, OrderStatus } from '../types/Order';
 import { OrderService } from './OrderService';
 import { NotificationService } from './NotificationService';
@@ -43,10 +41,10 @@ export class OrderWatchdogService {
       loggingService.info('Watchdog: Iniciando verificação de pedidos travados...');
       
       const activeStatuses: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'delivering'];
-      const ordersRef = collection(db, 'orders');
-      const q = query(ordersRef, where('status', 'in', activeStatuses));
+      const ordersRef = f.collection(db, 'orders');
+      const q = f.query(ordersRef, f.where('status', 'in', activeStatuses));
       
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await f.getDocs(q);
       const now = new Date();
       let stuckCount = 0;
 
@@ -65,7 +63,7 @@ export class OrderWatchdogService {
         if (!updatedAtRaw) continue;
 
         let updatedAt: Date;
-        if (updatedAtRaw instanceof Timestamp) {
+        if (updatedAtRaw instanceof f.Timestamp) {
           updatedAt = updatedAtRaw.toDate();
         } else if (updatedAtRaw instanceof Date) {
           updatedAt = updatedAtRaw;

@@ -1,6 +1,4 @@
-import { f } from '../config/firebase';
-const { addDoc, collection, doc, getDoc, getDocs, query, updateDoc, where } = f;
-import { db } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import { Product } from '../types/Product';
 
 export interface WishlistItem {
@@ -36,9 +34,9 @@ export class WishlistService {
    */
   public async getWishlistByUserId(userId: string): Promise<Wishlist | null> {
     try {
-      const wishlistsRef = collection(db, 'wishlists');
-      const querySnapshot = await getDocs(
-        query(wishlistsRef, where('userId', '==', userId))
+      const wishlistsRef = f.collection(db, 'wishlists');
+      const querySnapshot = await f.getDocs(
+        f.query(wishlistsRef, f.where('userId', '==', userId))
       );
 
       if (querySnapshot.empty) {
@@ -52,7 +50,7 @@ export class WishlistService {
           dateUpdated: new Date(),
         };
 
-        const wishlistRef = await addDoc(wishlistsRef, newWishlist as any);
+        const wishlistRef = await f.addDoc(wishlistsRef, newWishlist as any);
         return { id: wishlistRef.id, ...newWishlist };
       }
 
@@ -91,7 +89,7 @@ export class WishlistService {
         },
       ];
 
-      await updateDoc(doc(db, 'wishlists', wishlist.id), {
+      await f.updateDoc(f.doc(db, 'wishlists', wishlist.id), {
         items: updatedItems as any,
         dateUpdated: new Date(),
       });
@@ -117,7 +115,7 @@ export class WishlistService {
       // Filtrar o produto a ser removido
       const updatedItems = wishlist.items.filter(item => item.productId !== productId);
 
-      await updateDoc(doc(db, 'wishlists', wishlist.id), {
+      await f.updateDoc(f.doc(db, 'wishlists', wishlist.id), {
         items: updatedItems as any,
         dateUpdated: new Date(),
       });
@@ -158,7 +156,7 @@ export class WishlistService {
         return false;
       }
 
-      await updateDoc(doc(db, 'wishlists', wishlist.id), {
+      await f.updateDoc(f.doc(db, 'wishlists', wishlist.id), {
         isPublic,
         dateUpdated: new Date(),
       });
@@ -184,7 +182,7 @@ export class WishlistService {
       // Obter detalhes de cada produto
       const products = await Promise.all(
         wishlist.items.map(async item => {
-          const productRef = await getDoc(doc(db, 'produtos', item.productId));
+          const productRef = await f.getDoc(f.doc(db, 'produtos', item.productId));
           return productRef.exists()
             ? ({ id: productRef.id, ...(productRef.data() as any as Omit<Product, 'id'>) } as Product)
             : null;

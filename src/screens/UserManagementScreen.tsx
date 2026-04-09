@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { f } from '../config/firebase';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, RefreshControl, ScrollView, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { db } from '../config/firebase';
-const { collection, query, where, getDocs, orderBy, limit } = f;
+import { db, f } from '../config/firebase';
 import { UserUtils } from '../utils/UserUtils';
 import { User } from '../models/User';
 import usePermissions from '../hooks/usePermissions';
@@ -41,30 +39,30 @@ const UserManagementScreen: React.FC = () => {
           setCarregandoMais(true);
         }
 
-        const usuariosRef = collection(db, 'usuarios');
+        const usuariosRef = f.collection(db, 'usuarios');
         let q;
 
         if (filtroPapel !== 'todos') {
-          q = query(
+          q = f.query(
             usuariosRef,
-            where('role', '==', filtroPapel),
-            orderBy('dataCriacao', 'desc'),
-            limit(USUARIOS_POR_PAGINA)
+            f.where('role', '==', filtroPapel),
+            f.orderBy('dataCriacao', 'desc'),
+            f.limit(USUARIOS_POR_PAGINA)
           );
         } else {
-          q = query(usuariosRef, orderBy('dataCriacao', 'desc'), limit(USUARIOS_POR_PAGINA));
+          q = f.query(usuariosRef, f.orderBy('dataCriacao', 'desc'), f.limit(USUARIOS_POR_PAGINA));
         }
 
         if (ultimoUsuario && !limpar) {
-          q = query(
+          q = f.query(
             usuariosRef,
-            orderBy('dataCriacao', 'desc'),
+            f.orderBy('dataCriacao', 'desc'),
             // firestoreStartAfter(ultimoUsuario),
-            limit(USUARIOS_POR_PAGINA)
+            f.limit(USUARIOS_POR_PAGINA)
           ); 
         }
 
-        const snapshot = await getDocs(q);
+        const snapshot = await f.getDocs(q);
         const listaUsuarios: User[] = [];
 
         snapshot.docs.forEach((doc: any) => {

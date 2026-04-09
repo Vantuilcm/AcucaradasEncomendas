@@ -1,6 +1,4 @@
-import { f } from '../config/firebase';
-const { collection, addDoc, query, where, getDocs, limit, updateDoc, doc, serverTimestamp } = f;
-import { db } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import { NotificationService } from './NotificationService';
 import { loggingService } from './LoggingService';
 import { GrowthService } from './GrowthService';
@@ -41,12 +39,12 @@ export class SalesAutomationService {
       const event = {
         userId,
         eventType,
-        triggeredAt: serverTimestamp(),
+        triggeredAt: f.serverTimestamp(),
         status: 'pending',
         metadata
       };
 
-      await addDoc(collection(db, this.collectionName), event);
+      await f.addDoc(f.collection(db, this.collectionName), event);
       
       // Se for sucesso de pagamento, podemos marcar eventos anteriores de checkout como resolvidos
       if (eventType === 'PAYMENT_SUCCESS') {
@@ -74,14 +72,14 @@ export class SalesAutomationService {
       
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
       
-      const q = query(
-        collection(db, this.collectionName),
-        where('eventType', '==', 'CHECKOUT_STARTED'),
-        where('status', '==', 'pending'),
-        where('triggeredAt', '<=', tenMinutesAgo)
+      const q = f.query(
+        f.collection(db, this.collectionName),
+        f.where('eventType', '==', 'CHECKOUT_STARTED'),
+        f.where('status', '==', 'pending'),
+        f.where('triggeredAt', '<=', tenMinutesAgo)
       );
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await f.getDocs(q);
       let processed = 0;
 
       for (const docSnapshot of querySnapshot.docs) {
@@ -99,62 +97,77 @@ export class SalesAutomationService {
             await this.notificationService.createNotification({
               userId: event.userId,
               type: 'promotion' as any,
-              title: "🍰 Seu pedido está te esperando",
-              message: "Finalize agora antes que acabe seu doce favorito!",
+              title: "🍰 Esqueceu algo doce?",
+              message: "Seu carrinho está esperando por você. Finalize agora e garanta sua encomenda!",
               priority: 'high',
-              read: false,
-              data: { type: 'CART_RECOVERY', ...event.metadata }
+              read: false
             });
 
-            await updateDoc(doc(db, this.collectionName, eventId), {
+            await f.updateDoc(f.doc(db, this.collectionName, eventId), {
               status: 'sent',
-              processedAt: serverTimestamp()
+              updatedAt: f.serverTimestamp()
             });
             processed++;
-          } catch (err) {
-            await updateDoc(doc(db, this.collectionName, eventId), { status: 'failed' });
+          } catch (e: any) {
+            loggingService.error('Erro ao enviar push de recuperação', { error: e.message });
           }
-        } else {
-          await updateDoc(doc(db, this.collectionName, eventId), { status: 'skipped', reason: 'anti-spam' });
         }
       }
-
-      loggingService.info('Automation: Processamento concluído', { processed });
+      
+      if (processed > 0) {
+        loggingService.info(`Automation: Recuperação concluída. ${processed} eventos processados.`);
+      }
     } catch (error: any) {
-      loggingService.error('Automation: Erro no processamento', { error: error.message });
+      loggingService.error('Erro ao processar carrinhos abandonados', { error: error.message });
     }
   }
 
   /**
-   * Verifica se o usuário pode receber notificação (Regra de 12h)
+   * Resolve checkouts pendentes do usuário
    */
-  private async checkAntiSpam(userId: string): Promise<boolean> {
-    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 1000 * 60);
-    
-    const q = query(
-      collection(db, this.collectionName),
-      where('userId', '==', userId),
-      where('status', '==', 'sent'),
-      where('triggeredAt', '>=', twelveHoursAgo),
-      limit(1)
-    );
-
-    const snapshot = await getDocs(q);
-    return snapshot.empty;
+  private async resolvePendingCheckouts(userId: string): Promise<void> {
+    try {
+      const q = f.query(
+        f.collection(db, this.collectionName),
+        f.where('userId', '==', userId),
+        f.where('eventType', '==', 'CHECKOUT_STARTED'),
+        f.where('status', '==', 'pending')
+      );
+      
+      const snapshot = await f.getDocs(q);
+      const batch = f.writeBatch(db);
+      
+      snapshot.docs.forEach((docSnapshot: any) => {
+        batch.update(docSnapshot.ref, {
+          status: 'skipped', 
+          resolvedAt: f.serverTimestamp() 
+        });
+      });
+      
+      await batch.commit();
+    } catch (error: any) {
+      loggingService.error('Erro ao resolver checkouts pendentes', { error: error.message });
+    }
   }
 
-  private async resolvePendingCheckouts(userId: string): Promise<void> {
-    const q = query(
-      collection(db, this.collectionName),
-      where('userId', '==', userId),
-      where('eventType', '==', 'CHECKOUT_STARTED'),
-      where('status', '==', 'pending')
-    );
-
-    const snapshot = await getDocs(q);
-    for (const docSnapshot of snapshot.docs) {
-      const docRef = doc(db, this.collectionName, docSnapshot.id);
-      await updateDoc(docRef, { status: 'skipped', reason: 'payment_completed' });
+  /**
+   * Implementa regra anti-spam (Max 1 push per 12h)
+   */
+  private async checkAntiSpam(userId: string): Promise<boolean> {
+    try {
+      const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+      const q = f.query(
+        f.collection(db, this.collectionName),
+        f.where('userId', '==', userId),
+        f.where('status', '==', 'sent'),
+        f.where('triggeredAt', '>=', twelveHoursAgo),
+        f.limit(1)
+      );
+      
+      const snapshot = await f.getDocs(q);
+      return snapshot.empty;
+    } catch (error) {
+      return false;
     }
   }
 }

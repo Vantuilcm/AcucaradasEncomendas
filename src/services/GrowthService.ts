@@ -4,8 +4,6 @@ import { Order } from '../types/Order';
 import { NotificationService } from './NotificationService';
 import { loggingService } from './LoggingService';
 
-const { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, limit, orderBy } = f;
-
 export interface ReferralLog {
   referrerId: string;
   referredId: string;
@@ -49,8 +47,8 @@ export class GrowthService {
       loggingService.info('Growth: Aplicando indicação...', { newUserId, referralCode });
 
       // 1. Buscar quem indicou
-      const q = query(collection(db, 'usuarios'), where('referralCode', '==', referralCode), limit(1));
-      const snapshot = await getDocs(q);
+      const q = f.query(f.collection(db, 'usuarios'), f.where('referralCode', '==', referralCode), f.limit(1));
+      const snapshot = await f.getDocs(q);
 
       if (snapshot.empty) {
         loggingService.warn('Growth: Código de indicação inválido', { referralCode });
@@ -71,13 +69,13 @@ export class GrowthService {
         referredId: newUserId,
         referralCode,
         status: 'pending',
-        createdAt: serverTimestamp()
+        createdAt: f.serverTimestamp()
       };
 
-      await addDoc(collection(db, 'referrals'), referralLog);
+      await f.addDoc(f.collection(db, 'referrals'), referralLog);
 
       // 3. Atualizar o usuário indicado
-      await updateDoc(doc(db, 'usuarios', newUserId), {
+      await f.updateDoc(f.doc(db, 'usuarios', newUserId), {
         referredBy: referrerId
       });
 

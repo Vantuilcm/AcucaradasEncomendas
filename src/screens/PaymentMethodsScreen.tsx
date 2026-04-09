@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { f } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, RefreshControl, } from 'react-native';
 import {
   Card, Text, Button, IconButton, Portal, Modal, SegmentedButtons, TextInput, useTheme, } from 'react-native-paper';
@@ -8,8 +8,6 @@ import { StripeService } from '../services/StripeService';
 import { PaymentCard, PixKey } from '../types/Payment';
 import { useAuth } from '../contexts/AuthContext';
 import { PaymentCardForm } from '../components/PaymentCardForm';
-import { db } from '../config/firebase';
-const { doc, getDoc, updateDoc } = f;
 
 type PaymentMethodType = 'card' | 'pix';
 
@@ -92,16 +90,16 @@ export const PaymentMethodsScreen: React.FC = () => {
       }
 
       const stripeService = StripeService.getInstance();
-      const userRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userRef);
+      const userRef = f.doc(db, 'users', userId);
+      const userDoc = await f.getDoc(userRef);
       const userData = userDoc.exists() ? (userDoc.data() as any) : null;
       let customerId = userData?.stripeCustomerId as string | undefined;
       if (!customerId) {
         customerId = await stripeService.createCustomer(
           userEmail,
-          (user as any)?.nome || 'Cliente'
+          user?.name || userEmail
         );
-        await updateDoc(userRef, { stripeCustomerId: customerId } as any);
+        await f.updateDoc(userRef, { stripeCustomerId: customerId });
       }
 
       const paymentMethodId = await stripeService.createPaymentMethod({

@@ -3,13 +3,12 @@
 // Tenta recuperar o app de falhas críticas automaticamente.
 
 import { logInfo, logError, logWarning } from './monitoring/logger';
-import { getApps, initializeApp } from 'firebase/app';
 import { ENV } from '../config/env';
 import NetInfo from '@react-native-community/netinfo';
 import { AuthService } from '../services/AuthService';
 import { SecureStorageService } from '../services/SecureStorageService';
 
-// Deferir o carregamento de deleteApp do firebase/app
+// Deferir o carregamento de firebase/app
 const getFirebaseApp = () => require('firebase/app');
 
 export type SelfHealErrorType = 
@@ -103,10 +102,11 @@ export async function handleSelfHeal(type: SelfHealErrorType, error: any): Promi
  */
 async function healFirebase(): Promise<boolean> {
   try {
+    const { getApps, initializeApp, deleteApp } = getFirebaseApp();
     const apps = getApps();
     for (const app of apps) {
       try {
-        await getFirebaseApp().deleteApp(app);
+        await deleteApp(app);
       } catch (e) {
         logError('FIREBASE_RECOVERY', 'Erro ao deletar app', e);
       }

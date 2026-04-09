@@ -1,9 +1,7 @@
-import { f } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import { Share } from 'react-native';
-const { addDoc, collection, doc, getDoc } = f;
 import { Product } from '../types/Product';
 import { User } from '../models/User';
-import { db } from '../config/firebase';
 import { sendEmail } from '../utils/emailUtils';
 import { WishlistService } from './WishlistService';
 
@@ -72,7 +70,7 @@ export class SocialService {
       await sendEmail(emailContent);
 
       // Registra o convite para analytics
-      await addDoc(collection(db, 'convites'), {
+      await f.addDoc(f.collection(db, 'convites'), {
         usuarioId: currentUser.id,
         emailsConvidados: emails,
         data: new Date(),
@@ -98,21 +96,17 @@ export class SocialService {
       }
 
       const baseUrl = 'https://acucaradas.com.br/lista-desejos/';
-      const shareUrl = `${baseUrl}${wishlist.id}`;
+      const shareUrl = `${baseUrl}${userId}`;
 
       const result = await Share.share({
         message: `Confira minha lista de desejos na Açucaradas Encomendas! ${shareUrl}`,
-        title: 'Minha Lista de Desejos - Açucaradas Encomendas',
+        title: 'Minha Lista de Desejos',
         url: shareUrl,
       });
 
       if (result.action === Share.sharedAction) {
         if (__DEV__) {
           console.log('Lista de desejos compartilhada com sucesso');
-        }
-      } else if (result.action === Share.dismissedAction) {
-        if (__DEV__) {
-          console.log('Compartilhamento cancelado');
         }
       }
     } catch (error) {
@@ -122,41 +116,24 @@ export class SocialService {
   }
 
   /**
-   * Obtém lista de desejos compartilhável
+   * Registra uma recomendação de produto
    */
-  public async getSharedWishlist(wishlistId: string): Promise<any> {
+  public async recommendProduct(
+    currentUser: User,
+    productId: string,
+    friendEmail: string
+  ): Promise<void> {
     try {
-      const wishlistRef = await getDoc(doc(db, 'wishlists', wishlistId));
-
-      if (!wishlistRef.exists()) {
-        throw new Error('Lista de desejos não encontrada');
-      }
-
-      const wishlistData = wishlistRef.data() as {
-        isPublic: boolean;
-        items: { productId: string }[];
-      };
-
-      // Verificar se a lista é compartilhável
-      if (!wishlistData.isPublic) {
-        throw new Error('Esta lista de desejos não é pública');
-      }
-
-      // Buscar informações detalhadas dos produtos
-      const products = await Promise.all(
-        wishlistData.items.map(async (item: any) => {
-          const productRef = await getDoc(doc(db, 'produtos', item.productId));
-          return productRef.exists() ? productRef.data() : null;
-        })
-      );
-
-      return {
-        ...wishlistData,
-        products: products.filter(p => p !== null),
-      };
+      await f.addDoc(f.collection(db, 'recomendacoes'), {
+        usuarioId: currentUser.id,
+        produtoId: productId,
+        emailAmigo: friendEmail,
+        data: new Date(),
+      });
     } catch (error) {
-      console.error('Erro ao obter lista de desejos compartilhada:', error);
-      throw error;
+      console.error('Erro ao registrar recomendação:', error);
     }
   }
 }
+
+export const socialService = SocialService.getInstance();

@@ -34,7 +34,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const bootstrapLazyFirebase = async () => {
       try {
-        console.log('🛡️ [AUTH] Starting Ultra-Lazy Firebase Setup...');
+        // @ts-ignore - Liberar o carregamento do Firebase no Proxy
+        global.__FIREBASE_BOOT_ALLOWED__ = true;
+        console.log('🛡️ [AUTH] Boot sequence complete. Allowing SDK load.');
         
         // Agora o firebase.ts cuida de tudo via Proxy!
         // Ao acessar 'auth', o Proxy fará o require() interno.

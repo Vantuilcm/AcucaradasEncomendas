@@ -5,7 +5,6 @@ import * as Device from '../compat/expoDevice';
 import Constants from 'expo-constants';
 import { loggingService } from './LoggingService';
 
-const { doc, setDoc, getDoc, deleteDoc } = f;
 import { NotificationType } from '../types/Notification';
 import { NotificationSettingsServiceWithCache } from './NotificationSettingsServiceWithCache';
 
@@ -98,13 +97,27 @@ export class MobileNotificationService {
       const projectId = this.getProjectId();
       const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 
-      // Registra o token no Firestore
-      await this.saveToken(userId, token);
+      if (userId) {
+        // Salvar token no Firestore usando o proxy f
+        const deviceId = Device.osBuildId || 'unknown';
+        const tokenId = `${userId}_${deviceId}`;
+        const tokenData: NotificationToken = {
+          id: tokenId,
+          userId,
+          token,
+          deviceId,
+          platform: Platform.OS,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        await f.setDoc(f.doc(db, this.tokensCollection, tokenId), tokenData);
+      }
 
       return token;
-    } catch (error: any) {
-      loggingService.error('Erro ao registrar para notificações push', error);
-      throw error;
+    } catch (error) {
+      loggingService.error('Erro ao registrar para notificações push', { error });
+      return null;
     }
   }
 
@@ -116,13 +129,13 @@ export class MobileNotificationService {
     let projectId = '';
 
     if (Constants.expoConfig?.extra?.eas?.projectId) {
-        projectId = Constants.expoConfig.extra.eas.projectId;
-      } 
+      projectId = Constants.expoConfig.extra.eas.projectId;
+    } 
+    // @ts-ignore
+    else if (Constants.manifest?.extra?.eas?.projectId) {
       // @ts-ignore
-      else if (Constants.manifest?.extra?.eas?.projectId) {
-        // @ts-ignore
-        projectId = Constants.manifest.extra.eas.projectId;
-      } else if ((Constants.expoConfig as any)?.projectId) {
+      projectId = Constants.manifest.extra.eas.projectId;
+    } else if ((Constants.expoConfig as any)?.projectId) {
       projectId = (Constants.expoConfig as any).projectId;
     } else if ((Constants.manifest as any)?.projectId) {
       projectId = (Constants.manifest as any).projectId;
@@ -136,70 +149,39 @@ export class MobileNotificationService {
   }
 
   /**
-   * Salva o token de notificação no Firestore
+   * Remove o registro do token de notificação
    * @param userId ID do usuário
-   * @param token Token de notificação
    */
-  private async saveToken(userId: string, token: string): Promise<void> {
+  public async unregisterFromPushNotifications(userId: string): Promise<void> {
     try {
-      const deviceId = Device.deviceName || 'unknown';
-      const platform = Platform.OS;
-      const tokenRef = doc(db, this.tokensCollection, token);
-
-      const tokenData: Omit<NotificationToken, 'id'> = {
-        userId,
-        token,
-        deviceId,
-        platform,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      await setDoc(tokenRef, tokenData);
-      loggingService.info(`Token de notificação registrado para usuário ${userId}`);
-    } catch (error: any) {
-      loggingService.error('Erro ao salvar token de notificação', error);
-      throw error;
+      const deviceId = Device.osBuildId || 'unknown';
+      const tokenId = `${userId}_${deviceId}`;
+      
+      await f.deleteDoc(f.doc(db, this.tokensCollection, tokenId));
+      loggingService.info('Registro de notificação removido com sucesso');
+    } catch (error) {
+      loggingService.error('Erro ao remover registro de notificação', { error });
     }
   }
 
   /**
-   * Remove o token de notificação do Firestore
-   * @param token Token de notificação
-   */
-  public async unregisterToken(token: string): Promise<void> {
-    try {
-      const tokenRef = doc(db, this.tokensCollection, token);
-      await deleteDoc(tokenRef);
-      loggingService.info(`Token de notificação removido: ${token}`);
-    } catch (error: any) {
-      loggingService.error('Erro ao remover token de notificação', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Obtém o token de notificação para um usuário e dispositivo específico
+   * Obtém o token registrado para o usuário
    * @param userId ID do usuário
-   * @param deviceId ID do dispositivo
-   * @returns Token de notificação ou null se não encontrado
    */
-  public async getToken(userId: string, deviceId: string): Promise<string | null> {
+  public async getUserToken(userId: string): Promise<string | null> {
     try {
-      // Na implementação real, você consultaria o Firestore para encontrar o token
-      // Aqui estamos simulando para simplificar
-      const tokenRef = doc(db, this.tokensCollection, `${userId}_${deviceId}`);
-      const tokenDoc = await getDoc(tokenRef);
-
+      const deviceId = Device.osBuildId || 'unknown';
+      const tokenId = `${userId}_${deviceId}`;
+      const tokenDoc = await f.getDoc(f.doc(db, this.tokensCollection, tokenId));
+      
       if (tokenDoc.exists()) {
-        const tokenData = tokenDoc.data() as unknown as NotificationToken;
-        return tokenData.token;
+        return (tokenDoc.data() as NotificationToken).token;
       }
-
+      
       return null;
-    } catch (error: any) {
-      loggingService.error('Erro ao obter token de notificação', error);
-      throw error;
+    } catch (error) {
+      loggingService.error('Erro ao obter token do usuário', { error });
+      return null;
     }
   }
 
@@ -230,7 +212,7 @@ export class MobileNotificationService {
 
       // Na implementação real, você obteria todos os tokens do usuário
       // Aqui estamos simulando para simplificar
-      const token = await this.getToken(userId, 'any');
+      const token = await this.getUserToken(userId);
 
       if (!token) {
         loggingService.info(`Nenhum token encontrado para o usuário ${userId}`);

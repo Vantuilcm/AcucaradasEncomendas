@@ -1,7 +1,6 @@
 import { f } from '../config/firebase';
 import { Platform } from 'react-native';
 import { messaging, db } from '../config/firebase';
-import { getToken, onMessage, isSupported } from 'firebase/messaging';
 const { doc, setDoc, getDoc, updateDoc } = f;
 
 import { loggingService } from './LoggingService';
@@ -34,6 +33,7 @@ export class FCMService {
     try {
       // Verificar se FCM é suportado na plataforma atual
       if (Platform.OS === 'web') {
+        const { isSupported } = require('firebase/messaging');
         const isMessagingSupported = await isSupported();
         if (!isMessagingSupported) {
           if (__DEV__) {
@@ -68,7 +68,8 @@ export class FCMService {
   private setupMessageListener(): void {
     try {
       if (!messaging) return;
-      onMessage(messaging, payload => {
+      const { onMessage } = require('firebase/messaging');
+      onMessage(messaging, (payload: any) => {
         if (__DEV__) {
           console.log('Mensagem recebida em primeiro plano:', payload);
         }
@@ -99,6 +100,7 @@ export class FCMService {
         throw new Error('Firebase Messaging não está inicializado');
       }
 
+      const { getToken } = require('firebase/messaging');
       // Obter o token FCM
       const token = await getToken(messaging, {
         vapidKey: process.env.EXPO_PUBLIC_FIREBASE_VAPID_KEY,

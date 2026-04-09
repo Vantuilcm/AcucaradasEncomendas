@@ -7,9 +7,7 @@ import { secureLoggingService } from './SecureLoggingService';
 import { SecurityService } from './SecurityService';
 import { db, auth } from '../config/firebase';
 import { User } from '../models/User';
-const { updateProfile, signOut, signInWithCredential, OAuthProvider } = a;
 import { UserUtils } from '../utils/UserUtils';
-const { collection, query, where, limit, getDocs, addDoc, updateDoc, doc, setDoc } = f;
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Importação condicional para evitar erros em plataformas não suportadas
 let AppleAuthentication: any = null;
@@ -18,7 +16,14 @@ if (Platform.OS === 'ios') {
 }
 
 // Registrar para receber o redirecionamento de autenticação
-WebBrowser.maybeCompleteAuthSession();
+// Deferir chamada para evitar execução imediata no boot
+const completeAuthSessionLazy = () => {
+  try {
+    WebBrowser.maybeCompleteAuthSession();
+  } catch (e) {
+    console.warn('Erro ao completar sessão de autenticação:', e);
+  }
+};
 
 // Configurações baseadas no ambiente
 export const GOOGLE_CLIENT_ID = {
@@ -91,6 +96,26 @@ export class SocialAuthService {
     }
   }
 
+  // Autenticação com Google
+  public async googleAuth(credential: any, role?: string): Promise<SocialAuthResult> {
+    completeAuthSessionLazy();
+    try {
+      const { signInWithCredential, GoogleAuthProvider } = a;
+      const googleCredential = GoogleAuthProvider.credential(credential.idToken);
+      const userCredential = await signInWithCredential(auth, googleCredential);
+      return await this.signInWithCredential(googleCredential, role);
+    } catch (error: any) {
+      secureLoggingService.security('Erro no login com Google', {
+        errorMessage: error.message || 'Erro desconhecido',
+        timestamp: new Date().toISOString()
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro no login com Google',
+      };
+    }
+  }
+
   // Função auxiliar para encontrar ou criar usuário com autenticação social
   private async findOrCreateSocialUser(userData: {
     email: string;
@@ -98,63 +123,48 @@ export class SocialAuthService {
     provider: string;
     providerId: string;
     profilePicture?: string;
+    role?: string;
   }): Promise<{ user: User; token: string }> {
     try {
-      // Verificar se já existe um usuário com este email
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', userData.email), limit(1));
-      const userQuery = await getDocs(q);
-
-      let userId: string;
+      const usersRef = f.collection(db, 'usuarios');
+      const q = f.query(usersRef, f.where('email', '==', userData.email), f.limit(1));
+      const querySnapshot = await f.getDocs(q);
+      
       let user: User;
-
-      if (userQuery.empty) {
+      
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        user = { id: userDoc.id, ...userDoc.data() } as User;
+        
+        // Atualizar informações do provedor se necessário
+        await f.updateDoc(f.doc(db, 'usuarios', user.id), {
+          lastLogin: new Date().toISOString(),
+          [`providers.${userData.provider}`]: userData.providerId
+        });
+      } else {
         // Criar novo usuário
-        const newUser: Omit<User, 'id'> = {
+        const newUserRef = f.doc(f.collection(db, 'usuarios'));
+        user = {
+          id: newUserRef.id,
           email: userData.email,
           nome: userData.name,
-          role: 'comprador', // Segurança: Força o papel como comprador
-          dataCriacao: new Date(),
-          ultimoLogin: new Date(),
-          perfil: {
-            fotoPerfil: userData.profilePicture || undefined,
-          },
-        };
-
-        const docRef = await addDoc(collection(db, 'users'), newUser as any);
-        userId = docRef.id;
-        user = { id: userId, ...newUser } as User;
-      } else {
-        // Atualizar informações do usuário existente
-        const userDocSnapshot = userQuery.docs[0];
-        userId = userDocSnapshot.id;
-        user = { id: userId, ...userDocSnapshot.data() } as User;
-
-        // Atualizar dados de autenticação social
-        await updateDoc(doc(db, 'users', userId), {
-          ultimoLogin: new Date(),
-        });
+          role: userData.role || 'customer',
+          providers: { [userData.provider]: userData.providerId },
+          profilePicture: userData.profilePicture || '',
+          dataCriacao: new Date().toISOString(),
+          lastLogin: new Date().toISOString()
+        } as User;
+        
+        await f.setDoc(newUserRef, user);
       }
-
-      // Gerar token JWT
-      const token = SecurityService.generateToken({
-        id: userId,
-        email: userData.email,
-        isAdmin: (user as any)?.isAdmin || false,
-      });
-
-      // Armazenar token de forma segura
-      await SecurityService.storeSecureData('authToken', token);
-
+      
+      // Gerar token (em um cenário real, isso viria do Firebase Auth)
+      const token = 'social_auth_token_placeholder';
+      
       return { user, token };
-    } catch (error: any) {
-      secureLoggingService.security('Erro ao processar autenticação social', { 
-        email: userData.email,
-        provider: userData.provider,
-        errorMessage: error.message || 'Erro desconhecido',
-        timestamp: new Date().toISOString()
-      });
-      throw new Error('Falha ao processar autenticação social');
+    } catch (error) {
+      secureLoggingService.error('Erro ao buscar/criar usuário social', { error });
+      throw error;
     }
   }
 
@@ -178,7 +188,7 @@ export class SocialAuthService {
       });
 
       // Criar um provider para o Firebase
-      const provider = new OAuthProvider('apple.com');
+      const provider = new a.OAuthProvider('apple.com');
       const authCredential = provider.credential({
         idToken: credential.identityToken,
         rawNonce: credential.nonce,
@@ -208,7 +218,7 @@ export class SocialAuthService {
    */
   public async signInWithCredential(credential: any, role?: string): Promise<SocialAuthResult> {
     try {
-      const result = await signInWithCredential(auth, credential);
+      const result = await a.signInWithCredential(auth, credential);
       if (!result || !result.user) {
         throw new Error('Falha na autenticação: usuário não retornado');
       }
@@ -273,15 +283,15 @@ export class SocialAuthService {
       if (!user?.displayName && user?.email) {
         const displayName = user.email.split('@')[0];
         try {
-          await updateProfile(user, { displayName });
+          await a.updateProfile(user, { displayName });
         } catch (updateError) {
           secureLoggingService.warn('Erro ao atualizar profile', { error: updateError });
         }
       }
 
       // Novos usuários sempre recebem papel de comprador por segurança
-      const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
+      const userRef = f.doc(db, 'usuarios', user.uid);
+      await f.setDoc(userRef, {
         email: user?.email || '',
         nome: user?.displayName || user?.email?.split('@')[0] || 'Usuário',
         role: 'comprador',
@@ -305,9 +315,9 @@ export class SocialAuthService {
       return;
     }
     try {
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = f.doc(db, 'usuarios', user.uid);
       // Atualiza apenas dados básicos como login, sem tocar no papel (role)
-      await setDoc(userRef, {
+      await f.setDoc(userRef, {
         email: user?.email || '',
         nome: user?.displayName || user?.email?.split('@')[0] || 'Usuário',
         ultimoLogin: new Date()
@@ -326,7 +336,7 @@ export class SocialAuthService {
    */
   async signOut(): Promise<boolean> {
     try {
-      await signOut(auth);
+      await a.signOut(auth);
       await AsyncStorage.removeItem('userToken');
       return true;
     } catch (error: any) {

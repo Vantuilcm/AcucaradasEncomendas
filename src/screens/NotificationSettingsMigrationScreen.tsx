@@ -11,7 +11,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { useNotificationSettingsMigration } from '../utils/notificationSettingsMigration';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { loggingService } from '../services/LoggingService';
 
 /**

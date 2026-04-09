@@ -1,6 +1,4 @@
-import { f } from '../config/firebase';
-const { doc, getDoc, collection, getDocs, query, limit } = f;
-import { db } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import { Store } from '../types/Store';
 import { loggingService } from './LoggingService';
 
@@ -9,21 +7,21 @@ export class StoreService {
 
   async getStoreByProducerId(producerId: string): Promise<Store | null> {
     try {
-      const q = query(
-        collection(db, this.collectionName),
+      const q = f.query(
+        f.collection(db, this.collectionName),
         // Aqui assumimos que pode haver um campo producerId na loja ou o ID do documento é o producerId
-        limit(1)
+        f.limit(1)
       );
       // Na prática, deveria ser where('producerId', '==', producerId)
       // Para o MVP, se o documento da loja tiver ID igual ao producerId
-      const storeDoc = await getDoc(doc(db, this.collectionName, producerId));
+      const storeDoc = await f.getDoc(f.doc(db, this.collectionName, producerId));
       
       if (storeDoc.exists()) {
         return { id: storeDoc.id, ...storeDoc.data() } as Store;
       }
 
       // Se não encontrou, tenta buscar qualquer loja só para o fluxo não quebrar (Fallback seguro)
-      const fallbackStores = await getDocs(q);
+      const fallbackStores = await f.getDocs(q);
       if (!fallbackStores.empty) {
         const firstDoc = fallbackStores.docs[0];
         return { id: firstDoc.id, ...firstDoc.data() } as Store;
@@ -39,8 +37,8 @@ export class StoreService {
   // Método para obter uma loja "padrão" se não houver producerId (para compatibilidade com itens antigos)
   async getDefaultStore(): Promise<Store | null> {
     try {
-      const q = query(collection(db, this.collectionName), limit(1));
-      const snapshot = await getDocs(q);
+      const q = f.query(f.collection(db, this.collectionName), f.limit(1));
+      const snapshot = await f.getDocs(q);
       if (!snapshot.empty) {
         const firstDoc = snapshot.docs[0];
         return { id: firstDoc.id, ...firstDoc.data() } as Store;

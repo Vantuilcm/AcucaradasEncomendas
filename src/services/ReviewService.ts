@@ -1,6 +1,4 @@
-import { f } from '../config/firebase';
-const { collection, query, where, getDocs, orderBy, doc, getDoc, addDoc, updateDoc, deleteDoc, limit } = f;
-import { db } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import { Review, ReviewFilters, ReviewSummary } from '../types/Review';
 import { loggingService } from './LoggingService';
 import { XssSanitizer } from '../utils/XssSanitizer';
@@ -21,21 +19,21 @@ export class ReviewService {
 
   async getReviews(filters?: ReviewFilters, lastReview?: Review): Promise<Review[]> {
     try {
-      const reviewsRef = collection(db, this.collection);
-      let q = query(reviewsRef, orderBy('createdAt', 'desc'), limit(this.pageSize));
+      const reviewsRef = f.collection(db, this.collection);
+      let q = f.query(reviewsRef, f.orderBy('createdAt', 'desc'), f.limit(this.pageSize));
 
       if (lastReview) {
         // @ts-ignore
         const { startAfter } = require('firebase/firestore');
-        q = query(
+        q = f.query(
           reviewsRef,
-          orderBy('createdAt', 'desc'),
+          f.orderBy('createdAt', 'desc'),
           startAfter(new Date(lastReview.createdAt)),
-          limit(this.pageSize)
+          f.limit(this.pageSize)
         );
       }
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await f.getDocs(q);
       const reviews: Review[] = [];
 
       for (const doc of querySnapshot.docs) {
@@ -58,8 +56,8 @@ export class ReviewService {
 
   async getReviewById(reviewId: string): Promise<Review | null> {
     try {
-      const reviewRef = doc(db, this.collection, reviewId);
-      const reviewDoc = await getDoc(reviewRef);
+      const reviewRef = f.doc(db, this.collection, reviewId);
+      const reviewDoc = await f.getDoc(reviewRef);
 
       if (!reviewDoc.exists()) {
         return null;
@@ -80,10 +78,10 @@ export class ReviewService {
 
   async getReviewsByOrder(orderId: string): Promise<Review[]> {
     try {
-      const reviewsRef = collection(db, this.collection);
-      const q = query(reviewsRef, where('orderId', '==', orderId), orderBy('createdAt', 'desc'));
+      const reviewsRef = f.collection(db, this.collection);
+      const q = f.query(reviewsRef, f.where('orderId', '==', orderId), f.orderBy('createdAt', 'desc'));
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await f.getDocs(q);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),

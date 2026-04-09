@@ -1,4 +1,4 @@
-import { f } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import { useEffect, useState, useCallback } from 'react';
 import { Platform, Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
@@ -8,8 +8,6 @@ import { mobileNotificationService } from '../services/MobileNotificationService
 import {
   initOneSignal, requestOneSignalPermission, setOneSignalTags, integrateWithExistingNotifications, } from '../config/onesignal';
 import { requestNotificationPermission } from '../config/notifications';
-const { doc, updateDoc } = f;
-import { db } from '../config/firebase';
 import { loggingService } from '../services/LoggingService';
 import { UserUtils } from '../utils/UserUtils';
 import { NotificationType } from '../types/Notification';
@@ -78,8 +76,8 @@ export function useNotifications(navigation?: NotificationsNavigationProp): UseN
   // Função para salvar o token FCM no perfil do usuário
   const saveUserFCMToken = async (userId: string, token: string) => {
     try {
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
+      const userRef = f.doc(db, 'users', userId);
+      await f.updateDoc(userRef, {
         fcmToken: token,
         tokenUpdatedAt: new Date().toISOString(),
         platform: Platform.OS,

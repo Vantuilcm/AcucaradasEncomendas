@@ -1,6 +1,4 @@
-import { f } from '../config/firebase';
-const { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, orderBy, limit, deleteDoc, writeBatch } = f;
-import { db } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import {
   PaymentCard,
   PaymentTransaction,
@@ -84,8 +82,8 @@ export class PaymentService {
   ): Promise<boolean> {
     try {
       // Obter informações do pedido
-      const orderRef = doc(db, 'orders', orderId);
-      const orderDoc = await getDoc(orderRef);
+      const orderRef = f.doc(db, 'orders', orderId);
+      const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
         loggingService.error('Pedido não encontrado', undefined, { orderId });
@@ -97,98 +95,55 @@ export class PaymentService {
       const userId = orderData.userId;
 
       // Usar o StripeService para processar o pagamento
+      const stripeService = StripeService.getInstance();
+      const customerId = await stripeService.createCustomer(
+        orderData.customerEmail,
+        orderData.customerName
+      );
 
-      // Criar ou obter cliente no Stripe
-      const userRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userRef);
-
-      if (!userDoc.exists()) {
-        loggingService.error('Usuário não encontrado', undefined, { userId });
-        return false;
-      }
-
-      const userData = userDoc.data() as any;
-      let stripeCustomerId = userData.stripeCustomerId;
-
-      // Se o usuário não tiver um ID de cliente no Stripe, criar um
-      if (!stripeCustomerId) {
-        stripeCustomerId = await this.stripeService.createCustomer(userData.email, userData.name);
-
-        // Atualizar o documento do usuário com o ID do cliente Stripe
-        await updateDoc(
-          userRef,
-          {
-            stripeCustomerId: stripeCustomerId,
-          } as any
-        );
-      }
-
-      // Já verificamos que o pedido existe acima, não precisamos verificar novamente
-      const customerId = userData.stripeCustomerId || stripeCustomerId;
-
-      const paymentMethodId = await this.stripeService.createPaymentMethod({
+      const paymentMethodId = await stripeService.createPaymentMethod({
         number: cardDetails.number,
         expMonth: cardDetails.expMonth,
         expYear: cardDetails.expYear,
         cvc: cardDetails.cvc,
         holderName: cardDetails.holderName,
-        email: userData.email,
+        email: orderData.customerEmail,
       });
 
-      const paymentIntent = await this.stripeService.createPaymentIntent(
+      const { id: paymentIntentId } = await stripeService.createPaymentIntent(
         orderId,
         amount,
         customerId
       );
 
-      const confirmedPayment = await this.stripeService.processCardPayment(
-        paymentIntent.id,
-        paymentMethodId
-      );
+      const result = await stripeService.processCardPayment(paymentIntentId, paymentMethodId);
 
-      // Verificar status do pagamento
-      if (confirmedPayment.status !== 'succeeded') {
-        throw new Error(`Pagamento falhou com status: ${confirmedPayment.status}`);
+      if (result.status === 'succeeded') {
+        // Atualizar pedido para pago
+        await f.updateDoc(orderRef, {
+          status: 'confirmed',
+          paymentStatus: 'paid',
+          paymentIntentId,
+          updatedAt: f.serverTimestamp(),
+        } as any);
+
+        // Registrar transação
+        await f.addDoc(f.collection(db, this.transactionsCollection), {
+          orderId,
+          userId,
+          amount,
+          paymentIntentId,
+          status: 'succeeded',
+          createdAt: f.serverTimestamp(),
+        } as any);
+
+        return true;
       }
 
-      const receiptUrl =
-        confirmedPayment.receiptUrl || confirmedPayment.charges?.data?.[0]?.receipt_url || '';
-
-      // Atualizar status do pedido
-      await updateDoc(
-        orderRef,
-        {
-          status: 'confirmed',
-          paymentStatus: 'completed',
-          paymentMethod: {
-            type: 'credit_card',
-            id: paymentMethodId,
-          },
-          stripePaymentIntentId: paymentIntent.id,
-          stripePaymentMethodId: paymentMethodId,
-          stripeReceiptUrl: receiptUrl,
-          updatedAt: new Date().toISOString(),
-        } as any
-      );
-
-      await this.notificationService.createNotification({
-        userId,
-        type: 'payment_received',
-        title: 'Pagamento confirmado',
-        message: `Seu pagamento do pedido #${orderId.substring(0, 8)} foi confirmado com sucesso.`,
-        priority: 'high',
-        read: false,
-        data: {
-          orderId,
-          amount,
-          receiptUrl,
-        },
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Error processing credit card payment:', error);
-      throw error;
+      return false;
+    } catch (error: any) {
+      loggingService.error('Erro ao processar pagamento com cartão', { error: error.message });
+      return false;
     }
   }
 
@@ -315,23 +270,19 @@ export class PaymentService {
     }
   }
 
-  async getPaymentCards(userId: string): Promise<PaymentCard[]> {
+  /**
+   * Obtém os cartões de pagamento de um usuário
+   * @param userId ID do usuário
+   * @returns Lista de cartões
+   */
+  public async getPaymentCards(userId: string): Promise<PaymentCard[]> {
     try {
-      const cardsRef = collection(db, this.cardsCollection);
-      const q = query(cardsRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as PaymentCard[];
-    } catch (error) {
-      loggingService.error(
-        'Erro ao buscar cartões de pagamento',
-        error instanceof Error ? error : undefined,
-        { userId }
-      );
-      throw error;
+      const q = f.query(f.collection(db, this.cardsCollection), f.where('userId', '==', userId));
+      const snapshot = await f.getDocs(q);
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as PaymentCard));
+    } catch (error: any) {
+      loggingService.error('Erro ao obter cartões de pagamento', { error: error.message });
+      return [];
     }
   }
 
@@ -699,23 +650,19 @@ export class PaymentService {
     }
   }
 
-  async getPixKeys(userId: string): Promise<PixKey[]> {
+  /**
+   * Obtém as chaves PIX de um usuário
+   * @param userId ID do usuário
+   * @returns Lista de chaves PIX
+   */
+  public async getPixKeys(userId: string): Promise<PixKey[]> {
     try {
-      const pixKeysRef = collection(db, this.pixKeysCollection);
-      const q = query(pixKeysRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-
-      return querySnapshot.docs.map((docSnapshot: any) => ({
-        id: docSnapshot.id,
-        ...docSnapshot.data(),
-      })) as unknown as PixKey[];
-    } catch (error) {
-      loggingService.error(
-        'Erro ao buscar chaves PIX',
-        error instanceof Error ? error : undefined,
-        { userId }
-      );
-      throw error;
+      const q = f.query(f.collection(db, this.pixKeysCollection), f.where('userId', '==', userId));
+      const snapshot = await f.getDocs(q);
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as PixKey));
+    } catch (error: any) {
+      loggingService.error('Erro ao obter chaves PIX', { error: error.message });
+      return [];
     }
   }
 

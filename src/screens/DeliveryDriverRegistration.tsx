@@ -23,7 +23,7 @@ import {
 } from 'firebase/storage';
 import { storage } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 
 
 export default function DeliveryDriverRegistration() {

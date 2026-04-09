@@ -9,7 +9,6 @@ import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { loggingService } from './LoggingService';
 import { secureLoggingService } from './SecureLoggingService';
-import { httpsCallable } from 'firebase/functions';
 
 // Tempo de validade do código em segundos (5 minutos)
 const CODE_EXPIRATION_TIME = 5 * 60;
@@ -35,8 +34,19 @@ export class TwoFactorAuthService {
   constructor() {
     this.firestore = db;
     this.authService = auth;
+    // Deferir o carregamento de firebase/functions
     const { getFunctions } = require('firebase/functions');
     this.functions = getFunctions();
+  }
+
+  /**
+   * Método auxiliar para chamar funções do Firebase com segurança
+   */
+  private async callFirebaseFunction<T = any, R = any>(name: string, data: T): Promise<R> {
+    const { httpsCallable } = require('firebase/functions');
+    const func = httpsCallable(this.functions, name);
+    const result = await func(data);
+    return result.data as R;
   }
 
   /**
@@ -292,42 +302,25 @@ export class TwoFactorAuthService {
       } else {
         // Em produção, usar o Firebase Cloud Functions para enviar o email
         try {
-          // Chamar a Cloud Function
-          const sendVerificationCode = httpsCallable<
-            { email: string; code: string },
-            { success: boolean }
-          >(this.functions, 'sendVerificationCode');
+          // Chamar a Cloud Function de forma lazy
+          const result = await this.callFirebaseFunction<{ email: string; code: string }, { success: boolean }>(
+            'sendVerificationCode', 
+            { email: currentUser.email, code }
+          );
 
-          const result = await sendVerificationCode({
-            email: currentUser.email,
-            code: code,
-          });
-
-          // Log da resposta
-          secureLoggingService.security('Enviado código de verificação via Cloud Function', {
-            userId: currentUser.uid,
-            email: currentUser.email,
-            result: result.data,
-            timestamp: new Date().toISOString()
-          });
-
+          if (result.success) {
+            return {
+              success: true,
+              message: 'Um código de verificação foi enviado para o seu email.',
+            };
+          } else {
+            throw new Error('Falha ao enviar email via Cloud Function.');
+          }
+        } catch (error: any) {
+          console.error('Erro ao chamar Cloud Function:', error);
           return {
-            success: true,
-            message: 'Código de verificação enviado para seu email.',
-          };
-        } catch (emailError: any) {
-          secureLoggingService.security('Erro ao enviar email de verificação', { 
-            userId: currentUser.uid,
-            email: currentUser.email,
-            errorMessage: emailError.message || 'Erro desconhecido',
-            timestamp: new Date().toISOString()
-          });
-
-          // Se houver erro ao enviar o email, ainda retornamos sucesso para o usuário
-          // pois o código foi gerado e salvo, mas logamos o erro internamente
-          return {
-            success: true,
-            message: 'Código de verificação gerado. Verifique seu email ou tente novamente.',
+            success: false,
+            error: 'Erro ao enviar o código de verificação por email.',
           };
         }
       }

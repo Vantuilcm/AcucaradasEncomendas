@@ -1,8 +1,6 @@
-import { f } from '../config/firebase';
+import { db, f } from '../config/firebase';
 import { STRIPE_PUBLISHABLE_KEY, STRIPE_CONFIG } from '../config/stripe';
 import { loggingService } from './LoggingService';
-const { doc, getDoc } = f;
-import { db } from '../config/firebase';
 import { api } from './api';
 
 export class StripeService {
