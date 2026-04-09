@@ -59,23 +59,31 @@ export const a: any = new Proxy({}, {
       }
       const val = _authModule[prop];
       
-      // Se for uma função, retornamos um wrapper que garante o unwrapping do proxy
       if (typeof val === 'function') {
         return (...args: any[]) => {
-          // Unwrapping recursivo de proxies nos argumentos
+          // Unwrapping simplificado
           const unwrappedArgs = args.map(arg => {
             if (arg && typeof arg === 'object' && arg.__isProxy) {
-              // Se for o proxy do Auth, retorna a instância real _auth
               if (arg === auth) {
-                // Forçar inicialização se necessário
                 if (!_auth) {
                   const instance = getAppInstance();
-                  const { getAuth } = require('firebase/auth');
-                  _auth = getAuth(instance);
+                  const { getAuth, initializeAuth, getReactNativePersistence } = require('firebase/auth');
+                  const storageModule = require('@react-native-async-storage/async-storage');
+                  const ReactNativeAsyncStorage = storageModule.default || storageModule;
+                  try {
+                    if (ReactNativeAsyncStorage) {
+                      _auth = initializeAuth(instance, {
+                        persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+                      });
+                    } else {
+                      _auth = getAuth(instance);
+                    }
+                  } catch (e) {
+                    _auth = getAuth(instance);
+                  }
                 }
                 return _auth;
               }
-              // Se for o proxy do DB, retorna a instância real _db
               if (arg === db) {
                 if (!_db) {
                   const instance = getAppInstance();
@@ -83,15 +91,6 @@ export const a: any = new Proxy({}, {
                   _db = getFirestore(instance);
                 }
                 return _db;
-              }
-              // Se for o proxy do Storage, retorna a instância real _storage
-              if (arg === storage) {
-                if (!_storage) {
-                  const instance = getAppInstance();
-                  const { getStorage } = require('firebase/storage');
-                  _storage = getStorage(instance);
-                }
-                return _storage;
               }
             }
             return arg;
@@ -103,11 +102,7 @@ export const a: any = new Proxy({}, {
       return val;
     } catch (error) {
       console.error(`❌ [FIREBASE] Error loading Auth property ${prop.toString()}:`, error);
-      // Retorna uma função dummy para evitar "null is not a function"
-      return () => { 
-        console.error(`🛡️ [FIREBASE] Auth function ${prop.toString()} failed to load.`);
-        return Promise.reject(new Error(`Firebase Auth module not ready for ${prop.toString()}`));
-      };
+      return undefined;
     }
   }
 });
@@ -142,10 +137,7 @@ export const f: any = new Proxy({}, {
       return val;
     } catch (error) {
       console.error(`❌ [FIREBASE] Error loading Firestore property ${prop.toString()}:`, error);
-      return () => {
-        console.error(`🛡️ [FIREBASE] Firestore function ${prop.toString()} failed to load.`);
-        return Promise.reject(new Error(`Firebase Firestore module not ready for ${prop.toString()}`));
-      };
+      return undefined;
     }
   }
 });

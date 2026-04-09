@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // Pequeno delay para garantir que o motor nativo está pronto
-    const timer = setTimeout(bootstrapLazyFirebase, 1000);
+    const timer = setTimeout(bootstrapLazyFirebase, 250);
     return () => clearTimeout(timer);
   }, []);
 
@@ -101,21 +101,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const _authTrigger = a.signInWithEmailAndPassword;
       
       if (typeof _authTrigger !== 'function') {
-        throw new Error('Firebase Auth module not loaded correctly.');
+        console.error('❌ [AUTH] signInWithEmailAndPassword is not a function:', _authTrigger);
+        throw new Error('Módulo de Autenticação do Firebase não carregado corretamente.');
       }
 
+      console.log('🛡️ [AUTH] Calling signInWithEmailAndPassword...');
       const userCredential = await a.signInWithEmailAndPassword(firebaseAuth, email, password);
-      console.log('✅ [AUTH] Login success:', userCredential.user.email);
+      console.log('✅ [AUTH] Login success for user UID:', userCredential.user.uid);
       
       // Forçar busca de perfil após login
       const userRef = f.doc(db, 'users', userCredential.user.uid);
+      console.log('🛡️ [AUTH] Fetching user profile from Firestore...');
       const userDoc = await f.getDoc(userRef);
       
       if (userDoc.exists()) {
         const data = userDoc.data();
+        console.log('✅ [AUTH] User profile found in Firestore with role:', data.role);
         setUser({ ...data, id: userCredential.user.uid });
       } else {
-        // Se o doc não existir (ex: erro no cadastro anterior), criar um básico ou setar o do auth
+        console.warn('⚠️ [AUTH] User profile not found in Firestore. Using defaults.');
         setUser({ 
           id: userCredential.user.uid, 
           email: userCredential.user.email, 
@@ -123,8 +127,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: role || 'customer'
         });
       }
-    } catch (error) {
-      console.error('❌ [AUTH] Login error:', error);
+    } catch (error: any) {
+      console.error('❌ [AUTH] Detailed Login Error:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
       throw error;
     } finally {
       setLoading(false);

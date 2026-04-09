@@ -8,6 +8,21 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      release_approved:
+        description: 'Aprovar build de produção?'
+        required: true
+        default: 'true'
+        type: boolean
+      build_mode:
+        description: 'Modo de Build'
+        required: true
+        default: 'LOCAL'
+        type: choice
+        options:
+          - LOCAL
+          - CLOUD
 
 jobs:
   ios-hybrid-pipeline:
@@ -41,6 +56,7 @@ jobs:
       EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
       EXPO_PUBLIC_MONITORING_REMOTE_ENABLED: ${{ secrets.EXPO_PUBLIC_MONITORING_REMOTE_ENABLED }}
       PROFILE: "production_v13"
+      FORCE_BUILD_MODE: ${{ github.event.inputs.build_mode || 'LOCAL' }}
 
     steps:
       - name: 🧹 Clean Previous Zombie Processes

@@ -210,7 +210,7 @@ const AppNavigator = () => {
     }
   }, [isDark, theme]);
 
-  // Controle de Boot Global Determinístico com Debug Visual
+  // Controle de Boot Global Determinístico
   if (!isReady || loading || profileLoading) {
     return (
       <View 
@@ -218,52 +218,10 @@ const AppNavigator = () => {
           flex: 1, 
           justifyContent: 'center', 
           alignItems: 'center',
-          backgroundColor: '#121212', // Fundo escuro para destaque do debug
-          padding: 20
+          backgroundColor: theme?.colors?.background || '#FFFFFF'
         }} 
-        testID="app-loading-debug"
       >
-        <ActivityIndicator size="large" color="#FFD700" />
-        
-        <View style={{ 
-          marginTop: 30, 
-          width: '100%', 
-          backgroundColor: '#1E1E1E', 
-          padding: 15, 
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#333'
-        }}>
-          <Text style={{ color: '#FFD700', fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }}>
-            DEBUG DE INICIALIZAÇÃO (BOOT)
-          </Text>
-          
-          {[
-            { label: 'isReady', value: isReady },
-            { label: 'authLoading (loading)', value: loading },
-            { label: 'profileLoading', value: profileLoading },
-            { label: 'user (autenticado)', value: !!user },
-            { label: 'profile (Firestore)', value: !!user && !!(user as any).role }
-          ].map((item, index) => (
-            <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 }}>
-              <Text style={{ color: '#AAA' }}>{item.label}:</Text>
-              <Text style={{ color: item.value ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>
-                {item.value ? 'READY/TRUE' : 'WAITING/FALSE'}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        <Text 
-          variant="bodySmall" 
-          style={{ 
-            marginTop: 20, 
-            color: '#666',
-            textAlign: 'center'
-          }}
-        >
-          {!isReady || loading ? 'Aguardando Firebase Auth...' : 'Aguardando Perfil Firestore...'}
-        </Text>
+        <ActivityIndicator size="large" color={theme?.colors?.primary || '#E91E63'} />
       </View>
     );
   }
