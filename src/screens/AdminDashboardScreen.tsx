@@ -11,8 +11,6 @@ import { OrderService } from '../services/OrderService';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { OrderWatchdogService } from '../services/OrderWatchdogService';
 import { SalesAutomationService } from '../services/SalesAutomationService';
-const { 
-  collection, query, limit, orderBy, onSnapshot } = f;
 import { db, f } from '../config/firebase';
 import { DemandForecastService, ProductDemandInsight } from '../services/DemandForecastService';
 import { RecommendationService, ProductRecommendation } from '../services/RecommendationService';

@@ -5,20 +5,6 @@ import { DeliveryService } from './DeliveryService';
 import { NotificationService } from './NotificationService';
 import { GrowthService } from './GrowthService';
 
-const {
-  collection,
-  query,
-  where,
-  getDocs,
-  orderBy,
-  doc,
-  getDoc,
-  limit,
-  addDoc,
-  updateDoc,
-  onSnapshot,
-} = f;
-
 export class OrderService {
   private readonly collectionName = 'orders';
   private readonly pageSize = 10;
@@ -46,45 +32,28 @@ export class OrderService {
    */
   async getUserOrders(userId: string, filters?: OrderFilters, lastOrder?: Order): Promise<Order[]> {
     try {
-      const ordersRef = collection(db, this.collectionName);
-      let q = query(
+      const ordersRef = f.collection(db, this.collectionName);
+      let q = f.query(
         ordersRef,
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc'),
-        limit(this.pageSize)
+        f.where('userId', '==', userId),
+        f.orderBy('createdAt', 'desc'),
+        f.limit(this.pageSize)
       );
 
       if (lastOrder) {
         // @ts-ignore
-        q = query(
-          ordersRef,
-          where('userId', '==', userId),
-          orderBy('createdAt', 'desc'),
-          // @ts-ignore
-          startAfter(new Date(lastOrder.createdAt)),
-          limit(this.pageSize)
-        );
+        const { startAfter } = require('firebase/firestore');
+        q = f.query(q, startAfter(lastOrder.createdAt));
       }
 
-      const querySnapshot = await getDocs(q);
-      const orders: Order[] = [];
-
-      for (const doc of querySnapshot.docs) {
-        const order = {
-          id: doc.id,
-          ...doc.data(),
-        } as Order;
-        orders.push(order);
+      if (filters?.status) {
+        q = f.query(q, f.where('status', '==', filters.status));
       }
 
-      // Aplicar filtros em memória
-      return this.applyFilters(orders, filters);
-    } catch (error: any) {
-      loggingService.error('Erro ao buscar pedidos do usuário', {
-        userId,
-        filters,
-        error: error.message,
-      });
+      const querySnapshot = await f.getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+    } catch (error) {
+      loggingService.error('Erro ao buscar pedidos do usuário', { userId, error });
       throw error;
     }
   }
@@ -144,8 +113,8 @@ export class OrderService {
    */
   async getOrderById(orderId: string): Promise<Order | null> {
     try {
-      const orderRef = doc(db, this.collectionName, orderId);
-      const orderDoc = await getDoc(orderRef);
+      const orderRef = f.doc(db, this.collectionName, orderId);
+      const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
         return null;
@@ -180,7 +149,7 @@ export class OrderService {
       }
 
       // Criar pedido no Firestore
-      const ordersRef = collection(db, this.collectionName);
+      const ordersRef = f.collection(db, this.collectionName);
       const createdAt = new Date();
       
       const newOrder = {
@@ -190,7 +159,7 @@ export class OrderService {
         status: orderData.status || 'pending'
       };
       
-      const docRef = await addDoc(ordersRef, {
+      const docRef = await f.addDoc(ordersRef, {
         ...orderData,
         createdAt, // Save as Date in Firestore
         updatedAt: createdAt,
@@ -491,8 +460,8 @@ export class OrderService {
    */
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
     try {
-      const orderRef = doc(db, this.collectionName, orderId);
-      const orderDoc = await getDoc(orderRef);
+      const orderRef = f.doc(db, this.collectionName, orderId);
+      const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
         throw new Error('Pedido não encontrado');
@@ -506,7 +475,7 @@ export class OrderService {
         updatedAt: new Date()
       };
 
-      await updateDoc(orderRef, updateData);
+      await f.updateDoc(orderRef, updateData);
       
       // Enviar notificações de mudança de status
       try {

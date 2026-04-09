@@ -1,10 +1,5 @@
-import { a } from '../config/firebase';
-import { f } from '../config/firebase';
-import { auth, db } from '../config/firebase';
-const {
-  doc, setDoc, getDoc, updateDoc, deleteField, serverTimestamp, Timestamp } = f;
-const {
-  sendEmailVerification, EmailAuthProvider, reauthenticateWithCredential, updateEmail } = a;
+import { a, f, auth, db } from '../config/firebase';
+
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { loggingService } from './LoggingService';
@@ -59,7 +54,7 @@ export class TwoFactorAuthService {
         return false;
       }
 
-      const userDoc = await getDoc(doc(this.firestore, this.collection, currentUser.uid));
+      const userDoc = await f.getDoc(f.doc(this.firestore, this.collection, currentUser.uid));
       return userDoc.exists() && userDoc.data()?.twoFactorEnabled === true;
     } catch (error: any) {
       secureLoggingService.security('Erro ao verificar status do 2FA', { 
@@ -92,7 +87,7 @@ export class TwoFactorAuthService {
       }
 
       if (!currentUser.emailVerified) {
-        await sendEmailVerification(currentUser);
+        await a.sendEmailVerification(currentUser);
         return {
           success: false,
           message:
@@ -110,13 +105,13 @@ export class TwoFactorAuthService {
       );
 
       // Atualizar o documento do usuário
-      await setDoc(
-        doc(this.firestore, this.collection, currentUser.uid),
+      await f.setDoc(
+        f.doc(this.firestore, this.collection, currentUser.uid),
         {
           twoFactorEnabled: true,
           email: currentUser.email,
           backupCodes: backupCodesHashes,
-          updatedAt: serverTimestamp(),
+          updatedAt: f.serverTimestamp(),
         } as any,
         { merge: true }
       );
@@ -163,10 +158,10 @@ export class TwoFactorAuthService {
       }
 
       // Atualizar o documento do usuário
-      await updateDoc(doc(this.firestore, this.collection, currentUser.uid), {
+      await f.updateDoc(f.doc(this.firestore, this.collection, currentUser.uid), {
         twoFactorEnabled: false,
-        backupCodes: deleteField(),
-        updatedAt: serverTimestamp(),
+        backupCodes: f.deleteField(),
+        updatedAt: f.serverTimestamp(),
       } as any);
 
       secureLoggingService.security('2FA desabilitado com sucesso', { 
@@ -209,7 +204,7 @@ export class TwoFactorAuthService {
         };
       }
 
-      const userDoc = await getDoc(doc(this.firestore, this.collection, currentUser.uid));
+      const userDoc = await f.getDoc(f.doc(this.firestore, this.collection, currentUser.uid));
       if (!userDoc.exists() || !userDoc.data()?.twoFactorEnabled) {
         return {
           success: false,
@@ -226,9 +221,9 @@ export class TwoFactorAuthService {
       );
 
       // Atualizar o documento do usuário
-      await updateDoc(doc(this.firestore, this.collection, currentUser.uid), {
+      await f.updateDoc(f.doc(this.firestore, this.collection, currentUser.uid), {
         backupCodes: backupCodesHashes,
-        updatedAt: serverTimestamp(),
+        updatedAt: f.serverTimestamp(),
       } as any);
 
       secureLoggingService.security('Códigos de backup regenerados com sucesso', { 
@@ -278,16 +273,16 @@ export class TwoFactorAuthService {
         .padStart(6, '0');
 
       // Salvar o código junto com o timestamp de expiração
-      const now = Timestamp.now();
+      const now = f.Timestamp.now();
       // @ts-ignore
-      const expirationTime = Timestamp.fromMillis((now.seconds + CODE_EXPIRATION_TIME) * 1000);
+      const expirationTime = f.Timestamp.fromMillis((now.seconds + CODE_EXPIRATION_TIME) * 1000);
 
-      await setDoc(
-        doc(this.firestore, this.collection, currentUser.uid),
+      await f.setDoc(
+        f.doc(this.firestore, this.collection, currentUser.uid),
         {
           verificationCode: code,
           codeExpiration: expirationTime,
-          updatedAt: serverTimestamp(),
+          updatedAt: f.serverTimestamp(),
         } as any,
         { merge: true }
       );
