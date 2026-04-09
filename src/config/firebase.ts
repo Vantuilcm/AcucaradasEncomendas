@@ -66,11 +66,33 @@ export const a: any = new Proxy({}, {
           const unwrappedArgs = args.map(arg => {
             if (arg && typeof arg === 'object' && arg.__isProxy) {
               // Se for o proxy do Auth, retorna a instância real _auth
-              if (arg === auth && _auth) return _auth;
+              if (arg === auth) {
+                // Forçar inicialização se necessário
+                if (!_auth) {
+                  const instance = getAppInstance();
+                  const { getAuth } = require('firebase/auth');
+                  _auth = getAuth(instance);
+                }
+                return _auth;
+              }
               // Se for o proxy do DB, retorna a instância real _db
-              if (arg === db && _db) return _db;
+              if (arg === db) {
+                if (!_db) {
+                  const instance = getAppInstance();
+                  const { getFirestore } = require('firebase/firestore');
+                  _db = getFirestore(instance);
+                }
+                return _db;
+              }
               // Se for o proxy do Storage, retorna a instância real _storage
-              if (arg === storage && _storage) return _storage;
+              if (arg === storage) {
+                if (!_storage) {
+                  const instance = getAppInstance();
+                  const { getStorage } = require('firebase/storage');
+                  _storage = getStorage(instance);
+                }
+                return _storage;
+              }
             }
             return arg;
           });
@@ -103,7 +125,14 @@ export const f: any = new Proxy({}, {
         return (...args: any[]) => {
           const unwrappedArgs = args.map(arg => {
             if (arg && typeof arg === 'object' && arg.__isProxy) {
-              if (arg === db && _db) return _db;
+              if (arg === db) {
+                if (!_db) {
+                  const instance = getAppInstance();
+                  const { getFirestore } = require('firebase/firestore');
+                  _db = getFirestore(instance);
+                }
+                return _db;
+              }
             }
             return arg;
           });
