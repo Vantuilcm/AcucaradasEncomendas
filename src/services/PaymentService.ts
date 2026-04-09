@@ -770,14 +770,14 @@ export class PaymentService {
   }
 
   async savePayment(data: PaymentData) {
-    const paymentsRef = collection(db, this.paymentsCollection);
-    const paymentRef = doc(paymentsRef, data.paymentId);
+    const paymentsRef = f.collection(db, this.paymentsCollection);
+    const paymentRef = f.doc(paymentsRef, data.paymentId);
     const payload = {
       ...data,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    await setDoc(paymentRef, payload as any);
+    await f.setDoc(paymentRef, payload as any);
     return {
       id: paymentRef.id,
       ...payload,
@@ -785,8 +785,8 @@ export class PaymentService {
   }
 
   async getPaymentByPaymentId(paymentId: string) {
-    const paymentRef = doc(db, this.paymentsCollection, paymentId);
-    const paymentDoc = await getDoc(paymentRef);
+    const paymentRef = f.doc(db, this.paymentsCollection, paymentId);
+    const paymentDoc = await f.getDoc(paymentRef);
     if (!paymentDoc.exists()) {
       return null;
     }
@@ -797,8 +797,8 @@ export class PaymentService {
   }
 
   async updatePaymentStatus(paymentId: string, status: 'pending' | 'completed' | 'failed') {
-    const paymentRef = doc(db, this.paymentsCollection, paymentId);
-    await updateDoc(
+    const paymentRef = f.doc(db, this.paymentsCollection, paymentId);
+    await f.updateDoc(
       paymentRef,
       {
         status,
@@ -809,12 +809,12 @@ export class PaymentService {
   }
 
   async getUserPayments(userId: string) {
-    const paymentsRef = collection(db, this.paymentsCollection);
-    const q = query(paymentsRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
+    const paymentsRef = f.collection(db, this.paymentsCollection);
+    const q = f.query(paymentsRef, f.where('userId', '==', userId), f.orderBy('createdAt', 'desc'));
+    const querySnapshot = await f.getDocs(q);
+    return querySnapshot.docs.map((docSnapshot: any) => ({
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
     }));
   }
 
@@ -836,8 +836,8 @@ export class PaymentService {
   }> {
     try {
       // Obter informações do pedido
-      const orderRef = doc(db, 'orders', orderId);
-      const orderDoc = await getDoc(orderRef);
+      const orderRef = f.doc(db, 'orders', orderId);
+      const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
         loggingService.error('Pedido não encontrado', undefined, { orderId });
@@ -859,8 +859,8 @@ export class PaymentService {
       }
 
       // Criar ou obter cliente no Stripe
-      const userRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userRef);
+      const userRef = f.doc(db, 'users', userId);
+      const userDoc = await f.getDoc(userRef);
 
       if (!userDoc.exists()) {
         loggingService.error('Usuário não encontrado', undefined, { userId });
@@ -875,7 +875,7 @@ export class PaymentService {
         stripeCustomerId = await this.stripeService.createCustomer(userData.email, userData.name);
 
         // Atualizar o documento do usuário com o ID do cliente Stripe
-        await updateDoc(
+        await f.updateDoc(
           userRef,
           {
             stripeCustomerId: stripeCustomerId,
@@ -916,7 +916,7 @@ export class PaymentService {
         confirmedPayment.receiptUrl || confirmedPayment.charges?.data?.[0]?.receipt_url || '';
 
       // Atualizar status do pedido
-      await updateDoc(
+      await f.updateDoc(
         orderRef,
         {
           status: 'confirmed',

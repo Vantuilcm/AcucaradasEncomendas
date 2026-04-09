@@ -597,7 +597,7 @@ export class OrderService {
 
       loggingService.info('Status do pedido atualizado', { orderId, oldStatus, newStatus: status });
       
-      const updatedOrderDoc = await getDoc(orderRef);
+      const updatedOrderDoc = await f.getDoc(orderRef);
       return {
         ...updatedOrderDoc.data(),
         id: updatedOrderDoc.id
