@@ -18,19 +18,20 @@ class BuildNumberEnforcer {
 
   getAppleLatest() {
     try {
-      console.log('🍎 [Apple] Verificando histórico de builds no EAS...');
-      // Consultar os últimos 20 builds (incluindo falhas e erros) para capturar qualquer número usado
-      const output = execSync('npx eas build:list --platform ios --limit 20 --non-interactive', { encoding: 'utf8' });
-      const matches = output.matchAll(/Build number\s+(\d+)/g);
-      let maxBN = 0;
-      for (const match of matches) {
-        const bn = parseInt(match[1], 10);
-        if (bn > maxBN) maxBN = bn;
-      }
-      console.log(`🍎 [Apple] Maior Build Number detectado no EAS: ${maxBN}`);
-      return maxBN;
+      console.log('🍎 [Apple] Verificando histórico de builds no EAS (JSON mode)...');
+      // Consultar os últimos 20 builds em formato JSON para extrair o buildNumber real
+      const output = execSync('npx eas build:list --platform ios --limit 20 --non-interactive --json', { encoding: 'utf8' });
+      
+      const builds = JSON.parse(output);
+      const buildNumbers = builds
+        .map(b => parseInt(b.buildNumber || "0"))
+        .filter(bn => !isNaN(bn) && bn > 0);
+
+      const latest = buildNumbers.length > 0 ? Math.max(...buildNumbers) : 0;
+      console.log(`🍎 [Apple] Maior buildNumber encontrado no EAS: ${latest}`);
+      return latest;
     } catch (e) {
-      console.warn('⚠️ [Warning] Falha ao consultar Apple. Usando baseline local.');
+      console.error('⚠️ [Apple] Falha ao listar builds no EAS (possível projeto sem builds Cloud). Usando fallback 0.');
       return 0;
     }
   }

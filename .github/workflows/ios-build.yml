@@ -13,8 +13,8 @@ on:
 
 jobs:
   ios-hybrid-pipeline:
-    name: 🍎 Hybrid Pipeline
-    runs-on: macos-26
+      name: 🍎 Hybrid Pipeline
+      runs-on: macos-14
     timeout-minutes: 60
     # Adicionado filtro de release obrigatório no nível do JOB
     if: contains(github.event.head_commit.message, '[release]')

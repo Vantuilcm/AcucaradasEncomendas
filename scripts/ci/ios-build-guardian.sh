@@ -328,9 +328,9 @@ run_build_with_retry() {
         # 1. Configurar Keychain
         setup_macos_keychain
 
-        # 2. Sincronizar Credenciais
-        echo "🔄 [SYNC] Sincronizando credenciais ASC via EAS..."
-        npx eas credentials:sync --platform ios --non-interactive
+        # 2. Sincronizar Credenciais (Opcional se as variáveis de ambiente estiverem corretas)
+        # echo "🔄 [SYNC] Sincronizando credenciais ASC via EAS..."
+        # npx eas credentials:sync --platform ios --non-interactive
 
         # 3. Limpeza rápida antes de cada tentativa local
         rm -rf ios .expo
@@ -360,7 +360,11 @@ run_build_with_retry() {
         fi
         cd ..
 
-        echo "🏗️ [EXEC] Iniciando eas build LOCAL..."
+        echo "🏗️ [EXEC] Iniciando eas build LOCAL (Tentativa $attempt)..."
+        
+        # 🚀 Otimização Crítica: Forçar Xcode 15+ se possível
+        # sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer || true
+        
         export CI=1
         export TERM=dumb
         export EXPO_NO_TELEMETRY=1
@@ -382,10 +386,14 @@ run_build_with_retry() {
         echo "🕒 [TIME] Build finalizado em $(date) com código $current_exit_code"
         
         if [ $current_exit_code -eq 0 ]; then
+            echo "✅ [SUCCESS] Build local finalizado com sucesso na tentativa $attempt."
+            SUBMISSION_STATUS="success"
             return 0
         fi
         
         echo "⚠️ [ATTEMPT FAILED] Tentativa $attempt falhou com código $current_exit_code."
+        echo "📄 [LOG] Últimas 50 linhas do log de erro:"
+        tail -n 50 "$BUILD_LOG"
         
         # Analisar erro comum de assinatura no log
         if grep -q "Code signing failed" "$BUILD_LOG" || grep -q "Provisioning profile" "$BUILD_LOG"; then
@@ -394,6 +402,7 @@ run_build_with_retry() {
         fi
         
         attempt=$((attempt + 1))
+        sleep 5
     done
     
     return 1
