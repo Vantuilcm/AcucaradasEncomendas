@@ -150,18 +150,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: 🚀 Submit to TestFlight
-        if: success()
-        run: |
-          chmod +x scripts/ci/ios-submit-testflight.sh
-          scripts/ci/ios-submit-testflight.sh
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-          EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
-          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
-
       - name: 🛡️ Post-Release Health Check (Release Guardian)
         if: success()
         run: node scripts/post-release-monitor.js
