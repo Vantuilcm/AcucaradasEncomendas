@@ -184,7 +184,7 @@ export function TermsOfUseScreen() {
           </List.Section>
 
           <Text variant="bodySmall" style={[styles.footer, { color: theme.colors.text.secondary }]}>
-            Última atualização: {new Date().toLocaleDateString('pt-BR')}
+            Versão do Documento: 1.1.8-996 | Última atualização: {new Date().toLocaleDateString('pt-BR')}
           </Text>
         </View>
       </ScrollView>
