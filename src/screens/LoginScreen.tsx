@@ -174,13 +174,15 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.termsContainer}>
-            <Checkbox
-              status={termsAccepted ? 'checked' : 'unchecked'}
-              onPress={() => setTermsAccepted(!termsAccepted)}
-              color={theme.colors.primary}
-            />
+            <View style={styles.checkboxWrapper}>
+              <Checkbox
+                status={termsAccepted ? 'checked' : 'unchecked'}
+                onPress={() => setTermsAccepted(!termsAccepted)}
+                color={theme.colors.primary}
+              />
+            </View>
             <View style={styles.termsTextContainer}>
-              <TouchableOpacity onPress={() => setTermsAccepted(!termsAccepted)}>
+              <TouchableOpacity onPress={() => setTermsAccepted(!termsAccepted)} style={styles.termsLabelClickable}>
                 <Text style={styles.termsText}>
                   Marque eu aceito os{' '}
                 </Text>
@@ -271,20 +273,38 @@ const createStyles = (theme: { colors: any }) =>
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(233, 30, 99, 0.05)', // Leve destaque rosa
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(233, 30, 99, 0.1)',
+  },
+  checkboxWrapper: {
+    borderWidth: 2,
+    borderColor: theme?.colors?.primary || '#E91E63',
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    marginRight: 4,
   },
   termsTextContainer: {
     flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginLeft: 8,
+    marginLeft: 4,
+  },
+  termsLabelClickable: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   termsText: {
-    fontSize: 12,
-    color: theme?.colors?.text?.secondary || '#757575',
+    fontSize: 14, // Aumentado para melhor leitura
+    color: theme?.colors?.text?.primary || '#212121',
+    lineHeight: 20,
   },
   termsLink: {
     color: theme?.colors?.primary || '#E91E63',
     textDecorationLine: 'underline',
+    fontWeight: 'bold',
   },
   button: {
     marginTop: 8,
