@@ -29,11 +29,15 @@ export type Env = {
 function getEnv(): Env {
   const extra = Constants.expoConfig?.extra || {};
 
+  // 🛡️ [XML-DETECTOR] Se a variável do process.env vier como XML, forçar o uso do fallback limpo do extra
+  const rawApiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
+  const safeApiKey = (rawApiKey && rawApiKey.includes('<?xml')) ? extra.firebaseApiKey : (rawApiKey || extra.firebaseApiKey);
+
   const env: Record<string, string | undefined> = {
     EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL || extra.apiUrl,
     EXPO_PUBLIC_PROJECT_ID: process.env.EXPO_PUBLIC_PROJECT_ID || extra.eas?.projectId,
     EXPO_PUBLIC_APP_NAME: process.env.EXPO_PUBLIC_APP_NAME || Constants.expoConfig?.name,
-    EXPO_PUBLIC_FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || extra.firebaseApiKey,
+    EXPO_PUBLIC_FIREBASE_API_KEY: safeApiKey,
     EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || extra.firebaseAuthDomain || `${extra.firebaseProjectId || 'acucaradas-encomendas'}.firebaseapp.com`,
     EXPO_PUBLIC_FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || extra.firebaseProjectId,
     EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || extra.firebaseStorageBucket || `${extra.firebaseProjectId || 'acucaradas-encomendas'}.appspot.com`,
