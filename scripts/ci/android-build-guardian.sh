@@ -7,6 +7,12 @@ set -euo pipefail
 echo "🛡️ [ANDROID-BUILD-GUARDIAN] Iniciando Guardião de Build Android..."
 echo "------------------------------------------------------------"
 
+# ⚙️ [CONFIG] Carregando variáveis de ambiente (LOAD-ENV)
+echo "⚙️ [CONFIG] Carregando variáveis de ambiente (LOAD-ENV)..."
+chmod +x scripts/load-env.sh
+# 🚨 CORREÇÃO CRÍTICA: Usar 'source' para que as variáveis sejam exportadas no shell atual
+source scripts/load-env.sh
+
 ## ETAPA 1 — ORQUESTRAÇÃO
 export TARGET_APP="${TARGET_APP:-acucaradas-encomendas}"
 export APP_ENV="${APP_ENV:-production}"

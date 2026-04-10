@@ -25,10 +25,10 @@ interface SocialAuthButtonsProps {
 const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role = 'comprador' }) => {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const navigation = useNavigation<any>();
-  const { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithCredential, is2FAEnabled } = useAuth();
+  const { signInWithFacebook, signInWithApple, signInWithCredential, is2FAEnabled } = useAuth();
 
   // Configuração Google Auth
-  const [request, response, promptAsync] = Google.useAuthRequest({
+  const [, response, promptAsync] = Google.useAuthRequest({
     iosClientId: '6756029389-google-ios-id.apps.googleusercontent.com', // TODO: Substituir pelo ID real se necessário
     androidClientId: 'google-android-id.apps.googleusercontent.com',
   });

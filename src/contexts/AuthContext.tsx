@@ -212,7 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await tfaService.generateAndSendVerificationCode();
   };
 
-  const signInWithGoogle = async (role: string) => {
+  const signInWithGoogle = async (_role: string) => {
     try {
       console.log('🛡️ [DEBUG_SOCIAL] Iniciando Google Auth via AuthSession');
       // A implementação real deve usar useAuthRequest no componente UI
@@ -223,7 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signInWithFacebook = async (role: string) => {
+  const signInWithFacebook = async (_role: string) => {
     return { success: false, error: 'Facebook Auth pendente de implementação' };
   };
 

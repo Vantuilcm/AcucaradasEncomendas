@@ -20,7 +20,6 @@ let _app: any = null;
 let _auth: any = null;
 let _db: any = null;
 let _storage: any = null;
-let _messaging: any = null;
 
 /**
  * Obtém a instância do Firebase App de forma preguiçosa
@@ -28,6 +27,17 @@ let _messaging: any = null;
 export const getApp = () => {
   if (!_app) {
     console.log('🛡️ [FIREBASE] Initializing App Instance...');
+    
+    // Validação profunda da API Key
+    const apiKey = firebaseConfig.apiKey;
+    if (!apiKey) {
+      console.error('❌ [FIREBASE] FATAL: API Key is UNDEFINED or EMPTY!');
+    } else if (apiKey.length < 10) {
+      console.error('❌ [FIREBASE] FATAL: API Key is too short! Value:', apiKey);
+    } else {
+      console.log('🛡️ [FIREBASE] API Key loaded successfully (starts with):', apiKey.substring(0, 5) + '...');
+    }
+    
     const { initializeApp, getApps } = require('firebase/app');
     const apps = getApps();
     _app = apps.length > 0 ? apps[0] : initializeApp(firebaseConfig);

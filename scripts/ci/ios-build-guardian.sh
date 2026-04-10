@@ -151,7 +151,8 @@ echo "✅ [VALID] Nenhum build prévio detectado para o commit $COMMIT_HASH. Pro
 # 2.4 Validação de ENV
 echo "⚙️ [CONFIG] Carregando variáveis de ambiente (LOAD-ENV)..."
 chmod +x scripts/load-env.sh
-./scripts/load-env.sh
+# 🚨 CORREÇÃO CRÍTICA: Usar 'source' para que as variáveis sejam exportadas no shell atual
+source scripts/load-env.sh
 
 # 2.4.1 Keychain Setup (Crucial para builds LOCAL em CI)
 setup_macos_keychain() {
