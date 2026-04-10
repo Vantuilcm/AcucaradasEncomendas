@@ -59,9 +59,10 @@ export default ({ config }) => {
   }
 
   if (!firebaseApiKey) {
-    console.warn("⚠️ [WARN] EXPO_PUBLIC_FIREBASE_API_KEY não encontrada no process.env do Node durante o config resolution!");
+    console.warn("⚠️ [FIREBASE_CRITICAL] Nenhuma API Key encontrada no ENV ou no Plist!");
   } else {
-    console.log(`✅ [OK] EXPO_PUBLIC_FIREBASE_API_KEY detectada no app.config.js (len: ${firebaseApiKey.length})`);
+    console.log(`✅ [FIREBASE_AUDIT] API Key: ${firebaseApiKey.substring(0, 6)}...${firebaseApiKey.substring(firebaseApiKey.length - 4)}`);
+    console.log(`✅ [FIREBASE_AUDIT] Project ID: ${firebaseProjectId}`);
   }
 
   const plugins = config.plugins || [];
