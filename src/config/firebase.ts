@@ -71,6 +71,17 @@ export const getApp = () => {
     
     console.log('🛡️ [FIREBASE] Final Config Check - ProjectId:', configToUse.projectId);
     
+    // 🔍 ETAPA 1 & 2: Validar se o Project ID é o esperado (acucaradas-encomendas)
+    const EXPECTED_PROJECT_ID = 'acucaradas-encomendas';
+    if (configToUse.projectId !== EXPECTED_PROJECT_ID) {
+      console.warn(`⚠️ [FIREBASE_PROJECT_MISMATCH] Detectado: ${configToUse.projectId} | Esperado: ${EXPECTED_PROJECT_ID}`);
+      // ETAPA 3: Forçar o projeto original se houver erro de injeção
+      if (!configToUse.projectId || configToUse.projectId.length < 5) {
+        console.log(`🩹 [FIREBASE_PROJECT_RECOVERY] Forçando Project ID original: ${EXPECTED_PROJECT_ID}`);
+        configToUse.projectId = EXPECTED_PROJECT_ID;
+      }
+    }
+    
     const { initializeApp, getApps } = require('firebase/app');
     const apps = getApps();
     _app = apps.length > 0 ? apps[0] : initializeApp(configToUse);
