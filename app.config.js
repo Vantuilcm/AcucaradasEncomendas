@@ -34,6 +34,17 @@ export default ({ config }) => {
 
   // 🛡️ [FIREBASE-GUARD] Validação de Segredos Críticos
   let firebaseApiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
+  
+  // 🚨 [HOTFIX] Se a chave vier como XML (erro detectado na imagem de debug)
+  if (firebaseApiKey && firebaseApiKey.includes('<?xml')) {
+    console.warn("🚨 [CRITICAL] API Key está vindo como XML! Tentando extrair a chave real...");
+    const match = firebaseApiKey.match(/<key>API_KEY<\/key>\s*<string>(.*)<\/string>/);
+    if (match) {
+      firebaseApiKey = match[1];
+      console.log("🩹 [FIX] Chave API extraída com sucesso do XML.");
+    }
+  }
+
   let firebaseProjectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "acucaradas-encomendas";
   let firebaseAppId = process.env.EXPO_PUBLIC_FIREBASE_APP_ID;
 
