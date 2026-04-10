@@ -5,7 +5,7 @@
 import { ENV } from './env';
 
 // 🚨 DEBUG: Log das variáveis brutas vindas do ENV
-console.log('🧪 [FIREBASE_CONFIG_DEBUG] EXPO_PUBLIC_FIREBASE_API_KEY:', ENV.EXPO_PUBLIC_FIREBASE_API_KEY ? `DEFINED (${ENV.EXPO_PUBLIC_FIREBASE_API_KEY.substring(0, 5)}...)` : 'UNDEFINED');
+console.log('🧪 [FIREBASE_CONFIG_DEBUG] EXPO_PUBLIC_FIREBASE_API_KEY:', ENV.EXPO_PUBLIC_FIREBASE_API_KEY ? `CHAVE_OK (${ENV.EXPO_PUBLIC_FIREBASE_API_KEY.substring(0, 10)}...)` : 'CHAVE_AUSENTE');
 console.log('🧪 [FIREBASE_CONFIG_DEBUG] EXPO_PUBLIC_FIREBASE_PROJECT_ID:', ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID);
 
 // 🛡️ [RECOVERY-LOG] Verificar se os dados vieram do Constants.expoConfig.extra (Fallback físico)
@@ -13,7 +13,7 @@ import Constants from 'expo-constants';
 const extra = Constants.expoConfig?.extra || {};
 if (!ENV.EXPO_PUBLIC_FIREBASE_API_KEY && extra.firebaseApiKey) {
   console.log('🩹 [FIREBASE_RECOVERY] API Key successfully recovered from Expo Extra (app.config.js fallback)');
-  console.log('🩹 [FIREBASE_RECOVERY] Key recovered:', `${extra.firebaseApiKey.substring(0, 5)}...${extra.firebaseApiKey.substring(extra.firebaseApiKey.length - 4)}`);
+  console.log('🩹 [FIREBASE_RECOVERY] Key recovered:', `${extra.firebaseApiKey.substring(0, 10)}...`);
 }
 
 // ⚠️ TESTE HARDCODED (ETAPA 3) - Se o build falhar com "invalid-api-key", 

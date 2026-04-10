@@ -37,6 +37,7 @@ export default ({ config }) => {
   let firebaseProjectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "acucaradas-encomendas";
   let firebaseAppId = process.env.EXPO_PUBLIC_FIREBASE_APP_ID;
 
+  console.log("🔍 [DEBUG_ENV] EXPO_PUBLIC_FIREBASE_API_KEY do ENV:", firebaseApiKey ? "EXISTE" : "AUSENTE");
   // 🍎 [IOS-PLIST-FALLBACK] Tentar ler do plist se estiver no iOS build
   if (!firebaseApiKey || !firebaseAppId) {
     // ... código de leitura do plist ...
