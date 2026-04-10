@@ -297,15 +297,19 @@ export function RegisterScreen({ route }: { route?: any }) {
             />
 
             <View style={styles.termsContainer}>
-              <Checkbox
-                status={termsAccepted ? 'checked' : 'unchecked'}
-                onPress={() => setTermsAccepted(!termsAccepted)}
-                color={theme.colors.primary}
-              />
+              <View style={styles.checkboxWrapper}>
+                <Checkbox
+                  status={termsAccepted ? 'checked' : 'unchecked'}
+                  onPress={() => setTermsAccepted(!termsAccepted)}
+                  color={theme.colors.primary}
+                />
+              </View>
               <View style={styles.termsTextContainer}>
-                <Text style={styles.termsText}>
-                  Eu concordo com os{' '}
-                </Text>
+                <TouchableOpacity onPress={() => setTermsAccepted(!termsAccepted)} style={styles.termsLabelClickable}>
+                  <Text style={styles.termsText}>
+                    Eu concordo com os{' '}
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate('TermsOfUse' as never)}>
                   <Text style={[styles.termsText, styles.termsLink]}>
                     Termos de Uso
@@ -384,22 +388,41 @@ const createStyles = (theme: { colors: any }) =>
   },
   termsContainer: {
     marginBottom: 24,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(233, 30, 99, 0.05)',
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(233, 30, 99, 0.1)',
+  },
+  checkboxWrapper: {
+    borderWidth: 2,
+    borderColor: theme?.colors?.primary || '#E91E63',
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    marginRight: 4,
   },
   termsTextContainer: {
     flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginLeft: 8,
+    marginLeft: 4,
+  },
+  termsLabelClickable: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   termsText: {
-    fontSize: 12,
-    color: theme.colors.text.secondary,
+    fontSize: 14,
+    color: theme.colors.text.primary,
+    lineHeight: 20,
   },
   termsLink: {
     color: theme.colors.primary,
     textDecorationLine: 'underline',
+    fontWeight: 'bold',
   },
   button: {
     marginTop: 8,

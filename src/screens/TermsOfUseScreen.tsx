@@ -112,27 +112,61 @@ export function TermsOfUseScreen() {
           <Divider style={styles.divider} />
 
           <List.Section>
-            <List.Subheader>V. Termos Gerais</List.Subheader>
+            <List.Subheader>V. Política de Privacidade e Proteção de Dados (LGPD)</List.Subheader>
 
             <List.Item
-              testID="list-item-conteudo-uso"
-              title="Conteúdo e Uso"
-              description="Proibições e regras gerais de uso do App."
-              left={props => <List.Icon {...props} icon="shield-check" />}
+              title="Coleta de Dados"
+              description="Coletamos dados essenciais: Nome, E-mail, Telefone, Endereço de entrega e Localização (GPS) para facilitar a conexão entre as partes."
+              left={props => <List.Icon {...props} icon="database-check" />}
             />
 
             <List.Item
-              testID="list-item-privacidade-dados"
-              title="Privacidade e Dados"
-              description="Tratamento de dados pessoais e privacidade."
-              left={props => <List.Icon {...props} icon="lock" />}
+              title="Finalidade do Tratamento"
+              description="Seus dados são usados exclusivamente para processar pedidos, calcular fretes, garantir a segurança das transações e suporte técnico."
+              left={props => <List.Icon {...props} icon="target" />}
+            />
+
+            <List.Item
+              title="Compartilhamento Necessário"
+              description="Para a entrega, compartilhamos seu nome e endereço com o Produtor e o Entregador escolhidos. Dados de pagamento são processados de forma criptografada via Stripe."
+              left={props => <List.Icon {...props} icon="share-variant" />}
+            />
+
+            <List.Item
+              title="Seus Direitos (LGPD)"
+              description="Você tem direito a acessar, corrigir, portar ou excluir seus dados a qualquer momento através das configurações do app ou suporte."
+              left={props => <List.Icon {...props} icon="gavel" />}
+            />
+            
+            <List.Item
+              title="Segurança"
+              description="Utilizamos criptografia SSL, autenticação Firebase e proteção contra capturas de tela para garantir a integridade das suas informações."
+              left={props => <List.Icon {...props} icon="shield-lock" />}
             />
           </List.Section>
 
           <Divider style={styles.divider} />
 
           <List.Section>
-            <List.Subheader>VI. Contato e Suporte</List.Subheader>
+            <List.Subheader>VI. Regras de Uso e Conduta</List.Subheader>
+
+            <List.Item
+              title="Uso Proibido"
+              description="É proibido o uso de dados falsos, perfis fakes, comportamento abusivo com outros usuários ou tentativa de burlar os sistemas de pagamento."
+              left={props => <List.Icon {...props} icon="cancel" />}
+            />
+
+            <List.Item
+              title="Propriedade Intelectual"
+              description="Todo o conteúdo, logo e design do App pertencem à Açucaradas Encomendas e não podem ser replicados sem autorização."
+              left={props => <List.Icon {...props} icon="copyright" />}
+            />
+          </List.Section>
+
+          <Divider style={styles.divider} />
+
+          <List.Section>
+            <List.Subheader>VII. Contato e Suporte</List.Subheader>
 
             <List.Item
               testID="list-item-canais-atendimento"
