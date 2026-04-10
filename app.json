@@ -33,7 +33,7 @@
     },
     "android": {
       "package": "com.acucaradas.encomendas",
-      "versionCode": 989,
+      "versionCode": 992,
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#ffffff"
