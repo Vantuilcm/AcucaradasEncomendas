@@ -4,8 +4,16 @@
 
 import { ENV } from './env';
 
+// 🚨 DEBUG: Log das variáveis brutas vindas do ENV
+console.log('🧪 [FIREBASE_CONFIG_DEBUG] EXPO_PUBLIC_FIREBASE_API_KEY:', ENV.EXPO_PUBLIC_FIREBASE_API_KEY ? `DEFINED (len: ${ENV.EXPO_PUBLIC_FIREBASE_API_KEY.length})` : 'UNDEFINED');
+console.log('🧪 [FIREBASE_CONFIG_DEBUG] EXPO_PUBLIC_FIREBASE_PROJECT_ID:', ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID);
+
+// ⚠️ TESTE HARDCODED (ETAPA 3) - Se o build falhar com "invalid-api-key", 
+// você pode colocar a chave real aqui temporariamente para isolar se o problema é a injeção do ENV.
+const HARDCODED_API_KEY = ""; // <--- COLOQUE A CHAVE AQUI SE O ENV ESTIVER VINDO UNDEFINED
+
 const firebaseConfig = {
-  apiKey: ENV.EXPO_PUBLIC_FIREBASE_API_KEY,
+  apiKey: HARDCODED_API_KEY || ENV.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: ENV.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: ENV.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
@@ -14,6 +22,11 @@ const firebaseConfig = {
   measurementId: ENV.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
   databaseURL: ENV.EXPO_PUBLIC_FIREBASE_DATABASE_URL,
 };
+
+// 🛡️ VALIDAÇÃO DE RUNTIME
+if (!firebaseConfig.apiKey) {
+  console.error('❌ [FIREBASE_CRITICAL] API KEY IS MISSING IN CONFIG OBJECT!');
+}
 
 // Singleton pattern seguro e 🚀 LAZY
 let _app: any = null;
@@ -29,18 +42,30 @@ export const getApp = () => {
     console.log('🛡️ [FIREBASE] Initializing App Instance...');
     
     // Validação profunda da API Key
-    const apiKey = firebaseConfig.apiKey;
-    if (!apiKey) {
-      console.error('❌ [FIREBASE] FATAL: API Key is UNDEFINED or EMPTY!');
-    } else if (apiKey.length < 10) {
-      console.error('❌ [FIREBASE] FATAL: API Key is too short! Value:', apiKey);
+    const configToUse = { ...firebaseConfig };
+    
+    // Log completo do config (mascarado)
+    console.log('🛡️ [FIREBASE] Config used for initialization:', {
+      ...configToUse,
+      apiKey: configToUse.apiKey ? `${configToUse.apiKey.substring(0, 5)}...${configToUse.apiKey.substring(configToUse.apiKey.length - 5)}` : 'MISSING'
+    });
+    if (!configToUse.apiKey || configToUse.apiKey.length < 10) {
+      console.error('❌ [FIREBASE] FATAL: API Key is INVALID in firebaseConfig!', configToUse.apiKey);
+      // Tentativa de recuperação via process.env direto (último recurso)
+      const fallbackKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
+      if (fallbackKey && fallbackKey.length > 10) {
+        console.log('🩹 [FIREBASE] Recovered API Key from process.env fallback');
+        configToUse.apiKey = fallbackKey;
+      }
     } else {
-      console.log('🛡️ [FIREBASE] API Key loaded successfully (starts with):', apiKey.substring(0, 5) + '...');
+      console.log('🛡️ [FIREBASE] API Key looks valid. Starts with:', configToUse.apiKey.substring(0, 5) + '...');
     }
+    
+    console.log('🛡️ [FIREBASE] Final Config Check - ProjectId:', configToUse.projectId);
     
     const { initializeApp, getApps } = require('firebase/app');
     const apps = getApps();
-    _app = apps.length > 0 ? apps[0] : initializeApp(firebaseConfig);
+    _app = apps.length > 0 ? apps[0] : initializeApp(configToUse);
   }
   return _app;
 };

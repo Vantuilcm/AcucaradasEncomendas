@@ -32,6 +32,14 @@ export default ({ config }) => {
 
   console.log(`🚀 [VERSION-LOCK] Configurando App: ${appConfig.name} (v${appVersion} - BN:${buildNumber} / VC:${versionCode})`);
 
+  // 🛡️ [FIREBASE-GUARD] Validação de Segredos Críticos
+  const firebaseApiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
+  if (!firebaseApiKey) {
+    console.warn("⚠️ [WARN] EXPO_PUBLIC_FIREBASE_API_KEY não encontrada no process.env do Node durante o config resolution!");
+  } else {
+    console.log(`✅ [OK] EXPO_PUBLIC_FIREBASE_API_KEY detectada no app.config.js (len: ${firebaseApiKey.length})`);
+  }
+
   const plugins = config.plugins || [];
   const appPlugins = appConfig.plugins || [];
   
@@ -86,6 +94,9 @@ export default ({ config }) => {
       firebaseApiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
       firebaseAppId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
       firebaseProjectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+      firebaseAuthDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      firebaseStorageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      firebaseMessagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     },
     plugins: finalPlugins
   };
