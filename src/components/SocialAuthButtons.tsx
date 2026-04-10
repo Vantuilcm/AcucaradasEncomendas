@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import { authFunctions } from '../config/firebase';
+
+WebBrowser.maybeCompleteAuthSession();
 
 interface SocialAuthButtonsProps {
   onSuccess?: () => void;
@@ -20,7 +25,38 @@ interface SocialAuthButtonsProps {
 const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role = 'comprador' }) => {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const navigation = useNavigation<any>();
-  const { signInWithGoogle, signInWithFacebook, signInWithApple, is2FAEnabled } = useAuth();
+  const { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithCredential, is2FAEnabled } = useAuth();
+
+  // Configuração Google Auth
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    iosClientId: '6756029389-google-ios-id.apps.googleusercontent.com', // TODO: Substituir pelo ID real se necessário
+    androidClientId: 'google-android-id.apps.googleusercontent.com',
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      handleGoogleLogin(id_token);
+    }
+  }, [response]);
+
+  const handleGoogleLogin = async (idToken: string) => {
+    try {
+      setLoadingProvider('google');
+      const credential = authFunctions.GoogleAuthProvider.credential(idToken);
+      const result = await signInWithCredential(credential, role);
+      
+      if (result.success) {
+        if (onSuccess) onSuccess();
+      } else {
+        Alert.alert('Erro Google', result.error);
+      }
+    } catch (error: any) {
+      Alert.alert('Erro Google', error.message);
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
 
   const handleSocialAuth = async (provider: string) => {
     try {
@@ -30,8 +66,9 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
 
       switch (provider) {
         case 'google':
-          if (signInWithGoogle) result = await signInWithGoogle(role);
-          break;
+          // Inicia o fluxo do Google via AuthSession
+          await promptAsync();
+          return; // O useEffect tratará o sucesso
         case 'facebook':
           if (signInWithFacebook) result = await signInWithFacebook(role);
           break;
@@ -44,29 +81,26 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
 
       if (result && result.success) {
         if (is2FAEnabled) {
-          // Se 2FA está habilitado, navegar para tela de verificação
           navigation.navigate('TwoFactorAuth');
         } else {
-          // Se não tem 2FA, a navegação principal é tratada automaticamente pelo AppNavigator
-          // quando o estado do 'user' for atualizado no AuthContext
           if (onSuccess) {
             onSuccess();
           }
         }
-      } else {
+      } else if (result) {
         Alert.alert(
           'Erro de autenticação',
-          (result && result.error) || 'Não foi possível realizar login. Tente novamente.'
+          result.error || 'Não foi possível realizar login. Tente novamente.'
         );
       }
     } catch (error) {
       console.error(`Erro na autenticação com ${provider}:`, error);
       Alert.alert(
         'Erro de autenticação',
-        'Ocorreu um erro durante o processo de login. Por favor, tente novamente.'
+        'Ocorreu um erro durante o processo de login.'
       );
     } finally {
-      setLoadingProvider(null);
+      if (provider !== 'google') setLoadingProvider(null);
     }
   };
 

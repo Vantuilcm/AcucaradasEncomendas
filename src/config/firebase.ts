@@ -98,6 +98,10 @@ export const authFunctions = {
   get sendPasswordResetEmail() { return require('firebase/auth').sendPasswordResetEmail; },
   get updateProfile() { return require('firebase/auth').updateProfile; },
   get sendEmailVerification() { return require('firebase/auth').sendEmailVerification; },
+  get signInWithCredential() { return require('firebase/auth').signInWithCredential; },
+  get GoogleAuthProvider() { return require('firebase/auth').GoogleAuthProvider; },
+  get FacebookAuthProvider() { return require('firebase/auth').FacebookAuthProvider; },
+  get OAuthProvider() { return require('firebase/auth').OAuthProvider; },
 };
 
 export const dbFunctions = {

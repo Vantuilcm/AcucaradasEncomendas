@@ -27,6 +27,7 @@ interface AuthContextData {
   signInWithGoogle: (role: string) => Promise<{ success: boolean; error?: string }>;
   signInWithFacebook: (role: string) => Promise<{ success: boolean; error?: string }>;
   signInWithApple: (role: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithCredential: (credential: any, role: string) => Promise<{ success: boolean; error?: string }>;
   is2FAEnabled?: boolean;
   error: string | null;
 }
@@ -213,10 +214,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async (role: string) => {
     try {
-      console.log('🛡️ [DEBUG_SOCIAL] Iniciando Google Auth');
-      // TODO: Implementar lógica real de Google Auth para Firebase Web SDK
-      // Por enquanto, retorna erro informativo para debug
-      return { success: false, error: 'Google Auth pendente de implementação no novo Lazy Load' };
+      console.log('🛡️ [DEBUG_SOCIAL] Iniciando Google Auth via AuthSession');
+      // A implementação real deve usar useAuthRequest no componente UI
+      // Aqui apenas logamos que o componente deve lidar com isso
+      return { success: false, error: 'Inicie o login pelo botão do Google' };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -227,7 +228,84 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithApple = async (role: string) => {
-    return { success: false, error: 'Apple Auth pendente de implementação' };
+    try {
+      console.log('🛡️ [DEBUG_SOCIAL] Iniciando Apple Auth');
+      const AppleAuthentication = require('expo-apple-authentication');
+      
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      console.log('🛡️ [DEBUG_SOCIAL] Apple Credential obtida');
+      
+      const auth = getAuth();
+      const appleProvider = new authFunctions.OAuthProvider('apple.com');
+      const firebaseCredential = appleProvider.credential({
+        idToken: credential.identityToken!,
+      });
+
+      console.log('🛡️ [DEBUG_SOCIAL] Criando sessão no Firebase...');
+      const userCredential = await authFunctions.signInWithCredential(auth, firebaseCredential);
+      
+      // Sincronizar perfil se necessário
+      const db = getDb();
+      const userRef = dbFunctions.doc(db, 'users', userCredential.user.uid);
+      const userDoc = await dbFunctions.getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        const fullName = credential.fullName;
+        const nome = fullName ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim() : '';
+        
+        await dbFunctions.setDoc(userRef, {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          nome: nome || userCredential.user.displayName || '',
+          role: role || 'customer',
+          createdAt: dbFunctions.serverTimestamp(),
+        });
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ [DEBUG_SOCIAL] Apple Auth Error:', error);
+      if (error.code === 'ERR_CANCELED') {
+        return { success: false, error: 'Login cancelado pelo usuário' };
+      }
+      return { success: false, error: error.message };
+    }
+  };
+
+  const signInWithCredential = async (credential: any, role: string) => {
+    try {
+      setLoading(true);
+      const auth = getAuth();
+      const userCredential = await authFunctions.signInWithCredential(auth, credential);
+      
+      // Sincronizar perfil
+      const db = getDb();
+      const userRef = dbFunctions.doc(db, 'users', userCredential.user.uid);
+      const userDoc = await dbFunctions.getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        await dbFunctions.setDoc(userRef, {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          nome: userCredential.user.displayName || '',
+          role: role || 'customer',
+          createdAt: dbFunctions.serverTimestamp(),
+        });
+      }
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ [DEBUG_SOCIAL] Credential Auth Error:', error);
+      return { success: false, error: error.message };
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -250,6 +328,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signInWithGoogle,
         signInWithFacebook,
         signInWithApple,
+        signInWithCredential,
         is2FAEnabled: user?.twoFactorEnabled || false,
         error,
       }}
