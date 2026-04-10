@@ -62,9 +62,32 @@ export class StoreService {
           6: { open: '08:00', close: '14:00', isClosed: false },
         }
       };
+  async updateStore(storeId: string, storeData: Partial<Store>): Promise<void> {
+    try {
+      const storeRef = f.doc(this.collectionName, storeId);
+      await f.updateDoc(storeRef, {
+        ...storeData,
+        updatedAt: new Date().toISOString()
+      });
+      loggingService.info('Loja atualizada com sucesso', { storeId });
     } catch (error) {
-      loggingService.error('Erro ao buscar loja padrão', { error });
-      return null;
+      loggingService.error('Erro ao atualizar loja', { storeId, error });
+      throw error;
+    }
+  }
+
+  async createStore(storeData: Omit<Store, 'id'>): Promise<string> {
+    try {
+      const docRef = await f.addDoc(f.collection(this.collectionName), {
+        ...storeData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      loggingService.info('Nova loja criada', { storeId: docRef.id });
+      return docRef.id;
+    } catch (error) {
+      loggingService.error('Erro ao criar loja', { error });
+      throw error;
     }
   }
 }

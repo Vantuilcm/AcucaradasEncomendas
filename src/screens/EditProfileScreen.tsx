@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { TextInput, Button, Avatar, Title, Caption, Divider, Text } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
+import { TextInput, Button, Avatar, Title, Caption, Divider, Text, ActivityIndicator } from 'react-native-paper';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +9,8 @@ import { UserUtils } from '../utils/UserUtils';
 import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { useAppTheme } from '../components/ThemeProvider';
+import { StoreService } from '../services/StoreService';
+import { getStorage, s } from '../config/firebase';
 
 const EditProfileScreen = () => {
   const { theme } = useAppTheme();
@@ -23,6 +26,10 @@ const EditProfileScreen = () => {
   // Novos campos para Produtor
   const [storeName, setStoreName] = useState('');
   const [storeDescription, setStoreDescription] = useState('');
+  const [logo, setLogo] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -30,17 +37,71 @@ const EditProfileScreen = () => {
 
   useEffect(() => {
     // Carregar dados do usuário atual
-    if (user) {
-      setName(UserUtils.getUserName(user) || '');
-      setEmail(UserUtils.getUserEmail(user) || '');
-      setPhone((user as any).telefone || (user as any).phone || '');
-      setAddress((user as any).endereco?.[0]?.logradouro || (user as any).address || '');
-      
-      // Carregar campos de produtor
-      setStoreName(user.storeName || '');
-      setStoreDescription(user.storeDescription || '');
-    }
+    const loadStoreData = async () => {
+      if (user) {
+        setName(UserUtils.getUserName(user) || '');
+        setEmail(UserUtils.getUserEmail(user) || '');
+        setPhone((user as any).telefone || (user as any).phone || '');
+        setAddress((user as any).endereco?.[0]?.logradouro || (user as any).address || '');
+        
+        if (user.role === 'produtor') {
+          const storeService = new StoreService();
+          const store = await storeService.getStoreByProducerId(user.id);
+          if (store) {
+            setStoreId(store.id);
+            setStoreName(store.name || '');
+            setStoreDescription(store.description || '');
+            setLogo(store.logo || null);
+            setBanner(store.banner || null);
+          }
+        }
+      }
+    };
+
+    loadStoreData();
   }, [user]);
+
+  const pickImage = async (type: 'logo' | 'banner') => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: type === 'logo' ? [1, 1] : [16, 9],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets[0].uri) {
+      handleUploadImage(result.assets[0].uri, type);
+    }
+  };
+
+  const handleUploadImage = async (uri: string, type: 'logo' | 'banner') => {
+    if (!user) return;
+    
+    try {
+      setUploading(true);
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      
+      const filename = `${type}_${Date.now()}.jpg`;
+      const storagePath = `stores/${user.id}/${filename}`;
+      
+      const { ref, uploadBytes, getDownloadURL } = require('firebase/storage');
+      const storageRef = ref(getStorage(), storagePath);
+      
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      if (type === 'logo') setLogo(downloadURL);
+      else setBanner(downloadURL);
+      
+      Alert.alert('Sucesso', `${type === 'logo' ? 'Logo' : 'Banner'} carregado com sucesso!`);
+    } catch (err) {
+      console.error('Erro no upload:', err);
+      Alert.alert('Erro', 'Não foi possível carregar a imagem.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     setLoading(true);
@@ -73,8 +134,29 @@ const EditProfileScreen = () => {
 
       // Se for produtor, incluir dados da loja
       if (user?.role === 'produtor') {
-        updateData.storeName = storeName;
-        updateData.storeDescription = storeDescription;
+        const storeService = new StoreService();
+        const storeData = {
+          name: storeName,
+          description: storeDescription,
+          logo: logo || '',
+          banner: banner || '',
+          producerId: user.id,
+          isOpen: true,
+          leadTime: 60,
+          businessHours: {
+            1: { open: '08:00', close: '18:00', isClosed: false },
+            2: { open: '08:00', close: '18:00', isClosed: false },
+            3: { open: '08:00', close: '18:00', isClosed: false },
+            4: { open: '08:00', close: '18:00', isClosed: false },
+            5: { open: '08:00', close: '18:00', isClosed: false },
+          }
+        };
+
+        if (storeId) {
+          await storeService.updateStore(storeId, storeData);
+        } else {
+          await storeService.createStore(storeData as any);
+        }
       }
       
       // Atualizar perfil usando a função correta
@@ -198,11 +280,45 @@ const EditProfileScreen = () => {
                 placeholder="Conte um pouco sobre seus doces..."
               />
               
-              <View style={styles.imagePlaceholderContainer}>
-                <Text style={styles.imagePlaceholderText}>
-                  Banner e Logo podem ser alterados no painel de gerenciamento da loja.
-                </Text>
+              <Title style={styles.sectionTitle}>Visual da Loja</Title>
+              <View style={styles.imageSelectionContainer}>
+                <View style={styles.imageSelectionBox}>
+                  <Text variant="labelMedium">Logo da Loja</Text>
+                  <TouchableOpacity onPress={() => pickImage('logo')} style={styles.imagePicker}>
+                    {logo ? (
+                      <Image source={{ uri: logo }} style={styles.previewLogo} />
+                    ) : (
+                      <Avatar.Icon size={60} icon="store" />
+                    )}
+                    <View style={styles.editIconBadge}>
+                      <Avatar.Icon size={20} icon="pencil" />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.imageSelectionBox}>
+                  <Text variant="labelMedium">Banner da Loja</Text>
+                  <TouchableOpacity onPress={() => pickImage('banner')} style={styles.imagePicker}>
+                    {banner ? (
+                      <Image source={{ uri: banner }} style={styles.previewBanner} />
+                    ) : (
+                      <View style={styles.placeholderBanner}>
+                        <Avatar.Icon size={40} icon="image" />
+                      </View>
+                    )}
+                    <View style={styles.editIconBadge}>
+                      <Avatar.Icon size={20} icon="pencil" />
+                    </View>
+                  </TouchableOpacity>
+                </View>
               </View>
+
+              {uploading && (
+                <View style={styles.uploadingContainer}>
+                  <ActivityIndicator animating={true} color={theme.colors.primary} />
+                  <Text style={styles.uploadingText}>Enviando imagem...</Text>
+                </View>
+              )}
             </>
           )}
           
@@ -263,17 +379,66 @@ const createStyles = (theme: { colors: any }) =>
     fontSize: 18,
     color: theme.colors.primary,
   },
-  imagePlaceholderContainer: {
+  imageSelectionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 16,
+  },
+  imageSelectionBox: {
+    alignItems: 'center',
+    width: '48%',
+  },
+  imagePicker: {
+    marginTop: 8,
+    width: '100%',
+    height: 100,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    overflow: 'hidden',
+  },
+  previewLogo: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  previewBanner: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  placeholderBanner: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editIconBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    elevation: 2,
+  },
+  uploadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 12,
     backgroundColor: 'rgba(233, 30, 99, 0.05)',
     borderRadius: 8,
     marginBottom: 16,
   },
-  imagePlaceholderText: {
-    fontSize: 12,
-    color: theme.colors.text.secondary,
-    fontStyle: 'italic',
-    textAlign: 'center',
+  uploadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: theme.colors.primary,
   },
   button: {
     marginVertical: 8,
