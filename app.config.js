@@ -33,7 +33,31 @@ export default ({ config }) => {
   console.log(`🚀 [VERSION-LOCK] Configurando App: ${appConfig.name} (v${appVersion} - BN:${buildNumber} / VC:${versionCode})`);
 
   // 🛡️ [FIREBASE-GUARD] Validação de Segredos Críticos
-  const firebaseApiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
+  let firebaseApiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
+  let firebaseProjectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "acucaradas-encomendas";
+  let firebaseAppId = process.env.EXPO_PUBLIC_FIREBASE_APP_ID;
+
+  // 🍎 [IOS-PLIST-FALLBACK] Tentar ler do plist se estiver no iOS build
+  if (!firebaseApiKey || !firebaseAppId) {
+    try {
+      const plistPath = path.resolve(process.cwd(), 'GoogleService-Info.plist');
+      if (fs.existsSync(plistPath)) {
+        const plistContent = fs.readFileSync(plistPath, 'utf-8');
+        const apiKeyMatch = plistContent.match(/<key>API_KEY<\/key>\s*<string>(.*)<\/string>/);
+        const appIdMatch = plistContent.match(/<key>GOOGLE_APP_ID<\/key>\s*<string>(.*)<\/string>/);
+        const projectIdMatch = plistContent.match(/<key>PROJECT_ID<\/key>\s*<string>(.*)<\/string>/);
+        
+        if (apiKeyMatch && !firebaseApiKey) firebaseApiKey = apiKeyMatch[1];
+        if (appIdMatch && !firebaseAppId) firebaseAppId = appIdMatch[1];
+        if (projectIdMatch && (!firebaseProjectId || firebaseProjectId.length < 5)) firebaseProjectId = projectIdMatch[1];
+        
+        console.log("🩹 [PLIST-RECOVERY] Firebase config recovered from GoogleService-Info.plist");
+      }
+    } catch (e) {
+      console.warn("⚠️ [WARN] Falha ao tentar ler GoogleService-Info.plist para fallback.");
+    }
+  }
+
   if (!firebaseApiKey) {
     console.warn("⚠️ [WARN] EXPO_PUBLIC_FIREBASE_API_KEY não encontrada no process.env do Node durante o config resolution!");
   } else {
@@ -91,11 +115,11 @@ export default ({ config }) => {
         projectId: appConfig.id
       },
       env: isProduction ? "production" : isPreview ? "preview" : "development",
-      firebaseApiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-      firebaseAppId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-      firebaseProjectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-      firebaseAuthDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      firebaseStorageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      firebaseApiKey: firebaseApiKey,
+      firebaseAppId: firebaseAppId,
+      firebaseProjectId: firebaseProjectId,
+      firebaseAuthDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || `${firebaseProjectId}.firebaseapp.com`,
+      firebaseStorageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || `${firebaseProjectId}.firebasestorage.app`,
       firebaseMessagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     },
     plugins: finalPlugins
