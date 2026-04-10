@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { authFunctions } from '../config/firebase';
+import { ENV } from '../config/env';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -29,8 +30,8 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
 
   // Configuração Google Auth
   const [, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: '6756029389-google-ios-id.apps.googleusercontent.com', // TODO: Substituir pelo ID real se necessário
-    androidClientId: 'google-android-id.apps.googleusercontent.com',
+    iosClientId: ENV.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '6756029389-google-ios-id.apps.googleusercontent.com',
+    androidClientId: ENV.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'google-android-id.apps.googleusercontent.com',
   });
 
   useEffect(() => {
