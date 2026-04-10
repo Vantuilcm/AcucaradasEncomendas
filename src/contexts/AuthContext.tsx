@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getAuth, getDb, authFunctions, dbFunctions } from '../config/firebase';
 import { TwoFactorAuthService } from '../services/TwoFactorAuthService';
+import { Alert } from 'react-native';
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Lazy-Getter
@@ -143,6 +144,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Criar uma mensagem de erro técnica e detalhada para o usuário (em ambiente de debug)
       const technicalError = `[${error.code || 'unknown'}] ${error.message}`;
       setError(technicalError);
+      
+      // 🚨 EXIBIR ALERTA VISÍVEL PARA O USUÁRIO (NÃO DEIXAR O LOGIN "MORRER" EM SILÊNCIO)
+      Alert.alert(
+        'Erro de Autenticação',
+        `Código: ${error.code}\n\nSe o erro for 'auth/invalid-api-key', verifique a configuração da chave no Console do Google Cloud.`,
+        [{ text: 'OK' }]
+      );
+
       throw error; // Repropagar para a tela
     } finally {
       setLoading(false);
