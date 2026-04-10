@@ -42,6 +42,39 @@ let _auth: any = null;
 let _db: any = null;
 let _storage: any = null;
 
+// 🛠️ Proxy de Funções de Autenticação (Lazy-Loaded)
+export const authFunctions = {
+  get signInWithEmailAndPassword() { return require('firebase/auth').signInWithEmailAndPassword; },
+  get createUserWithEmailAndPassword() { return require('firebase/auth').createUserWithEmailAndPassword; },
+  get signOut() { return require('firebase/auth').signOut; },
+  get onAuthStateChanged() { return require('firebase/auth').onAuthStateChanged; },
+  get sendPasswordResetEmail() { return require('firebase/auth').sendPasswordResetEmail; },
+  get updateProfile() { return require('firebase/auth').updateProfile; },
+  get signInWithCredential() { return require('firebase/auth').signInWithCredential; },
+  get GoogleAuthProvider() { return require('firebase/auth').GoogleAuthProvider; },
+  get OAuthProvider() { return require('firebase/auth').OAuthProvider; },
+};
+
+// 🛠️ Proxy de Funções de Banco de Dados (Lazy-Loaded)
+export const dbFunctions = {
+  get collection() { return (path: string) => require('firebase/firestore').collection(getDb(), path); },
+  get doc() { return (path: string, ...rest: string[]) => require('firebase/firestore').doc(getDb(), path, ...rest); },
+  get getDocs() { return (q: any) => require('firebase/firestore').getDocs(q); },
+  get getDoc() { return (ref: any) => require('firebase/firestore').getDoc(ref); },
+  get setDoc() { return (ref: any, data: any, options?: any) => require('firebase/firestore').setDoc(ref, data, options); },
+  get addDoc() { return (ref: any, data: any) => require('firebase/firestore').addDoc(ref, data); },
+  get updateDoc() { return (ref: any, data: any) => require('firebase/firestore').updateDoc(ref, data); },
+  get deleteDoc() { return (ref: any) => require('firebase/firestore').deleteDoc(ref); },
+  get query() { return (...args: any[]) => require('firebase/firestore').query(...args); },
+  get where() { return (...args: any[]) => require('firebase/firestore').where(...args); },
+  get orderBy() { return (...args: any[]) => require('firebase/firestore').orderBy(...args); },
+  get limit() { return (...args: any[]) => require('firebase/firestore').limit(...args); },
+  get onSnapshot() { return (ref: any, callback: any) => require('firebase/firestore').onSnapshot(ref, callback); },
+  get writeBatch() { return () => require('firebase/firestore').writeBatch(getDb()); },
+  get runTransaction() { return (callback: any) => require('firebase/firestore').runTransaction(getDb(), callback); },
+  get serverTimestamp() { return require('firebase/firestore').serverTimestamp; },
+};
+
 /**
  * Obtém a instância do Firebase App de forma preguiçosa
  */

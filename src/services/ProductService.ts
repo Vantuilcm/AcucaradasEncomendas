@@ -1,4 +1,5 @@
-import { db, f } from '../config/firebase';
+import { dbFunctions } from '../config/firebase';
+const f = dbFunctions;
 import { Product, ProductFilter, ProductStats } from '../types/Product';
 import { loggingService } from './LoggingService';
 
@@ -40,8 +41,7 @@ export class ProductService {
       }
 
       // Criar referência para novo documento
-      const produtosRef = f.collection(db, this.collectionName);
-      const docRef = f.doc(produtosRef);
+      const docRef = f.doc(this.collectionName);
 
       // Preparar dados do produto
       const novoProduto: Product = {
@@ -83,7 +83,7 @@ export class ProductService {
    */
   public async consultarProduto(id: string): Promise<Product> {
     try {
-      const docRef = f.doc(db, this.collectionName, id);
+      const docRef = f.doc(this.collectionName, id);
       const docSnap = await f.getDoc(docRef);
 
       if (!docSnap.exists()) {
@@ -104,7 +104,7 @@ export class ProductService {
    */
   public async listarProdutos(filtro?: ProductFilter): Promise<Product[]> {
     try {
-      const produtosRef = f.collection(db, this.collectionName);
+      const produtosRef = f.collection(this.collectionName);
       let q = f.query(produtosRef);
 
       if (filtro) {
@@ -148,7 +148,7 @@ export class ProductService {
    */
   public async atualizarProduto(id: string, dados: Partial<Product>): Promise<void> {
     try {
-      const docRef = f.doc(db, this.collectionName, id);
+      const docRef = f.doc(this.collectionName, id);
       await f.updateDoc(docRef, {
         ...dados,
         dataAtualizacao: new Date(),
@@ -166,7 +166,7 @@ export class ProductService {
    */
   public async excluirProduto(id: string): Promise<void> {
     try {
-      const docRef = f.doc(db, this.collectionName, id);
+      const docRef = f.doc(this.collectionName, id);
       await f.deleteDoc(docRef);
       loggingService.info('Produto excluído com sucesso', { id });
     } catch (error: any) {
@@ -181,7 +181,7 @@ export class ProductService {
    */
   public async obterEstatisticas(): Promise<ProductStats> {
     try {
-      const snapshot = await f.getDocs(f.collection(db, this.collectionName));
+      const snapshot = await f.getDocs(f.collection(this.collectionName));
       const totalProdutos = snapshot.size;
       const categoriasSet = new Set<string>();
       let emEstoque = 0;
@@ -221,7 +221,7 @@ export class ProductService {
    */
   public async buscarProdutos(termo: string): Promise<Product[]> {
     try {
-      const snapshot = await f.getDocs(f.collection(db, this.collectionName));
+      const snapshot = await f.getDocs(f.collection(this.collectionName));
       const termoNormalizado = termo.toLowerCase();
 
       const produtos: Product[] = [];
@@ -248,7 +248,7 @@ export class ProductService {
   public async consultarDestaques(): Promise<Product[]> {
     try {
       const q = f.query(
-        f.collection(db, this.collectionName),
+        f.collection(this.collectionName),
         f.where('destacado', '==', true),
         f.where('disponivel', '==', true),
         f.limit(10)

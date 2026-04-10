@@ -1,6 +1,5 @@
-import { f } from '../config/firebase';
-const { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } = f;
-import { db } from '../config/firebase';
+import { dbFunctions } from '../config/firebase';
+const { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } = dbFunctions;
 import { Address } from '../types/Address';
 import { loggingService } from './LoggingService';
 
@@ -9,7 +8,7 @@ export class AddressService {
 
   async getUserAddresses(userId: string): Promise<Address[]> {
     try {
-      const addressesRef = collection(db, this.collection);
+      const addressesRef = collection(this.collection);
       const q = query(addressesRef, where('userId', '==', userId));
 
       const querySnapshot = await getDocs(q);
@@ -34,7 +33,7 @@ export class AddressService {
 
   async createAddress(address: Omit<Address, 'id'>): Promise<Address> {
     try {
-      const addressesRef = collection(db, this.collection);
+      const addressesRef = collection(this.collection);
       const docRef = await addDoc(addressesRef, {
         ...address,
         createdAt: new Date().toISOString(),
@@ -58,7 +57,7 @@ export class AddressService {
 
   async updateAddress(addressId: string, address: Partial<Address>): Promise<void> {
     try {
-      const addressRef = doc(db, this.collection, addressId);
+      const addressRef = doc(this.collection, addressId);
       await updateDoc(addressRef, {
         ...address,
         updatedAt: new Date().toISOString(),
@@ -76,7 +75,7 @@ export class AddressService {
 
   async deleteAddress(addressId: string): Promise<void> {
     try {
-      const addressRef = doc(db, this.collection, addressId);
+      const addressRef = doc(this.collection, addressId);
       await deleteDoc(addressRef);
 
       loggingService.info('Endereço excluído com sucesso', { addressId });
@@ -92,21 +91,21 @@ export class AddressService {
   async setDefaultAddress(userId: string, addressId: string): Promise<void> {
     try {
       // Primeiro, remove o status de padrão de todos os endereços do usuário
-      const addressesRef = collection(db, this.collection);
+      const addressesRef = collection(this.collection);
       const q = query(addressesRef, where('userId', '==', userId), where('isDefault', '==', true));
 
       const querySnapshot = await getDocs(q);
-      const batch = (db as any).batch();
+      const batch = dbFunctions.writeBatch();
 
       querySnapshot.docs.forEach((doc: any) => {
-        batch.update(doc.ref, { isDefault: false });
-      });
+          batch.update(doc.ref, { isDefault: false });
+        });
 
-      // Define o novo endereço padrão
-      const newDefaultAddressRef = doc(db, this.collection, addressId);
-      batch.update(newDefaultAddressRef, { isDefault: true });
+        // Define o novo endereço como padrão
+        const newDefaultRef = doc(this.collection, addressId);
+        batch.update(newDefaultRef, { isDefault: true });
 
-      await batch.commit();
+        await batch.commit();
 
       loggingService.info('Endereço padrão atualizado com sucesso', { addressId });
     } catch (error) {

@@ -1,4 +1,4 @@
-import { getDb, dbFunctions as f } from '../config/firebase';
+import { dbFunctions as f } from '../config/firebase';
 import { Order, OrderFilters, OrderSummary, OrderStatus } from '../types/Order';
 import { loggingService } from './LoggingService';
 import { DeliveryService } from './DeliveryService';
@@ -8,7 +8,6 @@ import { GrowthService } from './GrowthService';
 export class OrderService {
   private readonly collectionName = 'orders';
   private readonly pageSize = 10;
-  private readonly db = getDb();
 
   private static instance: OrderService;
 
@@ -33,7 +32,7 @@ export class OrderService {
    */
   async getUserOrders(userId: string, filters?: OrderFilters, lastOrder?: Order): Promise<Order[]> {
     try {
-      const ordersRef = f.collection(this.db, this.collectionName);
+      const ordersRef = f.collection(this.collectionName);
       let q = f.query(
         ordersRef,
         f.where('userId', '==', userId),
@@ -69,7 +68,7 @@ export class OrderService {
    * @returns Função para cancelar o monitoramento
    */
   public subscribeToUserOrders(userId: string, callback: (orders: Order[]) => void): () => void {
-    const ordersRef = f.collection(this.db, this.collectionName);
+    const ordersRef = f.collection(this.collectionName);
     const q = f.query(
       ordersRef,
       f.where('userId', '==', userId),
@@ -91,7 +90,7 @@ export class OrderService {
     lastOrder?: Order
   ): Promise<Order[]> {
     try {
-      const ordersRef = f.collection(this.db, this.collectionName);
+      const ordersRef = f.collection(this.collectionName);
       let q = f.query(
         ordersRef,
         f.where('deliveryDriver.id', '==', driverId),
@@ -140,7 +139,7 @@ export class OrderService {
    */
   async getOrderById(orderId: string): Promise<Order | null> {
     try {
-      const orderRef = f.doc(this.db, this.collectionName, orderId);
+      const orderRef = f.doc(this.collectionName, orderId);
       const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
@@ -170,7 +169,7 @@ export class OrderService {
       }
 
       // Criar pedido no Firestore
-      const ordersRef = f.collection(this.db, this.collectionName);
+      const ordersRef = f.collection(this.collectionName);
       const createdAt = new Date();
       
       const newOrder = {
@@ -206,7 +205,7 @@ export class OrderService {
    */
   async getOrderSummary(userId: string): Promise<OrderSummary> {
     try {
-      const ordersRef = f.collection(this.db, this.collectionName);
+      const ordersRef = f.collection(this.collectionName);
       const q = f.query(ordersRef, f.where('userId', '==', userId), f.orderBy('createdAt', 'desc'));
 
       const querySnapshot = await f.getDocs(q);
@@ -243,7 +242,7 @@ export class OrderService {
    */
   async updateOrder(orderId: string, orderData: Partial<Order>): Promise<Order> {
     try {
-      const orderRef = f.doc(this.db, this.collectionName, orderId);
+      const orderRef = f.doc(this.collectionName, orderId);
       const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
@@ -287,7 +286,7 @@ export class OrderService {
    */
   async cancelOrder(orderId: string, reason?: string): Promise<Order> {
     try {
-      const orderRef = f.doc(this.db, this.collectionName, orderId);
+      const orderRef = f.doc(this.collectionName, orderId);
       const orderDoc = await f.getDoc(orderRef);
 
       if (!orderDoc.exists()) {
@@ -340,7 +339,7 @@ export class OrderService {
    */
   async getOrderStats(): Promise<any> {
     try {
-      const ordersRef = f.collection(this.db, this.collectionName);
+      const ordersRef = f.collection(this.collectionName);
       const querySnapshot = await f.getDocs(ordersRef);
       const orders = querySnapshot.docs.map((docSnapshot: any) => ({
         id: docSnapshot.id,
@@ -391,7 +390,7 @@ export class OrderService {
    * @returns Função para cancelar o monitoramento
    */
   public subscribeToOrderStats(callback: (stats: any) => void): () => void {
-    const ordersRef = f.collection(this.db, this.collectionName);
+    const ordersRef = f.collection(this.collectionName);
     const q = f.query(ordersRef, f.orderBy('createdAt', 'desc'));
 
     return f.onSnapshot(q, (querySnapshot: any) => {
