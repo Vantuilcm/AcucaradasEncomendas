@@ -13,12 +13,17 @@ const EditProfileScreen = () => {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
-  const { user, updateProfile } = useAuth() as any;
+  const { user, updateUser } = useAuth();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  
+  // Novos campos para Produtor
+  const [storeName, setStoreName] = useState('');
+  const [storeDescription, setStoreDescription] = useState('');
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
@@ -30,6 +35,10 @@ const EditProfileScreen = () => {
       setEmail(UserUtils.getUserEmail(user) || '');
       setPhone((user as any).telefone || (user as any).phone || '');
       setAddress((user as any).endereco?.[0]?.logradouro || (user as any).address || '');
+      
+      // Carregar campos de produtor
+      setStoreName(user.storeName || '');
+      setStoreDescription(user.storeDescription || '');
     }
   }, [user]);
 
@@ -54,14 +63,23 @@ const EditProfileScreen = () => {
         throw new Error('Email é obrigatório');
       }
       
-      // Atualizar perfil
-      if ((updateProfile as any)) {
-        await (updateProfile as any)({
-          name,
-          email,
-          phone,
-          address
-        });
+      // Dados para atualizar
+      const updateData: any = {
+        nome: name,
+        email,
+        telefone: phone,
+        address
+      };
+
+      // Se for produtor, incluir dados da loja
+      if (user?.role === 'produtor') {
+        updateData.storeName = storeName;
+        updateData.storeDescription = storeDescription;
+      }
+      
+      // Atualizar perfil usando a função correta
+      if (updateUser) {
+        await updateUser(updateData);
       }
       
       // Registrar sucesso na atualização
@@ -153,6 +171,40 @@ const EditProfileScreen = () => {
             numberOfLines={3}
             style={styles.input}
           />
+
+          {user?.role === 'produtor' && (
+            <>
+              <Divider style={styles.divider} />
+              <Title style={styles.sectionTitle}>Configurações da Loja</Title>
+              <Caption>Informações que os clientes verão</Caption>
+              
+              <TextInput
+                label="Nome da Loja"
+                value={storeName}
+                onChangeText={setStoreName}
+                mode="outlined"
+                style={styles.input}
+                placeholder="Ex: Doces da Vovó"
+              />
+              
+              <TextInput
+                label="Descrição da Loja"
+                value={storeDescription}
+                onChangeText={setStoreDescription}
+                mode="outlined"
+                multiline
+                numberOfLines={4}
+                style={styles.input}
+                placeholder="Conte um pouco sobre seus doces..."
+              />
+              
+              <View style={styles.imagePlaceholderContainer}>
+                <Text style={styles.imagePlaceholderText}>
+                  Banner e Logo podem ser alterados no painel de gerenciamento da loja.
+                </Text>
+              </View>
+            </>
+          )}
           
           <Divider style={styles.divider} />
           
@@ -205,6 +257,23 @@ const createStyles = (theme: { colors: any }) =>
   },
   divider: {
     marginVertical: 16,
+  },
+  sectionTitle: {
+    marginTop: 8,
+    fontSize: 18,
+    color: theme.colors.primary,
+  },
+  imagePlaceholderContainer: {
+    padding: 12,
+    backgroundColor: 'rgba(233, 30, 99, 0.05)',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  imagePlaceholderText: {
+    fontSize: 12,
+    color: theme.colors.text.secondary,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   button: {
     marginVertical: 8,

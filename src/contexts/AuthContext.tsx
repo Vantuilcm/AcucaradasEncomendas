@@ -50,12 +50,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const db = getDb();
 
         // Configurar o observador de estado do usuário usando a função lazy
-        authFunctions.onAuthStateChanged(auth, async (firebaseUser: any) => {
+        authFunctions.onAuthStateChanged(async (firebaseUser: any) => {
           if (firebaseUser) {
             console.log('👤 [AUTH] User found:', firebaseUser.email);
             try {
               // Buscar dados extras do Firestore
-              const userRef = dbFunctions.doc(db, 'users', firebaseUser.uid);
+              const userRef = dbFunctions.doc('users', firebaseUser.uid);
               const userDoc = await dbFunctions.getDoc(userRef);
               
               if (userDoc.exists()) {
@@ -113,11 +113,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('🛡️ [DEBUG_LOGIN] Chamando Firebase SDK...');
-      const userCredential = await signInFn(auth, email, password);
+      const userCredential = await signInFn(email, password);
       console.log('✅ [DEBUG_LOGIN] SUCESSO SDK! UID:', userCredential.user.uid);
       
-      const db = getDb();
-      const userRef = dbFunctions.doc(db, 'users', userCredential.user.uid);
+      const userRef = dbFunctions.doc('users', userCredential.user.uid);
       console.log('🛡️ [DEBUG_LOGIN] Buscando perfil no Firestore...');
       const userDoc = await dbFunctions.getDoc(userRef);
       
@@ -161,9 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (userData: any, password: string) => {
     try {
       setLoading(true);
-      const auth = getAuth();
-      const db = getDb();
-      const userCredential = await authFunctions.createUserWithEmailAndPassword(auth, userData.email, password);
+      const userCredential = await authFunctions.createUserWithEmailAndPassword(userData.email, password);
       
       // Criar doc no Firestore
       const userDoc = {
@@ -175,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatedAt: dbFunctions.serverTimestamp()
       };
       
-      await dbFunctions.setDoc(dbFunctions.doc(db, 'users', userCredential.user.uid), userDoc);
+      await dbFunctions.setDoc(dbFunctions.doc('users', userCredential.user.uid), userDoc);
       setUser({ ...userDoc, id: userCredential.user.uid });
       console.log('✅ [AUTH] Register success');
     } catch (error) {
@@ -188,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await authFunctions.signOut(getAuth());
+      await authFunctions.signOut();
       setUser(null);
     } catch (error) {
       console.error('❌ [AUTH] Logout error:', error);
@@ -196,13 +193,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string) => {
-    await authFunctions.sendPasswordResetEmail(getAuth(), email);
+    await authFunctions.sendPasswordResetEmail(email);
   };
 
   const updateUser = async (userData: any) => {
     if (!user) return;
-    const db = getDb();
-    const userRef = dbFunctions.doc(db, 'users', user.id);
+    const userRef = dbFunctions.doc('users', user.id);
     await dbFunctions.updateDoc(userRef, userData);
     setUser((prev: any) => ({ ...prev, ...userData }));
   };

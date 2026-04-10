@@ -3,27 +3,15 @@
 // Substituídos Proxies por Lazy Getters para maior compatibilidade e estabilidade.
 
 import { ENV } from './env';
-
-// 🚨 DEBUG: Log das variáveis brutas vindas do ENV
-console.log('🧪 [FIREBASE_CONFIG_DEBUG] EXPO_PUBLIC_FIREBASE_API_KEY:', ENV.EXPO_PUBLIC_FIREBASE_API_KEY ? `CHAVE_OK (${ENV.EXPO_PUBLIC_FIREBASE_API_KEY.substring(0, 10)}...)` : 'CHAVE_AUSENTE');
-console.log('🧪 [FIREBASE_CONFIG_DEBUG] EXPO_PUBLIC_FIREBASE_PROJECT_ID:', ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID);
+import Constants from 'expo-constants';
 
 // 🛡️ [RECOVERY-LOG] Verificar se os dados vieram do Constants.expoConfig.extra (Fallback físico)
-import Constants from 'expo-constants';
 const extra = Constants.expoConfig?.extra || {};
-if (!ENV.EXPO_PUBLIC_FIREBASE_API_KEY && extra.firebaseApiKey) {
-  console.log('🩹 [FIREBASE_RECOVERY] API Key successfully recovered from Expo Extra (app.config.js fallback)');
-  console.log('🩹 [FIREBASE_RECOVERY] Key recovered:', `${extra.firebaseApiKey.substring(0, 10)}...`);
-}
-
-// ⚠️ TESTE HARDCODED (ETAPA 3) - Se o build falhar com "invalid-api-key", 
-// você pode colocar a chave real aqui temporariamente para isolar se o problema é a injeção do ENV.
-const HARDCODED_API_KEY = ""; // <--- COLOQUE A CHAVE AQUI SE O ENV ESTIVER VINDO UNDEFINED
 
 const firebaseConfig = {
-  apiKey: HARDCODED_API_KEY || ENV.EXPO_PUBLIC_FIREBASE_API_KEY,
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || extra.firebaseApiKey,
   authDomain: ENV.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  projectId: ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "acucaradas-encomendas",
   storageBucket: ENV.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: ENV.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: ENV.EXPO_PUBLIC_FIREBASE_APP_ID,
@@ -45,12 +33,12 @@ export const getApp = () => {
     console.log('🛡️ [FIREBASE] Initializing App Instance...');
     const configToUse = { ...firebaseConfig };
     
-    // Fallback de recuperação de Project ID
-    const EXPECTED_PROJECT_ID = 'acucaradas-encomendas';
-    if (!configToUse.projectId || configToUse.projectId.length < 5) {
-      configToUse.projectId = EXPECTED_PROJECT_ID;
+    // 🚨 [HOTFIX] Se a chave vier como XML
+    if (configToUse.apiKey && configToUse.apiKey.includes('<?xml')) {
+      const match = configToUse.apiKey.match(/<key>API_KEY<\/key>\s*<string>(.*)<\/string>/);
+      if (match) configToUse.apiKey = match[1];
     }
-    
+
     const { initializeApp, getApps } = require('firebase/app');
     const apps = getApps();
     _app = apps.length > 0 ? apps[0] : initializeApp(configToUse);
@@ -86,30 +74,39 @@ export const getStorage = () => {
   return _storage;
 };
 
-// 🛠️ Proxy de Funções (Lazy-Loaded e Argument-Safe)
+// 🛠️ Funções de Autenticação (Auto-Injected)
 export const authFunctions: any = {
-  get signInWithEmailAndPassword() { return require('firebase/auth').signInWithEmailAndPassword; },
-  get createUserWithEmailAndPassword() { return require('firebase/auth').createUserWithEmailAndPassword; },
-  get signOut() { return require('firebase/auth').signOut; },
-  get onAuthStateChanged() { return require('firebase/auth').onAuthStateChanged; },
-  get sendPasswordResetEmail() { return require('firebase/auth').sendPasswordResetEmail; },
-  get updateProfile() { return require('firebase/auth').updateProfile; },
-  get sendEmailVerification() { return require('firebase/auth').sendEmailVerification; },
-  get signInWithCredential() { return require('firebase/auth').signInWithCredential; },
+  get signInWithEmailAndPassword() { 
+    return (email: string, pass: string) => require('firebase/auth').signInWithEmailAndPassword(getAuth(), email, pass); 
+  },
+  get createUserWithEmailAndPassword() { 
+    return (email: string, pass: string) => require('firebase/auth').createUserWithEmailAndPassword(getAuth(), email, pass); 
+  },
+  get signOut() { return () => require('firebase/auth').signOut(getAuth()); },
+  get onAuthStateChanged() { 
+    return (callback: any) => require('firebase/auth').onAuthStateChanged(getAuth(), callback); 
+  },
+  get sendPasswordResetEmail() { 
+    return (email: string) => require('firebase/auth').sendPasswordResetEmail(getAuth(), email); 
+  },
+  get updateProfile() { 
+    return (data: any) => require('firebase/auth').updateProfile(getAuth().currentUser, data); 
+  },
+  get sendEmailVerification() { 
+    return () => require('firebase/auth').sendEmailVerification(getAuth().currentUser); 
+  },
+  get signInWithCredential() { 
+    return (cred: any) => require('firebase/auth').signInWithCredential(getAuth(), cred); 
+  },
   get GoogleAuthProvider() { return require('firebase/auth').GoogleAuthProvider; },
   get FacebookAuthProvider() { return require('firebase/auth').FacebookAuthProvider; },
   get OAuthProvider() { return require('firebase/auth').OAuthProvider; },
 };
 
+// 🛠️ Funções de Banco de Dados (Auto-Injected)
 export const dbFunctions: any = {
-  get collection() { return (path: string) => {
-    const firestore = require('firebase/firestore');
-    return firestore.collection(getDb(), path);
-  }; },
-  get doc() { return (path: string, ...rest: string[]) => {
-    const firestore = require('firebase/firestore');
-    return firestore.doc(getDb(), path, ...rest);
-  }; },
+  get collection() { return (path: string) => require('firebase/firestore').collection(getDb(), path); },
+  get doc() { return (path: string, ...rest: string[]) => require('firebase/firestore').doc(getDb(), path, ...rest); },
   get getDocs() { return (q: any) => require('firebase/firestore').getDocs(q); },
   get getDoc() { return (ref: any) => require('firebase/firestore').getDoc(ref); },
   get setDoc() { return (ref: any, ...args: any[]) => require('firebase/firestore').setDoc(ref, ...args); },
@@ -121,28 +118,17 @@ export const dbFunctions: any = {
   get orderBy() { return (...args: any[]) => require('firebase/firestore').orderBy(...args); },
   get limit() { return (...args: any[]) => require('firebase/firestore').limit(...args); },
   get startAfter() { return (...args: any[]) => require('firebase/firestore').startAfter(...args); },
-  get onSnapshot() { 
-    return (ref: any, ...args: any[]) => {
-      const firestore = require('firebase/firestore');
-      return firestore.onSnapshot(ref, ...args);
-    };
-  },
+  get onSnapshot() { return (...args: any[]) => require('firebase/firestore').onSnapshot(...args); },
   get writeBatch() { return () => require('firebase/firestore').writeBatch(getDb()); },
   get runTransaction() { return (callback: any) => require('firebase/firestore').runTransaction(getDb(), callback); },
   get serverTimestamp() { return require('firebase/firestore').serverTimestamp; },
 };
 
-export const storageFunctions: any = {
-  get ref() { return (path?: string) => require('firebase/storage').ref(getStorage(), path); },
-  get uploadBytes() { return require('firebase/storage').uploadBytes; },
-  get getDownloadURL() { return require('firebase/storage').getDownloadURL; },
-  get deleteObject() { return require('firebase/storage').deleteObject; },
-};
-
+// Mapeamento curto para compatibilidade
 export const a = authFunctions;
 export const f = dbFunctions;
-export const s = storageFunctions;
 
+// Proxies para instâncias (chamam getters por baixo)
 export const auth: any = new Proxy({}, { get: (_, prop) => getAuth()[prop] });
 export const db: any = new Proxy({}, { get: (_, prop) => getDb()[prop] });
 export const storage: any = new Proxy({}, { get: (_, prop) => getStorage()[prop] });
