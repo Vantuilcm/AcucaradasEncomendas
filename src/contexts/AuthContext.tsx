@@ -46,9 +46,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         console.log('🛡️ [AUTH] Initializing Lazy Firebase with Getters...');
         
-        const auth = getAuth();
-        const db = getDb();
-
         // Configurar o observador de estado do usuário usando a função lazy
         authFunctions.onAuthStateChanged(async (firebaseUser: any) => {
           if (firebaseUser) {
