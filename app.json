@@ -28,7 +28,7 @@
         "NSCameraUsageDescription": "O acesso à câmera permite que você tire fotos para o seu perfil e capture imagens de comprovantes de pagamento quando necessário.",
         "NSPhotoLibraryUsageDescription": "O acesso à galeria permite que você selecione fotos para o seu perfil e anexe imagens a avaliações de produtos."
       },
-      "buildNumber": "981",
+      "buildNumber": "983",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
