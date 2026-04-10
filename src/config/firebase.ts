@@ -8,6 +8,13 @@ import { ENV } from './env';
 console.log('🧪 [FIREBASE_CONFIG_DEBUG] EXPO_PUBLIC_FIREBASE_API_KEY:', ENV.EXPO_PUBLIC_FIREBASE_API_KEY ? `DEFINED (len: ${ENV.EXPO_PUBLIC_FIREBASE_API_KEY.length})` : 'UNDEFINED');
 console.log('🧪 [FIREBASE_CONFIG_DEBUG] EXPO_PUBLIC_FIREBASE_PROJECT_ID:', ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID);
 
+// 🛡️ [RECOVERY-LOG] Verificar se os dados vieram do Constants.expoConfig.extra (Fallback físico)
+import Constants from 'expo-constants';
+const extra = Constants.expoConfig?.extra || {};
+if (!ENV.EXPO_PUBLIC_FIREBASE_API_KEY && extra.firebaseApiKey) {
+  console.log('🩹 [FIREBASE_RECOVERY] API Key successfully recovered from Expo Extra (app.config.js fallback)');
+}
+
 // ⚠️ TESTE HARDCODED (ETAPA 3) - Se o build falhar com "invalid-api-key", 
 // você pode colocar a chave real aqui temporariamente para isolar se o problema é a injeção do ENV.
 const HARDCODED_API_KEY = ""; // <--- COLOQUE A CHAVE AQUI SE O ENV ESTIVER VINDO UNDEFINED
