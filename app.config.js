@@ -82,7 +82,10 @@ export default ({ config }) => {
       eas: {
         projectId: appConfig.id
       },
-      env: isProduction ? "production" : isPreview ? "preview" : "development"
+      env: isProduction ? "production" : isPreview ? "preview" : "development",
+      firebaseApiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+      firebaseAppId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+      firebaseProjectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
     },
     plugins: finalPlugins
   };
