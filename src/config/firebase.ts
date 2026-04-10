@@ -102,8 +102,14 @@ export const authFunctions: any = {
 };
 
 export const dbFunctions: any = {
-  get collection() { return (path: string) => require('firebase/firestore').collection(getDb(), path); },
-  get doc() { return (path: string, ...rest: string[]) => require('firebase/firestore').doc(getDb(), path, ...rest); },
+  get collection() { return (path: string) => {
+    const firestore = require('firebase/firestore');
+    return firestore.collection(getDb(), path);
+  }; },
+  get doc() { return (path: string, ...rest: string[]) => {
+    const firestore = require('firebase/firestore');
+    return firestore.doc(getDb(), path, ...rest);
+  }; },
   get getDocs() { return (q: any) => require('firebase/firestore').getDocs(q); },
   get getDoc() { return (ref: any) => require('firebase/firestore').getDoc(ref); },
   get setDoc() { return (ref: any, ...args: any[]) => require('firebase/firestore').setDoc(ref, ...args); },
@@ -115,7 +121,12 @@ export const dbFunctions: any = {
   get orderBy() { return (...args: any[]) => require('firebase/firestore').orderBy(...args); },
   get limit() { return (...args: any[]) => require('firebase/firestore').limit(...args); },
   get startAfter() { return (...args: any[]) => require('firebase/firestore').startAfter(...args); },
-  get onSnapshot() { return (...args: any[]) => require('firebase/firestore').onSnapshot(...args); },
+  get onSnapshot() { 
+    return (ref: any, ...args: any[]) => {
+      const firestore = require('firebase/firestore');
+      return firestore.onSnapshot(ref, ...args);
+    };
+  },
   get writeBatch() { return () => require('firebase/firestore').writeBatch(getDb()); },
   get runTransaction() { return (callback: any) => require('firebase/firestore').runTransaction(getDb(), callback); },
   get serverTimestamp() { return require('firebase/firestore').serverTimestamp; },
