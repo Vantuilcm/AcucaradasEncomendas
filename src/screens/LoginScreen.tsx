@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Alert } from 'react-native';
-import { TextInput, Button, Text, SegmentedButtons, Checkbox } from 'react-native-paper';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Alert, Pressable } from 'react-native';
+import { TextInput, Button, Text, SegmentedButtons, Checkbox, Portal, Modal } from 'react-native-paper';
+import { ENV } from '../config/env';
+import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,8 +30,21 @@ export default function LoginScreen() {
   const displayError = error || authError;
   const [role, setRole] = useState<string>(Role.COMPRADOR);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   const isSyncing = loading || profileLoading;
+
+  const showDebugInfo = () => {
+    const extra = Constants.expoConfig?.extra || {};
+    const info = `
+    ENV KEY: ${ENV.EXPO_PUBLIC_FIREBASE_API_KEY ? ENV.EXPO_PUBLIC_FIREBASE_API_KEY.substring(0, 8) + '...' : 'MISSING'}
+    EXTRA KEY: ${extra.firebaseApiKey ? extra.firebaseApiKey.substring(0, 8) + '...' : 'MISSING'}
+    PROJECT ID: ${ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID}
+    DOMAIN: ${ENV.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN}
+    BUILD: ${Constants.expoConfig?.ios?.buildNumber || 'N/A'}
+    `;
+    Alert.alert('🛡️ Firebase Debug Info', info);
+  };
 
   const validateInputs = useCallback(() => {
     try {
@@ -119,13 +134,17 @@ export default function LoginScreen() {
           style={styles.keyboardAvoid}
         >
           <View style={styles.content}>
-            <View style={styles.logoContainer}>
+            <Pressable 
+              onLongPress={showDebugInfo} 
+              style={styles.logoContainer}
+              delayLongPress={2000}
+            >
               <Image 
                 source={require('../../assets/logo-original.png')} 
                 style={styles.logo} 
                 resizeMode="contain"
               />
-            </View>
+            </Pressable>
             <Text variant="headlineMedium" style={styles.title}>
               Bem-vindo(a)!
             </Text>
