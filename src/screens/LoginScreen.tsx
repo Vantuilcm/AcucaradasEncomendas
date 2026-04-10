@@ -163,6 +163,13 @@ export default function LoginScreen() {
               style={styles.segmentedButtons}
             />
 
+            <View style={styles.partnerPhraseContainer}>
+              <Text variant="bodyMedium" style={styles.partnerPhrase}>
+                {role === Role.PRODUTOR && 'Seja um parceiro produtor e venda seus doces!'}
+                {role === Role.ENTREGADOR && 'Seja um parceiro entregador e ganhe com suas entregas!'}
+              </Text>
+            </View>
+
             {displayError && <ErrorMessage message={displayError} />}
 
 
@@ -297,6 +304,15 @@ const createStyles = (theme: { colors: any }) =>
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(233, 30, 99, 0.1)',
+  },
+  partnerPhraseContainer: {
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  partnerPhrase: {
+    color: theme?.colors?.primary || '#E91E63',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   checkboxWrapper: {
     borderWidth: 2,
