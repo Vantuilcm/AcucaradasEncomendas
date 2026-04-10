@@ -41,22 +41,16 @@ export class OrderService {
       );
 
       if (lastOrder) {
-        // @ts-ignore
-        const { startAfter } = require('firebase/firestore');
-        q = f.query(q, startAfter(lastOrder.createdAt));
+        q = f.query(q, f.startAfter(new Date(lastOrder.createdAt)));
       }
 
-      if (filters?.status) {
-        q = f.query(q, f.where('status', '==', filters.status));
-      }
-
-      const snapshot = await f.getDocs(q);
-      return snapshot.docs.map((docSnapshot: any) => ({
+      const querySnapshot = await f.getDocs(q);
+      return querySnapshot.docs.map((docSnapshot: any) => ({
         id: docSnapshot.id,
         ...docSnapshot.data(),
-      } as Order));
+      })) as Order[];
     } catch (error) {
-      loggingService.error('Erro ao buscar pedidos do usuário', { userId, error });
+      loggingService.error('Erro ao buscar pedidos do usuário', { error, userId });
       throw error;
     }
   }
@@ -81,9 +75,18 @@ export class OrderService {
         ...docSnapshot.data(),
       })) as Order[];
       callback(orders);
+    }, (error: any) => {
+      loggingService.error('Erro ao monitorar pedidos do usuário', { error, userId });
     });
   }
 
+  /**
+   * Busca os pedidos de um entregador
+   * @param driverId ID do entregador
+   * @param filters Filtros opcionais
+   * @param lastOrder Último pedido para paginação
+   * @returns Lista de pedidos
+   */
   async getOrdersByDeliveryDriver(
     driverId: string,
     filters?: OrderFilters,
@@ -99,43 +102,24 @@ export class OrderService {
       );
 
       if (lastOrder) {
-        // @ts-ignore
-        const { startAfter } = require('firebase/firestore');
-        q = f.query(
-          ordersRef,
-          f.where('deliveryDriver.id', '==', driverId),
-          f.orderBy('createdAt', 'desc'),
-          startAfter(new Date(lastOrder.createdAt)),
-          f.limit(this.pageSize)
-        );
+        q = f.query(q, f.startAfter(new Date(lastOrder.createdAt)));
       }
 
       const querySnapshot = await f.getDocs(q);
-      const orders: Order[] = [];
-
-      for (const docSnapshot of querySnapshot.docs) {
-        const order = {
-          id: docSnapshot.id,
-          ...docSnapshot.data(),
-        } as Order;
-        orders.push(order);
-      }
-
-      return this.applyFilters(orders, filters);
-    } catch (error: any) {
-      loggingService.error('Erro ao buscar pedidos do entregador', {
-        driverId,
-        filters,
-        error: error.message,
-      });
+      return querySnapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      })) as Order[];
+    } catch (error) {
+      loggingService.error('Erro ao buscar pedidos do entregador', { error, driverId });
       throw error;
     }
   }
 
   /**
-   * Obtém detalhes de um pedido pelo ID
+   * Busca um pedido por ID
    * @param orderId ID do pedido
-   * @returns Pedido encontrado ou null
+   * @returns O pedido ou null se não encontrado
    */
   async getOrderById(orderId: string): Promise<Order | null> {
     try {
@@ -146,9 +130,12 @@ export class OrderService {
         return null;
       }
 
-      return { id: orderDoc.id, ...orderDoc.data() } as Order;
+      return {
+        id: orderDoc.id,
+        ...orderDoc.data(),
+      } as Order;
     } catch (error) {
-      loggingService.error('Erro ao buscar pedido por ID', { orderId, error });
+      loggingService.error('Erro ao buscar pedido por ID', { error, orderId });
       throw error;
     }
   }
@@ -156,18 +143,10 @@ export class OrderService {
   /**
    * Cria um novo pedido
    * @param orderData Dados do pedido
-   * @returns Pedido criado
+   * @returns O pedido criado
    */
-  async createOrder(orderData: Omit<Order, 'id'>): Promise<Order> {
+  async createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
     try {
-      // Validações básicas
-      if (!orderData.userId) {
-        throw new Error('ID do usuário é obrigatório');
-      }
-      if (!orderData.items || orderData.items.length === 0) {
-        throw new Error('Pedido deve conter pelo menos um item');
-      }
-
       // Criar pedido no Firestore
       const ordersRef = f.collection(this.collectionName);
       const createdAt = new Date();
@@ -179,66 +158,97 @@ export class OrderService {
         status: orderData.status || 'pending'
       };
       
-      const docRef = await f.addDoc(ordersRef, {
-        ...orderData,
-        createdAt, // Save as Date in Firestore
-        updatedAt: createdAt,
-        status: orderData.status || 'pending'
-      } as any);
-      
-      loggingService.info('Pedido criado com sucesso', { orderId: docRef.id });
-      
-      return {
+      const docRef = await f.addDoc(ordersRef, newOrder);
+
+      const createdOrder = {
         id: docRef.id,
-        ...newOrder
+        ...newOrder,
       } as Order;
-    } catch (error: any) {
-      loggingService.error('Erro ao criar pedido', { error: error.message });
+
+      // Enviar notificações
+      await NotificationService.getInstance().sendOrderNotification(createdOrder);
+      
+      // Registrar no serviço de crescimento
+      await GrowthService.getInstance().trackOrder(createdOrder);
+
+      return createdOrder;
+    } catch (error) {
+      loggingService.error('Erro ao criar pedido', { error });
       throw error;
     }
   }
 
   /**
-   * Obtém um resumo dos pedidos do usuário
+   * Obtém o resumo de pedidos de um usuário
    * @param userId ID do usuário
-   * @returns Resumo dos pedidos
+   * @returns Resumo de pedidos
    */
   async getOrderSummary(userId: string): Promise<OrderSummary> {
     try {
       const ordersRef = f.collection(this.collectionName);
       const q = f.query(ordersRef, f.where('userId', '==', userId), f.orderBy('createdAt', 'desc'));
-
       const querySnapshot = await f.getDocs(q);
-      const orders = querySnapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Order[];
-
+      
+      const orders = querySnapshot.docs.map((docSnapshot: any) => docSnapshot.data()) as Order[];
+      
       return {
-        total: orders.length,
-        pending: orders.filter(o => o.status === 'pending').length,
-        confirmed: orders.filter(o => o.status === 'confirmed').length,
-        preparing: orders.filter(o => o.status === 'preparing').length,
-        ready: orders.filter(o => o.status === 'ready').length,
-        delivering: orders.filter(o => o.status === 'delivering').length,
-        delivered: orders.filter(o => o.status === 'delivered').length,
-        cancelled: orders.filter(o => o.status === 'cancelled').length,
-        scheduledOrders: orders.filter(o => o.isScheduledOrder).length,
+        totalOrders: orders.length,
+        pendingOrders: orders.filter(o => o.status === 'pending').length,
+        completedOrders: orders.filter(o => o.status === 'completed').length,
+        cancelledOrders: orders.filter(o => o.status === 'cancelled').length,
+        totalSpent: orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.total || 0), 0)
       };
-    } catch (error: any) {
-      loggingService.error('Erro ao buscar resumo de pedidos', {
-        userId,
-        error: error.message,
-      });
+    } catch (error) {
+      loggingService.error('Erro ao obter resumo de pedidos', { error, userId });
       throw error;
     }
   }
 
   /**
-   * Atualiza um pedido existente
+   * Atualiza o status de um pedido
    * @param orderId ID do pedido
-   * @param orderData Dados atualizados do pedido
-   * @returns Pedido atualizado
+   * @param status Novo status
+   * @returns O pedido atualizado
+   */
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+    try {
+      const orderRef = f.doc(this.collectionName, orderId);
+      const orderDoc = await f.getDoc(orderRef);
+
+      if (!orderDoc.exists()) {
+        throw new Error('Pedido não encontrado');
+      }
+
+      const updatedAt = new Date().toISOString();
+      await f.updateDoc(orderRef, { status, updatedAt });
+
+      const updatedOrder = {
+        id: orderId,
+        ...orderDoc.data(),
+        status,
+        updatedAt,
+      } as Order;
+
+      // Notificar mudança de status
+      await NotificationService.getInstance().sendOrderStatusUpdate(updatedOrder);
+      
+      // Se concluído, atualizar serviço de entrega
+      if (status === 'completed' || status === 'delivered') {
+        await DeliveryService.getInstance().completeDelivery(orderId);
+      }
+
+      return updatedOrder;
+    } catch (error) {
+      loggingService.error('Erro ao atualizar status do pedido', { error, orderId, status });
+      throw error;
+    }
+  }
+
+  /**
+   * Atualiza dados de um pedido
+   * @param orderId ID do pedido
+   * @param orderData Novos dados
+   * @returns O pedido atualizado
    */
   async updateOrder(orderId: string, orderData: Partial<Order>): Promise<Order> {
     try {
@@ -249,31 +259,17 @@ export class OrderService {
         throw new Error('Pedido não encontrado');
       }
 
-      // Remover campos que não devem ser atualizados
-      const { id, createdAt, ...updateData } = orderData as any;
-      
-      // Adicionar timestamp de atualização
-      const dataToUpdate = {
-        ...updateData,
-        updatedAt: new Date()
-      };
+      const updatedAt = new Date().toISOString();
+      await f.updateDoc(orderRef, { ...orderData, updatedAt });
 
-      await f.updateDoc(orderRef, dataToUpdate);
-      
-      // Buscar pedido atualizado
-      const updatedOrderDoc = await f.getDoc(orderRef);
-      
-      loggingService.info('Pedido atualizado com sucesso', { orderId });
-      
       return {
-        id: updatedOrderDoc.id,
-        ...updatedOrderDoc.data()
+        id: orderId,
+        ...orderDoc.data(),
+        ...orderData,
+        updatedAt,
       } as Order;
-    } catch (error: any) {
-      loggingService.error('Erro ao atualizar pedido', { 
-        orderId, 
-        error: error.message 
-      });
+    } catch (error) {
+      loggingService.error('Erro ao atualizar pedido', { error, orderId });
       throw error;
     }
   }
@@ -281,8 +277,8 @@ export class OrderService {
   /**
    * Cancela um pedido
    * @param orderId ID do pedido
-   * @param reason Motivo do cancelamento (opcional)
-   * @returns Pedido cancelado
+   * @param reason Motivo do cancelamento
+   * @returns O pedido cancelado
    */
   async cancelOrder(orderId: string, reason?: string): Promise<Order> {
     try {
@@ -293,44 +289,48 @@ export class OrderService {
         throw new Error('Pedido não encontrado');
       }
 
-      const currentOrder = orderDoc.data() as unknown as Order;
-      
-      // Verificar se o pedido já está cancelado
-      if (currentOrder.status === 'cancelled') {
-        throw new Error('Pedido já está cancelado');
-      }
-      
-      // Verificar se o pedido já foi entregue
-      if (currentOrder.status === 'delivered') {
-        throw new Error('Não é possível cancelar um pedido já entregue');
-      }
-
-      const updateData = {
-        status: 'cancelled',
-        cancellationReason: reason || 'Cancelado pelo usuário',
-        cancelledAt: new Date(),
-        updatedAt: new Date()
-      };
-
-      await f.updateDoc(orderRef, updateData);
-      
-      // Buscar pedido atualizado
-      const updatedOrderDoc = await f.getDoc(orderRef);
-      
-      loggingService.info('Pedido cancelado', { orderId, reason });
-      
-      return {
-        id: updatedOrderDoc.id,
-        ...updatedOrderDoc.data()
-      } as Order;
-    } catch (error: any) {
-      loggingService.error('Erro ao cancelar pedido', { 
-        orderId, 
-        reason, 
-        error: error.message 
+      const updatedAt = new Date().toISOString();
+      await f.updateDoc(orderRef, { 
+        status: 'cancelled', 
+        updatedAt,
+        cancelReason: reason 
       });
+
+      const cancelledOrder = {
+        id: orderId,
+        ...orderDoc.data(),
+        status: 'cancelled' as OrderStatus,
+        updatedAt,
+        cancelReason: reason
+      } as Order;
+
+      await NotificationService.getInstance().sendOrderCancellation(cancelledOrder);
+
+      return cancelledOrder;
+    } catch (error) {
+      loggingService.error('Erro ao cancelar pedido', { error, orderId });
       throw error;
     }
+  }
+
+  /**
+   * Monitora todos os pedidos (para administradores ou produtores)
+   * @param callback Função chamada sempre que os dados mudarem
+   * @returns Função para cancelar o monitoramento
+   */
+  public subscribeToAllOrders(callback: (orders: Order[]) => void): () => void {
+    const ordersRef = f.collection(this.collectionName);
+    const q = f.query(ordersRef, f.orderBy('createdAt', 'desc'));
+
+    return f.onSnapshot(q, (querySnapshot: any) => {
+      const orders = querySnapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      })) as Order[];
+      callback(orders);
+    }, (error: any) => {
+      loggingService.error('Erro ao monitorar todos os pedidos', { error });
+    });
   }
 
   /**
@@ -348,38 +348,25 @@ export class OrderService {
 
       // Calcular estatísticas
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const lastMonth = new Date();
+      lastMonth.setMonth(today.getMonth() - 1);
+
+      const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'delivered');
+      const totalRevenue = completedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
       
-      const todayOrders = orders.filter(order => {
-        const orderDate = new Date(order.createdAt);
-        orderDate.setHours(0, 0, 0, 0);
-        return orderDate.getTime() === today.getTime();
-      });
-      
-      // Calcular receita total
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-      const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-      
+      const lastMonthOrders = completedOrders.filter(o => new Date(o.createdAt) >= lastMonth);
+      const lastMonthRevenue = lastMonthOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+
       return {
         totalOrders: orders.length,
-        todayOrders: todayOrders.length,
+        completedOrders: completedOrders.length,
         totalRevenue,
-        todayRevenue,
-        statusCounts: {
-          pending: orders.filter(o => o.status === 'pending').length,
-          confirmed: orders.filter(o => o.status === 'confirmed').length,
-          preparing: orders.filter(o => o.status === 'preparing').length,
-          ready: orders.filter(o => o.status === 'ready').length,
-          delivering: orders.filter(o => o.status === 'delivering').length,
-          delivered: orders.filter(o => o.status === 'delivered').length,
-          cancelled: orders.filter(o => o.status === 'cancelled').length,
-        },
-        scheduledOrders: orders.filter(o => o.isScheduledOrder).length,
+        lastMonthRevenue,
+        averageOrderValue: completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0,
+        growth: lastMonthRevenue > 0 ? ((totalRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0
       };
-    } catch (error: any) {
-      loggingService.error('Erro ao obter estatísticas de pedidos', {
-        error: error.message,
-      });
+    } catch (error) {
+      loggingService.error('Erro ao obter estatísticas de pedidos', { error });
       throw error;
     }
   }
@@ -404,283 +391,22 @@ export class OrderService {
           id: item.id,
           ...data,
           createdAt,
-          updatedAt,
+          updatedAt
         };
       }) as Order[];
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
       
-      const todayOrders = orders.filter(order => {
-        const orderDate = new Date(order.createdAt);
-        orderDate.setHours(0, 0, 0, 0);
-        return orderDate.getTime() === today.getTime();
-      });
+      // Recalcular estatísticas
+      const completedOrders = orders.filter(o => o.status === 'completed' || o.status === 'delivered');
+      const totalRevenue = completedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
       
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-      const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-      
-      const stats = {
+      callback({
         totalOrders: orders.length,
-        todayOrders: todayOrders.length,
+        completedOrders: completedOrders.length,
         totalRevenue,
-        todayRevenue,
-        statusCounts: {
-          pending: orders.filter(o => o.status === 'pending').length,
-          confirmed: orders.filter(o => o.status === 'confirmed').length,
-          preparing: orders.filter(o => o.status === 'preparing').length,
-          ready: orders.filter(o => o.status === 'ready').length,
-          delivering: orders.filter(o => o.status === 'delivering').length,
-          delivered: orders.filter(o => o.status === 'delivered').length,
-          cancelled: orders.filter(o => o.status === 'cancelled').length,
-        },
-        scheduledOrders: orders.filter(o => o.isScheduledOrder).length,
-      };
-
-      callback(stats);
+        averageOrderValue: completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0
+      });
     }, (error: any) => {
       loggingService.error('Erro ao monitorar estatísticas de pedidos', { error: error.message });
     });
   }
-
-  /**
-   * Monitora todos os pedidos em tempo real (para gestão operacional)
-   * @param callback Função chamada sempre que os dados mudarem
-   * @returns Função para cancelar o monitoramento
-   */
-  public subscribeToAllOrders(callback: (orders: Order[]) => void): () => void {
-    const ordersRef = f.collection(this.db, this.collectionName);
-    const q = f.query(ordersRef, f.orderBy('createdAt', 'desc'));
-
-    return f.onSnapshot(q, (querySnapshot: any) => {
-      const orders = querySnapshot.docs.map((item: any) => {
-        const data = item.data();
-        const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt;
-        const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt;
-        
-        return {
-          id: item.id,
-          ...data,
-          createdAt,
-          updatedAt,
-        };
-      }) as Order[];
-      
-      callback(orders);
-    }, (error: any) => {
-      loggingService.error('Erro ao monitorar todos os pedidos', { error: error.message });
-    });
-  }
-
-  /**
-   * Atualiza o status de um pedido
-   * @param orderId ID do pedido
-   * @param status Novo status do pedido
-   * @returns Pedido atualizado
-   */
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
-    try {
-      const orderRef = f.doc(this.db, this.collectionName, orderId);
-      const orderDoc = await f.getDoc(orderRef);
-
-      if (!orderDoc.exists()) {
-        throw new Error('Pedido não encontrado');
-      }
-
-      const orderData = orderDoc.data() as unknown as Order;
-      const oldStatus = orderData.status;
-
-      const updateData = {
-        status,
-        updatedAt: new Date()
-      };
-
-      await f.updateDoc(orderRef, updateData);
-      
-      // Enviar notificações de mudança de status
-      try {
-        const notificationService = NotificationService.getInstance();
-        
-        // Notificação para o cliente
-        await notificationService.createNotification({
-          userId: orderData.userId,
-          type: 'order_status_update',
-          title: 'Atualização do Pedido',
-          message: `O status do seu pedido #${orderId.substring(0, 8)} mudou para: ${this.getStatusLabel(status)}`,
-          priority: 'high',
-          read: false,
-          data: { orderId, status }
-        });
-
-        // Se o pedido for para o produtor e estiver 'confirmed', notificar
-        if (status === 'confirmed' && orderData.producerId) {
-          await notificationService.createNotification({
-            userId: orderData.producerId,
-            type: 'new_order',
-            title: 'Novo Pedido Confirmado',
-            message: `Você tem um novo pedido #${orderId.substring(0, 8)} para preparar.`,
-            priority: 'high',
-            read: false,
-            data: { orderId }
-          });
-        }
-
-        // Se o pedido estiver 'ready', notificar entregadores
-        if (status === 'ready') {
-          // Criar registro na coleção de entregas para que apareça para os entregadores
-          try {
-            const deliveryService = new DeliveryService();
-            await deliveryService.createDelivery({
-              orderId,
-              status: 'pending',
-              userId: orderData.userId,
-              producerId: orderData.producerId,
-              address: orderData.deliveryAddress,
-              totalAmount: orderData.totalAmount,
-              deliveryFee: orderData.deliveryFee || 10,
-              items: orderData.items,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            } as any);
-
-            // Notificar entregadores disponíveis
-            await notificationService.createNotification({
-              userId: 'all_drivers', // Tópico ou lógica para todos os entregadores
-              type: 'delivery_available',
-              title: 'Nova Entrega Disponível',
-              message: `Um novo pedido #${orderId.substring(0, 8)} está pronto para entrega.`,
-              priority: 'high',
-              read: false,
-              data: { orderId }
-            });
-          } catch (deliveryError) {
-            console.error('Erro ao criar registro de entrega:', deliveryError);
-          }
-        }
-
-        // Se o pedido estiver 'delivering', notificar o cliente
-        if (status === 'delivering') {
-          await notificationService.createNotification({
-            userId: orderData.userId,
-            type: 'delivery_status_update',
-            title: 'Pedido Saiu para Entrega',
-            message: `O seu pedido #${orderId.substring(0, 8)} saiu para entrega e chegará em breve!`,
-            priority: 'high',
-            read: false,
-            data: { orderId, status: 'delivering' }
-          });
-        }
-
-        // Se o pedido estiver 'delivered', notificar o cliente e disparar Growth Loop
-        if (status === 'delivered') {
-          await notificationService.createNotification({
-            userId: orderData.userId,
-            type: 'order_delivered',
-            title: 'Pedido Entregue',
-            message: `O seu pedido #${orderId.substring(0, 8)} foi entregue. Bom apetite!`,
-            priority: 'high',
-            read: false,
-            data: { orderId, status: 'delivered' }
-          });
-
-          // 🎯 GROWTH ENGINE: Disparar Growth Loop (Indicação e Fidelidade)
-          try {
-            const growthService = GrowthService.getInstance();
-            await growthService.triggerGrowthLoop({ ...orderData, id: orderId } as Order);
-          } catch (growthError) {
-            console.error('Erro ao disparar Growth Loop:', growthError);
-          }
-        }
-      } catch (notifError) {
-        console.error('Erro ao enviar notificações de status:', notifError);
-      }
-
-      loggingService.info('Status do pedido atualizado', { orderId, oldStatus, newStatus: status });
-      
-      const updatedOrderDoc = await f.getDoc(orderRef);
-      return {
-        ...updatedOrderDoc.data(),
-        id: updatedOrderDoc.id
-      } as Order;
-    } catch (error: any) {
-      loggingService.error('Erro ao atualizar status do pedido', { 
-        orderId, 
-        status, 
-        error: error.message 
-      });
-      throw error;
-    }
-  }
-
-  private getStatusLabel(status: OrderStatus): string {
-    switch (status) {
-      case 'pending': return 'Pendente';
-      case 'confirmed': return 'Confirmado';
-      case 'preparing': return 'Em Preparação';
-      case 'ready': return 'Pronto para Entrega';
-      case 'delivering': return 'Em Rota de Entrega';
-      case 'delivered': return 'Entregue';
-      case 'cancelled': return 'Cancelado';
-      default: return status;
-    }
-  }
-
-  /**
-   * Aplica filtros a uma lista de pedidos em memória
-   * @param orders Lista de pedidos
-   * @param filters Filtros a serem aplicados
-   * @returns Lista de pedidos filtrada
-   * @private
-   */
-  private applyFilters(orders: Order[], filters?: OrderFilters): Order[] {
-    if (!filters) return orders;
-
-    return orders.filter(order => {
-      // Filtro por status
-      if (filters.status && filters.status.length > 0) {
-        if (!filters.status.includes(order.status)) {
-          return false;
-        }
-      }
-
-      // Filtro por data
-      const orderDate = new Date(order.createdAt);
-      if (filters.startDate) {
-        const startDate = new Date(filters.startDate);
-        if (orderDate < startDate) {
-          return false;
-        }
-      }
-      if (filters.endDate) {
-        const endDate = new Date(filters.endDate);
-        if (orderDate > endDate) {
-          return false;
-        }
-      }
-
-      // Filtro por busca
-      if (filters.search) {
-        const search = filters.search.toLowerCase();
-        const matchesSearch =
-          order.id.toLowerCase().includes(search) ||
-          order.items.some(item => item.name.toLowerCase().includes(search)) ||
-          order.deliveryAddress.street.toLowerCase().includes(search) ||
-          order.deliveryAddress.city.toLowerCase().includes(search);
-
-        if (!matchesSearch) {
-          return false;
-        }
-      }
-
-      // Filtro por pedidos agendados
-      if (filters.isScheduled !== undefined) {
-        if (order.isScheduledOrder !== filters.isScheduled) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }
-
 }

@@ -31,49 +31,11 @@ const firebaseConfig = {
   databaseURL: ENV.EXPO_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
-// 🛡️ VALIDAÇÃO DE RUNTIME
-if (!firebaseConfig.apiKey) {
-  console.error('❌ [FIREBASE_CRITICAL] API KEY IS MISSING IN CONFIG OBJECT!');
-}
-
 // Singleton pattern seguro e 🚀 LAZY
 let _app: any = null;
 let _auth: any = null;
 let _db: any = null;
 let _storage: any = null;
-
-// 🛠️ Proxy de Funções de Autenticação (Lazy-Loaded)
-export const authFunctions = {
-  get signInWithEmailAndPassword() { return require('firebase/auth').signInWithEmailAndPassword; },
-  get createUserWithEmailAndPassword() { return require('firebase/auth').createUserWithEmailAndPassword; },
-  get signOut() { return require('firebase/auth').signOut; },
-  get onAuthStateChanged() { return require('firebase/auth').onAuthStateChanged; },
-  get sendPasswordResetEmail() { return require('firebase/auth').sendPasswordResetEmail; },
-  get updateProfile() { return require('firebase/auth').updateProfile; },
-  get signInWithCredential() { return require('firebase/auth').signInWithCredential; },
-  get GoogleAuthProvider() { return require('firebase/auth').GoogleAuthProvider; },
-  get OAuthProvider() { return require('firebase/auth').OAuthProvider; },
-};
-
-// 🛠️ Proxy de Funções de Banco de Dados (Lazy-Loaded)
-export const dbFunctions = {
-  get collection() { return (path: string) => require('firebase/firestore').collection(getDb(), path); },
-  get doc() { return (path: string, ...rest: string[]) => require('firebase/firestore').doc(getDb(), path, ...rest); },
-  get getDocs() { return (q: any) => require('firebase/firestore').getDocs(q); },
-  get getDoc() { return (ref: any) => require('firebase/firestore').getDoc(ref); },
-  get setDoc() { return (ref: any, data: any, options?: any) => require('firebase/firestore').setDoc(ref, data, options); },
-  get addDoc() { return (ref: any, data: any) => require('firebase/firestore').addDoc(ref, data); },
-  get updateDoc() { return (ref: any, data: any) => require('firebase/firestore').updateDoc(ref, data); },
-  get deleteDoc() { return (ref: any) => require('firebase/firestore').deleteDoc(ref); },
-  get query() { return (...args: any[]) => require('firebase/firestore').query(...args); },
-  get where() { return (...args: any[]) => require('firebase/firestore').where(...args); },
-  get orderBy() { return (...args: any[]) => require('firebase/firestore').orderBy(...args); },
-  get limit() { return (...args: any[]) => require('firebase/firestore').limit(...args); },
-  get onSnapshot() { return (ref: any, callback: any) => require('firebase/firestore').onSnapshot(ref, callback); },
-  get writeBatch() { return () => require('firebase/firestore').writeBatch(getDb()); },
-  get runTransaction() { return (callback: any) => require('firebase/firestore').runTransaction(getDb(), callback); },
-  get serverTimestamp() { return require('firebase/firestore').serverTimestamp; },
-};
 
 /**
  * Obtém a instância do Firebase App de forma preguiçosa
@@ -81,38 +43,12 @@ export const dbFunctions = {
 export const getApp = () => {
   if (!_app) {
     console.log('🛡️ [FIREBASE] Initializing App Instance...');
-    
-    // Validação profunda da API Key
     const configToUse = { ...firebaseConfig };
     
-    // Log completo do config (mascarado)
-    console.log('🛡️ [FIREBASE] Config used for initialization:', {
-      ...configToUse,
-      apiKey: configToUse.apiKey ? `${configToUse.apiKey.substring(0, 5)}...${configToUse.apiKey.substring(configToUse.apiKey.length - 5)}` : 'MISSING'
-    });
-    if (!configToUse.apiKey || configToUse.apiKey.length < 10) {
-      console.error('❌ [FIREBASE] FATAL: API Key is INVALID in firebaseConfig!', configToUse.apiKey);
-      // Tentativa de recuperação via process.env direto (último recurso)
-      const fallbackKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
-      if (fallbackKey && fallbackKey.length > 10) {
-        console.log('🩹 [FIREBASE] Recovered API Key from process.env fallback');
-        configToUse.apiKey = fallbackKey;
-      }
-    } else {
-      console.log('🛡️ [FIREBASE] API Key looks valid. Starts with:', configToUse.apiKey.substring(0, 5) + '...');
-    }
-    
-    console.log('🛡️ [FIREBASE] Final Config Check - ProjectId:', configToUse.projectId);
-    
-    // 🔍 ETAPA 1 & 2: Validar se o Project ID é o esperado (acucaradas-encomendas)
+    // Fallback de recuperação de Project ID
     const EXPECTED_PROJECT_ID = 'acucaradas-encomendas';
-    if (configToUse.projectId !== EXPECTED_PROJECT_ID) {
-      console.warn(`⚠️ [FIREBASE_PROJECT_MISMATCH] Detectado: ${configToUse.projectId} | Esperado: ${EXPECTED_PROJECT_ID}`);
-      // ETAPA 3: Forçar o projeto original se houver erro de injeção
-      if (!configToUse.projectId || configToUse.projectId.length < 5) {
-        console.log(`🩹 [FIREBASE_PROJECT_RECOVERY] Forçando Project ID original: ${EXPECTED_PROJECT_ID}`);
-        configToUse.projectId = EXPECTED_PROJECT_ID;
-      }
+    if (!configToUse.projectId || configToUse.projectId.length < 5) {
+      configToUse.projectId = EXPECTED_PROJECT_ID;
     }
     
     const { initializeApp, getApps } = require('firebase/app');
@@ -122,62 +58,36 @@ export const getApp = () => {
   return _app;
 };
 
-/**
- * 🛡️ Lazy Getter para Auth
- */
 export const getAuth = () => {
   if (!_auth) {
-    console.log('🛡️ [FIREBASE] Initializing Auth Instance...');
     const { initializeAuth, getReactNativePersistence, getAuth: getFirebaseAuth } = require('firebase/auth');
-    const storageModule = require('@react-native-async-storage/async-storage');
-    const AsyncStorage = storageModule.default || storageModule;
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     const app = getApp();
-
     try {
-      if (AsyncStorage) {
-        _auth = initializeAuth(app, {
-          persistence: getReactNativePersistence(AsyncStorage)
-        });
-        console.log('✅ [FIREBASE] Auth initialized with AsyncStorage');
-      } else {
-        _auth = getFirebaseAuth(app);
-        console.warn('⚠️ [FIREBASE] AsyncStorage not found, using memory persistence');
-      }
+      _auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
     } catch (e) {
-      console.error('❌ [FIREBASE] Auth init error, falling back:', e);
       _auth = getFirebaseAuth(app);
     }
   }
   return _auth;
 };
 
-/**
- * 🛡️ Lazy Getter para Firestore
- */
 export const getDb = () => {
   if (!_db) {
-    console.log('🛡️ [FIREBASE] Initializing Firestore Instance...');
-    const { getFirestore } = require('firebase/firestore');
-    _db = getFirestore(getApp());
+    _db = require('firebase/firestore').getFirestore(getApp());
   }
   return _db;
 };
 
-/**
- * 🛡️ Lazy Getter para Storage
- */
 export const getStorage = () => {
   if (!_storage) {
-    console.log('🛡️ [FIREBASE] Initializing Storage Instance...');
-    const { getStorage: getFirebaseStorage } = require('firebase/storage');
-    _storage = getFirebaseStorage(getApp());
+    _storage = require('firebase/storage').getStorage(getApp());
   }
   return _storage;
 };
 
-// Exportar funções auxiliares do Firebase SDK de forma Lazy
-// Isso permite que chamemos 'authFunctions.signInWithEmailAndPassword' sem importar no topo
-export const authFunctions = {
+// 🛠️ Proxy de Funções (Lazy-Loaded e Argument-Safe)
+export const authFunctions: any = {
   get signInWithEmailAndPassword() { return require('firebase/auth').signInWithEmailAndPassword; },
   get createUserWithEmailAndPassword() { return require('firebase/auth').createUserWithEmailAndPassword; },
   get signOut() { return require('firebase/auth').signOut; },
@@ -191,54 +101,37 @@ export const authFunctions = {
   get OAuthProvider() { return require('firebase/auth').OAuthProvider; },
 };
 
-export const dbFunctions = {
-  get doc() { return require('firebase/firestore').doc; },
-  get getDoc() { return require('firebase/firestore').getDoc; },
-  get setDoc() { return require('firebase/firestore').setDoc; },
-  get updateDoc() { return require('firebase/firestore').updateDoc; },
-  get collection() { return require('firebase/firestore').collection; },
-  get query() { return require('firebase/firestore').query; },
-  get where() { return require('firebase/firestore').where; },
-  get getDocs() { return require('firebase/firestore').getDocs; },
-  get addDoc() { return require('firebase/firestore').addDoc; },
-  get deleteDoc() { return require('firebase/firestore').deleteDoc; },
+export const dbFunctions: any = {
+  get collection() { return (path: string) => require('firebase/firestore').collection(getDb(), path); },
+  get doc() { return (path: string, ...rest: string[]) => require('firebase/firestore').doc(getDb(), path, ...rest); },
+  get getDocs() { return (q: any) => require('firebase/firestore').getDocs(q); },
+  get getDoc() { return (ref: any) => require('firebase/firestore').getDoc(ref); },
+  get setDoc() { return (ref: any, ...args: any[]) => require('firebase/firestore').setDoc(ref, ...args); },
+  get addDoc() { return (ref: any, ...args: any[]) => require('firebase/firestore').addDoc(ref, ...args); },
+  get updateDoc() { return (ref: any, ...args: any[]) => require('firebase/firestore').updateDoc(ref, ...args); },
+  get deleteDoc() { return (ref: any) => require('firebase/firestore').deleteDoc(ref); },
+  get query() { return (...args: any[]) => require('firebase/firestore').query(...args); },
+  get where() { return (...args: any[]) => require('firebase/firestore').where(...args); },
+  get orderBy() { return (...args: any[]) => require('firebase/firestore').orderBy(...args); },
+  get limit() { return (...args: any[]) => require('firebase/firestore').limit(...args); },
+  get startAfter() { return (...args: any[]) => require('firebase/firestore').startAfter(...args); },
+  get onSnapshot() { return (...args: any[]) => require('firebase/firestore').onSnapshot(...args); },
+  get writeBatch() { return () => require('firebase/firestore').writeBatch(getDb()); },
+  get runTransaction() { return (callback: any) => require('firebase/firestore').runTransaction(getDb(), callback); },
   get serverTimestamp() { return require('firebase/firestore').serverTimestamp; },
-  get onSnapshot() { return require('firebase/firestore').onSnapshot; },
-  get orderBy() { return require('firebase/firestore').orderBy; },
-  get limit() { return require('firebase/firestore').limit; },
 };
 
-export const storageFunctions = {
-  get ref() { return require('firebase/storage').ref; },
+export const storageFunctions: any = {
+  get ref() { return (path?: string) => require('firebase/storage').ref(getStorage(), path); },
   get uploadBytes() { return require('firebase/storage').uploadBytes; },
   get getDownloadURL() { return require('firebase/storage').getDownloadURL; },
   get deleteObject() { return require('firebase/storage').deleteObject; },
 };
 
-// Mapeamento para compatibilidade (a, f, s) para facilitar migração gradual
 export const a = authFunctions;
 export const f = dbFunctions;
 export const s = storageFunctions;
 
-// Instâncias para compatibilidade real (chamam getAuth/getDb por baixo)
-export const auth: any = new Proxy({}, {
-  get: (_, prop) => {
-    const instance = getAuth();
-    return instance[prop];
-  }
-});
-
-export const db: any = new Proxy({}, {
-  get: (_, prop) => {
-    const instance = getDb();
-    return instance[prop];
-  }
-});
-
-export const storage: any = new Proxy({}, {
-  get: (_, prop) => {
-    const instance = getStorage();
-    return instance[prop];
-  }
-});
-
+export const auth: any = new Proxy({}, { get: (_, prop) => getAuth()[prop] });
+export const db: any = new Proxy({}, { get: (_, prop) => getDb()[prop] });
+export const storage: any = new Proxy({}, { get: (_, prop) => getStorage()[prop] });
