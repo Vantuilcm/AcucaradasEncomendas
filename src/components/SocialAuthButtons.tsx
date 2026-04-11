@@ -30,8 +30,9 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
 
   // Configuração Google Auth
   const [, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: ENV.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '6756029389-google-ios-id.apps.googleusercontent.com',
-    androidClientId: ENV.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'google-android-id.apps.googleusercontent.com',
+    iosClientId: '6756029389-google-ios-id.apps.googleusercontent.com',
+    androidClientId: '6756029389-google-android-id.apps.googleusercontent.com',
+    clientId: '6756029389-google-web-id.apps.googleusercontent.com',
   });
 
   useEffect(() => {
