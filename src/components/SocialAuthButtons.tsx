@@ -28,16 +28,30 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
   const { signInWithFacebook, signInWithApple, signInWithCredential, is2FAEnabled } = useAuth();
 
   // Configuração Google Auth
-  const [, response, promptAsync] = Google.useAuthRequest({
+  const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: '6756029389-google-ios-id.apps.googleusercontent.com',
     androidClientId: '6756029389-google-android-id.apps.googleusercontent.com',
     clientId: '6756029389-google-web-id.apps.googleusercontent.com',
+    responseType: 'id_token',
   });
 
   useEffect(() => {
     if (response?.type === 'success') {
-      const { id_token } = response.params;
-      handleGoogleLogin(id_token);
+      const { id_token, authentication } = response.params;
+      const token = id_token || authentication?.idToken;
+      
+      console.log('🛡️ [DEBUG_GOOGLE] Response Type:', response.type);
+      console.log('🛡️ [DEBUG_GOOGLE] Token found:', !!token);
+      
+      if (token) {
+        handleGoogleLogin(token);
+      } else {
+        console.error('❌ [DEBUG_GOOGLE] No ID Token found in response');
+        Alert.alert('Erro Google', 'Não foi possível obter o token de autenticação.');
+      }
+    } else if (response?.type === 'error') {
+      console.error('❌ [DEBUG_GOOGLE] Auth Error:', response.error);
+      Alert.alert('Erro Google', 'Falha na comunicação com o Google.');
     }
   }, [response]);
 
