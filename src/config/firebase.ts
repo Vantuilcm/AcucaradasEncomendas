@@ -127,6 +127,12 @@ export const dbFunctions: any = {
 // Mapeamento curto para compatibilidade
 export const a = authFunctions;
 export const f = dbFunctions;
+export const s = {
+  get ref() { return (path?: string) => require('firebase/storage').ref(getStorage(), path); },
+  get uploadBytes() { return (ref: any, data: any) => require('firebase/storage').uploadBytes(ref, data); },
+  get getDownloadURL() { return (ref: any) => require('firebase/storage').getDownloadURL(ref); },
+  get deleteObject() { return (ref: any) => require('firebase/storage').deleteObject(ref); },
+};
 
 // Proxies para instâncias (chamam getters por baixo)
 export const auth: any = new Proxy({}, { get: (_, prop) => getAuth()[prop] });

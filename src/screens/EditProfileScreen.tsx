@@ -10,7 +10,7 @@ import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { useAppTheme } from '../components/ThemeProvider';
 import { StoreService } from '../services/StoreService';
-import { getStorage, s } from '../config/firebase';
+import { s } from '../config/firebase';
 
 const EditProfileScreen = () => {
   const { theme } = useAppTheme();
@@ -85,11 +85,10 @@ const EditProfileScreen = () => {
       const filename = `${type}_${Date.now()}.jpg`;
       const storagePath = `stores/${user.id}/${filename}`;
       
-      const { ref, uploadBytes, getDownloadURL } = require('firebase/storage');
-      const storageRef = ref(getStorage(), storagePath);
+      const storageRef = s.ref(storagePath);
       
-      await uploadBytes(storageRef, blob);
-      const downloadURL = await getDownloadURL(storageRef);
+      await s.uploadBytes(storageRef, blob);
+      const downloadURL = await s.getDownloadURL(storageRef);
       
       if (type === 'logo') setLogo(downloadURL);
       else setBanner(downloadURL);
