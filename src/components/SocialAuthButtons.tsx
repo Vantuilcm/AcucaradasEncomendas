@@ -13,8 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { authFunctions } from '../config/firebase';
-import { ENV } from '../config/env';
+import { getAuth } from '../config/firebase';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -45,15 +44,21 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
   const handleGoogleLogin = async (idToken: string) => {
     try {
       setLoadingProvider('google');
-      const credential = authFunctions.GoogleAuthProvider.credential(idToken);
-      const result = await signInWithCredential(credential, role);
+      console.log('🛡️ [DEBUG_GOOGLE] idToken recebido:', idToken ? '✅ EXISTE' : '❌ AUSENTE');
       
-      if (result.success) {
-        if (onSuccess) onSuccess();
-      } else {
-        Alert.alert('Erro Google', result.error);
-      }
+      const { GoogleAuthProvider, signInWithCredential: firebaseSignIn } = require('firebase/auth');
+      console.log('🛡️ [DEBUG_GOOGLE] GoogleAuthProvider carregado:', !!GoogleAuthProvider);
+      
+      const credential = GoogleAuthProvider.credential(idToken);
+      console.log('🛡️ [DEBUG_GOOGLE] Credencial criada com sucesso');
+      
+      const auth = getAuth();
+      const userCredential = await firebaseSignIn(auth, credential);
+      console.log('✅ [DEBUG_GOOGLE] SUCESSO! UID:', userCredential.user.uid);
+      
+      if (onSuccess) onSuccess();
     } catch (error: any) {
+      console.error('❌ [DEBUG_GOOGLE] Erro no login:', error);
       Alert.alert('Erro Google', error.message);
     } finally {
       setLoadingProvider(null);
@@ -75,7 +80,24 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
           if (signInWithFacebook) result = await signInWithFacebook(role);
           break;
         case 'apple':
-          if (signInWithApple) result = await signInWithApple(role);
+          const { OAuthProvider, signInWithCredential: firebaseSignInApple } = require('firebase/auth');
+          const AppleAuthentication = require('expo-apple-authentication');
+          
+          const appleCredential = await AppleAuthentication.signInAsync({
+            requestedScopes: [
+              AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+              AppleAuthentication.AppleAuthenticationScope.EMAIL,
+            ],
+          });
+
+          const provider = new OAuthProvider('apple.com');
+          const credential = provider.credential({
+            idToken: appleCredential.identityToken!,
+          });
+
+          const auth = getAuth();
+          await firebaseSignInApple(auth, credential);
+          result = { success: true };
           break;
         default:
           throw new Error('Provedor de autenticação não suportado');
