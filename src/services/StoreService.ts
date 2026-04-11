@@ -1,4 +1,4 @@
-import { db, f } from '../config/firebase';
+import { f } from '../config/firebase';
 import { Store } from '../types/Store';
 import { loggingService } from './LoggingService';
 

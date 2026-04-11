@@ -25,10 +25,10 @@ interface SocialAuthButtonsProps {
 const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role = 'comprador' }) => {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const navigation = useNavigation<any>();
-  const { signInWithFacebook, signInWithApple, signInWithCredential, is2FAEnabled } = useAuth();
+  const { signInWithFacebook, is2FAEnabled } = useAuth();
 
   // Configuração Google Auth
-  const [request, response, promptAsync] = Google.useAuthRequest({
+  const [_request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: '6756029389-google-ios-id.apps.googleusercontent.com',
     androidClientId: '6756029389-google-android-id.apps.googleusercontent.com',
     clientId: '6756029389-google-web-id.apps.googleusercontent.com',
@@ -37,8 +37,8 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
 
   useEffect(() => {
     if (response?.type === 'success') {
-      const { id_token, authentication } = response.params;
-      const token = id_token || authentication?.idToken;
+      const { id_token } = response.params;
+      const token = id_token || response.authentication?.idToken;
       
       console.log('🛡️ [DEBUG_GOOGLE] Response Type:', response.type);
       console.log('🛡️ [DEBUG_GOOGLE] Token found:', !!token);
