@@ -453,8 +453,8 @@ if run_build_with_retry; then
     # Salvar log final para o artefato do GitHub
     [ -f "build-logs/eas-build-local.log" ] && cp "build-logs/eas-build-local.log" "build-logs/ios-build-log.json" || true
 
-    # --- NOVO: SUBMISSÃO AUTOMÁTICA APPLE (LOCAL BUILD FLOW) ---
-    echo "📤 [SUBMIT] Iniciando submissão automática para Apple TestFlight..."
+    # --- NOVO: SUBMISSÃO AUTOMÁTICA APPLE (LOCAL BUILD FLOW - NO EXPO CREDITS) ---
+    echo "📤 [SUBMIT] Iniciando submissão LOCAL para Apple TestFlight (Independente de Expo)..."
     
     IPA_PATH=$(realpath "./dist/app.ipa")
     echo "📍 [IPA-PATH] Caminho absoluto: $IPA_PATH"
@@ -463,23 +463,33 @@ if run_build_with_retry; then
     mkdir -p "build-logs/${TARGET_APP:-acucaradas-encomendas}"
     SUBMISSION_LOG="build-logs/${TARGET_APP:-acucaradas-encomendas}/submission.log"
     
-    # Executar submissão capturando output total
-    echo "⏳ [WAIT] Enviando para App Store Connect... (Isso pode levar alguns minutos)"
-    export CI=1
-    if npx eas submit --platform ios --profile "$PROFILE" --path "$IPA_PATH" --non-interactive 2>&1 | tee "$SUBMISSION_LOG"; then
-        # Validar se o output contém confirmação real de upload
-        if grep -qiE "Successfully uploaded|Submission completed|Submitted your app|uploaded to App Store Connect" "$SUBMISSION_LOG"; then
-            echo "✅ [SUBMIT-OK] IPA enviada e confirmada pela Apple."
-            SUBMISSION_STATUS="success"
-            node scripts/ci/force-build-number.js --finalize "SUCCESS"
-        else
-            echo "❌ [SUBMIT-FAIL] Comando finalizou mas o upload não foi confirmado no log."
-            SUBMISSION_STATUS="unconfirmed"
-            node scripts/ci/force-build-number.js --finalize "FAILED"
-            exit 1
-        fi
+    # 1. Preparar Chave Privada para xcrun altool
+    echo "🔐 [SUBMIT] Preparando chave privada para xcrun altool..."
+    mkdir -p ~/.private_keys
+    cp "$EXPO_ASC_PRIVATE_KEY_PATH" ~/.private_keys/AuthKey_${EXPO_ASC_KEY_ID}.p8
+    
+    # 2. Executar submissão via Apple Native Tooling (xcrun altool)
+    echo "⏳ [WAIT] Enviando para App Store Connect via xcrun altool... (Sem créditos da Expo)"
+    
+    set +e
+    xcrun altool --upload-app \
+      --type ios \
+      --file "$IPA_PATH" \
+      --apiKey "$EXPO_ASC_KEY_ID" \
+      --apiIssuer "$EXPO_ASC_ISSUER_ID" 2>&1 | tee "$SUBMISSION_LOG"
+    SUBMIT_EXIT_CODE=${PIPESTATUS[0]}
+    set -e
+
+    if [ $SUBMIT_EXIT_CODE -eq 0 ]; then
+        echo "✅ [SUBMIT-OK] IPA enviada com sucesso via Apple Native Tooling."
+        SUBMISSION_STATUS="success"
+        node scripts/ci/force-build-number.js --finalize "SUCCESS"
     else
-        echo "❌ [SUBMIT-ERROR] Falha crítica na submissão da IPA para Apple."
+        echo "❌ [SUBMIT-ERROR] Falha na submissão LOCAL via xcrun altool."
+        echo "📄 [LOG] Verifique o log em $SUBMISSION_LOG"
+        
+        # Fallback: Se altool falhar, tentar eas submit como última tentativa (se o usuário permitir)
+        # Mas a missão diz "Nunca usar EAS Cloud", então vamos apenas falhar e informar o erro.
         SUBMISSION_STATUS="failed"
         node scripts/ci/force-build-number.js --finalize "FAILED"
         exit 1
