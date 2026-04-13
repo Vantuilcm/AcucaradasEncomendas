@@ -15,6 +15,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as Facebook from 'expo-auth-session/providers/facebook';
 import * as WebBrowser from 'expo-web-browser';
 import { getAuth } from '../config/firebase';
+import { ENV } from '../config/env';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -30,9 +31,9 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
 
   // Configuração Google Auth
   const [_request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: '6756029389-google-ios-id.apps.googleusercontent.com',
-    androidClientId: '6756029389-google-android-id.apps.googleusercontent.com',
-    clientId: '6756029389-google-web-id.apps.googleusercontent.com',
+    iosClientId: ENV.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    androidClientId: ENV.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    clientId: ENV.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     responseType: 'id_token',
   });
 
@@ -58,7 +59,7 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
 
   // Configuração Facebook Auth
   const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
-    clientId: 'SEU_APP_ID_FACEBOOK', // <--- Substituir pelo App ID do Meta Developer
+    clientId: ENV.EXPO_PUBLIC_FACEBOOK_APP_ID,
   });
 
   useEffect(() => {
@@ -117,6 +118,17 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
 
   const handleSocialAuth = async (provider: string) => {
     try {
+      // Validação de Segurança: Verificar se o ID do provedor existe antes de tentar abrir
+      if (provider === 'google' && !ENV.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID && !ENV.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) {
+        Alert.alert('Login Social', 'O login via Google está em manutenção técnica. Por favor, use e-mail e senha por enquanto.');
+        return;
+      }
+      
+      if (provider === 'facebook' && (!ENV.EXPO_PUBLIC_FACEBOOK_APP_ID || ENV.EXPO_PUBLIC_FACEBOOK_APP_ID.includes('SEU_APP'))) {
+        Alert.alert('Login Social', 'O login via Facebook está em manutenção técnica. Por favor, use e-mail e senha por enquanto.');
+        return;
+      }
+
       setLoadingProvider(provider);
 
       let result;
