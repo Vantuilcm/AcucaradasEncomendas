@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import * as Google from 'expo-auth-session/providers/google';
+import * as Facebook from 'expo-auth-session/providers/facebook';
 import * as WebBrowser from 'expo-web-browser';
 import { getAuth } from '../config/firebase';
 
@@ -55,6 +56,39 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
     }
   }, [response]);
 
+  // Configuração Facebook Auth
+  const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
+    clientId: 'SEU_APP_ID_FACEBOOK', // <--- Substituir pelo App ID do Meta Developer
+  });
+
+  useEffect(() => {
+    if (fbResponse?.type === 'success') {
+      const { access_token } = fbResponse.params;
+      if (access_token) {
+        handleFacebookLogin(access_token);
+      }
+    }
+  }, [fbResponse]);
+
+  const handleFacebookLogin = async (accessToken: string) => {
+    try {
+      setLoadingProvider('facebook');
+      console.log('🛡️ [DEBUG_FB] AccessToken recebido');
+      
+      const { FacebookAuthProvider, signInWithCredential: firebaseSignIn } = require('firebase/auth');
+      const credential = FacebookAuthProvider.credential(accessToken);
+      
+      const auth = getAuth();
+      const userCredential = await firebaseSignIn(auth, credential);
+      console.log('✅ [DEBUG_FB] SUCESSO! UID:', userCredential.user.uid);
+      
+      if (onSuccess) onSuccess();
+    } catch (error: any) {
+      console.error('❌ [DEBUG_FB] Erro no login:', error);
+      Alert.alert('Erro Facebook', error.message);
+    } finally {
+      setLoadingProvider(null);
+    }
   const handleGoogleLogin = async (idToken: string) => {
     try {
       setLoadingProvider('google');
@@ -91,8 +125,9 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
           await promptAsync();
           return; // O useEffect tratará o sucesso
         case 'facebook':
-          if (signInWithFacebook) result = await signInWithFacebook(role);
-          break;
+          // Inicia o fluxo do Facebook via AuthSession
+          await fbPromptAsync();
+          return; // O useEffect tratará o sucesso
         case 'apple':
           const { OAuthProvider, signInWithCredential: firebaseSignInApple } = require('firebase/auth');
           const AppleAuthentication = require('expo-apple-authentication');
