@@ -105,6 +105,8 @@ const DriverTab = createBottomTabNavigator<DriverTabParamList>();
 // Navegador de abas principal
 const MainTabs = () => {
   const { theme } = useAppTheme();
+  const { isProdutor, isAdmin } = usePermissions();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => {
@@ -116,6 +118,8 @@ const MainTabs = () => {
               iconName = focused ? 'home' : 'home-outline';
             } else if (route.name === 'Catalog') {
               iconName = focused ? 'view-grid' : 'view-grid-outline';
+            } else if (route.name === 'StoreManager') {
+              iconName = focused ? 'store' : 'store-outline';
             } else if (route.name === 'Orders') {
               iconName = focused ? 'clipboard-list' : 'clipboard-list-outline';
             } else if (route.name === 'Cart') {
@@ -140,9 +144,19 @@ const MainTabs = () => {
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Início' }} />
-      <Tab.Screen name="Catalog" component={CatalogScreen} options={{ title: 'Catálogo' }} />
+      
+      {(isProdutor || isAdmin) ? (
+        <Tab.Screen name="StoreManager" component={AdminPanelScreen} options={{ title: 'Minha Loja' }} />
+      ) : (
+        <Tab.Screen name="Catalog" component={CatalogScreen} options={{ title: 'Catálogo' }} />
+      )}
+
       <Tab.Screen name="Orders" component={OrdersScreen} options={{ title: 'Pedidos' }} />
-      <Tab.Screen name="Cart" component={CartScreen} options={{ title: 'Carrinho' }} />
+      
+      {!(isProdutor || isAdmin) && (
+        <Tab.Screen name="Cart" component={CartScreen} options={{ title: 'Carrinho' }} />
+      )}
+
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Perfil' }} />
     </Tab.Navigator>
   );

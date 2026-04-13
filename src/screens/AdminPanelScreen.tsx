@@ -42,6 +42,9 @@ const AdminPanelScreen = () => {
       case 'notifications':
         (navigation as any).navigate('NotificationSettings');
         break;
+      case 'settings':
+        (navigation as any).navigate('EditProfile');
+        break;
       default:
         break;
     }
@@ -174,20 +177,20 @@ const AdminPanelScreen = () => {
           <Title style={styles.quickActionsTitle}>Ações Rápidas</Title>
           <View style={styles.actionButtonsContainer}>
             <Button 
+              icon="store-cog" 
+              mode="contained" 
+              onPress={() => navigateToSection('settings')}
+              style={styles.quickActionButton}
+            >
+              Configurar Loja
+            </Button>
+            <Button 
               icon="plus" 
               mode="contained" 
               onPress={() => (navigation as any).navigate('AddEditProduct')}
               style={styles.quickActionButton}
             >
               Novo Produto
-            </Button>
-            <Button 
-              icon="bell-outline" 
-              mode="contained" 
-              onPress={() => navigateToSection('notifications')}
-              style={styles.quickActionButton}
-            >
-              Notificações
             </Button>
           </View>
         </View>

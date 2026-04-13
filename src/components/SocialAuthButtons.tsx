@@ -89,6 +89,8 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
     } finally {
       setLoadingProvider(null);
     }
+  };
+
   const handleGoogleLogin = async (idToken: string) => {
     try {
       setLoadingProvider('google');
