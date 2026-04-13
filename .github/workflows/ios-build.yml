@@ -1,4 +1,4 @@
-name: 🚀 Build & Submit Mobile (LOCAL Apple Tooling)
+name: 🚀 Build & Submit Mobile (EAS SUBMIT)
 
 concurrency:
   group: ios-release-lock
