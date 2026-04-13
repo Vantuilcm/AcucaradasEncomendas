@@ -80,11 +80,18 @@ export default ({ config }) => {
     return true;
   });
 
+  const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+  const facebookAppId = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+
   return {
     ...config,
     version: appVersion,
     name: appConfig.name,
     slug: appConfig.slug,
+    facebookAppId: facebookAppId,
+    facebookDisplayName: appConfig.name,
+    facebookScheme: facebookAppId ? `fb${facebookAppId}` : undefined,
     icon: appConfig.icon || config.icon || "./assets/app-icon.png",
     splash: appConfig.splash || config.splash || {
       image: "./assets/splash.png",
@@ -100,7 +107,16 @@ export default ({ config }) => {
       googleServicesFile: appConfig.firebase.ios,
       infoPlist: {
         ...(config.ios?.infoPlist || {}),
-        ...(appConfig.infoPlist || {})
+        ...(appConfig.infoPlist || {}),
+        CFBundleURLTypes: [
+          ...(config.ios?.infoPlist?.CFBundleURLTypes || []),
+          {
+            CFBundleURLSchemes: [
+              facebookAppId ? `fb${facebookAppId}` : undefined,
+              googleIosClientId ? googleIosClientId.split('.').reverse().join('.') : undefined
+            ].filter(Boolean)
+          }
+        ]
       }
     },
     android: {
@@ -125,6 +141,10 @@ export default ({ config }) => {
       firebaseAuthDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || `${firebaseProjectId}.firebaseapp.com`,
       firebaseStorageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || `${firebaseProjectId}.firebasestorage.app`,
       firebaseMessagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      googleIosClientId,
+      googleAndroidClientId,
+      googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      facebookAppId
     },
     plugins: finalPlugins
   };

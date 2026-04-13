@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Facebook from 'expo-auth-session/providers/facebook';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import { getAuth } from '../config/firebase';
 import { ENV } from '../config/env';
 
@@ -35,7 +36,19 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
     androidClientId: ENV.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
     clientId: ENV.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     responseType: 'id_token',
+    redirectUri: AuthSession.makeRedirectUri({
+      scheme: 'acucaradas',
+      preferLocalhost: true,
+    }),
   });
+
+  useEffect(() => {
+    console.log('🛡️ [DEBUG_SOCIAL] IDs Carregados:', {
+      googleIos: !!ENV.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      googleWeb: !!ENV.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      facebook: !!ENV.EXPO_PUBLIC_FACEBOOK_APP_ID
+    });
+  }, []);
 
   useEffect(() => {
     if (response?.type === 'success') {
@@ -60,6 +73,10 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
   // Configuração Facebook Auth
   const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
     clientId: ENV.EXPO_PUBLIC_FACEBOOK_APP_ID,
+    redirectUri: AuthSession.makeRedirectUri({
+      scheme: 'acucaradas',
+      preferLocalhost: true,
+    }),
   });
 
   useEffect(() => {
