@@ -30,6 +30,9 @@ const AdminPanelScreen = () => {
 
   const navigateToSection = (section: string) => {
     switch (section) {
+      case 'preview':
+        (navigation as any).navigate('StorePreview');
+        break;
       case 'products':
         (navigation as any).navigate('ProductManagement');
         break;
@@ -177,6 +180,14 @@ const AdminPanelScreen = () => {
           <Title style={styles.quickActionsTitle}>Ações Rápidas</Title>
           <View style={styles.actionButtonsContainer}>
             <Button 
+              icon="eye" 
+              mode="contained" 
+              onPress={() => navigateToSection('preview')}
+              style={styles.quickActionButton}
+            >
+              Ver Minha Loja
+            </Button>
+            <Button 
               icon="store-cog" 
               mode="contained" 
               onPress={() => navigateToSection('settings')}
@@ -184,6 +195,8 @@ const AdminPanelScreen = () => {
             >
               Configurar Loja
             </Button>
+          </View>
+          <View style={[styles.actionButtonsContainer, { marginTop: 12 }]}>
             <Button 
               icon="plus" 
               mode="contained" 
@@ -191,6 +204,14 @@ const AdminPanelScreen = () => {
               style={styles.quickActionButton}
             >
               Novo Produto
+            </Button>
+            <Button 
+              icon="clipboard-list" 
+              mode="contained" 
+              onPress={() => navigateToSection('orders')}
+              style={styles.quickActionButton}
+            >
+              Pedidos
             </Button>
           </View>
         </View>

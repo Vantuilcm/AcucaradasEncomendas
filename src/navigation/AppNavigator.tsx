@@ -31,6 +31,7 @@ import { AddressScreen } from '../screens/AddressScreen';
 import { PaymentMethodsScreen } from '../screens/PaymentMethodsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import AdminPanelScreen from '../screens/AdminPanelScreen';
+import { StorePreviewScreen } from '../screens/StorePreviewScreen';
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
 import { ProductManagementScreen } from '../screens/ProductManagementScreen';
 import { OrderManagementScreen } from '../screens/OrderManagementScreen';
@@ -76,6 +77,7 @@ export type RootStackParamList = {
   Address: undefined;
   PaymentMethods: undefined;
   EditProfile: undefined;
+  StorePreview: undefined;
   AdminPanel: undefined;
   AdminDashboard: undefined;
   ProductManagement: undefined;

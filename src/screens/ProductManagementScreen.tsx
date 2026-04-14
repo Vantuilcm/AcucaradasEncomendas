@@ -24,6 +24,7 @@ export function ProductManagementScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const { isProdutor, isAdmin } = usePermissions();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +38,7 @@ export function ProductManagementScreen() {
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     filterProducts();
@@ -45,10 +46,12 @@ export function ProductManagementScreen() {
 
   const loadProducts = async () => {
     try {
+      if (!user) return;
       setLoading(true);
       setError(null);
 
-      const allProducts = await productService.listarProdutos();
+      // Listar apenas produtos reais do produtor logado
+      const allProducts = await productService.listarProdutos({ producerId: user.id } as any);
       setProducts(allProducts);
 
       // Extrair categorias únicas
@@ -199,14 +202,31 @@ export function ProductManagementScreen() {
 
         {filteredProducts.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text variant="bodyLarge">Nenhum produto encontrado</Text>
+            <IconButton 
+              icon="package-variant" 
+              size={60} 
+              iconColor={theme.colors.surfaceVariant} 
+            />
+            <Text variant="bodyLarge" style={styles.emptyText}>
+              Você ainda não tem produtos reais cadastrados.
+            </Text>
             <Button
               mode="contained"
-              onPress={() => setSearchQuery('')}
-              style={[styles.emptyButton, { backgroundColor: theme.colors.primary }]}
+              icon="plus"
+              onPress={handleAddProduct}
+              style={[styles.emptyButton, { backgroundColor: theme.colors.primary, marginTop: 16 }]}
             >
-              Limpar Filtros
+              Cadastrar Meu Primeiro Produto
             </Button>
+            {searchQuery !== '' && (
+              <Button
+                mode="text"
+                onPress={() => setSearchQuery('')}
+                style={{ marginTop: 8 }}
+              >
+                Limpar Busca
+              </Button>
+            )}
           </View>
         ) : (
           filteredProducts.map(product => (
@@ -358,12 +378,18 @@ const createStyles = (theme: { colors: any }) =>
   },
   emptyState: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 32,
+    marginTop: 60,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 8,
   },
   emptyButton: {
-    marginTop: 16,
+    width: '100%',
   },
   dialogInput: {
     marginBottom: 12,
