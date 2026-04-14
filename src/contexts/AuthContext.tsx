@@ -57,12 +57,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               
               if (userDoc.exists()) {
                 const data = userDoc.data();
-                setUser({ ...data, id: firebaseUser.uid });
+                // CORREÇÃO: Normalizar role no bootstrap automático também
+                const normalizedRole = (data.role || 'comprador').toLowerCase();
+                setUser({ ...data, id: firebaseUser.uid, role: normalizedRole });
               } else {
                 setUser({ 
                   id: firebaseUser.uid, 
                   email: firebaseUser.email, 
-                  nome: firebaseUser.displayName || '' 
+                  nome: firebaseUser.displayName || '',
+                  role: 'comprador'
                 });
               }
             } catch (err) {
@@ -120,35 +123,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userDoc.exists()) {
         const data = userDoc.data();
         console.log('✅ [DEBUG_LOGIN] Perfil encontrado no Firestore:', data.role);
-        setUser({ ...data, id: userCredential.user.uid });
+        
+        // CORREÇÃO: Normalizar role para minúsculo para evitar conflitos no AppNavigator
+        const normalizedRole = (data.role || role || 'comprador').toLowerCase();
+        setUser({ ...data, id: userCredential.user.uid, role: normalizedRole });
       } else {
         console.warn('⚠️ [DEBUG_LOGIN] Perfil não existe no Firestore. Usando defaults.');
         setUser({ 
           id: userCredential.user.uid, 
           email: userCredential.user.email, 
           nome: userCredential.user.displayName || '',
-          role: role || 'customer'
+          role: (role || 'comprador').toLowerCase()
         });
       }
     } catch (error: any) {
-      // 🚨 NÃO MASCARAR O ERRO - EXPOR TUDO
-      console.error('❌ [DEBUG_LOGIN] ERRO FATAL DETECTADO:');
-      console.error('❌ [DEBUG_LOGIN] CODE:', error.code);
-      console.error('❌ [DEBUG_LOGIN] MESSAGE:', error.message);
-      console.error('❌ [DEBUG_LOGIN] FULL_ERROR:', JSON.stringify(error, null, 2));
+      // 🛡️ [DEBUG_LOGIN] Melhoria no tratamento de erro para Entregador
+      console.error('❌ [DEBUG_LOGIN] ERRO DETECTADO:', error.code, error.message);
       
-      // Criar uma mensagem de erro técnica e detalhada para o usuário (em ambiente de debug)
-      const technicalError = `[${error.code || 'unknown'}] ${error.message}`;
-      setError(technicalError);
+      let friendlyMessage = 'Erro ao processar login';
       
-      // 🚨 EXIBIR ALERTA VISÍVEL PARA O USUÁRIO (NÃO DEIXAR O LOGIN "MORRER" EM SILÊNCIO)
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        friendlyMessage = 'E-mail ou senha incorretos. Verifique seus dados.';
+      } else if (error.code === 'auth/network-request-failed') {
+        friendlyMessage = 'Falha na conexão. Verifique sua internet.';
+      } else if (error.code === 'auth/too-many-requests') {
+        friendlyMessage = 'Muitas tentativas sem sucesso. Tente novamente mais tarde.';
+      } else {
+        friendlyMessage = `[${error.code || 'unknown'}] ${error.message}`;
+      }
+
+      setError(friendlyMessage);
+      
       Alert.alert(
-        'Erro de Autenticação',
-        `Código: ${error.code}\n\nSe o erro for 'auth/invalid-api-key', verifique a configuração da chave no Console do Google Cloud.`,
+        'Falha no Login',
+        friendlyMessage,
         [{ text: 'OK' }]
       );
 
-      throw error; // Repropagar para a tela
+      throw error;
     } finally {
       setLoading(false);
     }
