@@ -1,11 +1,15 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Card, Title, Paragraph, Button, List, Divider, Text } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Card, Title, Paragraph, Button, List, Divider, Text, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useAppTheme } from '../components/ThemeProvider';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const AdminPanelScreen = () => {
   const navigation = useNavigation();
+  const { theme } = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   // Dados de exemplo para o painel administrativo
   const stats = {
@@ -55,260 +59,200 @@ const AdminPanelScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <View style={styles.header}>
-          <Title style={styles.headerTitle}>Painel Administrativo</Title>
-          <Paragraph>Bem-vindo ao painel de controle</Paragraph>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <Surface style={styles.premiumHeader} elevation={2}>
+          <View style={styles.headerContent}>
+            <Title style={styles.headerTitle}>Minha Loja</Title>
+            <Paragraph style={styles.headerSubtitle}>Gestão completa do seu negócio</Paragraph>
+          </View>
+          <MaterialCommunityIcons name="store-check" size={48} color={theme.colors.primary} />
+        </Surface>
+
+        <View style={styles.gridContainer}>
+          <TouchableOpacity 
+            style={styles.gridItem} 
+            onPress={() => navigateToSection('preview')}
+          >
+            <Surface style={styles.gridSurface} elevation={1}>
+              <MaterialCommunityIcons name="eye-outline" size={32} color={theme.colors.primary} />
+              <Text style={styles.gridLabel}>Ver Loja</Text>
+            </Surface>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.gridItem} 
+            onPress={() => navigateToSection('settings')}
+          >
+            <Surface style={styles.gridSurface} elevation={1}>
+              <MaterialCommunityIcons name="cog-outline" size={32} color={theme.colors.primary} />
+              <Text style={styles.gridLabel}>Configurar</Text>
+            </Surface>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.gridItem} 
+            onPress={() => (navigation as any).navigate('AddEditProduct')}
+          >
+            <Surface style={styles.gridSurface} elevation={1}>
+              <MaterialCommunityIcons name="plus-circle-outline" size={32} color={theme.colors.primary} />
+              <Text style={styles.gridLabel}>Novo Produto</Text>
+            </Surface>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.gridItem} 
+            onPress={() => navigateToSection('products')}
+          >
+            <Surface style={styles.gridSurface} elevation={1}>
+              <MaterialCommunityIcons name="package-variant-closed" size={32} color={theme.colors.primary} />
+              <Text style={styles.gridLabel}>Meus Doces</Text>
+            </Surface>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.statsContainer}>
-          <Card style={styles.statsCard}>
-            <Card.Content>
-              <Title>Pedidos</Title>
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{stats.totalOrders}</Text>
-                  <Text style={styles.statLabel}>Total</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{stats.pendingOrders}</Text>
-                  <Text style={styles.statLabel}>Pendentes</Text>
-                </View>
-              </View>
-              <Button 
-                mode="contained" 
-                onPress={() => navigateToSection('orders')}
-                style={styles.actionButton}
-              >
-                Gerenciar Pedidos
-              </Button>
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.statsCard}>
-            <Card.Content>
-              <Title>Produtos</Title>
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{stats.totalProducts}</Text>
-                  <Text style={styles.statLabel}>Total</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{stats.lowStockProducts}</Text>
-                  <Text style={styles.statLabel}>Estoque Baixo</Text>
-                </View>
-              </View>
-              <Button 
-                mode="contained" 
-                onPress={() => navigateToSection('products')}
-                style={styles.actionButton}
-              >
-                Gerenciar Produtos
-              </Button>
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.statsCard}>
-            <Card.Content>
-              <Title>Usuários</Title>
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{stats.totalUsers}</Text>
-                  <Text style={styles.statLabel}>Total</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{stats.activeUsers}</Text>
-                  <Text style={styles.statLabel}>Ativos</Text>
-                </View>
-              </View>
-              <Button 
-                mode="contained" 
-                onPress={() => navigateToSection('users')}
-                style={styles.actionButton}
-              >
-                Gerenciar Usuários
-              </Button>
-            </Card.Content>
-          </Card>
-        </View>
-
-        <Card style={styles.revenueCard}>
+        <Card style={styles.statsOverviewCard}>
           <Card.Content>
-            <Title>Faturamento</Title>
-            <View style={styles.revenueStats}>
-              <View style={styles.revenueStat}>
-                <Text style={styles.revenueLabel}>Hoje</Text>
-                <Text style={styles.revenueValue}>{stats.revenue.today}</Text>
+            <Title>Resumo de Hoje</Title>
+            <View style={styles.revenueOverview}>
+              <Text style={styles.revenueValueLarge}>{stats.revenue.today}</Text>
+              <Text style={styles.revenueLabel}>Vendas em 24h</Text>
+            </View>
+            <Divider style={styles.divider} />
+            <View style={styles.statsMiniRow}>
+              <View style={styles.statMiniItem}>
+                <Text style={styles.statMiniValue}>{stats.pendingOrders}</Text>
+                <Text style={styles.statMiniLabel}>Pendentes</Text>
               </View>
-              <View style={styles.revenueStat}>
-                <Text style={styles.revenueLabel}>Esta Semana</Text>
-                <Text style={styles.revenueValue}>{stats.revenue.week}</Text>
-              </View>
-              <View style={styles.revenueStat}>
-                <Text style={styles.revenueLabel}>Este Mês</Text>
-                <Text style={styles.revenueValue}>{stats.revenue.month}</Text>
+              <View style={styles.statMiniItem}>
+                <Text style={styles.statMiniValue}>{stats.totalProducts}</Text>
+                <Text style={styles.statMiniLabel}>Produtos</Text>
               </View>
             </View>
           </Card.Content>
         </Card>
 
-        <Card style={styles.recentOrdersCard}>
-          <Card.Content>
-            <Title>Pedidos Recentes</Title>
-            {recentOrders.map((order, index) => (
-              <React.Fragment key={order.id}>
-                <List.Item
-                  title={`${order.id} - ${order.customer}`}
-                  description={`${order.date} | ${order.status}`}
-                  right={() => <Text style={styles.orderTotal}>{order.total}</Text>}
-                  onPress={() => (navigation as any).navigate('OrderDetail', { orderId: order.id })}
-                />
-                {index < recentOrders.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-            <Button 
-              mode="outlined" 
-              onPress={() => navigateToSection('orders')}
-              style={styles.viewAllButton}
-            >
-              Ver Todos os Pedidos
-            </Button>
-          </Card.Content>
-        </Card>
-
-        <View style={styles.quickActions}>
-          <Title style={styles.quickActionsTitle}>Ações Rápidas</Title>
-          <View style={styles.actionButtonsContainer}>
-            <Button 
-              icon="eye" 
-              mode="contained" 
-              onPress={() => navigateToSection('preview')}
-              style={styles.quickActionButton}
-            >
-              Ver Minha Loja
-            </Button>
-            <Button 
-              icon="store-cog" 
-              mode="contained" 
-              onPress={() => navigateToSection('settings')}
-              style={styles.quickActionButton}
-            >
-              Configurar Loja
-            </Button>
-          </View>
-          <View style={[styles.actionButtonsContainer, { marginTop: 12 }]}>
-            <Button 
-              icon="plus" 
-              mode="contained" 
-              onPress={() => (navigation as any).navigate('AddEditProduct')}
-              style={styles.quickActionButton}
-            >
-              Novo Produto
-            </Button>
-            <Button 
-              icon="clipboard-list" 
-              mode="contained" 
-              onPress={() => navigateToSection('orders')}
-              style={styles.quickActionButton}
-            >
-              Pedidos
-            </Button>
-          </View>
-        </View>
+        <List.Section style={styles.menuSection}>
+          <List.Subheader>Atalhos de Gestão</List.Subheader>
+          <List.Item
+            title="Gerenciar Pedidos"
+            left={props => <List.Icon {...props} icon="clipboard-list-outline" />}
+            right={props => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => navigateToSection('orders')}
+          />
+          <Divider />
+          <List.Item
+            title="Controle de Estoque"
+            left={props => <List.Icon {...props} icon="database-outline" />}
+            right={props => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => (navigation as any).navigate('InventoryManagement')}
+          />
+          <Divider />
+          <List.Item
+            title="Configurações de Notificação"
+            left={props => <List.Icon {...props} icon="bell-outline" />}
+            right={props => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => navigateToSection('notifications')}
+          />
+        </List.Section>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
   },
-  header: {
-    padding: 16,
+  premiumHeader: {
+    padding: 24,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    marginBottom: 16,
+  },
+  headerContent: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
+    color: '#1a1a1a',
   },
-  statsContainer: {
-    padding: 16,
+  headerSubtitle: {
+    color: '#666',
+    fontSize: 16,
   },
-  statsCard: {
-    marginBottom: 16,
-    elevation: 2,
-  },
-  statsRow: {
+  gridContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    padding: 8,
+    justifyContent: 'space-between',
+  },
+  gridItem: {
+    width: '48%',
+    padding: 8,
+  },
+  gridSurface: {
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+  },
+  gridLabel: {
+    marginTop: 12,
+    fontWeight: '600',
+    color: '#333',
+    fontSize: 14,
+  },
+  statsOverviewCard: {
+    margin: 16,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+  },
+  revenueOverview: {
+    alignItems: 'center',
     marginVertical: 16,
   },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
+  revenueValueLarge: {
+    fontSize: 32,
     fontWeight: 'bold',
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  actionButton: {
-    marginTop: 8,
-  },
-  revenueCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    elevation: 2,
-  },
-  revenueStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  revenueStat: {
-    alignItems: 'center',
-    flex: 1,
+    color: theme.colors.primary,
   },
   revenueLabel: {
-    fontSize: 14,
     color: '#666',
+    fontSize: 14,
   },
-  revenueValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 4,
+  divider: {
+    marginVertical: 8,
   },
-  recentOrdersCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    elevation: 2,
-  },
-  orderTotal: {
-    fontWeight: 'bold',
-  },
-  viewAllButton: {
+  statsMiniRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     marginTop: 8,
   },
-  quickActions: {
-    padding: 16,
-    marginBottom: 16,
+  statMiniItem: {
+    alignItems: 'center',
   },
-  quickActionsTitle: {
-    marginBottom: 8,
+  statMiniValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
   },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  statMiniLabel: {
+    fontSize: 12,
+    color: '#888',
   },
-  quickActionButton: {
-    flex: 1,
-    marginHorizontal: 4,
+  menuSection: {
+    backgroundColor: '#fff',
+    marginTop: 8,
+    marginHorizontal: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
 });
 

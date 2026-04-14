@@ -11,16 +11,24 @@ import { StoreLocationButton } from '../components/StoreLocationButton';
 import { loggingService } from '../services/LoggingService';
 import type { Product } from '../types/Product';
 import { useAppTheme, type ThemeType } from '../components/ThemeProvider';
+import { usePermissions } from '../hooks/usePermissions';
+import { AdminDashboardScreen } from './AdminDashboardScreen';
 
 export function HomeScreen() {
   const navigation = useNavigation<MainTabNavigationProp<'Home'>>();
   const { user } = useAuth();
+  const { isProdutor, isAdmin } = usePermissions();
   const { updateLocation } = useLocation();
   const [refreshing, setRefreshing] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [productLoading, setProductLoading] = useState(true);
   const { theme, isDark, toggleTheme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+
+  // Redirecionamento de Interface por Role
+  if (isProdutor || isAdmin) {
+    return <AdminDashboardScreen />;
+  }
 
   const loadProducts = async () => {
     try {

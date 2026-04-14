@@ -274,7 +274,7 @@ export const ProfileScreen = () => {
         </TouchableRipple>
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>Versão 1.1.8 (Build 1096)</Text>
+          <Text style={styles.versionText}>Versão 1.1.8 (Build 1100)</Text>
         </View>
       </View>
       
