@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Alert, Pressable } from 'react-native';
-import { TextInput, Button, Text, SegmentedButtons, Checkbox, Portal, Modal } from 'react-native-paper';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Alert, Pressable, ScrollView } from 'react-native';
+import { TextInput, Button, Text, SegmentedButtons, Checkbox } from 'react-native-paper';
 import { ENV } from '../config/env';
 import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,7 +30,6 @@ export default function LoginScreen() {
   const displayError = error || authError;
   const [role, setRole] = useState<string>(Role.COMPRADOR);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
 
   const isSyncing = loading || profileLoading;
 
@@ -133,116 +132,122 @@ export default function LoginScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoid}
         >
-          <View style={styles.content}>
-            <Pressable 
-              onLongPress={showDebugInfo} 
-              style={styles.logoContainer}
-              delayLongPress={2000}
-            >
-              <Image 
-                source={require('../../assets/logo-original.png')} 
-                style={styles.logo} 
-                resizeMode="contain"
-              />
-            </Pressable>
-            <Text variant="headlineMedium" style={styles.title}>
-              Bem-vindo(a)!
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              Você está a um clique de adoçar o mundo
-            </Text>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.content}>
+              <Pressable 
+                onLongPress={showDebugInfo} 
+                style={styles.logoContainer}
+                delayLongPress={2000}
+              >
+                <Image 
+                  source={require('../../assets/logo-original.png')} 
+                  style={styles.logo} 
+                  resizeMode="contain"
+                />
+              </Pressable>
 
-            <SegmentedButtons
-              value={role}
-              onValueChange={setRole}
-              buttons={[
-                { value: Role.COMPRADOR, label: 'Comprador' },
-                { value: Role.PRODUTOR, label: 'Produtor' },
-                { value: Role.ENTREGADOR, label: 'Entregador' },
-              ]}
-              style={styles.segmentedButtons}
-            />
-
-            <View style={styles.partnerPhraseContainer}>
-              <Text variant="bodyMedium" style={styles.partnerPhrase}>
-                {role === Role.PRODUTOR && 'Seja um parceiro produtor e venda seus doces!'}
-                {role === Role.ENTREGADOR && 'Seja um parceiro entregador e ganhe com suas entregas!'}
+              <Text variant="headlineMedium" style={styles.title}>
+                Bem-vindo(a)!
               </Text>
-            </View>
-
-            {displayError && <ErrorMessage message={displayError} />}
-
-
-          <TextInput
-            label="E-mail"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            style={styles.input}
-            testID="email-input"
-          />
-
-          <TextInput
-            label="Senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />}
-            style={styles.input}
-            testID="password-input"
-          />
-
-          <View style={styles.forgotPasswordContainer}>
-            <Button mode="text" onPress={() => navigation.navigate('ForgotPassword')} labelStyle={styles.forgotPasswordText}>
-              Esqueci minha senha
-            </Button>
-          </View>
-
-          <View style={styles.termsContainer}>
-            <View style={styles.checkboxWrapper}>
-              <Checkbox
-                status={termsAccepted ? 'checked' : 'unchecked'}
-                onPress={() => setTermsAccepted(!termsAccepted)}
-                color={theme.colors.primary}
-              />
-            </View>
-            <View style={styles.termsTextContainer}>
-              <TouchableOpacity onPress={() => setTermsAccepted(!termsAccepted)} style={styles.termsLabelClickable}>
-                <Text style={styles.termsText}>
-                  Marque eu aceito os{' '}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('TermsOfUse')}>
-                <Text style={[styles.termsText, styles.termsLink]}>
-                  Termos de Uso
-                </Text>
-              </TouchableOpacity>
-              <Text style={styles.termsText}>
-                {' '}e a{' '}
+              <Text variant="bodyLarge" style={styles.subtitle}>
+                Você está a um clique de adoçar o mundo
               </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('PrivacySettings')}>
-                <Text style={[styles.termsText, styles.termsLink]}>
-                  Política de uso da aplicação
+
+              <SegmentedButtons
+                value={role}
+                onValueChange={setRole}
+                buttons={[
+                  { value: Role.COMPRADOR, label: 'Comprador' },
+                  { value: Role.PRODUTOR, label: 'Produtor' },
+                  { value: Role.ENTREGADOR, label: 'Entregador' },
+                ]}
+                style={styles.segmentedButtons}
+              />
+
+              <View style={styles.partnerPhraseContainer}>
+                <Text variant="bodyMedium" style={styles.partnerPhrase}>
+                  {role === Role.PRODUTOR && 'Seja um parceiro produtor e venda seus doces!'}
+                  {role === Role.ENTREGADOR && 'Seja um parceiro entregador e ganhe com suas entregas!'}
                 </Text>
-              </TouchableOpacity>
+              </View>
+
+              {displayError && <ErrorMessage message={displayError} />}
+
+              <TextInput
+                label="E-mail"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                style={styles.input}
+                testID="email-input"
+              />
+
+              <TextInput
+                label="Senha"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />}
+                style={styles.input}
+                testID="password-input"
+              />
+
+              <View style={styles.forgotPasswordContainer}>
+                <Button mode="text" onPress={() => navigation.navigate('ForgotPassword')} labelStyle={styles.forgotPasswordText}>
+                  Esqueci minha senha
+                </Button>
+              </View>
+
+              <View style={styles.termsContainer}>
+                <View style={styles.checkboxWrapper}>
+                  <Checkbox
+                    status={termsAccepted ? 'checked' : 'unchecked'}
+                    onPress={() => setTermsAccepted(!termsAccepted)}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <View style={styles.termsTextContainer}>
+                  <TouchableOpacity onPress={() => setTermsAccepted(!termsAccepted)} style={styles.termsLabelClickable}>
+                    <Text style={styles.termsText}>
+                      Marque eu aceito os{' '}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => navigation.navigate('TermsOfUse')}>
+                    <Text style={[styles.termsText, styles.termsLink]}>
+                      Termos de Uso
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={styles.termsText}>
+                    {' '}e a{' '}
+                  </Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('PrivacySettings')}>
+                    <Text style={[styles.termsText, styles.termsLink]}>
+                      Política de uso da aplicação
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <Button mode="contained" onPress={handleLogin} style={styles.button} disabled={loading || !termsAccepted} testID="login-button">
+                Entrar
+              </Button>
+
+              <SocialAuthButtons role={role} />
+
+              <Button mode="text" onPress={handleRegister} style={styles.registerButton}>
+                Não tem uma conta? Cadastre-se
+              </Button>
+
+              <View style={styles.footer}>
+                <Text style={styles.versionText}>Versão 1.1.8 (Build 1096)</Text>
+              </View>
             </View>
-          </View>
-
-          <Button mode="contained" onPress={handleLogin} style={styles.button} disabled={loading || !termsAccepted} testID="login-button">
-                      Entrar
-                    </Button>
-
-                    <SocialAuthButtons role={role} />
-
-                    <Button mode="text" onPress={handleRegister} style={styles.registerButton}>
-            Não tem uma conta? Cadastre-se
-          </Button>
-
-          <View style={styles.footer}>
-            <Text style={styles.versionText}>Versão 1.1.8 (Build 1093)</Text>
-          </View>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </ScreenshotProtection>
@@ -258,32 +263,36 @@ const createStyles = (theme: { colors: any }) =>
   keyboardAvoid: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
   content: {
     flex: 1,
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: theme?.colors?.background || '#FFFFFF',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 30, // Aumentado um pouco
+    marginTop: Platform.OS === 'ios' ? 20 : 40,
+    marginBottom: 20,
   },
   logo: {
-    width: 160, // Aumentado um pouco
-    height: 160, // Aumentado um pouco
+    width: 180,
+    height: 180,
   },
   segmentedButtons: {
-    marginBottom: 30, // Aumentado um pouco
+    marginBottom: 24,
   },
   title: {
     textAlign: 'center',
     marginBottom: 8,
     color: theme?.colors?.text?.primary || '#000000',
-    fontWeight: 'bold', // Adicionado bold
+    fontWeight: 'bold',
   },
   subtitle: {
     textAlign: 'center',
-    marginBottom: 36, // Aumentado um pouco
+    marginBottom: 24,
     color: theme?.colors?.text?.secondary || '#757575',
   },
   input: {
@@ -299,11 +308,11 @@ const createStyles = (theme: { colors: any }) =>
     fontSize: 14,
   },
   termsContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(233, 30, 99, 0.05)', // Leve destaque rosa
+    backgroundColor: 'rgba(233, 30, 99, 0.05)',
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
@@ -336,7 +345,7 @@ const createStyles = (theme: { colors: any }) =>
     alignItems: 'center',
   },
   termsText: {
-    fontSize: 14, // Aumentado para melhor leitura
+    fontSize: 14,
     color: theme?.colors?.text?.primary || '#212121',
     lineHeight: 20,
   },
@@ -354,7 +363,6 @@ const createStyles = (theme: { colors: any }) =>
   footer: {
     marginTop: 32,
     alignItems: 'center',
-    paddingBottom: 16,
   },
   versionText: {
     fontSize: 12,
