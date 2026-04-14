@@ -238,6 +238,10 @@ export default function LoginScreen() {
                     <Button mode="text" onPress={handleRegister} style={styles.registerButton}>
             Não tem uma conta? Cadastre-se
           </Button>
+
+          <View style={styles.footer}>
+            <Text style={styles.versionText}>Versão 1.1.8 (Build 1093)</Text>
+          </View>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -346,5 +350,15 @@ const createStyles = (theme: { colors: any }) =>
   },
   registerButton: {
     marginTop: 16,
+  },
+  footer: {
+    marginTop: 32,
+    alignItems: 'center',
+    paddingBottom: 16,
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#9E9E9E',
+    opacity: 0.8,
   },
 });

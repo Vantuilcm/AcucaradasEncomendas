@@ -272,6 +272,10 @@ export const ProfileScreen = () => {
             <Text style={styles.logoutButtonText}>Sair</Text>
           </View>
         </TouchableRipple>
+
+        <View style={styles.footer}>
+          <Text style={styles.versionText}>Versão 1.1.8 (Build 1093)</Text>
+        </View>
       </View>
       
       {securityMessage && (
@@ -358,6 +362,16 @@ const createStyles = (theme: { colors: any }) =>
     color: theme?.colors?.background || '#FFFFFF',
     marginLeft: 10,
     fontWeight: 'bold',
+  },
+  footer: {
+    marginTop: 32,
+    marginBottom: 40,
+    alignItems: 'center',
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#9E9E9E',
+    opacity: 0.8,
   },
   securityMessageContainer: {
     backgroundColor: theme?.colors?.error || '#FF0000',
