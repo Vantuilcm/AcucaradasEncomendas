@@ -40,6 +40,7 @@ import { AddEditProductScreen } from '../screens/AddEditProductScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 import { NotificationSettingsScreenV2 } from '../screens/NotificationSettingsScreenV2';
 import { NotificationSettingsMigrationScreen } from '../screens/NotificationSettingsMigrationScreen';
+import { DriverHomeScreen } from '../screens/DriverHomeScreen';
 import { DeliveryDriverProfileScreen } from '../screens/DeliveryDriverProfileScreen';
 import DeliveryDriverRegistration from '../screens/DeliveryDriverRegistration';
 import ScheduleDeliveryScreen from '../screens/ScheduleDeliveryScreen';
@@ -61,7 +62,7 @@ export type MainTabParamList = {
 };
 
 export type DriverTabParamList = {
-  DriverDeliveries: undefined;
+  DriverHome: undefined;
   DriverProfile: undefined;
 };
 
@@ -173,8 +174,8 @@ const DriverTabs = () => {
           tabBarIcon: ({ focused, color, size }) => {
             let iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name'] = 'truck';
 
-            if (route.name === 'DriverDeliveries') {
-              iconName = focused ? 'truck' : 'truck-outline';
+            if (route.name === 'DriverHome') {
+              iconName = focused ? 'home' : 'home-outline';
             } else if (route.name === 'DriverProfile') {
               iconName = focused ? 'account' : 'account-outline';
             }
@@ -195,9 +196,9 @@ const DriverTabs = () => {
       }}
     >
       <DriverTab.Screen
-        name="DriverDeliveries"
-        component={OrderManagementScreen}
-        options={{ title: 'Entregas' }}
+        name="DriverHome"
+        component={DriverHomeScreen}
+        options={{ title: 'Início' }}
       />
       <DriverTab.Screen
         name="DriverProfile"

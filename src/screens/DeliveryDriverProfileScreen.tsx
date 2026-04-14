@@ -279,6 +279,10 @@ export function DeliveryDriverProfileScreen() {
           </Button>
         </Card.Content>
       </Card>
+      
+      <View style={styles.footer}>
+        <Text style={styles.versionText}>Versão 1.1.8 (Build 1105)</Text>
+      </View>
 
       <Portal>
         <Modal
@@ -462,5 +466,15 @@ const styles = StyleSheet.create({
     color: 'red',
     textAlign: 'center',
     margin: 16,
+  },
+  footer: {
+    marginTop: 32,
+    marginBottom: 40,
+    alignItems: 'center',
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#9E9E9E',
+    opacity: 0.8,
   },
 });
