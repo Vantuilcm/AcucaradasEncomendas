@@ -29,6 +29,10 @@ export function DeliveryDriverProfileScreen() {
   const [editForm, setEditForm] = useState<DeliveryDriverUpdate>({});
   const [missingFields, setMissingFields] = useState<string[]>([]);
 
+  const isOnlineText = isAvailable
+    ? 'Você está disponível para receber pedidos'
+    : 'Você está indisponível para receber pedidos';
+
   useEffect(() => {
     if (user) {
       loadData();
@@ -180,15 +184,15 @@ export function DeliveryDriverProfileScreen() {
         <Card.Content style={styles.profileHeader}>
           <Avatar.Text
             size={80}
-            label={driver.name
+            label={(driver?.name || 'E')
               .split(' ')
               .map(n => n[0])
               .join('')
               .toUpperCase()}
           />
           <View style={styles.profileInfo}>
-            <Text variant="titleLarge">{driver.name}</Text>
-            <Text variant="bodyMedium">{driver.email}</Text>
+            <Text variant="titleLarge">{driver?.name || 'Entregador'}</Text>
+            <Text variant="bodyMedium">{driver?.email || ''}</Text>
           </View>
         </Card.Content>
         <Card.Actions>
@@ -205,13 +209,11 @@ export function DeliveryDriverProfileScreen() {
               value={isAvailable}
               onValueChange={handleToggleAvailability}
               color="#4CAF50"
-              disabled={missingFields.length > 0 || driver.status !== 'active'}
+              disabled={missingFields.length > 0 || driver?.status !== 'active'}
             />
           </View>
           <Text variant="bodyMedium" style={styles.statusText}>
-            {isAvailable
-              ? 'Você está disponível para receber pedidos'
-              : 'Você está indisponível para receber pedidos'}
+            {isOnlineText}
           </Text>
         </Card.Content>
       </Card>
@@ -241,22 +243,22 @@ export function DeliveryDriverProfileScreen() {
           <Text variant="titleMedium">Informações do Veículo</Text>
           <List.Item
             title="Tipo"
-            description={driver.vehicle.type}
+            description={driver?.vehicle?.type || ''}
             left={props => <List.Icon {...props} icon="car" />}
           />
           <List.Item
             title="Marca/Modelo"
-            description={`${driver.vehicle.brand} ${driver.vehicle.model}`}
+            description={`${driver?.vehicle?.brand || ''} ${driver?.vehicle?.model || ''}`}
             left={props => <List.Icon {...props} icon="car-info" />}
           />
           <List.Item
             title="Placa"
-            description={driver.vehicle.plate}
+            description={driver?.vehicle?.plate || ''}
             left={props => <List.Icon {...props} icon="card-text" />}
           />
           <List.Item
             title="Cor"
-            description={driver.vehicle.color}
+            description={driver?.vehicle?.color || ''}
             left={props => <List.Icon {...props} icon="palette" />}
           />
         </Card.Content>
@@ -281,7 +283,7 @@ export function DeliveryDriverProfileScreen() {
       </Card>
       
       <View style={styles.footer}>
-        <Text style={styles.versionText}>Versão 1.1.8 (Build 1105)</Text>
+        <Text style={styles.versionText}>Versão 1.1.8 (Build 1113)</Text>
       </View>
 
       <Portal>

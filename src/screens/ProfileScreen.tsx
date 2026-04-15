@@ -50,16 +50,17 @@ export const ProfileScreen = () => {
     }
   };
 
+  if (showDiagnostic) {
+    return <DiagnosticScreen onClose={() => setShowDiagnostic(false)} />;
+  }
+
+  // 🛡️ [HOTFIX 1113] Garantir que o user existe antes de renderizar componentes que dependem dele
   if (!user) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={theme?.colors?.primary || '#000000'} />
       </View>
     );
-  }
-
-  if (showDiagnostic) {
-    return <DiagnosticScreen onClose={() => setShowDiagnostic(false)} />;
   }
 
   return (
@@ -84,7 +85,7 @@ export const ProfileScreen = () => {
           {user?.perfil?.fotoPerfil ? (
             <Avatar.Image source={{ uri: user.perfil.fotoPerfil }} size={80} />
           ) : (
-            <Avatar.Icon icon="account" size={80} style={{ backgroundColor: theme?.colors?.primary || '#000000' }} />
+            <Avatar.Icon icon="account" size={80} style={{ backgroundColor: theme?.colors?.primary || '#E91E63' }} />
           )}
           <View style={styles.userInfo}>
             <Title style={styles.title}>{UserUtils.getUserName(user) || 'Usuário'}</Title>
@@ -284,7 +285,7 @@ export const ProfileScreen = () => {
             onLongPress={() => setShowDiagnostic(true)}
             delayLongPress={3000}
           >
-            <Text style={styles.versionText}>Versão 1.1.8 (Build 1110)</Text>
+            <Text style={styles.versionText}>Versão 1.1.8 (Build 1113)</Text>
           </TouchableOpacity>
         </View>
       </View>
