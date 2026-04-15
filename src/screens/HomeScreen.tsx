@@ -55,7 +55,9 @@ export function HomeScreen() {
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
-      await Promise.all([updateLocation(), loadProducts()]);
+      // Blindagem: Executar carregamentos de forma isolada
+      await loadProducts().catch(e => console.error('Erro loadProducts', e));
+      await updateLocation().catch(e => console.error('Erro updateLocation', e));
     } catch (error) {
       loggingService.error('Erro ao atualizar a tela inicial', { error });
     } finally {
@@ -64,8 +66,17 @@ export function HomeScreen() {
   };
 
   useEffect(() => {
-    loadProducts();
-    updateLocation();
+    // [BUILD 1126] Carregamento sequencial e seguro
+    const initHome = async () => {
+      try {
+        await loadProducts();
+        // Geodecodificação automática suspensa no boot para evitar travamento
+        // updateLocation(); 
+      } catch (e) {
+        console.error('Falha no boot da Home', e);
+      }
+    };
+    initHome();
   }, []);
 
   const renderCategory = ({ item }: { item: typeof CATEGORIES[0] }) => (
@@ -103,10 +114,20 @@ export function HomeScreen() {
 
   if (productLoading && featuredProducts.length === 0) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{ marginTop: 10, color: theme.colors.text.secondary }}>Buscando produtos...</Text>
-      </View>
+        <Text style={{ marginTop: 15, color: theme.colors.text.secondary }}>Açucaradas Encomendas</Text>
+        <Text style={{ marginTop: 5, fontSize: 12, color: '#999' }}>Sincronizando produtos...</Text>
+        
+        {/* Botão de segurança se o carregamento demorar mais de 10s */}
+        <Button 
+          mode="text" 
+          onPress={() => setProductLoading(false)} 
+          style={{ marginTop: 30 }}
+        >
+          Pular carregamento
+        </Button>
+      </SafeAreaView>
     );
   }
 

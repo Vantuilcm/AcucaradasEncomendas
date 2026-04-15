@@ -29,7 +29,7 @@ export function DeliveryDriverProfileScreen() {
 
         <View style={styles.infoSection}>
           <Text style={styles.infoLabel}>Build atual:</Text>
-          <Text style={styles.infoValue}>Versão 1.1.8 (Build 1125)</Text>
+          <Text style={styles.infoValue}>Versão 1.1.8 (Build 1126)</Text>
         </View>
 
         <Button 
