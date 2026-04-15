@@ -98,66 +98,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string, role?: string) => {
     try {
       setLoading(true);
-      setError(null); // Limpar erro anterior
-      console.log('🛡️ [DEBUG_LOGIN] INICIANDO PROCESSO');
-      console.log('🛡️ [DEBUG_LOGIN] Email:', email);
+      setError(null);
+      
+      // Normalização rigorosa do e-mail
+      const normalizedEmail = email.trim().toLowerCase();
+      console.log('🛡️ [DEBUG_LOGIN] INICIANDO PROCESSO PARA:', normalizedEmail);
       
       const auth = getAuth();
-      console.log('🛡️ [DEBUG_LOGIN] Instância Auth obtida:', auth ? '✅ OK' : '❌ NULL');
-      
       const signInFn = authFunctions.signInWithEmailAndPassword;
-      console.log('🛡️ [DEBUG_LOGIN] Função signIn encontrada:', typeof signInFn === 'function' ? '✅ OK' : '❌ NOT_A_FUNCTION');
 
       if (typeof signInFn !== 'function') {
-        throw new Error('Módulo de Autenticação do Firebase não carregado corretamente (NOT_A_FUNCTION).');
+        throw new Error('Módulo de Autenticação do Firebase não carregado corretamente.');
       }
 
+      // Passo 1: Autenticação Firebase
       console.log('🛡️ [DEBUG_LOGIN] Chamando Firebase SDK...');
-      const userCredential = await signInFn(email, password);
+      const userCredential = await signInFn(normalizedEmail, password);
       console.log('✅ [DEBUG_LOGIN] SUCESSO SDK! UID:', userCredential.user.uid);
       
+      // Passo 2: Busca de Perfil Firestore
       const userRef = dbFunctions.doc('users', userCredential.user.uid);
       console.log('🛡️ [DEBUG_LOGIN] Buscando perfil no Firestore...');
       const userDoc = await dbFunctions.getDoc(userRef);
       
       if (userDoc.exists()) {
         const data = userDoc.data();
-        console.log('✅ [DEBUG_LOGIN] Perfil encontrado no Firestore:', data.role);
-        
-        // CORREÇÃO: Normalizar role para minúsculo para evitar conflitos no AppNavigator
-        const normalizedRole = (data.role || role || 'comprador').toLowerCase();
-        setUser({ ...data, id: userCredential.user.uid, role: normalizedRole });
+        const profileRole = (data.role || '').toLowerCase();
+        const expectedRole = (role || '').toLowerCase();
+
+        console.log('✅ [DEBUG_LOGIN] Perfil encontrado:', profileRole);
+
+        // Validação de Role (Opcional, mas útil para debug)
+        if (expectedRole && profileRole !== expectedRole) {
+          console.warn(`⚠️ [DEBUG_LOGIN] Role mismatch: Esperado ${expectedRole}, Encontrado ${profileRole}`);
+        }
+
+        setUser({ ...data, id: userCredential.user.uid, role: profileRole });
       } else {
-        console.warn('⚠️ [DEBUG_LOGIN] Perfil não existe no Firestore. Usando defaults.');
-        setUser({ 
-          id: userCredential.user.uid, 
-          email: userCredential.user.email, 
-          nome: userCredential.user.displayName || '',
-          role: (role || 'comprador').toLowerCase()
-        });
+        console.warn('⚠️ [DEBUG_LOGIN] Perfil não existe no Firestore.');
+        // Se a conta Auth existe mas o perfil Firestore não, informamos erro de perfil
+        throw { code: 'firestore/profile-not-found', message: 'Conta autenticada, mas perfil não encontrado no sistema.' };
       }
     } catch (error: any) {
-      // 🛡️ [DEBUG_LOGIN] Melhoria no tratamento de erro para Entregador
       console.error('❌ [DEBUG_LOGIN] ERRO DETECTADO:', error.code, error.message);
       
-      let friendlyMessage = 'Erro ao processar login';
+      // Mapeamento Transparente de Erros (Sem Mensagens Genéricas que Mascaram)
+      let detailedMessage = '';
       
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        friendlyMessage = 'E-mail ou senha incorretos. Verifique seus dados.';
-      } else if (error.code === 'auth/network-request-failed') {
-        friendlyMessage = 'Falha na conexão. Verifique sua internet.';
-      } else if (error.code === 'auth/too-many-requests') {
-        friendlyMessage = 'Muitas tentativas sem sucesso. Tente novamente mais tarde.';
-      } else {
-        friendlyMessage = `[${error.code || 'unknown'}] ${error.message}`;
+      switch (error.code) {
+        case 'auth/invalid-credential':
+          detailedMessage = 'Credenciais inválidas (E-mail ou Senha incorretos).';
+          break;
+        case 'auth/user-not-found':
+          detailedMessage = 'Usuário não encontrado no sistema.';
+          break;
+        case 'auth/wrong-password':
+          detailedMessage = 'Senha incorreta para este usuário.';
+          break;
+        case 'auth/invalid-email':
+          detailedMessage = 'O formato do e-mail digitado é inválido.';
+          break;
+        case 'auth/too-many-requests':
+          detailedMessage = 'Muitas tentativas sem sucesso. A conta foi bloqueada temporariamente por segurança.';
+          break;
+        case 'firestore/profile-not-found':
+          detailedMessage = 'Sua conta existe, mas o seu perfil de acesso não foi localizado. Entre em contato com o suporte.';
+          break;
+        case 'auth/network-request-failed':
+          detailedMessage = 'Falha na conexão de rede. Verifique sua internet.';
+          break;
+        default:
+          detailedMessage = `Erro de Login: [${error.code || 'unknown'}] ${error.message}`;
       }
 
-      setError(friendlyMessage);
+      setError(detailedMessage);
       
       Alert.alert(
-        'Falha no Login',
-        friendlyMessage,
-        [{ text: 'OK' }]
+        'Falha no Acesso',
+        detailedMessage,
+        [{ text: 'Entendido' }]
       );
 
       throw error;
