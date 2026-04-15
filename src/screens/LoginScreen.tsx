@@ -68,38 +68,68 @@ export default function LoginScreen() {
     try {
       setError(null);
       
-      // Validar entradas antes de tentar login
-      if (!validateInputs()) {
-        secureLoggingService.security('LOGIN_VALIDATION_FAILED', { email });
-        return;
-      }
+      // Validar entradas básicas (não vazias, formato e-mail)
+      if (!validateInputs()) return;
       
-      // Sanitizar email antes de enviar
-      const sanitizedEmail = InputValidationService.validateAndSanitizeInput(email, {
-        type: 'email'
-      });
+      // Normalização e Sanitização rigorosa
+      const normalizedEmail = email.trim().toLowerCase();
       
-      secureLoggingService.security('USER_LOGIN_ATTEMPT', { email: sanitizedEmail, role });
+      secureLoggingService.security('USER_LOGIN_ATTEMPT', { email: normalizedEmail, selectedRole: role });
       
-      await login(sanitizedEmail, password, role);
+      // Chamada de login universal (o role serve apenas para log de tentativa)
+      await login(normalizedEmail, password, role);
       
-      // O redirecionamento agora é tratado pelo AppNavigator automaticamente 
-      // assim que o estado 'user' for atualizado no AuthContext.
+      // Se chegou aqui, login foi sucesso!
       
     } catch (err: any) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao processar login';
-      setError(errorMessage);
+      console.error('❌ [LOGIN_SCREEN] Erro capturado:', err.code, err.message);
       
-      secureLoggingService.error('LOGIN_PROCESS_ERROR', { 
-        email, 
-        error: errorMessage 
-      });
+      let alertTitle = 'Falha no Acesso';
+      let friendlyMessage = '';
+      
+      // Mapeamento Transparente de Erros (CTO Directives)
+      switch (err.code) {
+        case 'auth/invalid-credential':
+          friendlyMessage = 'E-mail ou senha incorretos. Verifique seus dados e tente novamente.';
+          break;
+        case 'auth/user-not-found':
+          friendlyMessage = 'Este usuário não foi encontrado no sistema.';
+          break;
+        case 'auth/wrong-password':
+          friendlyMessage = 'A senha digitada está incorreta.';
+          break;
+        case 'auth/invalid-email':
+          friendlyMessage = 'O formato do e-mail é inválido (ex: nome@dominio.com).';
+          break;
+        case 'auth/too-many-requests':
+          alertTitle = 'Acesso Bloqueado';
+          friendlyMessage = 'Muitas tentativas sem sucesso. Por favor, tente novamente em alguns minutos.';
+          break;
+        case 'firestore/profile-not-found':
+          alertTitle = 'Perfil Inexistente';
+          friendlyMessage = 'Sua conta de autenticação é válida, mas não encontramos seu perfil de usuário no banco de dados.';
+          break;
+        case 'auth/network-request-failed':
+          alertTitle = 'Erro de Conexão';
+          friendlyMessage = 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet.';
+          break;
+        default:
+          friendlyMessage = err.message || 'Ocorreu um erro inesperado ao tentar entrar.';
+      }
 
+      setError(friendlyMessage);
+      
       Alert.alert(
-        'Falha no Login',
-        errorMessage,
+        alertTitle,
+        friendlyMessage,
         [{ text: 'Tentar Novamente' }]
       );
+
+      secureLoggingService.error('LOGIN_PROCESS_ERROR', { 
+        email, 
+        errorCode: err.code,
+        errorMessage: err.message 
+      });
     }
   };
 
@@ -243,7 +273,7 @@ export default function LoginScreen() {
               </Button>
 
               <View style={styles.footer}>
-                <Text style={styles.versionText}>Versão 1.1.8 (Build 1122)</Text>
+                <Text style={styles.versionText}>Versão 1.1.8 (Build 1117)</Text>
               </View>
             </View>
           </ScrollView>

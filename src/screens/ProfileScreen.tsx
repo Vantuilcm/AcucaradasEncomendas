@@ -72,7 +72,7 @@ export const ProfileScreen = () => {
 
         <View style={styles.infoSection}>
           <Text style={styles.infoLabel}>Build atual:</Text>
-          <Text style={styles.infoValue}>Versão 1.1.8 (Build 1122)</Text>
+          <Text style={styles.infoValue}>Versão 1.1.8 (Build 1117)</Text>
         </View>
 
         <Button 

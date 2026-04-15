@@ -123,63 +123,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (userDoc.exists()) {
         const data = userDoc.data();
-        const profileRole = (data.role || '').toLowerCase();
-        const expectedRole = (role || '').toLowerCase();
-
+        const profileRole = (data.role || 'comprador').toLowerCase();
+        
         console.log('✅ [DEBUG_LOGIN] Perfil encontrado:', profileRole);
 
-        // Validação de Role (Opcional, mas útil para debug)
-        if (expectedRole && profileRole !== expectedRole) {
-          console.warn(`⚠️ [DEBUG_LOGIN] Role mismatch: Esperado ${expectedRole}, Encontrado ${profileRole}`);
-        }
-
+        // Login Universal: Definimos o usuário com a role real do banco.
+        // O AppNavigator cuidará de levar o usuário para a Home correta.
         setUser({ ...data, id: userCredential.user.uid, role: profileRole });
       } else {
         console.warn('⚠️ [DEBUG_LOGIN] Perfil não existe no Firestore.');
-        // Se a conta Auth existe mas o perfil Firestore não, informamos erro de perfil
         throw { code: 'firestore/profile-not-found', message: 'Conta autenticada, mas perfil não encontrado no sistema.' };
       }
     } catch (error: any) {
-      console.error('❌ [DEBUG_LOGIN] ERRO DETECTADO:', error.code, error.message);
-      
-      // Mapeamento Transparente de Erros (Sem Mensagens Genéricas que Mascaram)
-      let detailedMessage = '';
-      
+      console.error('❌ [DEBUG_LOGIN] ERRO:', error.code, error.message);
+      let detailedMessage = error.message;
+
       switch (error.code) {
-        case 'auth/invalid-credential':
-          detailedMessage = 'Credenciais inválidas (E-mail ou Senha incorretos).';
-          break;
-        case 'auth/user-not-found':
-          detailedMessage = 'Usuário não encontrado no sistema.';
-          break;
-        case 'auth/wrong-password':
-          detailedMessage = 'Senha incorreta para este usuário.';
-          break;
-        case 'auth/invalid-email':
-          detailedMessage = 'O formato do e-mail digitado é inválido.';
-          break;
         case 'auth/too-many-requests':
           detailedMessage = 'Muitas tentativas sem sucesso. A conta foi bloqueada temporariamente por segurança.';
           break;
         case 'firestore/profile-not-found':
-          detailedMessage = 'Sua conta existe, mas o seu perfil de acesso não foi localizado. Entre em contato com o suporte.';
+          // A mensagem já pode estar definida no throw anterior
           break;
-        case 'auth/network-request-failed':
-          detailedMessage = 'Falha na conexão de rede. Verifique sua internet.';
-          break;
-        default:
-          detailedMessage = `Erro de Login: [${error.code || 'unknown'}] ${error.message}`;
       }
 
       setError(detailedMessage);
-      
-      Alert.alert(
-        'Falha no Acesso',
-        detailedMessage,
-        [{ text: 'Entendido' }]
-      );
-
-      throw error;
+      throw { ...error, message: detailedMessage };
     } finally {
       setLoading(false);
     }
