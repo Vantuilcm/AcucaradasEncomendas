@@ -173,16 +173,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Criar doc no Firestore
       const userDoc = {
-        uid: userCredential.user.uid,
+        id: userCredential.user.uid,
         email: userData.email,
         nome: userData.nome || userData.name || '',
-        role: userData.role || 'customer',
+        role: (userData.role || 'comprador').toLowerCase(),
         createdAt: dbFunctions.serverTimestamp(),
         updatedAt: dbFunctions.serverTimestamp()
       };
       
       await dbFunctions.setDoc(dbFunctions.doc('users', userCredential.user.uid), userDoc);
-      setUser({ ...userDoc, id: userCredential.user.uid });
+      setUser(userDoc);
       console.log('✅ [AUTH] Register success');
     } catch (error) {
       console.error('❌ [AUTH] Register error:', error);
@@ -274,10 +274,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const nome = fullName ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim() : '';
         
         await dbFunctions.setDoc(userRef, {
-          uid: userCredential.user.uid,
+          id: userCredential.user.uid,
           email: userCredential.user.email,
           nome: nome || userCredential.user.displayName || '',
-          role: role || 'customer',
+          role: (role || 'comprador').toLowerCase(),
           createdAt: dbFunctions.serverTimestamp(),
         });
       }
@@ -305,10 +305,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (!userDoc.exists()) {
         await dbFunctions.setDoc(userRef, {
-          uid: userCredential.user.uid,
+          id: userCredential.user.uid,
           email: userCredential.user.email,
           nome: userCredential.user.displayName || '',
-          role: role || 'customer',
+          role: (role || 'comprador').toLowerCase(),
           createdAt: dbFunctions.serverTimestamp(),
         });
       }
