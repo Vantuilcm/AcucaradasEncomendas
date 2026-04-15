@@ -105,6 +105,11 @@ export async function log(
   params?: any
 ) {
   const entry = createLogEntry(type, severity, message, params);
+  
+  // 🛡️ Log de console para debug em tempo real
+  if (__DEV__) {
+    console.log(`[${severity}] [${type}] ${message}`, params?.metadata || '');
+  }
 
   // Console output formatado
   const emoji = severity === 'CRITICAL' ? '🚨' : severity === 'HIGH' ? '🔥' : severity === 'MEDIUM' ? '⚠️' : '📊';

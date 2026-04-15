@@ -16,6 +16,8 @@ import { useAppTheme } from '../components/ThemeProvider';
 
 import { Role } from '../services/PermissionsService';
 
+import { DiagnosticScreen } from '../core/monitoring/DiagnosticScreen';
+
 export default function LoginScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -25,6 +27,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   // Combinar erros locais e do AuthContext para exibição
   const displayError = error || authError;
@@ -34,15 +37,7 @@ export default function LoginScreen() {
   const isSyncing = loading || profileLoading;
 
   const showDebugInfo = () => {
-    const extra = Constants.expoConfig?.extra || {};
-    const info = `
-    ENV KEY: ${ENV.EXPO_PUBLIC_FIREBASE_API_KEY ? ENV.EXPO_PUBLIC_FIREBASE_API_KEY.substring(0, 8) + '...' : 'MISSING'}
-    EXTRA KEY: ${extra.firebaseApiKey ? extra.firebaseApiKey.substring(0, 8) + '...' : 'MISSING'}
-    PROJECT ID: ${ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID}
-    DOMAIN: ${ENV.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN}
-    BUILD: ${Constants.expoConfig?.ios?.buildNumber || 'N/A'}
-    `;
-    Alert.alert('🛡️ Firebase Debug Info', info);
+    setShowDiagnostic(true);
   };
 
   const validateInputs = useCallback(() => {
@@ -119,6 +114,10 @@ export default function LoginScreen() {
 
   if (isSyncing) {
     return <LoadingState message={profileLoading ? "Carregando perfil..." : "Entrando..."} />;
+  }
+
+  if (showDiagnostic) {
+    return <DiagnosticScreen onClose={() => setShowDiagnostic(false)} />;
   }
 
   return (
@@ -244,7 +243,7 @@ export default function LoginScreen() {
               </Button>
 
               <View style={styles.footer}>
-                <Text style={styles.versionText}>Versão 1.1.8 (Build 1106)</Text>
+                <Text style={styles.versionText}>Versão 1.1.8 (Build 1110)</Text>
               </View>
             </View>
           </ScrollView>

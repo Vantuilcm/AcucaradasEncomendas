@@ -10,6 +10,7 @@ import { secureLoggingService } from '../services/SecureLoggingService';
 import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { useAppTheme } from '../components/ThemeProvider';
 import { usePermissions } from '../hooks/usePermissions';
+import { DiagnosticScreen } from '../core/monitoring/DiagnosticScreen';
 
 export const ProfileScreen = () => {
   const { user, logout } = useAuth();
@@ -18,6 +19,7 @@ export const ProfileScreen = () => {
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -54,6 +56,10 @@ export const ProfileScreen = () => {
         <ActivityIndicator size="large" color={theme?.colors?.primary || '#000000'} />
       </View>
     );
+  }
+
+  if (showDiagnostic) {
+    return <DiagnosticScreen onClose={() => setShowDiagnostic(false)} />;
   }
 
   return (
@@ -274,7 +280,12 @@ export const ProfileScreen = () => {
         </TouchableRipple>
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>Versão 1.1.8 (Build 1106)</Text>
+          <TouchableOpacity 
+            onLongPress={() => setShowDiagnostic(true)}
+            delayLongPress={3000}
+          >
+            <Text style={styles.versionText}>Versão 1.1.8 (Build 1110)</Text>
+          </TouchableOpacity>
         </View>
       </View>
       
