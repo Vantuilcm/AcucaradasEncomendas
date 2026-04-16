@@ -10,6 +10,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
+import { Button } from 'react-native-paper';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -63,7 +64,7 @@ export default function ProductDetailScreen() {
         try {
           setLoading(true);
           const productService = ProductService.getInstance();
-          const data = await productService.consultarPorId(productId);
+          const data = await productService.consultarProduto(productId);
           if (data) {
             setProduct(data);
           }
@@ -98,7 +99,8 @@ export default function ProductDetailScreen() {
       try {
         const userId = user?.id;
         if (userId && isMounted) {
-          await recommendationService.trackProductView(userId, product.id);
+          // Temporariamente desativado até implementação no RecommendationService
+          // await recommendationService.trackProductView(userId, product.id);
         }
       } catch (error) {
         console.error('Erro ao registrar visualização:', error);

@@ -58,6 +58,7 @@ import { StoreDetailsScreen } from '../screens/StoreDetailsScreen';
 export type MainTabParamList = {
   Home: undefined;
   Catalog: undefined;
+  StoreManager: undefined;
   Orders: undefined;
   Cart: undefined;
   Profile: undefined;

@@ -12,6 +12,7 @@ import {
   IconButton,
   List,
   Surface,
+  Chip,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
@@ -81,7 +82,11 @@ export function DriverHomeScreen() {
       // Histórico simples: últimos 5 pedidos entregues por mim
       const completed = allOrders
         .filter(o => o.deliveryDriver?.id === driver?.id && o.status === 'delivered')
-        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+        .sort((a, b) => {
+          const tA = (a.updatedAt as any) instanceof Date ? (a.updatedAt as any).getTime() : (a.updatedAt || 0);
+          const tB = (b.updatedAt as any) instanceof Date ? (b.updatedAt as any).getTime() : (b.updatedAt || 0);
+          return (tB as number) - (tA as number);
+        })
         .slice(0, 5);
 
       setAvailableOrders(available);
@@ -294,7 +299,7 @@ export function DriverHomeScreen() {
          )}
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>Versão 1.1.8 (Build 1105)</Text>
+          <Text style={styles.versionText}>Versão 1.1.8 (Build 1128)</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -317,6 +322,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   statItem: { alignItems: 'center' },
   statValue: { fontSize: 20, fontWeight: 'bold', color: theme.colors.primary },
   statLabel: { fontSize: 12, color: '#666' },
+  statusLabel: { fontSize: 14, color: '#666' },
   vDivider: { width: 1, height: '100%', backgroundColor: '#eee' },
   section: { paddingHorizontal: 16, marginTop: 8 },
   sectionTitle: { fontSize: 18, marginBottom: 12, fontWeight: 'bold' },

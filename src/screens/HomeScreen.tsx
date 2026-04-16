@@ -1,3 +1,4 @@
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, StatusBar, RefreshControl, ActivityIndicator, Image, TouchableOpacity, FlatList } from 'react-native';
 import { Text, Button, IconButton, Searchbar, Card, Chip, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -218,7 +219,7 @@ export function HomeScreen() {
             {productLoading ? (
               <ActivityIndicator color={theme.colors.primary} />
             ) : featuredProducts.length > 0 ? (
-              featuredProducts.map(product => (
+              featuredProducts.map((product: Product) => (
                 <Card 
                   key={product.id} 
                   style={styles.productCard} 
@@ -232,7 +233,10 @@ export function HomeScreen() {
                     }
                   }}
                 >
-                  <Card.Cover source={{ uri: product.imagem || 'https://via.placeholder.com/150' }} style={styles.productImage} />
+                  <Card.Cover 
+                    source={{ uri: product.imagens?.[0] || 'https://via.placeholder.com/150' }} 
+                    style={styles.productImage} 
+                  />
                   <Card.Content style={styles.productContent}>
                     <Text variant="titleSmall" style={styles.productName} numberOfLines={1}>
                       {product.nome}
