@@ -23,6 +23,9 @@ import CatalogScreen from '../screens/CatalogScreen';
 import { OrdersScreen } from '../screens/OrdersScreen';
 import CartScreen from '../screens/CartScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { CompradorProfileScreen } from '../screens/CompradorProfileScreen';
+import { ProdutorProfileScreen } from '../screens/ProdutorProfileScreen';
+import { EntregadorProfileScreen } from '../screens/EntregadorProfileScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import CheckoutScreen from '../screens/CheckoutScreen';
 import OrderDetailScreen from '../screens/OrderDetailScreen';
@@ -112,7 +115,16 @@ const DriverTab = createBottomTabNavigator<DriverTabParamList>();
 // Navegador de abas principal
 const MainTabs = () => {
   const { theme } = useAppTheme();
-  const { isProdutor, isAdmin } = usePermissions();
+  const { isProdutor, isAdmin, isEntregador } = usePermissions();
+  const { user } = useAuth();
+
+  // Selecionar tela de perfil baseada na role real do usuário
+  const ProfileComponent = useMemo(() => {
+    const role = (user?.role || '').toLowerCase();
+    if (role === 'produtor' || role === 'producer') return ProdutorProfileScreen;
+    if (role === 'entregador' || role === 'driver') return EntregadorProfileScreen;
+    return CompradorProfileScreen;
+  }, [user?.role]);
 
   return (
     <Tab.Navigator
@@ -164,7 +176,7 @@ const MainTabs = () => {
         <Tab.Screen name="Cart" component={CartScreen} options={{ title: 'Carrinho' }} />
       )}
 
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Perfil' }} />
+      <Tab.Screen name="Profile" component={ProfileComponent} options={{ title: 'Perfil' }} />
     </Tab.Navigator>
   );
 };
@@ -206,7 +218,7 @@ const DriverTabs = () => {
       />
       <DriverTab.Screen
         name="DriverProfile"
-        component={DeliveryDriverProfileScreen}
+        component={EntregadorProfileScreen}
         options={{ title: 'Perfil' }}
       />
     </DriverTab.Navigator>
