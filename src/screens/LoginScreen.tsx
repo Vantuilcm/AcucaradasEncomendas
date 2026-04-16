@@ -13,6 +13,7 @@ import { InputValidationService } from '../services/InputValidationService';
 import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { useAppTheme } from '../components/ThemeProvider';
+import { useRoleRedirect } from '../hooks/useRoleRedirect';
 
 import { Role } from '../services/PermissionsService';
 
@@ -22,12 +23,20 @@ export default function LoginScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<any>();
-  const { login, loading, profileLoading, error: authError } = useAuth();
+  const { login, loading, profileLoading, error: authError, user } = useAuth();
+  const { redirectToDashboard } = useRoleRedirect();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
+
+  // Redirecionamento automático após login bem-sucedido
+  React.useEffect(() => {
+    if (user && !profileLoading) {
+      redirectToDashboard();
+    }
+  }, [user, profileLoading, redirectToDashboard]);
 
   // Combinar erros locais e do AuthContext para exibição
   const displayError = error || authError;
@@ -273,7 +282,7 @@ export default function LoginScreen() {
               </Button>
 
               <View style={styles.footer}>
-                <Text style={styles.versionText}>Versão 1.1.8 (Build 1127)</Text>
+                <Text style={styles.versionText}>Versão 1.1.8 (Build 1128)</Text>
               </View>
             </View>
           </ScrollView>

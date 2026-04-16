@@ -13,6 +13,7 @@ import { useAppTheme, type ThemeType } from '../components/ThemeProvider';
 import { usePermissions } from '../hooks/usePermissions';
 import { AdminDashboardScreen } from './AdminDashboardScreen';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRoleRedirect } from '../hooks/useRoleRedirect';
 
 const CATEGORIES = [
   { id: '1', name: 'Bolos', icon: 'cake-variant' },
@@ -25,7 +26,8 @@ const CATEGORIES = [
 export function HomeScreen() {
   const navigation = useNavigation<MainTabNavigationProp<'Home'>>();
   const { user } = useAuth();
-  const { isProdutor, isAdmin } = usePermissions();
+  const { isProdutor, isEntregador, isAdmin } = usePermissions();
+  const { redirectToDashboard } = useRoleRedirect();
   const { updateLocation, nearbyStores, isLoadingStores } = useLocation();
   const [refreshing, setRefreshing] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -34,7 +36,14 @@ export function HomeScreen() {
   const { theme, isDark, toggleTheme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  // Redirecionamento de Interface por Role
+  // Redirecionamento automático por Role (Build 1117)
+  useEffect(() => {
+    if (user && (isProdutor || isEntregador || isAdmin)) {
+      redirectToDashboard();
+    }
+  }, [user, isProdutor, isEntregador, isAdmin, redirectToDashboard]);
+
+  // Fallback visual para Produtor/Admin enquanto o redirect não ocorre
   if (isProdutor || isAdmin) {
     return <AdminDashboardScreen />;
   }
