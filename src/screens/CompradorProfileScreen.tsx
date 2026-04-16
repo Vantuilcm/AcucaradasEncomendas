@@ -4,6 +4,7 @@ import { Avatar, Title, Caption, Text, Button, Divider, List } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import * as RootNavigation from '../services/RootNavigation';
 
 export const CompradorProfileScreen = () => {
   const { user, logout } = useAuth();
@@ -14,6 +15,10 @@ export const CompradorProfileScreen = () => {
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Sair', style: 'destructive', onPress: async () => logout && await logout() }
     ]);
+  };
+
+  const navigateTo = (route: string) => {
+    RootNavigation.navigate(route);
   };
 
   return (
@@ -32,27 +37,27 @@ export const CompradorProfileScreen = () => {
           <List.Item
             title="Meus Endereços"
             left={props => <List.Icon {...props} icon="map-marker" />}
-            onPress={() => navigation.navigate('Address')}
+            onPress={() => navigateTo('Address')}
           />
           <List.Item
             title="Formas de Pagamento"
             left={props => <List.Icon {...props} icon="credit-card" />}
-            onPress={() => navigation.navigate('PaymentMethods')}
+            onPress={() => navigateTo('PaymentMethods')}
           />
           <List.Item
             title="Histórico de Pedidos"
             left={props => <List.Icon {...props} icon="history" />}
-            onPress={() => navigation.navigate('OrdersHistory')}
+            onPress={() => navigateTo('OrdersHistory')}
           />
           <List.Item
             title="Meus Favoritos"
             left={props => <List.Icon {...props} icon="heart" />}
-            onPress={() => navigation.navigate('Favorites')}
+            onPress={() => navigateTo('Favorites')}
           />
         </List.Section>
 
         <View style={styles.footer}>
-          <Text style={styles.buildText}>Versão 1.1.8 (Build 1138)</Text>
+          <Text style={styles.buildText}>Versão 1.1.8 (Build 1139)</Text>
           <Button mode="contained" onPress={handleLogout} style={styles.logoutBtn} buttonColor="#FF3B30">
             Sair da Conta
           </Button>

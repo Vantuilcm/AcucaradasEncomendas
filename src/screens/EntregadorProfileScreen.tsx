@@ -4,6 +4,7 @@ import { Avatar, Title, Caption, Text, Button, Divider, List } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import * as RootNavigation from '../services/RootNavigation';
 
 export const EntregadorProfileScreen = () => {
   const { user, logout } = useAuth();
@@ -14,6 +15,10 @@ export const EntregadorProfileScreen = () => {
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Sair', style: 'destructive', onPress: async () => logout && await logout() }
     ]);
+  };
+
+  const navigateTo = (route: string) => {
+    RootNavigation.navigate(route);
   };
 
   return (
@@ -32,32 +37,32 @@ export const EntregadorProfileScreen = () => {
           <List.Item
             title="Meu Veículo"
             left={props => <List.Icon {...props} icon="car-info" />}
-            onPress={() => navigation.navigate('DriverVehicle')}
+            onPress={() => navigateTo('DriverVehicle')}
           />
           <List.Item
             title="Dados Bancários (Pix)"
             left={props => <List.Icon {...props} icon="bank" />}
-            onPress={() => navigation.navigate('DriverPix')}
+            onPress={() => navigateTo('DriverPix')}
           />
           <List.Item
             title="Meus Documentos"
             left={props => <List.Icon {...props} icon="file-document-outline" />}
-            onPress={() => navigation.navigate('DriverDocuments')}
+            onPress={() => navigateTo('DriverDocuments')}
           />
           <List.Item
             title="Resumo de Ganhos"
             left={props => <List.Icon {...props} icon="cash-check" />}
-            onPress={() => navigation.navigate('DriverEarnings')}
+            onPress={() => navigateTo('DriverEarnings')}
           />
           <List.Item
             title="Histórico de Corridas"
             left={props => <List.Icon {...props} icon="map-marker-distance" />}
-            onPress={() => navigation.navigate('DriverHistory')}
+            onPress={() => navigateTo('DriverHistory')}
           />
         </List.Section>
 
         <View style={styles.footer}>
-          <Text style={styles.buildText}>Versão 1.1.8 (Build 1138)</Text>
+          <Text style={styles.buildText}>Versão 1.1.8 (Build 1139)</Text>
           <Button mode="contained" onPress={handleLogout} style={styles.logoutBtn} buttonColor="#FF3B30">
             Sair da Conta
           </Button>
