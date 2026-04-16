@@ -48,6 +48,9 @@ export const ProdutorProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} bounces={false}>
+        <View style={{ backgroundColor: '#FFD700', padding: 5, alignItems: 'center' }}>
+          <Text style={{ fontWeight: 'bold', color: '#000', fontSize: 10 }}>BUILD REAL 1136 ATIVO — NAVEGAÇÃO DIRETA</Text>
+        </View>
         <View style={styles.header}>
           <Avatar.Icon size={80} icon="store" style={{ backgroundColor: '#9C27B0' }} />
           <Title style={styles.title}>{user?.nome || user?.name || 'Produtor'}</Title>
@@ -66,7 +69,7 @@ export const ProdutorProfileScreen = () => {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.buildText}>Versão 1.1.8 (Build 1135)</Text>
+          <Text style={styles.buildText}>Versão 1.1.8 (Build 1136)</Text>
           <Button mode="contained" onPress={handleLogout} style={styles.logoutBtn} buttonColor="#FF3B30">
             Sair da Conta
           </Button>
