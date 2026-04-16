@@ -19,14 +19,11 @@ export const ProdutorProfileScreen = () => {
 
   const navigateTo = (route: string, label: string) => {
     try {
-      console.log(`🚀 [PRODUTOR_NAV] Clique em: ${label} -> Rota: ${route}`);
-      // Alerta de depuração para teste no celular
-      Alert.alert('CLIQUE OK', `Navegando para: ${label}`, [
-        { text: 'Ir', onPress: () => navigation.navigate(route) }
-      ]);
+      console.log(`🚀 [PRODUTOR_NAV] Navegando para: ${label} -> Rota: ${route}`);
+      navigation.navigate(route);
     } catch (error) {
       console.error(`❌ [PRODUTOR_NAV] Erro ao navegar para ${route}:`, error);
-      Alert.alert('Erro', 'Não foi possível abrir esta tela. Tente novamente.');
+      Alert.alert('ERRO ROTA', `Não foi possível abrir a tela: ${label}`);
     }
   };
 
@@ -69,7 +66,7 @@ export const ProdutorProfileScreen = () => {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.buildText}>Versão 1.1.8 (Build 1134)</Text>
+          <Text style={styles.buildText}>Versão 1.1.8 (Build 1135)</Text>
           <Button mode="contained" onPress={handleLogout} style={styles.logoutBtn} buttonColor="#FF3B30">
             Sair da Conta
           </Button>
