@@ -57,7 +57,7 @@ export const EntregadorProfileScreen = () => {
         </List.Section>
 
         <View style={styles.footer}>
-          <Text style={styles.buildText}>Versão 1.1.8 (Build 1133)</Text>
+          <Text style={styles.buildText}>Versão 1.1.8 (Build 1134)</Text>
           <Button mode="contained" onPress={handleLogout} style={styles.logoutBtn} buttonColor="#FF3B30">
             Sair da Conta
           </Button>
