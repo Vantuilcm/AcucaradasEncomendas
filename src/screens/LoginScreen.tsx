@@ -282,7 +282,7 @@ export default function LoginScreen() {
               </Button>
 
               <View style={styles.footer}>
-                <Text style={styles.versionText}>Versão 1.1.8 (Build 1132)</Text>
+                <Text style={styles.versionText}>Versão 1.1.8 (Build 1133)</Text>
               </View>
             </View>
           </ScrollView>

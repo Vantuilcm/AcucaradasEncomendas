@@ -16,6 +16,16 @@ export const ProdutorProfileScreen = () => {
     ]);
   };
 
+  const navigateTo = (route: string) => {
+    try {
+      console.log(`🚀 [PRODUTOR_NAV] Navegando para: ${route}`);
+      navigation.navigate(route);
+    } catch (error) {
+      console.error(`❌ [PRODUTOR_NAV] Erro ao navegar para ${route}:`, error);
+      Alert.alert('Erro', 'Não foi possível abrir esta tela. Tente novamente.');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -32,32 +42,32 @@ export const ProdutorProfileScreen = () => {
           <List.Item
             title="Minha Loja"
             left={props => <List.Icon {...props} icon="store-cog" />}
-            onPress={() => navigation.navigate('StorePreview')}
+            onPress={() => navigateTo('StorePreview')}
           />
           <List.Item
             title="Gerenciar Produtos"
             left={props => <List.Icon {...props} icon="package-variant-closed" />}
-            onPress={() => navigation.navigate('ProductManagement')}
+            onPress={() => navigateTo('ProductManagement')}
           />
           <List.Item
             title="Horários de Funcionamento"
             left={props => <List.Icon {...props} icon="clock-outline" />}
-            onPress={() => navigation.navigate('EditProfile')}
+            onPress={() => navigateTo('EditProfile')}
           />
           <List.Item
             title="Pedidos Recebidos"
             left={props => <List.Icon {...props} icon="clipboard-list" />}
-            onPress={() => navigation.navigate('OrderManagement')}
+            onPress={() => navigateTo('OrderManagement')}
           />
           <List.Item
             title="Financeiro e Vendas"
             left={props => <List.Icon {...props} icon="cash-multiple" />}
-            onPress={() => navigation.navigate('Reports')}
+            onPress={() => navigateTo('Reports')}
           />
         </List.Section>
 
         <View style={styles.footer}>
-          <Text style={styles.buildText}>Versão 1.1.8 (Build 1132)</Text>
+          <Text style={styles.buildText}>Versão 1.1.8 (Build 1133)</Text>
           <Button mode="contained" onPress={handleLogout} style={styles.logoutBtn} buttonColor="#FF3B30">
             Sair da Conta
           </Button>
