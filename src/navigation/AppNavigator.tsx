@@ -38,6 +38,7 @@ import { StorePreviewScreen } from '../screens/StorePreviewScreen';
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
 import { ProductManagementScreen } from '../screens/ProductManagementScreen';
 import { OrderManagementScreen } from '../screens/OrderManagementScreen';
+import { ReportsScreen } from '../screens/ReportsScreen';
 import { InventoryManagementScreen } from '../screens/InventoryManagementScreen';
 import { AddEditProductScreen } from '../screens/AddEditProductScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
@@ -381,6 +382,16 @@ const AppNavigator = () => {
                       options={{ title: 'Gerenciar Pedidos' }}
                     />
                     <Stack.Screen
+                      name="StorePreview"
+                      component={StorePreviewScreen}
+                      options={{ title: 'Visualizar Minha Loja' }}
+                    />
+                    <Stack.Screen
+                      name="Reports"
+                      component={ReportsScreen}
+                      options={{ title: 'Financeiro e Relatórios' }}
+                    />
+                    <Stack.Screen
                       name="InventoryManagement"
                       component={InventoryManagementScreen}
                       options={{ title: 'Gerenciar Estoque' }}
@@ -485,7 +496,6 @@ const AppNavigator = () => {
                 />
                 <Stack.Screen name="OrdersHistory" component={PlaceholderScreen} options={{ title: 'Histórico' }} />
                 <Stack.Screen name="Favorites" component={PlaceholderScreen} options={{ title: 'Favoritos' }} />
-                <Stack.Screen name="Reports" component={PlaceholderScreen} options={{ title: 'Financeiro' }} />
                 <Stack.Screen name="DriverVehicle" component={PlaceholderScreen} options={{ title: 'Veículo' }} />
                 <Stack.Screen name="DriverPix" component={PlaceholderScreen} options={{ title: 'Pix' }} />
                 <Stack.Screen name="DriverDocuments" component={PlaceholderScreen} options={{ title: 'Documentos' }} />
