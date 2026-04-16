@@ -1,452 +1,342 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Modal } from 'react-native';
-import { Text, Button, Card, Chip, IconButton, useTheme, Snackbar, TextInput, Portal } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Dimensions,
+  Animated,
+  TouchableOpacity,
+  Modal,
+  Alert,
+} from 'react-native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 import { EnhancedImage, PlaceholderType } from '../components/EnhancedImage';
-import type { StackNavigationProp } from '@react-navigation/stack';
+import { ProductRecommendations } from '../components/ProductRecommendations';
+import { ProductSocialActions } from '../components/ProductSocialActions';
+import { RecommendationService } from '../services/RecommendationService';
+import { FeedbackType, Toast, CartAddEffect, FeedbackButton } from '../components/FeedbackEffects';
+import { ProductService } from '../services/ProductService';
+import * as Haptics from 'expo-haptics';
 import type { RootStackParamList } from '../navigation/AppNavigator';
+import { LoadingState } from '../components/base/LoadingState';
 
-// Tipo para os produtos
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  category: string;
-  description: string;
-  available: boolean;
-  ingredients?: string[];
-  nutritionalInfo?: {
-    calories: number;
-    sugar: number;
-    fat: number;
-  };
-  allergens?: string[];
-}
+const { width } = Dimensions.get('window');
 
-// Dados de exemplo para produtos
-const sampleProducts: Record<string, Product> = {
-  '1': {
-    id: '1',
-    name: 'Bolo de Chocolate',
-    price: 45.99,
-    image: 'https://via.placeholder.com/400',
-    category: 'Bolos',
-    description: 'Delicioso bolo de chocolate com cobertura de brigadeiro. Feito com ingredientes selecionados e chocolate belga de alta qualidade. Perfeito para qualquer ocasião especial.',
-    available: true,
-    ingredients: ['Farinha de trigo', 'Açúcar', 'Chocolate em pó', 'Ovos', 'Leite', 'Manteiga'],
-    nutritionalInfo: {
-      calories: 320,
-      sugar: 25,
-      fat: 15,
-    },
-    allergens: ['Glúten', 'Leite', 'Ovos'],
-  },
-  '2': {
-    id: '2',
-    name: 'Cupcake de Baunilha',
-    price: 8.99,
-    image: 'https://via.placeholder.com/400',
-    category: 'Cupcakes',
-    description: 'Cupcake de baunilha com cobertura de buttercream. Leve e saboroso, perfeito para festas e eventos.',
-    available: true,
-    ingredients: ['Farinha de trigo', 'Açúcar', 'Essência de baunilha', 'Ovos', 'Leite', 'Manteiga'],
-    nutritionalInfo: {
-      calories: 180,
-      sugar: 18,
-      fat: 9,
-    },
-    allergens: ['Glúten', 'Leite', 'Ovos'],
-  },
-  '3': {
-    id: '3',
-    name: 'Torta de Limão',
-    price: 39.99,
-    image: 'https://via.placeholder.com/400',
-    category: 'Tortas',
-    description: 'Torta de limão com merengue. Uma combinação perfeita de doce e azedo que vai refrescar seu paladar.',
-    available: true,
-    ingredients: ['Farinha de trigo', 'Açúcar', 'Limão', 'Ovos', 'Leite condensado', 'Manteiga'],
-    nutritionalInfo: {
-      calories: 280,
-      sugar: 22,
-      fat: 12,
-    },
-    allergens: ['Glúten', 'Leite', 'Ovos'],
-  },
-};
-
-type ProductDetailNavigationProp = StackNavigationProp<RootStackParamList, 'ProductDetail'>;
 type ProductDetailRouteProp = RouteProp<RootStackParamList, 'ProductDetail'>;
 
 export default function ProductDetailScreen() {
-  const theme = useTheme();
-  const navigation = useNavigation<ProductDetailNavigationProp>();
   const route = useRoute<ProductDetailRouteProp>();
-  const { productId } = route.params;
+  const navigation = useNavigation<any>();
+  const { addToCart } = useCart() as any;
+  const { user } = useAuth();
   
-  const [product, setProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [observations, setObservations] = useState('');
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  // Suporte a passar o objeto inteiro ou apenas o ID
+  const { productId, product: initialProduct } = route.params || {};
 
-  const handleImagePress = () => {
+  const [product, setProduct] = useState<any>(initialProduct || null);
+  const [loading, setLoading] = useState(!initialProduct);
+  const [cartAnimation, setCartAnimation] = useState({
+    visible: false,
+    startPosition: { x: 0, y: 0 },
+    endPosition: { x: 0, y: 0 },
+  });
+  const [toast, setToast] = useState({
+    visible: false,
+    message: '',
+    type: FeedbackType.SUCCESS,
+  });
+  const [modalImageVisible, setModalImageVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const addToCartButtonRef = useRef(null);
+
+  const recommendationService = RecommendationService.getInstance();
+
+  // Carregar dados se apenas o ID foi fornecido
+  useEffect(() => {
+    if (!product && productId) {
+      const fetchProduct = async () => {
+        try {
+          setLoading(true);
+          const productService = ProductService.getInstance();
+          const data = await productService.consultarPorId(productId);
+          if (data) {
+            setProduct(data);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar produto:', error);
+          Alert.alert('Erro', 'Não foi possível carregar os detalhes do produto.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProduct();
+    }
+  }, [productId, product]);
+
+  const handleImagePress = useCallback((uri: string) => {
     try {
-      setIsModalVisible(true);
+      if (uri) {
+        setSelectedImage(uri);
+        setModalImageVisible(true);
+      }
     } catch (error) {
       console.error('Erro ao abrir imagem:', error);
     }
-  };
+  }, []);
 
-  // Simular carregamento do produto
+  // Registrar visualização do produto para recomendações
   useEffect(() => {
-    const loadProduct = async () => {
-      // Aqui você faria uma chamada API real
-      setTimeout(() => {
-        setProduct(sampleProducts[productId] || null);
-        setLoading(false);
-      }, 500);
+    let isMounted = true;
+    if (!product || !product.id) return;
+
+    const logProductView = async () => {
+      try {
+        const userId = user?.id;
+        if (userId && isMounted) {
+          await recommendationService.trackProductView(userId, product.id);
+        }
+      } catch (error) {
+        console.error('Erro ao registrar visualização:', error);
+      }
     };
 
-    loadProduct();
-  }, [productId]);
+    logProductView();
+    return () => { isMounted = false; };
+  }, [product, user, recommendationService]);
 
   const handleAddToCart = () => {
     try {
-      // Aqui você adicionaria o produto ao carrinho
-      // Por exemplo, chamando uma função do contexto de carrinho
-      console.log(`Adicionando ${quantity} unidades do produto ${productId} ao carrinho`);
-      setSnackbarVisible(true);
+      if (!product) return;
+
+      if (typeof addToCart === 'function') {
+        addToCart(product);
+      }
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      showToast('Produto adicionado ao carrinho', FeedbackType.SUCCESS);
+
+      if (addToCartButtonRef.current) {
+        (addToCartButtonRef.current as any)?.measure((_fx: any, _fy: any, mWidth: any, _height: any, px: any, py: any) => {
+          try {
+            setCartAnimation({
+              visible: true,
+              startPosition: { x: px + (mWidth || 0) / 2, y: py },
+              endPosition: { x: (mWidth || 0) - 30, y: 50 },
+            });
+          } catch (error) {
+            console.error('Erro ao calcular animação:', error);
+          }
+        });
+      }
     } catch (error) {
       console.error('Erro ao adicionar ao carrinho:', error);
+      showToast('Erro ao adicionar ao carrinho', FeedbackType.ERROR);
     }
   };
 
-  const handleQuantityChange = (delta: number) => {
-    const newQuantity = quantity + delta;
-    if (newQuantity >= 1 && newQuantity <= 10) {
-      setQuantity(newQuantity);
+  const showToast = (message: string, type = FeedbackType.SUCCESS) => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
+  };
+
+  const handleProductPress = (selectedProduct: any) => {
+    try {
+      navigation.push('ProductDetail', { product: selectedProduct, productId: selectedProduct.id });
+    } catch (error) {
+      console.error('Erro ao navegar:', error);
     }
   };
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-  };
-
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <Text>Carregando produto...</Text>
-      </View>
-    );
-  }
+  if (loading) return <LoadingState message="Carregando produto..." />;
 
   if (!product) {
     return (
-      <View style={[styles.container, styles.errorContainer]}>
-        <Text>Produto não encontrado</Text>
-        <Button mode="contained" onPress={() => navigation.goBack()} style={styles.backButton}>
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Produto não encontrado</Text>
+        <Button mode="contained" onPress={() => navigation.goBack()} style={{ marginTop: 20 }}>
           Voltar
         </Button>
       </View>
     );
   }
 
+  const images = product.imagens || (product.image ? [product.image] : (product.imagem ? [product.imagem] : []));
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <TouchableOpacity onPress={handleImagePress} activeOpacity={0.9}>
-          <EnhancedImage
-            source={{ uri: product.image }}
-            style={styles.productImage}
-            placeholderType={PlaceholderType.SKELETON}
-            resizeMode="cover"
-          />
-        </TouchableOpacity>
-        
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Text variant="headlineSmall" style={styles.productName}>
-              {product.name}
-            </Text>
-            <IconButton
-              icon={isFavorite ? 'heart' : 'heart-outline'}
-              iconColor={isFavorite ? theme.colors.error : undefined}
-              size={24}
-              onPress={toggleFavorite}
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Carrossel de imagens */}
+        <View style={styles.imageCarouselContainer}>
+          {images.length > 0 ? (
+            <>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+                  useNativeDriver: false,
+                })}
+                scrollEventThrottle={16}
+              >
+                {images.map((image: any, index: number) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.imageContainer}
+                    onPress={() => handleImagePress(image)}
+                    activeOpacity={0.9}
+                  >
+                    <EnhancedImage
+                      source={{ uri: image }}
+                      style={styles.productImage}
+                      placeholderType={PlaceholderType.SKELETON}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {images.length > 1 && (
+                <View style={styles.paginationContainer}>
+                  {images.map((_: any, index: number) => {
+                    const dotWidth = scrollX.interpolate({
+                      inputRange: [(index - 1) * width, index * width, (index + 1) * width],
+                      outputRange: [8, 16, 8],
+                      extrapolate: 'clamp',
+                    });
+                    const opacity = scrollX.interpolate({
+                      inputRange: [(index - 1) * width, index * width, (index + 1) * width],
+                      outputRange: [0.3, 1, 0.3],
+                      extrapolate: 'clamp',
+                    });
+                    return (
+                      <Animated.View
+                        key={index}
+                        style={[styles.paginationDot, { width: dotWidth, opacity }]}
+                      />
+                    );
+                  })}
+                </View>
+              )}
+            </>
+          ) : (
+            <EnhancedImage
+              source={{ uri: 'https://via.placeholder.com/400x300?text=Sem+Imagem' }}
+              style={styles.productImage}
+              placeholderType={PlaceholderType.SKELETON}
+              resizeMode="cover"
             />
-          </View>
-          
-          <Chip style={styles.categoryChip}>{product.category}</Chip>
-          
-          <Text variant="headlineSmall" style={styles.productPrice}>
-            R$ {product.price.toFixed(2)}
-          </Text>
+          )}
         </View>
 
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Descrição</Text>
-            <Text variant="bodyMedium">{product.description}</Text>
-          </Card.Content>
-        </Card>
+        <View style={styles.productInfoContainer}>
+          <Text style={styles.productName}>{product.nome || product.name || 'Produto'}</Text>
+          <Text style={styles.productPrice}>R$ {(product.preco || product.price || 0).toFixed(2)}</Text>
 
-        {product.ingredients && (
-          <Card style={styles.sectionCard}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>Ingredientes</Text>
-              <View style={styles.ingredientsList}>
-                {product.ingredients.map((ingredient, index) => (
-                  <Chip key={index} style={styles.ingredientChip}>{ingredient}</Chip>
-                ))}
-              </View>
-            </Card.Content>
-          </Card>
-        )}
+          <ProductSocialActions product={product} />
 
-        {product.nutritionalInfo && (
-          <Card style={styles.sectionCard}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>Informação Nutricional</Text>
-              <View style={styles.nutritionalInfo}>
-                <View style={styles.nutritionalItem}>
-                  <Text variant="bodyLarge">{product.nutritionalInfo.calories}</Text>
-                  <Text variant="bodySmall">Calorias</Text>
-                </View>
-                <View style={styles.nutritionalItem}>
-                  <Text variant="bodyLarge">{product.nutritionalInfo.sugar}g</Text>
-                  <Text variant="bodySmall">Açúcar</Text>
-                </View>
-                <View style={styles.nutritionalItem}>
-                  <Text variant="bodyLarge">{product.nutritionalInfo.fat}g</Text>
-                  <Text variant="bodySmall">Gordura</Text>
-                </View>
-              </View>
-            </Card.Content>
-          </Card>
-        )}
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.sectionTitle}>Descrição</Text>
+            <Text style={styles.descriptionText}>{product.descricao || product.description || 'Sem descrição.'}</Text>
+          </View>
 
-        {product.allergens && (
-          <Card style={styles.sectionCard}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>Alérgenos</Text>
-              <View style={styles.ingredientsList}>
-                {product.allergens.map((allergen, index) => (
-                  <Chip key={index} style={styles.allergenChip}>{allergen}</Chip>
-                ))}
-              </View>
-            </Card.Content>
-          </Card>
-        )}
+          <View style={styles.addToCartContainer} ref={addToCartButtonRef} collapsable={false}>
+            <FeedbackButton
+              onPress={handleAddToCart}
+              hapticFeedback={true}
+              hapticType="medium"
+              style={styles.addToCartButton}
+            >
+              <Text style={styles.addToCartButtonText}>Adicionar ao Carrinho</Text>
+            </FeedbackButton>
+          </View>
 
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Personalização</Text>
-            <TextInput
-              mode="outlined"
-              label="Observações para o pedido"
-              placeholder="Ex: Tirar cebola, menos açúcar, etc..."
-              value={observations}
-              onChangeText={setObservations}
-              multiline
-              numberOfLines={3}
-            />
-          </Card.Content>
-        </Card>
+          <ProductRecommendations
+            title="Você também pode gostar"
+            onProductPress={handleProductPress}
+            recommendationType="viewed"
+            cardStyle="compact"
+            containerStyle={styles.recommendationsContainer}
+          />
+        </View>
       </ScrollView>
 
-      {product.available ? (
-        <View style={styles.footer}>
-          <View style={styles.quantitySelector}>
-            <IconButton
-              icon="minus"
-              size={20}
-              onPress={() => handleQuantityChange(-1)}
-              disabled={quantity <= 1}
-            />
-            <Text variant="titleMedium">{quantity}</Text>
-            <IconButton
-              icon="plus"
-              size={20}
-              onPress={() => handleQuantityChange(1)}
-              disabled={quantity >= 10}
-            />
-          </View>
-          <Button
-            mode="contained"
-            onPress={handleAddToCart}
-            style={styles.addToCartButton}
-            icon="cart"
-          >
-            Adicionar ao Carrinho
-          </Button>
-        </View>
-      ) : (
-        <View style={styles.footer}>
-          <Button
-            mode="contained"
-            disabled
-            style={styles.unavailableButton}
-          >
-            Produto Indisponível
-          </Button>
-        </View>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast((prev: any) => ({ ...prev, visible: false }))}
+      />
+
+      {cartAnimation.visible && (
+        <CartAddEffect
+          startPosition={cartAnimation.startPosition}
+          endPosition={cartAnimation.endPosition}
+          onAnimationComplete={() => setCartAnimation(prev => ({ ...prev, visible: false }))}
+        />
       )}
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-        action={{
-          label: 'Ver Carrinho',
-          onPress: () => navigation.navigate('MainTabs', { screen: 'Cart' }),
-        }}
+      <Modal
+        visible={modalImageVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalImageVisible(false)}
       >
-        Produto adicionado ao carrinho!
-      </Snackbar>
-
-      <Portal>
-        <Modal
-          visible={isModalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setIsModalVisible(false)}
-        >
-          <View style={styles.modalBackground}>
-            <TouchableOpacity 
-              style={styles.modalCloseButton} 
-              onPress={() => setIsModalVisible(false)}
-            >
-              <IconButton icon="close" iconColor="#fff" size={30} />
-            </TouchableOpacity>
-            
-            <View style={styles.modalImageContainer}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalBackground}
+            activeOpacity={1}
+            onPress={() => setModalImageVisible(false)}
+          />
+          <View style={styles.modalImageContainer}>
+            {selectedImage && (
               <EnhancedImage
-                source={{ uri: product.image }}
+                source={{ uri: selectedImage }}
                 style={styles.fullScreenImage}
                 resizeMode="contain"
                 placeholderType={PlaceholderType.ACTIVITY_INDICATOR}
               />
-            </View>
+            )}
+            <TouchableOpacity
+              style={styles.closeModalButton}
+              onPress={() => setModalImageVisible(false)}
+            >
+              <Text style={styles.closeModalText}>✕</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </Portal>
-    </SafeAreaView>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
-const { width } = Dimensions.get('window');
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  backButton: {
-    marginTop: 20,
-  },
-  productImage: {
-    width: width,
-    height: width * 0.8,
-    resizeMode: 'cover',
-  },
-  header: {
-    padding: 16,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  productName: {
-    flex: 1,
-    fontWeight: 'bold',
-  },
-  categoryChip: {
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  productPrice: {
-    marginTop: 16,
-    fontWeight: 'bold',
-  },
-  sectionCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-    fontWeight: 'bold',
-  },
-  ingredientsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  ingredientChip: {
-    margin: 4,
-  },
-  allergenChip: {
-    margin: 4,
-    backgroundColor: '#ffebee',
-  },
-  nutritionalInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 8,
-  },
-  nutritionalItem: {
-    alignItems: 'center',
-  },
-  footer: {
-    flexDirection: 'row',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    backgroundColor: '#fff',
-  },
-  quantitySelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  addToCartButton: {
-    flex: 1,
-  },
-  unavailableButton: {
-    flex: 1,
-    backgroundColor: '#9e9e9e',
-  },
-  modalBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalCloseButton: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    zIndex: 1,
-  },
-  modalImageContainer: {
-    width: width,
-    height: width,
-  },
-  fullScreenImage: {
-    width: '100%',
-    height: '100%',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  errorText: { fontSize: 16, color: '#666' },
+  imageCarouselContainer: { position: 'relative', height: 300, backgroundColor: '#f8f8f8' },
+  imageContainer: { width: width, height: 300 },
+  productImage: { width: '100%', height: '100%' },
+  paginationContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', position: 'absolute', bottom: 16, left: 0, right: 0 },
+  paginationDot: { height: 8, borderRadius: 4, backgroundColor: '#fff', marginHorizontal: 4, elevation: 5 },
+  productInfoContainer: { padding: 16 },
+  productName: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 8 },
+  productPrice: { fontSize: 24, fontWeight: 'bold', color: '#E91E63', marginBottom: 16 },
+  descriptionContainer: { marginTop: 24, marginBottom: 24 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
+  descriptionText: { fontSize: 15, lineHeight: 22, color: '#555' },
+  addToCartContainer: { marginTop: 10, marginBottom: 30 },
+  addToCartButton: { backgroundColor: '#E91E63', padding: 16, borderRadius: 12, alignItems: 'center' },
+  addToCartButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  recommendationsContainer: { marginTop: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+  modalBackground: { ...StyleSheet.absoluteFillObject },
+  modalImageContainer: { width: width, height: width, justifyContent: 'center', alignItems: 'center' },
+  fullScreenImage: { width: width, height: width },
+  closeModalButton: { position: 'absolute', top: -50, right: 20, padding: 10 },
+  closeModalText: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
 });

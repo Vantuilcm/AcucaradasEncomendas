@@ -94,7 +94,15 @@ export function HomeScreen() {
   const renderStore = ({ item }: { item: any }) => (
     <Card 
       style={styles.storeCard} 
-      onPress={() => (navigation as any).navigate('StoreDetails', { storeId: item.id, storeName: item.name })}
+      onPress={() => {
+        try {
+          if (item?.id) {
+            (navigation as any).navigate('StoreDetails', { storeId: item.id, storeName: item.name });
+          }
+        } catch (error) {
+          console.error('Erro ao navegar para loja:', error);
+        }
+      }}
     >
       <Card.Cover source={{ uri: item.banner || 'https://via.placeholder.com/150' }} style={styles.storeBanner} />
       <Card.Content style={styles.storeContent}>
@@ -202,7 +210,19 @@ export function HomeScreen() {
               <ActivityIndicator color={theme.colors.primary} />
             ) : featuredProducts.length > 0 ? (
               featuredProducts.map(product => (
-                <Card key={product.id} style={styles.productCard} onPress={() => navigation.navigate('ProductDetail', { productId: product.id })}>
+                <Card 
+                  key={product.id} 
+                  style={styles.productCard} 
+                  onPress={() => {
+                    try {
+                      if (product?.id) {
+                        navigation.navigate('ProductDetail', { productId: product.id, product });
+                      }
+                    } catch (error) {
+                      console.error('Erro ao navegar para produto:', error);
+                    }
+                  }}
+                >
                   <Card.Cover source={{ uri: product.imagem || 'https://via.placeholder.com/150' }} style={styles.productImage} />
                   <Card.Content style={styles.productContent}>
                     <Text variant="titleSmall" style={styles.productName} numberOfLines={1}>

@@ -53,6 +53,8 @@ import { ChatScreen } from '../screens/ChatScreen';
 import { PremiumTestScreen } from '../screens/PremiumTestScreen';
 import type { DeliverySchedule, Order } from '../types/Order';
 
+import { StoreDetailsScreen } from '../screens/StoreDetailsScreen';
+
 export type MainTabParamList = {
   Home: undefined;
   Catalog: undefined;
@@ -69,7 +71,8 @@ export type DriverTabParamList = {
 export type RootStackParamList = {
   DriverTabs: NavigatorScreenParams<DriverTabParamList>;
   MainTabs: NavigatorScreenParams<MainTabParamList>;
-  ProductDetail: { productId: string };
+  ProductDetail: { productId: string, product?: any };
+  StoreDetails: { storeId: string, storeName?: string };
   Checkout: { scheduledDelivery?: DeliverySchedule } | undefined;
   ScheduleDelivery: undefined;
   OrderCompleted: { order: Order };
@@ -372,6 +375,11 @@ const AppNavigator = () => {
                   name="ProductDetail"
                   component={ProductDetailScreen}
                   options={{ title: 'Detalhes do Produto' }}
+                />
+                <Stack.Screen
+                  name="StoreDetails"
+                  component={StoreDetailsScreen}
+                  options={{ title: 'Detalhes da Loja' }}
                 />
                 <Stack.Screen
                   name="Checkout"
