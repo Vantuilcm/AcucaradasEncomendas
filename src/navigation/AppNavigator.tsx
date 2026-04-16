@@ -10,6 +10,7 @@ import { Text, Button } from 'react-native-paper';
 import usePermissions from '../hooks/usePermissions';
 import { UserUtils } from '../utils/UserUtils';
 import { secureLoggingService } from '../services/SecureLoggingService';
+import { navigationRef } from '../services/RootNavigation';
 
 // Telas de autenticação
 import LoginScreen from '../screens/LoginScreen';
@@ -296,7 +297,7 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer theme={navigationTheme} ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
