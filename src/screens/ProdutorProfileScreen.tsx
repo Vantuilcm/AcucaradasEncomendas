@@ -42,7 +42,7 @@ export const ProdutorProfileScreen = () => {
           <List.Item
             title="Horários de Funcionamento"
             left={props => <List.Icon {...props} icon="clock-outline" />}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('EditProfile')}
           />
           <List.Item
             title="Pedidos Recebidos"
@@ -52,12 +52,12 @@ export const ProdutorProfileScreen = () => {
           <List.Item
             title="Financeiro e Vendas"
             left={props => <List.Icon {...props} icon="cash-multiple" />}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('Reports')}
           />
         </List.Section>
 
         <View style={styles.footer}>
-          <Text style={styles.buildText}>Versão 1.1.8 (Build 1130)</Text>
+          <Text style={styles.buildText}>Versão 1.1.8 (Build 1131)</Text>
           <Button mode="contained" onPress={handleLogout} style={styles.logoutBtn} buttonColor="#FF3B30">
             Sair da Conta
           </Button>

@@ -42,17 +42,17 @@ export const CompradorProfileScreen = () => {
           <List.Item
             title="Histórico de Pedidos"
             left={props => <List.Icon {...props} icon="history" />}
-            onPress={() => navigation.navigate('Orders')}
+            onPress={() => navigation.navigate('OrdersHistory')}
           />
           <List.Item
             title="Meus Favoritos"
             left={props => <List.Icon {...props} icon="heart" />}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('Favorites')}
           />
         </List.Section>
 
         <View style={styles.footer}>
-          <Text style={styles.buildText}>Versão 1.1.8 (Build 1130)</Text>
+          <Text style={styles.buildText}>Versão 1.1.8 (Build 1131)</Text>
           <Button mode="contained" onPress={handleLogout} style={styles.logoutBtn} buttonColor="#FF3B30">
             Sair da Conta
           </Button>

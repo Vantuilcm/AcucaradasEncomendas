@@ -254,7 +254,7 @@ export function HomeScreen() {
         </View>
 
         <View style={styles.actionButtons}>
-          <Text style={{ textAlign: 'center', color: '#999', fontSize: 10, marginBottom: 10 }}>Versão 1.1.8 (Build 1130)</Text>
+          <Text style={{ textAlign: 'center', color: '#999', fontSize: 10, marginBottom: 10 }}>Versão 1.1.8 (Build 1131)</Text>
           <Button
             mode="contained"
             onPress={() => {

@@ -32,32 +32,32 @@ export const EntregadorProfileScreen = () => {
           <List.Item
             title="Meu Veículo"
             left={props => <List.Icon {...props} icon="car-info" />}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('DriverVehicle')}
           />
           <List.Item
             title="Dados Bancários (Pix)"
             left={props => <List.Icon {...props} icon="bank" />}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('DriverPix')}
           />
           <List.Item
             title="Meus Documentos"
             left={props => <List.Icon {...props} icon="file-document-outline" />}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('DriverDocuments')}
           />
           <List.Item
             title="Resumo de Ganhos"
             left={props => <List.Icon {...props} icon="cash-check" />}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('DriverEarnings')}
           />
           <List.Item
             title="Histórico de Corridas"
             left={props => <List.Icon {...props} icon="map-marker-distance" />}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('DriverHistory')}
           />
         </List.Section>
 
         <View style={styles.footer}>
-          <Text style={styles.buildText}>Versão 1.1.8 (Build 1130)</Text>
+          <Text style={styles.buildText}>Versão 1.1.8 (Build 1131)</Text>
           <Button mode="contained" onPress={handleLogout} style={styles.logoutBtn} buttonColor="#FF3B30">
             Sair da Conta
           </Button>

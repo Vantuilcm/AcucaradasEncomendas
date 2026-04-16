@@ -57,6 +57,7 @@ import { PremiumTestScreen } from '../screens/PremiumTestScreen';
 import type { DeliverySchedule, Order } from '../types/Order';
 
 import { StoreDetailsScreen } from '../screens/StoreDetailsScreen';
+import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -102,6 +103,14 @@ export type RootStackParamList = {
   Chat: { orderId: string, targetName?: string };
   PremiumTest: undefined;
   DeliveryDriverRegistration: undefined;
+  OrdersHistory: undefined;
+  Favorites: undefined;
+  Reports: undefined;
+  DriverVehicle: undefined;
+  DriverPix: undefined;
+  DriverDocuments: undefined;
+  DriverEarnings: undefined;
+  DriverHistory: undefined;
   Login: undefined;
   Register: { role?: string };
   ForgotPassword: undefined;
@@ -474,6 +483,14 @@ const AppNavigator = () => {
                   component={DeliveryDriverRegistration}
                   options={{ title: 'Cadastro de Entregador' }}
                 />
+                <Stack.Screen name="OrdersHistory" component={PlaceholderScreen} options={{ title: 'Histórico' }} />
+                <Stack.Screen name="Favorites" component={PlaceholderScreen} options={{ title: 'Favoritos' }} />
+                <Stack.Screen name="Reports" component={PlaceholderScreen} options={{ title: 'Financeiro' }} />
+                <Stack.Screen name="DriverVehicle" component={PlaceholderScreen} options={{ title: 'Veículo' }} />
+                <Stack.Screen name="DriverPix" component={PlaceholderScreen} options={{ title: 'Pix' }} />
+                <Stack.Screen name="DriverDocuments" component={PlaceholderScreen} options={{ title: 'Documentos' }} />
+                <Stack.Screen name="DriverEarnings" component={PlaceholderScreen} options={{ title: 'Ganhos' }} />
+                <Stack.Screen name="DriverHistory" component={PlaceholderScreen} options={{ title: 'Corridas' }} />
               </>
             )}
           </>
