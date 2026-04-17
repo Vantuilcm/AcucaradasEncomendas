@@ -63,7 +63,7 @@ export const ProdutorProfileScreen = () => {
         <View style={styles.menuContainer}>
           <MenuItem title="Minha Loja" icon="store-cog" route="StorePreview" />
           <MenuItem title="Gerenciar Produtos" icon="package-variant-closed" route="ProductManagement" />
-          <MenuItem title="Horários de Funcionamento" icon="clock-outline" route="EditProfile" />
+          <MenuItem title="Horários de Funcionamento" icon="clock-outline" route="StoreHours" />
           <MenuItem title="Pedidos Recebidos" icon="clipboard-list" route="OrderManagement" />
           <MenuItem title="Financeiro e Vendas" icon="cash-multiple" route="Reports" />
         </View>

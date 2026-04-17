@@ -39,6 +39,7 @@ import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
 import { ProductManagementScreen } from '../screens/ProductManagementScreen';
 import { OrderManagementScreen } from '../screens/OrderManagementScreen';
 import { ReportsScreen } from '../screens/ReportsScreen';
+import { StoreHoursScreen } from '../screens/StoreHoursScreen';
 import { InventoryManagementScreen } from '../screens/InventoryManagementScreen';
 import { AddEditProductScreen } from '../screens/AddEditProductScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
@@ -90,6 +91,7 @@ export type RootStackParamList = {
   AdminPanel: undefined;
   AdminDashboard: undefined;
   ProductManagement: undefined;
+  StoreHours: undefined;
   InventoryManagement: undefined;
   OrderManagement: undefined;
   AddEditProduct: undefined;
@@ -390,6 +392,11 @@ const AppNavigator = () => {
                       name="Reports"
                       component={ReportsScreen}
                       options={{ title: 'Financeiro e Relatórios' }}
+                    />
+                    <Stack.Screen
+                      name="StoreHours"
+                      component={StoreHoursScreen}
+                      options={{ title: 'Horários de Funcionamento' }}
                     />
                     <Stack.Screen
                       name="InventoryManagement"
