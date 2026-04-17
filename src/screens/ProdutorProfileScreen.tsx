@@ -21,12 +21,21 @@ export const ProdutorProfileScreen = () => {
 
   const navigateTo = (route: string, label: string) => {
     try {
-      console.log(`🚀 [PRODUTOR_NAV] Navegando via RootService para: ${label} -> Rota: ${route}`);
-      // Usar o serviço de navegação global para garantir que saia das abas e encontre o Root Stack
-      RootNavigation.navigate(route);
+      console.log(`🚀 [PRODUTOR_NAV] Clique detectado em: ${label}`);
+      // Teste de toque físico com alerta imediato
+      Alert.alert('DEBUG TOQUE', `Você clicou em: ${label}`, [
+        { 
+          text: 'Confirmar Navegação', 
+          onPress: () => {
+            console.log(`🚀 [PRODUTOR_NAV] Executando RootNavigation.navigate para: ${route}`);
+            RootNavigation.navigate(route);
+          }
+        },
+        { text: 'Cancelar', style: 'cancel' }
+      ]);
     } catch (error) {
-      console.error(`❌ [PRODUTOR_NAV] Erro ao navegar para ${route}:`, error);
-      Alert.alert('ERRO ROTA', `Não foi possível abrir a tela: ${label}`);
+      console.error(`❌ [PRODUTOR_NAV] Erro no fluxo de navegação:`, error);
+      Alert.alert('ERRO INTERNO', `Falha ao processar clique em ${label}`);
     }
   };
 
@@ -82,18 +91,18 @@ export const ProdutorProfileScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   content: { paddingBottom: 40 },
-  header: { alignItems: 'center', marginTop: 30, backgroundColor: '#fff', paddingBottom: 20 },
+  header: { alignItems: 'center', marginTop: 30, backgroundColor: '#fff', paddingBottom: 20, zIndex: 1 },
   title: { fontSize: 22, fontWeight: 'bold', marginTop: 10 },
   caption: { fontSize: 14, color: '#666' },
   roleTag: { color: '#9C27B0', fontWeight: 'bold', marginTop: 5 },
   divider: { marginVertical: 10, backgroundColor: 'transparent' },
-  menuContainer: { paddingHorizontal: 16, marginTop: 10 },
-  menuItem: { marginBottom: 12 },
+  menuContainer: { paddingHorizontal: 16, marginTop: 10, zIndex: 10 },
+  menuItem: { marginBottom: 12, elevation: 2 },
   menuSurface: { borderRadius: 12, backgroundColor: '#fff', padding: 16 },
   menuItemContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   menuLeft: { flexDirection: 'row', alignItems: 'center' },
   menuTitle: { fontSize: 16, marginLeft: 16, color: '#333', fontWeight: '500' },
-  footer: { padding: 30, alignItems: 'center' },
+  footer: { padding: 30, alignItems: 'center', zIndex: 1 },
   buildText: { fontSize: 12, color: '#999', marginBottom: 15 },
   logoutBtn: { width: '100%', borderRadius: 12, height: 48, justifyContent: 'center' }
 });
