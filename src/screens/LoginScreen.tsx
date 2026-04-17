@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import SocialAuthButtons from '../components/SocialAuthButtons';
-import { InputValidationService } from '../services/InputValidationService';
+import { AppVersion } from '../utils/AppVersion';
 import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { useAppTheme } from '../components/ThemeProvider';
@@ -282,7 +282,7 @@ export default function LoginScreen() {
               </Button>
 
               <View style={styles.footer}>
-                <Text style={styles.versionText}>Versão 1.1.8 (Build 1139)</Text>
+                <Text style={styles.versionText}>{AppVersion.getDisplayString()}</Text>
               </View>
             </View>
           </ScrollView>

@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as RootNavigation from '../services/RootNavigation';
+import { AppVersion } from '../utils/AppVersion';
 
 export const ProdutorProfileScreen = () => {
   const { user, logout } = useAuth();
@@ -68,7 +69,7 @@ export const ProdutorProfileScreen = () => {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.buildText}>Versão 1.1.8 (Build 1139)</Text>
+          <Text style={styles.buildText}>{AppVersion.getDisplayString()}</Text>
           <Button mode="contained" onPress={handleLogout} style={styles.logoutBtn} buttonColor="#FF3B30">
             Sair da Conta
           </Button>

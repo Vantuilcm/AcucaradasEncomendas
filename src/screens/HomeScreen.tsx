@@ -11,6 +11,7 @@ import { StoreLocationButton } from '../components/StoreLocationButton';
 import { loggingService } from '../services/LoggingService';
 import type { Product } from '../types/Product';
 import { useAppTheme, type ThemeType } from '../components/ThemeProvider';
+import { AppVersion } from '../utils/AppVersion';
 import { usePermissions } from '../hooks/usePermissions';
 import { AdminDashboardScreen } from './AdminDashboardScreen';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -254,7 +255,7 @@ export function HomeScreen() {
         </View>
 
         <View style={styles.actionButtons}>
-          <Text style={{ textAlign: 'center', color: '#999', fontSize: 10, marginBottom: 10 }}>Versão 1.1.8 (Build 1139)</Text>
+          <Text style={{ textAlign: 'center', color: '#999', fontSize: 10, marginBottom: 10 }}>{AppVersion.getDisplayString()}</Text>
           <Button
             mode="contained"
             onPress={() => {
