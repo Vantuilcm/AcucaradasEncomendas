@@ -9,7 +9,6 @@ import { AppVersion } from '../utils/AppVersion';
 
 export const CompradorProfileScreen = () => {
   const { user, logout } = useAuth();
-  const navigation = useNavigation<any>();
 
   const handleLogout = async () => {
     Alert.alert('Sair', 'Deseja realmente sair?', [

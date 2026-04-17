@@ -23,7 +23,6 @@ import { HomeScreen } from '../screens/HomeScreen';
 import CatalogScreen from '../screens/CatalogScreen';
 import { OrdersScreen } from '../screens/OrdersScreen';
 import CartScreen from '../screens/CartScreen';
-import { ProfileScreen } from '../screens/ProfileScreen';
 import { CompradorProfileScreen } from '../screens/CompradorProfileScreen';
 import { ProdutorProfileScreen } from '../screens/ProdutorProfileScreen';
 import { EntregadorProfileScreen } from '../screens/EntregadorProfileScreen';
@@ -46,7 +45,6 @@ import { NotificationSettingsScreen } from '../screens/NotificationSettingsScree
 import { NotificationSettingsScreenV2 } from '../screens/NotificationSettingsScreenV2';
 import { NotificationSettingsMigrationScreen } from '../screens/NotificationSettingsMigrationScreen';
 import { DriverHomeScreen } from '../screens/DriverHomeScreen';
-import { DeliveryDriverProfileScreen } from '../screens/DeliveryDriverProfileScreen';
 import DeliveryDriverRegistration from '../screens/DeliveryDriverRegistration';
 import ScheduleDeliveryScreen from '../screens/ScheduleDeliveryScreen';
 import OrderCompletedScreen from '../screens/OrderCompletedScreen';
@@ -126,7 +124,7 @@ const DriverTab = createBottomTabNavigator<DriverTabParamList>();
 // Navegador de abas principal
 const MainTabs = () => {
   const { theme } = useAppTheme();
-  const { isProdutor, isAdmin, isEntregador } = usePermissions();
+  const { isProdutor, isAdmin } = usePermissions();
   const { user } = useAuth();
 
   // Selecionar tela de perfil baseada na role real do usuário
@@ -238,8 +236,8 @@ const DriverTabs = () => {
 
 // Navegador principal do aplicativo
 const AppNavigator = () => {
-  const { user, loading, profileLoading, isReady } = useAuth();
-  const { isProdutor, isAdmin, isEntregador } = usePermissions();
+  const { user, loading: authLoading, profileLoading, isReady } = useAuth();
+  const { isProdutor, isAdmin, isEntregador, loading: permissionsLoading } = usePermissions();
   const { theme, isDark } = useAppTheme();
 
   // Mesclar o tema da navegação com o nosso tema customizado
@@ -255,7 +253,8 @@ const AppNavigator = () => {
   }, [isDark, theme]);
 
   // Controle de Boot Global Determinístico
-  if (!isReady || loading || profileLoading) {
+  // Esperamos auth, perfil E permissões estarem prontos
+  if (!isReady || authLoading || profileLoading || permissionsLoading) {
     return (
       <View 
         style={{ 

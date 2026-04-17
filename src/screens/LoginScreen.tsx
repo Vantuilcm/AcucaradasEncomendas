@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import SocialAuthButtons from '../components/SocialAuthButtons';
+import { InputValidationService } from '../services/InputValidationService';
 import { AppVersion } from '../utils/AppVersion';
 import { ScreenshotProtection } from '../components/ScreenshotProtection';
 import { secureLoggingService } from '../services/SecureLoggingService';
