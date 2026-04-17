@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
-import { TextInput, Button, Avatar, Title, Caption, Divider, Text, ActivityIndicator } from 'react-native-paper';
+import { TextInput, Button, Avatar, Title, Caption, Divider, Text, ActivityIndicator, Switch } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -30,6 +30,15 @@ const EditProfileScreen = () => {
   const [banner, setBanner] = useState<string | null>(null);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [businessHours, setBusinessHours] = useState<any>({
+    0: { open: '08:00', close: '18:00', isClosed: true },
+    1: { open: '08:00', close: '18:00', isClosed: false },
+    2: { open: '08:00', close: '18:00', isClosed: false },
+    3: { open: '08:00', close: '18:00', isClosed: false },
+    4: { open: '08:00', close: '18:00', isClosed: false },
+    5: { open: '08:00', close: '18:00', isClosed: false },
+    6: { open: '08:00', close: '14:00', isClosed: false },
+  });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -53,6 +62,9 @@ const EditProfileScreen = () => {
             setStoreDescription(store.description || '');
             setLogo(store.logo || null);
             setBanner(store.banner || null);
+            if (store.businessHours) {
+              setBusinessHours(store.businessHours);
+            }
           }
         }
       }
@@ -142,13 +154,7 @@ const EditProfileScreen = () => {
           producerId: user.id,
           isOpen: true,
           leadTime: 60,
-          businessHours: {
-            1: { open: '08:00', close: '18:00', isClosed: false },
-            2: { open: '08:00', close: '18:00', isClosed: false },
-            3: { open: '08:00', close: '18:00', isClosed: false },
-            4: { open: '08:00', close: '18:00', isClosed: false },
-            5: { open: '08:00', close: '18:00', isClosed: false },
-          }
+          businessHours: businessHours
         };
 
         if (storeId) {
@@ -187,6 +193,21 @@ const EditProfileScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateDayHour = (day: number, field: 'open' | 'close' | 'isClosed', value: any) => {
+    setBusinessHours((prev: any) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [field]: value
+      }
+    }));
+  };
+
+  const getDayName = (day: number) => {
+    const names = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    return names[day];
   };
 
   return (
@@ -318,6 +339,51 @@ const EditProfileScreen = () => {
                   <Text style={styles.uploadingText}>Enviando imagem...</Text>
                 </View>
               )}
+
+              <Divider style={styles.divider} />
+              <Title style={styles.sectionTitle}>Horários de Funcionamento</Title>
+              <Caption>Defina os horários que sua loja aceita pedidos</Caption>
+              
+              <View style={styles.hoursContainer}>
+                {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                  <View key={day} style={styles.dayRow}>
+                    <View style={styles.dayInfo}>
+                      <Text style={styles.dayName}>{getDayName(day)}</Text>
+                      <Switch 
+                        value={!businessHours[day]?.isClosed} 
+                        onValueChange={(val) => updateDayHour(day, 'isClosed', !val)}
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                    
+                    {!businessHours[day]?.isClosed ? (
+                      <View style={styles.timeInputs}>
+                        <TextInput
+                          label="Abre"
+                          value={businessHours[day]?.open}
+                          onChangeText={(text) => updateDayHour(day, 'open', text)}
+                          mode="outlined"
+                          dense
+                          style={styles.timeInput}
+                          placeholder="08:00"
+                        />
+                        <Text style={styles.timeSeparator}>até</Text>
+                        <TextInput
+                          label="Fecha"
+                          value={businessHours[day]?.close}
+                          onChangeText={(text) => updateDayHour(day, 'close', text)}
+                          mode="outlined"
+                          dense
+                          style={styles.timeInput}
+                          placeholder="18:00"
+                        />
+                      </View>
+                    ) : (
+                      <Text style={styles.closedText}>Fechado</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
             </>
           )}
           
@@ -455,6 +521,54 @@ const createStyles = (theme: { colors: any }) =>
     textAlign: 'center',
     borderRadius: 5,
     fontWeight: 'bold',
+  },
+  hoursContainer: {
+    marginTop: 16,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  dayInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '40%',
+    justifyContent: 'space-between',
+  },
+  dayName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+  },
+  timeInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '55%',
+    justifyContent: 'flex-end',
+  },
+  timeInput: {
+    width: 70,
+    height: 40,
+    fontSize: 12,
+  },
+  timeSeparator: {
+    marginHorizontal: 4,
+    fontSize: 12,
+    color: '#999',
+  },
+  closedText: {
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
+    width: '55%',
+    textAlign: 'right',
   },
 });
 
