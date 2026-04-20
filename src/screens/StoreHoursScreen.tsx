@@ -75,8 +75,16 @@ export const StoreHoursScreen = () => {
     
     try {
       setUploading(true);
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      
+      // Conversão robusta de URI para Blob (compatível com iOS/Android)
+      const blob: Blob = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = function() { resolve(xhr.response); };
+        xhr.onerror = function() { reject(new TypeError('Falha na conversão de imagem')); };
+        xhr.responseType = 'blob';
+        xhr.open('GET', uri, true);
+        xhr.send(null);
+      });
       
       const filename = `${type}_${Date.now()}.jpg`;
       const storagePath = `stores/${user.id}/${filename}`;
@@ -94,7 +102,7 @@ export const StoreHoursScreen = () => {
       } else {
         // Se a loja não existe, criar com a imagem
         console.log('🚀 [STORE_HOURS] Loja não existe, criando via Upload');
-        const newStore = await storeService.createStore({
+        const newStoreId = await storeService.createStore({
           producerId: user.id,
           name: storeName || `Loja de ${user.nome || 'Produtor'}`,
           description: storeDescription,
@@ -103,13 +111,13 @@ export const StoreHoursScreen = () => {
           leadTime: 60,
           businessHours
         } as any);
-        if (newStore) setStoreId(newStore.id);
+        if (newStoreId) setStoreId(newStoreId);
       }
 
       Alert.alert('Sucesso', `${type === 'logo' ? 'Logo' : 'Banner'} carregado com sucesso!`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro no upload:', err);
-      Alert.alert('Erro', 'Não foi possível carregar a imagem.');
+      Alert.alert('Erro no Upload', `Não foi possível carregar a imagem. Detalhe: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setUploading(false);
     }
@@ -135,7 +143,7 @@ export const StoreHoursScreen = () => {
       } else {
         // Criar loja se não existir ao clicar em salvar
         console.log('🚀 [STORE_HOURS] Loja não existe, criando via Save');
-        const newStore = await storeService.createStore({
+        const newStoreId = await storeService.createStore({
           producerId: user.id,
           name: storeName || `Loja de ${user.nome || 'Produtor'}`,
           description: storeDescription,
@@ -145,12 +153,12 @@ export const StoreHoursScreen = () => {
           leadTime: 60,
           businessHours
         } as any);
-        if (newStore) setStoreId(newStore.id);
+        if (newStoreId) setStoreId(newStoreId);
       }
       Alert.alert('Sucesso', 'Horários e dados atualizados com sucesso!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      Alert.alert('Erro', 'Não foi possível salvar os dados.');
+      Alert.alert('Erro ao Salvar', `Não foi possível salvar os dados. Detalhe: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setSaving(false);
     }
