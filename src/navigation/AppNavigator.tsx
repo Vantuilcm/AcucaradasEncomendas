@@ -355,61 +355,59 @@ const AppNavigator = () => {
                   component={MainTabs}
                   options={{ headerShown: false }}
                 />
-                {/* Telas Administrativas / Produtor */}
-                {(isProdutor || isAdmin) && (
-                  <>
-                    <Stack.Screen
-                      name="AdminPanel"
-                      component={AdminPanelScreen}
-                      options={{ title: 'Painel de Administração' }}
-                    />
-                    <Stack.Screen
-                      name="AdminDashboard"
-                      component={AdminDashboardScreen}
-                      options={{ title: 'Dashboard Administrativo' }}
-                    />
-                    <Stack.Screen
-                      name="PremiumTest"
-                      component={PremiumTestScreen}
-                      options={{ title: 'Testes Premium' }}
-                    />
-                    <Stack.Screen
-                      name="ProductManagement"
-                      component={ProductManagementScreen}
-                      options={{ title: 'Gerenciar Produtos' }}
-                    />
-                    <Stack.Screen
-                      name="OrderManagement"
-                      component={OrderManagementScreen}
-                      options={{ title: 'Gerenciar Pedidos' }}
-                    />
-                    <Stack.Screen
-                      name="StorePreview"
-                      component={StorePreviewScreen}
-                      options={{ title: 'Visualizar Minha Loja' }}
-                    />
-                    <Stack.Screen
-                      name="Reports"
-                      component={ReportsScreen}
-                      options={{ title: 'Financeiro e Relatórios' }}
-                    />
-                    <Stack.Screen
-                      name="StoreHours"
-                      component={StoreHoursScreen}
-                      options={{ title: 'Horários de Funcionamento' }}
-                    />
-                    <Stack.Screen
-                      name="InventoryManagement"
-                      component={InventoryManagementScreen}
-                      options={{ title: 'Gerenciar Estoque' }}
-                    />
-                    <Stack.Screen
-                      name="AddEditProduct"
-                      component={AddEditProductScreen}
-                      options={{ title: 'Adicionar/Editar Produto' }}
-                    />
-                  </>
-                )}
+                
+                {/* Telas Administrativas / Produtor - Sempre registradas para evitar race conditions no mounting */}
+                <Stack.Screen
+                  name="AdminPanel"
+                  component={AdminPanelScreen}
+                  options={{ title: 'Painel de Administração' }}
+                />
+                <Stack.Screen
+                  name="AdminDashboard"
+                  component={AdminDashboardScreen}
+                  options={{ title: 'Dashboard Administrativo' }}
+                />
+                <Stack.Screen
+                  name="PremiumTest"
+                  component={PremiumTestScreen}
+                  options={{ title: 'Testes Premium' }}
+                />
+                <Stack.Screen
+                  name="ProductManagement"
+                  component={ProductManagementScreen}
+                  options={{ title: 'Gerenciar Produtos' }}
+                />
+                <Stack.Screen
+                  name="OrderManagement"
+                  component={OrderManagementScreen}
+                  options={{ title: 'Gerenciar Pedidos' }}
+                />
+                <Stack.Screen
+                  name="StorePreview"
+                  component={StorePreviewScreen}
+                  options={{ title: 'Visualizar Minha Loja' }}
+                />
+                <Stack.Screen
+                  name="Reports"
+                  component={ReportsScreen}
+                  options={{ title: 'Financeiro e Relatórios' }}
+                />
+                <Stack.Screen
+                  name="StoreHours"
+                  component={StoreHoursScreen}
+                  options={{ title: 'Horários de Funcionamento' }}
+                />
+                <Stack.Screen
+                  name="InventoryManagement"
+                  component={InventoryManagementScreen}
+                  options={{ title: 'Gerenciar Estoque' }}
+                />
+                <Stack.Screen
+                  name="AddEditProduct"
+                  component={AddEditProductScreen}
+                  options={{ title: 'Adicionar/Editar Produto' }}
+                />
+
                 {/* Telas Comuns */}
                 <Stack.Screen
                   name="ProductDetail"

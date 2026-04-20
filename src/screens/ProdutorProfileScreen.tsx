@@ -21,11 +21,26 @@ export const ProdutorProfileScreen = () => {
 
   const handleMenuPress = (route: string, label: string) => {
     try {
-      console.log(`🚀 [PRODUTOR_NAV] Navegando via Root para: ${label} (Rota: ${route})`);
-      RootNavigation.navigate(route);
+      console.log(`🚀 [PRODUTOR_NAV] Tentando navegar para: ${label} (Rota: ${route})`);
+      
+      // 1. Tentar RootNavigation (Global Ref)
+      if (RootNavigation.navigationRef.isReady()) {
+        console.log(`✅ [PRODUTOR_NAV] Usando RootNavigation`);
+        RootNavigation.navigate(route);
+        return;
+      }
+
+      // 2. Fallback: Tentar navigation local do hook useNavigation
+      if (navigation) {
+        console.log(`⚠️ [PRODUTOR_NAV] RootNavigation não pronto, tentando navigation local`);
+        navigation.navigate(route);
+        return;
+      }
+
+      throw new Error('Nenhum sistema de navegação disponível');
     } catch (error) {
-      console.error(`❌ [PRODUTOR_NAV] Erro ao navegar para ${route}:`, error);
-      Alert.alert('ERRO ROTA', `Não foi possível abrir a tela: ${label}`);
+      console.error(`❌ [PRODUTOR_NAV] Falha total na navegação:`, error);
+      Alert.alert('ERRO DE SISTEMA', `Não foi possível abrir a tela: ${label}. Tente reiniciar o app.`);
     }
   };
 
