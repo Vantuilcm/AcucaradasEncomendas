@@ -134,11 +134,16 @@ export const StoreHoursScreen = () => {
   };
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log("❌ [STORE_HOURS] Usuário não encontrado");
+      return;
+    }
 
+    console.log("🚀 [STORE_HOURS] Iniciando salvamento", { storeId, businessHours });
     setSaving(true);
     try {
       if (storeId) {
+        console.log("🚀 [STORE_HOURS] Atualizando loja existente:", storeId);
         await storeService.updateStore(storeId, { businessHours });
       } else {
         // Criar loja se não existir ao clicar em salvar
@@ -153,11 +158,12 @@ export const StoreHoursScreen = () => {
           leadTime: 60,
           businessHours
         } as any);
+        console.log("✅ [STORE_HOURS] Nova loja criada:", newStoreId);
         if (newStoreId) setStoreId(newStoreId);
       }
       Alert.alert('Sucesso', 'Horários e dados atualizados com sucesso!');
     } catch (error: any) {
-      console.error('Erro ao salvar:', error);
+      console.error('❌ [STORE_HOURS] Erro ao salvar:', error);
       Alert.alert('Erro ao Salvar', `Não foi possível salvar os dados. Detalhe: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setSaving(false);
