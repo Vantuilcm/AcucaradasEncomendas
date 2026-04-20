@@ -49,7 +49,7 @@ export const getUserInfo = (): UserInfo | null => {
 // Obtém informações detalhadas do usuário do Firestore
 export const getUserDetails = async (userId: string): Promise<User | null> => {
   try {
-    const userDoc = await f.getDoc(f.doc(db, 'usuarios', userId));
+    const userDoc = await f.getDoc(f.doc('usuarios', userId));
     
     if (!userDoc.exists()) {
       return null;

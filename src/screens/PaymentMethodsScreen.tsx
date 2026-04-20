@@ -90,7 +90,8 @@ export const PaymentMethodsScreen: React.FC = () => {
       }
 
       const stripeService = StripeService.getInstance();
-      const userRef = f.doc(db, 'users', userId);
+      // ETAPA 3 — PADRONIZAÇÃO OWNERID NO PAYMENT (BUILD 1164)
+      const userRef = f.doc('users', userId);
       const userDoc = await f.getDoc(userRef);
       const userData = userDoc.exists() ? (userDoc.data() as any) : null;
       let customerId = userData?.stripeCustomerId as string | undefined;

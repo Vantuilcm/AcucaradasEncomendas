@@ -39,7 +39,7 @@ const UserManagementScreen: React.FC = () => {
           setCarregandoMais(true);
         }
 
-        const usuariosRef = f.collection(db, 'usuarios');
+        const usuariosRef = f.collection('usuarios');
         let q;
 
         if (filtroPapel !== 'todos') {

@@ -48,31 +48,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Configurar o observador de estado do usuário usando a função lazy
         authFunctions.onAuthStateChanged(async (firebaseUser: any) => {
-          if (firebaseUser) {
-            console.log('👤 [AUTH] User found:', firebaseUser.email);
-            try {
-              // Buscar dados extras do Firestore
+          try {
+            if (firebaseUser) {
+              console.log('👤 [AUTH] User detected:', firebaseUser.email);
+              
+              // Buscar perfil no Firestore
               const userRef = dbFunctions.doc('users', firebaseUser.uid);
               const userDoc = await dbFunctions.getDoc(userRef);
-              
+
               if (userDoc.exists()) {
                 const data = userDoc.data();
                 // ETAPA 2 — PADRONIZAÇÃO FIRESTORE USERS
-                // Garantir campos: role, activeRole, roles e active
-                const normalizedRole = (data.role || data.activeRole || 'comprador').toLowerCase();
-                const userRoles = data.roles || [normalizedRole];
+                const normalizedRole = (data?.role || data?.activeRole || 'comprador').toLowerCase();
+                const userRoles = data?.roles || [normalizedRole];
                 
                 const updatedUser = { 
                   ...data, 
                   id: firebaseUser.uid, 
-                  role: normalizedRole,
-                  activeRole: normalizedRole,
-                  roles: userRoles,
-                  active: data.active ?? true
+                  role: normalizedRole, 
+                  activeRole: normalizedRole, 
+                  roles: userRoles, 
+                  active: data?.active ?? true 
                 };
 
+                console.log('✅ [AUTH] Profile loaded and normalized:', normalizedRole);
                 setUser(updatedUser);
               } else {
+                console.log('⚠️ [AUTH] Firebase user exists but no Firestore profile found.');
                 const newUser = { 
                   id: firebaseUser.uid, 
                   email: firebaseUser.email, 
@@ -84,20 +86,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 };
                 setUser(newUser);
               }
-            } catch (err) {
-              console.error('❌ [AUTH] Error fetching user profile:', err);
-              setUser({ 
-                id: firebaseUser.uid, 
-                email: firebaseUser.email, 
-                nome: firebaseUser.displayName || '' 
-              });
+            } else {
+              console.log('👤 [AUTH] No user found.');
+              setUser(null);
             }
-          } else {
-            console.log('👤 [AUTH] No user found.');
-            setUser(null);
+          } catch (error) {
+            console.error('❌ [AUTH] Error in onAuthStateChanged:', error);
+          } finally {
+            setLoading(false);
+            setIsReady(true);
+            console.log('🛡️ [AUTH] Bootstrap Complete. isReady=true');
           }
-          setLoading(false);
-          setIsReady(true);
         });
       } catch (e) {
         console.error('❌ [AUTH] Fatal Lazy Load Error:', e);

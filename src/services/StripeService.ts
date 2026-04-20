@@ -274,8 +274,9 @@ export class StripeService {
   }> {
     try {
       const paymentIntent = await this.createPaymentIntent(orderId, amount);
-      const producerDoc = await f.getDoc(f.doc(db, 'producers', producerId));
-      const deliveryPersonDoc = await f.getDoc(f.doc(db, 'delivery_drivers', deliveryPersonId));
+      // ETAPA 3 — PADRONIZAÇÃO OWNERID NO STRIPE (BUILD 1164)
+      const producerDoc = await f.getDoc(f.doc('producers', producerId));
+      const deliveryPersonDoc = await f.getDoc(f.doc('delivery_drivers', deliveryPersonId));
 
       if (!producerDoc.exists() || !deliveryPersonDoc.exists()) {
         throw new Error('Produtor ou entregador não encontrado');

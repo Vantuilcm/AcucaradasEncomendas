@@ -41,7 +41,7 @@ export function usePermissions(): UsePermissionsReturn {
         setUserRole(role);
 
         // Obter documento de permissões
-        const permissionsDoc = await f.getDoc(f.doc(db, 'permissoes', (user as any).id));
+        const permissionsDoc = await f.getDoc(f.doc('permissoes', (user as any).id));
 
         if (permissionsDoc.exists()) {
           const permissions = permissionsDoc.data()?.permissions as Permission[] || [];
@@ -94,7 +94,7 @@ export function usePermissions(): UsePermissionsReturn {
       setUserRole(role);
 
       // Obter documento de permissões
-      const permissionsDoc = await f.getDoc(f.doc(db, 'permissoes', (user as any).id));
+      const permissionsDoc = await f.getDoc(f.doc('permissoes', (user as any).id));
 
       if (permissionsDoc.exists()) {
         const permissions = permissionsDoc.data()?.permissions as Permission[] || [];

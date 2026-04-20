@@ -44,7 +44,7 @@ export class SalesAutomationService {
         metadata
       };
 
-      await f.addDoc(f.collection(db, this.collectionName), event);
+      await f.addDoc(f.collection(this.collectionName), event);
       
       // Se for sucesso de pagamento, podemos marcar eventos anteriores de checkout como resolvidos
       if (eventType === 'PAYMENT_SUCCESS') {

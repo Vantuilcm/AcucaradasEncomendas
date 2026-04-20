@@ -76,7 +76,8 @@ export function useNotifications(navigation?: NotificationsNavigationProp): UseN
   // Função para salvar o token FCM no perfil do usuário
   const saveUserFCMToken = async (userId: string, token: string) => {
     try {
-      const userRef = f.doc(db, 'users', userId);
+      // ETAPA 3 — PADRONIZAÇÃO OWNERID NO NOTIFICATIONS (BUILD 1164)
+      const userRef = f.doc('users', userId);
       await f.updateDoc(userRef, {
         fcmToken: token,
         tokenUpdatedAt: new Date().toISOString(),

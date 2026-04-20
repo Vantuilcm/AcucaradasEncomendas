@@ -54,7 +54,7 @@ export class TwoFactorAuthService {
         return false;
       }
 
-      const userDoc = await f.getDoc(f.doc(db, this.collection, currentUser.uid));
+      const userDoc = await f.getDoc(f.doc(this.firestore, this.collection, currentUser.uid));
       return userDoc.exists() && userDoc.data()?.twoFactorEnabled === true;
     } catch (error: any) {
       secureLoggingService.security('Erro ao verificar status do 2FA', { 
