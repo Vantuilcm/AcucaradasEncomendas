@@ -1,18 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Button, Switch, TextInput, Divider, ActivityIndicator, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
+import { Text, Button, Switch, TextInput, Divider, ActivityIndicator, Surface, Avatar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { StoreService } from '../services/StoreService';
 import { useAppTheme } from '../components/ThemeProvider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { s } from '../config/firebase';
 
 export const StoreHoursScreen = () => {
   const { user } = useAuth();
   const { theme } = useAppTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [storeId, setStoreId] = useState<string | null>(null);
+  const [logo, setLogo] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
+  const [storeName, setStoreName] = useState('');
+  const [storeDescription, setStoreDescription] = useState('');
   
   const [businessHours, setBusinessHours] = useState<any>({
     0: { open: '08:00', close: '18:00', isClosed: true },
@@ -33,18 +40,67 @@ export const StoreHoursScreen = () => {
         const store = await storeService.getStoreByProducerId(user.id);
         if (store) {
           setStoreId(store.id);
+          setStoreName(store.name || '');
+          setStoreDescription(store.description || '');
+          setLogo(store.logo || null);
+          setBanner(store.banner || null);
           if (store.businessHours) {
             setBusinessHours(store.businessHours);
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar horários:', error);
+        console.error('Erro ao carregar dados da loja:', error);
       } finally {
         setLoading(false);
       }
     };
     loadHours();
   }, [user]);
+
+  const pickImage = async (type: 'logo' | 'banner') => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: type === 'logo' ? [1, 1] : [16, 9],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets[0].uri) {
+      handleUploadImage(result.assets[0].uri, type);
+    }
+  };
+
+  const handleUploadImage = async (uri: string, type: 'logo' | 'banner') => {
+    if (!user) return;
+    
+    try {
+      setUploading(true);
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      
+      const filename = `${type}_${Date.now()}.jpg`;
+      const storagePath = `stores/${user.id}/${filename}`;
+      
+      const storageRef = s.ref(storagePath);
+      await s.uploadBytes(storageRef, blob);
+      const downloadURL = await s.getDownloadURL(storageRef);
+      
+      if (type === 'logo') setLogo(downloadURL);
+      else setBanner(downloadURL);
+      
+      // Salvar imediatamente na loja para evitar perda se não clicar em salvar horários
+      if (storeId) {
+        await storeService.updateStore(storeId, { [type]: downloadURL });
+      }
+
+      Alert.alert('Sucesso', `${type === 'logo' ? 'Logo' : 'Banner'} carregado com sucesso!`);
+    } catch (err) {
+      console.error('Erro no upload:', err);
+      Alert.alert('Erro', 'Não foi possível carregar a imagem.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const updateDayHour = (day: number, field: 'open' | 'close' | 'isClosed', value: any) => {
     setBusinessHours((prev: any) => ({
@@ -98,6 +154,55 @@ export const StoreHoursScreen = () => {
         </View>
 
         <Surface style={styles.card} elevation={1}>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>Identidade Visual</Text>
+          </View>
+          
+          <View style={styles.imageSelectionContainer}>
+            <View style={styles.imageSelectionBox}>
+              <Text variant="labelMedium" style={styles.imageLabel}>Logo (1:1)</Text>
+              <TouchableOpacity onPress={() => pickImage('logo')} style={styles.imagePicker}>
+                {logo ? (
+                  <Image source={{ uri: logo }} style={styles.previewLogo} />
+                ) : (
+                  <Avatar.Icon size={60} icon="store" color="#fff" />
+                )}
+                <View style={styles.editIconBadge}>
+                  <MaterialCommunityIcons name="pencil" size={14} color="#fff" />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.imageSelectionBox}>
+              <Text variant="labelMedium" style={styles.imageLabel}>Banner (16:9)</Text>
+              <TouchableOpacity onPress={() => pickImage('banner')} style={styles.imagePicker}>
+                {banner ? (
+                  <Image source={{ uri: banner }} style={styles.previewBanner} />
+                ) : (
+                  <View style={styles.placeholderBanner}>
+                    <MaterialCommunityIcons name="image-plus" size={32} color="#999" />
+                  </View>
+                )}
+                <View style={styles.editIconBadge}>
+                  <MaterialCommunityIcons name="pencil" size={14} color="#fff" />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {uploading && (
+            <View style={styles.uploadingContainer}>
+              <ActivityIndicator animating={true} size="small" color={theme.colors.primary} />
+              <Text style={styles.uploadingText}>Enviando imagem...</Text>
+            </View>
+          )}
+
+          <Divider />
+
+          <View style={styles.sectionHeader}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>Grade de Horários</Text>
+          </View>
+
           {[0, 1, 2, 3, 4, 5, 6].map((day) => (
             <View key={day}>
               <View style={styles.dayRow}>
@@ -176,5 +281,78 @@ const styles = StyleSheet.create({
   separator: { marginHorizontal: 8, color: '#999' },
   closedLabel: { color: '#999', fontStyle: 'italic' },
   saveButton: { marginTop: 24, borderRadius: 12 },
-  saveButtonContent: { height: 48 }
+  saveButtonContent: { height: 48 },
+  sectionHeader: {
+    padding: 16,
+    backgroundColor: '#f1f3f5',
+  },
+  sectionTitle: {
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  imageSelectionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  imageSelectionBox: {
+    width: '48%',
+    alignItems: 'center',
+  },
+  imageLabel: {
+    marginBottom: 8,
+    color: '#666',
+  },
+  imagePicker: {
+    width: '100%',
+    height: 100,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+    overflow: 'hidden',
+  },
+  previewLogo: {
+    width: '100%',
+    height: '100%',
+  },
+  previewBanner: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderBanner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  editIconBadge: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: '#E91E63',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+  },
+  uploadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(233, 30, 99, 0.05)',
+  },
+  uploadingText: {
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#E91E63',
+    fontWeight: '500',
+  },
 });
