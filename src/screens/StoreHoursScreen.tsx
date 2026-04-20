@@ -88,9 +88,22 @@ export const StoreHoursScreen = () => {
       if (type === 'logo') setLogo(downloadURL);
       else setBanner(downloadURL);
       
-      // Salvar imediatamente na loja para evitar perda se não clicar em salvar horários
+      // Salvar imediatamente na loja para evitar perda
       if (storeId) {
         await storeService.updateStore(storeId, { [type]: downloadURL });
+      } else {
+        // Se a loja não existe, criar com a imagem
+        console.log('🚀 [STORE_HOURS] Loja não existe, criando via Upload');
+        const newStore = await storeService.createStore({
+          producerId: user.id,
+          name: storeName || `Loja de ${user.nome || 'Produtor'}`,
+          description: storeDescription,
+          [type]: downloadURL,
+          isOpen: true,
+          leadTime: 60,
+          businessHours
+        } as any);
+        if (newStore) setStoreId(newStore.id);
       }
 
       Alert.alert('Sucesso', `${type === 'logo' ? 'Logo' : 'Banner'} carregado com sucesso!`);
@@ -113,17 +126,31 @@ export const StoreHoursScreen = () => {
   };
 
   const handleSave = async () => {
-    if (!storeId) {
-      Alert.alert('Erro', 'Loja não encontrada. Configure seu perfil primeiro.');
-      return;
-    }
+    if (!user) return;
 
     setSaving(true);
     try {
-      await storeService.updateStore(storeId, { businessHours });
-      Alert.alert('Sucesso', 'Horários atualizados com sucesso!');
+      if (storeId) {
+        await storeService.updateStore(storeId, { businessHours });
+      } else {
+        // Criar loja se não existir ao clicar em salvar
+        console.log('🚀 [STORE_HOURS] Loja não existe, criando via Save');
+        const newStore = await storeService.createStore({
+          producerId: user.id,
+          name: storeName || `Loja de ${user.nome || 'Produtor'}`,
+          description: storeDescription,
+          logo: logo || '',
+          banner: banner || '',
+          isOpen: true,
+          leadTime: 60,
+          businessHours
+        } as any);
+        if (newStore) setStoreId(newStore.id);
+      }
+      Alert.alert('Sucesso', 'Horários e dados atualizados com sucesso!');
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar os horários.');
+      console.error('Erro ao salvar:', error);
+      Alert.alert('Erro', 'Não foi possível salvar os dados.');
     } finally {
       setSaving(false);
     }
