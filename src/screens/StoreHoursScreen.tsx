@@ -103,7 +103,7 @@ export const StoreHoursScreen = () => {
         // Se a loja não existe, criar com a imagem
         console.log('🚀 [STORE_HOURS] Loja não existe, criando via Upload');
         const newStoreId = await storeService.createStore({
-          producerId: user.id,
+          producerId: '', // Será preenchido pelo service usando Auth UID
           name: storeName || `Loja de ${user.nome || 'Produtor'}`,
           description: storeDescription,
           [type]: downloadURL,
@@ -144,7 +144,7 @@ export const StoreHoursScreen = () => {
         // Criar loja se não existir ao clicar em salvar
         console.log('🚀 [STORE_HOURS] Loja não existe, criando via Save');
         const newStoreId = await storeService.createStore({
-          producerId: user.id,
+          producerId: '', // Será preenchido pelo service usando Auth UID
           name: storeName || `Loja de ${user.nome || 'Produtor'}`,
           description: storeDescription,
           logo: logo || '',
