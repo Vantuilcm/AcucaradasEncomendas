@@ -29,10 +29,17 @@ export class StoreService {
   async updateStore(storeId: string, storeData: Partial<Store>): Promise<void> {
     try {
       const storeRef = f.doc(this.collectionName, storeId);
-      await f.updateDoc(storeRef, {
+      
+      // ETAPA 3 — PADRONIZAÇÃO STORES NO UPDATE
+      const updatedData = {
         ...storeData,
+        ownerId: storeData.producerId || (storeData as any).ownerId,
+        userId: storeData.producerId || (storeData as any).userId,
+        active: true,
         updatedAt: new Date().toISOString()
-      });
+      };
+
+      await f.updateDoc(storeRef, updatedData);
       loggingService.info('Loja atualizada com sucesso', { storeId });
     } catch (error) {
       loggingService.error('Erro ao atualizar loja', { storeId, error });
@@ -42,11 +49,17 @@ export class StoreService {
 
   async createStore(storeData: Omit<Store, 'id'>): Promise<string> {
     try {
-      const docRef = await f.addDoc(f.collection(this.collectionName), {
+      // ETAPA 3 — PADRONIZAÇÃO STORES NA CRIAÇÃO
+      const normalizedData = {
         ...storeData,
+        ownerId: storeData.producerId,
+        userId: storeData.producerId,
+        active: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      });
+      };
+
+      const docRef = await f.addDoc(f.collection(this.collectionName), normalizedData);
       loggingService.info('Nova loja criada', { storeId: docRef.id });
       return docRef.id;
     } catch (error) {

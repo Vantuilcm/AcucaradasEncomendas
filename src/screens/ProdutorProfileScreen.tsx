@@ -23,6 +23,14 @@ export const ProdutorProfileScreen = () => {
     try {
       console.log(`🚀 [PRODUTOR_NAV] Tentando navegar para: ${label} (Rota: ${route})`);
       
+      // Validação preventiva de permissão no frontend
+      const role = (user?.role || user?.activeRole || '').toLowerCase();
+      if (role !== 'produtor' && role !== 'producer' && user?.role !== 'admin') {
+        console.warn(`⚠️ [PRODUTOR_NAV] Bloqueio preventivo: Role atual é ${role}`);
+        Alert.alert('ACESSO NEGADO', 'Seu perfil ainda não está configurado como Produtor. Se você acabou de se cadastrar, tente sair e entrar novamente.');
+        return;
+      }
+
       // 1. Tentar RootNavigation (Global Ref)
       if (RootNavigation.navigationRef.isReady()) {
         console.log(`✅ [PRODUTOR_NAV] Usando RootNavigation`);

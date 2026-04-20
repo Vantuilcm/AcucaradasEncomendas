@@ -57,16 +57,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               
               if (userDoc.exists()) {
                 const data = userDoc.data();
-                // CORREÇÃO: Normalizar role no bootstrap automático também
-                const normalizedRole = (data.role || 'comprador').toLowerCase();
-                setUser({ ...data, id: firebaseUser.uid, role: normalizedRole });
+                // ETAPA 2 — PADRONIZAÇÃO FIRESTORE USERS
+                // Garantir campos: role, activeRole, roles e active
+                const normalizedRole = (data.role || data.activeRole || 'comprador').toLowerCase();
+                const userRoles = data.roles || [normalizedRole];
+                
+                const updatedUser = { 
+                  ...data, 
+                  id: firebaseUser.uid, 
+                  role: normalizedRole,
+                  activeRole: normalizedRole,
+                  roles: userRoles,
+                  active: data.active ?? true
+                };
+
+                setUser(updatedUser);
               } else {
-                setUser({ 
+                const newUser = { 
                   id: firebaseUser.uid, 
                   email: firebaseUser.email, 
                   nome: firebaseUser.displayName || '',
-                  role: 'comprador'
-                });
+                  role: 'comprador',
+                  activeRole: 'comprador',
+                  roles: ['comprador'],
+                  active: true
+                };
+                setUser(newUser);
               }
             } catch (err) {
               console.error('❌ [AUTH] Error fetching user profile:', err);
@@ -123,13 +139,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (userDoc.exists()) {
         const data = userDoc.data();
-        const profileRole = (data.role || 'comprador').toLowerCase();
+        // ETAPA 2 — PADRONIZAÇÃO FIRESTORE USERS NO LOGIN
+        const profileRole = (data.role || data.activeRole || 'comprador').toLowerCase();
+        const userRoles = data.roles || [profileRole];
         
         console.log('✅ [DEBUG_LOGIN] Perfil encontrado:', profileRole);
 
-        // Login Universal: Definimos o usuário com a role real do banco.
-        // O AppNavigator cuidará de levar o usuário para a Home correta.
-        setUser({ ...data, id: userCredential.user.uid, role: profileRole });
+        const updatedUser = { 
+          ...data, 
+          id: userCredential.user.uid, 
+          role: profileRole,
+          activeRole: profileRole,
+          roles: userRoles,
+          active: data.active ?? true
+        };
+
+        setUser(updatedUser);
       } else {
         console.warn('⚠️ [DEBUG_LOGIN] Perfil não existe no Firestore.');
         throw { code: 'firestore/profile-not-found', message: 'Conta autenticada, mas perfil não encontrado no sistema.' };
@@ -165,6 +190,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: userData.email,
         nome: userData.nome || userData.name || '',
         role: (userData.role || 'comprador').toLowerCase(),
+        activeRole: (userData.role || 'comprador').toLowerCase(),
+        roles: [(userData.role || 'comprador').toLowerCase()],
+        active: true,
         createdAt: dbFunctions.serverTimestamp(),
         updatedAt: dbFunctions.serverTimestamp()
       };
