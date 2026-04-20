@@ -1,4 +1,4 @@
-import { f, authFunctions } from '../config/firebase';
+import { f, getAuth } from '../config/firebase';
 import { Store } from '../types/Store';
 import { loggingService } from './LoggingService';
 
@@ -6,7 +6,7 @@ export class StoreService {
   private readonly collectionName = 'stores';
 
   private getAuthUid(): string {
-    const uid = authFunctions.getCurrentUser()?.uid;
+    const uid = getAuth().currentUser?.uid;
     if (!uid) {
       throw new Error('Usuário não autenticado no Firebase Auth');
     }

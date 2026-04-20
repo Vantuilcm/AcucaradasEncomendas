@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { SalesChart } from '../components/charts/SalesChart';
@@ -54,6 +55,7 @@ export function ReportsScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { isAdmin, isProdutor } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +152,7 @@ export function ReportsScreen() {
   }
 
   // Verificar se o usuário é administrador ou produtor
-  if (!(user as any)?.isAdmin && (user as any)?.role !== 'producer') {
+  if (!isAdmin && !isProdutor) {
     return (
       <ErrorMessage
         message="Você não tem permissão para acessar esta área"

@@ -19,11 +19,15 @@ import { Product } from '../types/Product';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { useAppTheme } from '../components/ThemeProvider';
+import { usePermissions } from '../hooks/usePermissions';
+import { useNavigation } from '@react-navigation/native';
 
 export function InventoryManagementScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const productService = useMemo(() => ProductService.getInstance(), []);
+  const { isAdmin, isProdutor } = usePermissions();
+  const navigation = useNavigation();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -101,6 +105,17 @@ export function InventoryManagementScreen() {
 
   if (loading && !refreshing) {
     return <LoadingState message="Carregando estoque..." />;
+  }
+
+  // Verificar se o usuário é administrador ou produtor
+  if (!isAdmin && !isProdutor) {
+    return (
+      <ErrorMessage
+        message="Você não tem permissão para acessar esta área"
+        onRetry={() => navigation.goBack()}
+        retryLabel="Voltar"
+      />
+    );
   }
 
   return (

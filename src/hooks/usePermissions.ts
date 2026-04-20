@@ -112,16 +112,19 @@ export function usePermissions(): UsePermissionsReturn {
   }, [user]);
 
   // Verificações de papel para conveniência
-  const isAdmin = userRole === Role.ADMIN;
-  const isGerente = userRole === Role.GERENTE;
-  const isAtendente = userRole === Role.ATENDENTE;
-  const isCliente = userRole === Role.CLIENTE || userRole === 'comprador' as any || userRole === 'customer' as any;
-  const isEntregador = userRole === Role.ENTREGADOR;
-  const isProdutor = userRole === 'produtor' as any || userRole === 'producer' as any;
+  // Priorizar o que está no objeto user do AuthContext (Sincronizado no Build 1160)
+  const activeRole = (userRole || (user as any)?.role || (user as any)?.activeRole || '').toLowerCase();
+  
+  const isAdmin = activeRole === Role.ADMIN || (user as any)?.role === 'admin';
+  const isGerente = activeRole === Role.GERENTE;
+  const isAtendente = activeRole === Role.ATENDENTE;
+  const isCliente = activeRole === Role.CLIENTE || activeRole === 'comprador' || activeRole === 'customer';
+  const isEntregador = activeRole === Role.ENTREGADOR || (user as any)?.role === 'entregador';
+  const isProdutor = activeRole === 'produtor' || activeRole === 'producer' || (user as any)?.role === 'produtor';
 
   return {
     loading,
-    userRole,
+    userRole: activeRole as Role,
     hasPermission,
     hasPermissions,
     updatePermissions,
