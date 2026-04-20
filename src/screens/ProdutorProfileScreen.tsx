@@ -19,9 +19,9 @@ export const ProdutorProfileScreen = () => {
     ]);
   };
 
-  const navigateTo = (route: string, label: string) => {
+  const handleMenuPress = (route: string, label: string) => {
     try {
-      console.log(`🚀 [PRODUTOR_NAV] Navegando para: ${label} (Rota: ${route})`);
+      console.log(`🚀 [PRODUTOR_NAV] Navegando via Root para: ${label} (Rota: ${route})`);
       RootNavigation.navigate(route);
     } catch (error) {
       console.error(`❌ [PRODUTOR_NAV] Erro ao navegar para ${route}:`, error);
@@ -31,7 +31,7 @@ export const ProdutorProfileScreen = () => {
 
   const MenuItem = ({ title, icon, route }: { title: string, icon: string, route: string }) => (
     <TouchableOpacity 
-      onPress={() => navigateTo(route, title)}
+      onPress={() => handleMenuPress(route, title)}
       style={styles.menuItem}
       activeOpacity={0.7}
     >
