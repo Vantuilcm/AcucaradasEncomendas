@@ -21,21 +21,11 @@ export const ProdutorProfileScreen = () => {
 
   const navigateTo = (route: string, label: string) => {
     try {
-      console.log(`🚀 [PRODUTOR_NAV] Clique detectado em: ${label}`);
-      // Teste de toque físico com alerta imediato
-      Alert.alert('DEBUG TOQUE', `Você clicou em: ${label}`, [
-        { 
-          text: 'Confirmar Navegação', 
-          onPress: () => {
-            console.log(`🚀 [PRODUTOR_NAV] Executando RootNavigation.navigate para: ${route}`);
-            RootNavigation.navigate(route);
-          }
-        },
-        { text: 'Cancelar', style: 'cancel' }
-      ]);
+      console.log(`🚀 [PRODUTOR_NAV] Navegando para: ${label} (Rota: ${route})`);
+      RootNavigation.navigate(route);
     } catch (error) {
-      console.error(`❌ [PRODUTOR_NAV] Erro no fluxo de navegação:`, error);
-      Alert.alert('ERRO INTERNO', `Falha ao processar clique em ${label}`);
+      console.error(`❌ [PRODUTOR_NAV] Erro ao navegar para ${route}:`, error);
+      Alert.alert('ERRO ROTA', `Não foi possível abrir a tela: ${label}`);
     }
   };
 
