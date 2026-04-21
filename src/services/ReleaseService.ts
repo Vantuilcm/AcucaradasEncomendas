@@ -1,6 +1,5 @@
-import { f } from '../config/firebase';
-const { doc, getDoc, setDoc, serverTimestamp } = f;
-import { db } from '../config/firebase';
+import { f, db } from '../config/firebase';
+const { doc, getDoc, setDoc, serverTimestamp, onSnapshot } = f;
 import { loggingService } from './LoggingService';
 
 export interface ReleaseHealth {

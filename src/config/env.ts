@@ -24,6 +24,7 @@ export type Env = {
   EXPO_PUBLIC_FIREBASE_VAPID_KEY?: string;
   EXPO_PUBLIC_SENTRY_DSN?: string;
   EXPO_PUBLIC_MONITORING_REMOTE_ENABLED?: string;
+  EXPO_PUBLIC_FACEBOOK_APP_ID?: string;
 };
 
 function getEnv(): Env {

@@ -93,4 +93,51 @@ export class RecommendationService {
       return [];
     }
   }
+
+  /**
+   * Obtém recomendações com base em produtos visualizados ou limite geral
+   * @param productIdOrLimit ID do produto ou limite de resultados
+   */
+  public async getRecommendationsBasedOnViews(productIdOrLimit: string | number): Promise<any[]> {
+    try {
+      loggingService.info('Recommendation: Buscando por visualizações...', { productIdOrLimit });
+      const all = await this.generateMarketBasketAnalysis();
+      
+      if (typeof productIdOrLimit === 'string') {
+        return all.filter(r => r.productId === productIdOrLimit || r.recommendedProductId === productIdOrLimit).slice(0, 5);
+      }
+      
+      return all.slice(0, productIdOrLimit);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Obtém recomendações com base no histórico de compras
+   * @param userId ID do usuário
+   * @param limit Limite de resultados
+   */
+  public async getRecommendationsBasedOnPurchaseHistory(userId: string, limit: number = 10): Promise<any[]> {
+    try {
+      loggingService.info('Recommendation: Buscando por histórico...', { userId, limit });
+      return [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Obtém recomendações personalizadas
+   * @param userId ID do usuário
+   * @param limit Limite de resultados
+   */
+  public async getPersonalizedRecommendations(userId: string, limit: number = 10): Promise<any[]> {
+    try {
+      loggingService.info('Recommendation: Buscando personalizadas...', { userId, limit });
+      return [];
+    } catch (error) {
+      return [];
+    }
+  }
 }

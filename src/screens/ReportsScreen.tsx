@@ -54,7 +54,7 @@ export function ReportsScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { isAdmin, isProdutor } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

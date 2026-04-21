@@ -1,6 +1,5 @@
-import { f } from '../config/firebase';
+import { f, getDb } from '../config/firebase';
 const { collection, addDoc, serverTimestamp, updateDoc, doc } = f;
-import { db } from '../config/firebase';
 import { Order } from '../types/Order';
 import { User } from '../models/User';
 import { loggingService } from './LoggingService';
@@ -37,8 +36,8 @@ export class MarketplaceExpansionService {
       loggingService.info('Marketplace: Analisando performance geográfica...');
 
       const { getDocs } = await import('firebase/firestore');
-      const usersSnap = await getDocs(collection(db, 'usuarios'));
-      const ordersSnap = await getDocs(collection(db, 'orders'));
+      const usersSnap = await getDocs(collection(getDb(), 'users'));
+      const ordersSnap = await getDocs(collection(getDb(), 'orders'));
       
       const cityMap: Record<string, CityExpansionMetrics> = {};
 
@@ -103,7 +102,7 @@ export class MarketplaceExpansionService {
       loggingService.info('Marketplace: Ativando nova cidade...', { cityId });
       
       // 1. Criar cupom de lançamento para a cidade
-      await addDoc(collection(db, 'coupons'), {
+      await addDoc(collection(getDb(), 'coupons'), {
         code: `DOCE${cityId.substring(0, 3).toUpperCase()}`,
         discountType: 'percentage',
         value: 20,
@@ -125,7 +124,7 @@ export class MarketplaceExpansionService {
    */
   public async fastOnboardingProducer(userId: string, cityId: string, businessData: any): Promise<void> {
     try {
-      const userRef = doc(db, 'usuarios', userId);
+      const userRef = doc(getDb(), 'users', userId);
       await updateDoc(userRef, {
         role: 'producer',
         cityId,

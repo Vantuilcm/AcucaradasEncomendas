@@ -1,4 +1,4 @@
-import { db, f } from '../config/firebase';
+import { f } from '../config/firebase';
 import { STRIPE_PUBLISHABLE_KEY, STRIPE_CONFIG } from '../config/stripe';
 import { loggingService } from './LoggingService';
 import { api } from './api';

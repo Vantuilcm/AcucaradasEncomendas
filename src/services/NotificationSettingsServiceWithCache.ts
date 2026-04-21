@@ -1,6 +1,5 @@
-import { f } from '../config/firebase';
+import { f, db } from '../config/firebase';
 const { doc, getDoc, setDoc, updateDoc } = f;
-import { db } from '../config/firebase';
 import { NotificationSettings } from '../types/NotificationSettings';
 import { loggingService } from './LoggingService';
 import { CacheManager } from '../utils/cache';

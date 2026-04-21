@@ -1,6 +1,5 @@
-import { f } from '../config/firebase';
+import { f, getDb } from '../config/firebase';
 const { collection, query, where, getDocs, limit, addDoc, serverTimestamp } = f;
-import { db } from '../config/firebase';
 import { Order } from '../types/Order';
 import { User } from '../models/User';
 import { loggingService } from './LoggingService';
@@ -44,17 +43,17 @@ export class GrowthIntelligenceService {
       loggingService.info('Growth: Calculando métricas de inteligência...');
 
       // 1. Obter todos os dados necessários (em janelas de tempo se necessário)
-      const usersSnap = await getDocs(collection(db, 'usuarios'));
-      const ordersSnap = await getDocs(collection(db, 'orders'));
-      const referralsSnap = await getDocs(collection(db, 'referrals'));
+      const usersSnap = await getDocs(collection(getDb(), 'users'));
+      const ordersSnap = await getDocs(collection(getDb(), 'orders'));
+      const referralsSnap = await getDocs(collection(getDb(), 'referrals'));
       
       const totalUsers = usersSnap.docs.length;
       const totalOrders = ordersSnap.docs.length;
-      const allOrders = ordersSnap.docs.map(doc => doc.data() as unknown as Order);
-      const allUsers = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as unknown as User));
+      const allOrders = ordersSnap.docs.map((doc: any) => doc.data() as unknown as Order);
+      const allUsers = usersSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as unknown as User));
 
       // 2. Ticket Médio
-      const totalRevenue = allOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+      const totalRevenue = allOrders.reduce((sum: number, o: Order) => sum + (o.totalAmount || 0), 0);
       const averageTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
       // 3. LTV (Lifetime Value)
@@ -62,7 +61,7 @@ export class GrowthIntelligenceService {
 
       // 4. Taxa de Recompra
       const userOrderCounts: Record<string, number> = {};
-      allOrders.forEach(o => {
+      allOrders.forEach((o: Order) => {
         userOrderCounts[o.userId] = (userOrderCounts[o.userId] || 0) + 1;
       });
       const repeatCustomers = Object.values(userOrderCounts).filter(count => count > 1).length;
@@ -85,7 +84,7 @@ export class GrowthIntelligenceService {
 
       // 6. Performance de Indicação
       let referralRevenue = 0;
-      referralsSnap.docs.forEach(doc => {
+      referralsSnap.docs.forEach((doc: any) => {
         const data = doc.data() as any;
         if (data && data.status === 'completed') {
           referralRevenue += Number(data.valueGenerated || 0);
@@ -94,14 +93,14 @@ export class GrowthIntelligenceService {
 
       // 7. Ranking de Indicadores (Top Referrers)
       const topReferrers = allUsers
-        .filter(u => (u.referralCount || 0) > 0)
-        .map(u => ({
+        .filter((u: User) => (u.referralCount || 0) > 0)
+        .map((u: User) => ({
           userId: u.id,
           name: u.nome || 'Usuário',
           count: u.referralCount || 0,
           value: u.totalReferralValue || 0
         }))
-        .sort((a, b) => b.value - a.value)
+        .sort((a: any, b: any) => b.value - a.value)
         .slice(0, 5);
 
       const metrics: GrowthMetrics = {
@@ -132,7 +131,7 @@ export class GrowthIntelligenceService {
   private async persistDailyMetrics(metrics: GrowthMetrics): Promise<void> {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const metricsRef = collection(db, 'growth_metrics_daily');
+      const metricsRef = collection(getDb(), 'growth_metrics_daily');
       
       // Evitar duplicidade no mesmo dia
       const q = query(metricsRef, where('date', '==', today), limit(1));
@@ -161,7 +160,7 @@ export class GrowthIntelligenceService {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    const q = query(collection(db, 'growth_metrics_daily'), where('date', '==', yesterdayStr), limit(1));
+    const q = query(collection(getDb(), 'growth_metrics_daily'), where('date', '==', yesterdayStr), limit(1));
     const snap = await getDocs(q);
 
     if (!snap.empty) {

@@ -77,6 +77,15 @@ export class ProductService {
   }
 
   /**
+   * Consulta um produto pelo ID (Alias para consultarProduto)
+   * @param id ID do produto
+   * @returns Produto encontrado
+   */
+  public async getProductById(id: string): Promise<Product> {
+    return this.consultarProduto(id);
+  }
+
+  /**
    * Consulta um produto pelo ID
    * @param id ID do produto
    * @returns Produto encontrado
@@ -95,6 +104,15 @@ export class ProductService {
       loggingService.error('Erro ao consultar produto', { id, error: error.message });
       throw error;
     }
+  }
+
+  /**
+   * Lista todos os produtos (Alias para listarProdutos)
+   * @param filtro Filtros para a consulta
+   * @returns Lista de produtos
+   */
+  public async getProducts(filtro?: ProductFilter): Promise<Product[]> {
+    return this.listarProdutos(filtro);
   }
 
   /**
@@ -146,16 +164,55 @@ export class ProductService {
    * @param id ID do produto
    * @param dados Novos dados
    */
-  public async atualizarProduto(id: string, dados: Partial<Product>): Promise<void> {
+  public async atualizarProduto(id: string, dados: Partial<Product>): Promise<Product> {
     try {
       const docRef = f.doc(this.collectionName, id);
-      await f.updateDoc(docRef, {
+      const updateData = {
         ...dados,
         dataAtualizacao: new Date(),
-      } as any);
+      };
+      await f.updateDoc(docRef, updateData as any);
       loggingService.info('Produto atualizado com sucesso', { id });
+      
+      return await this.consultarProduto(id);
     } catch (error: any) {
       loggingService.error('Erro ao atualizar produto', { id, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Atualiza o preço de um produto
+   * @param id ID do produto
+   * @param novoPreco Novo preço
+   */
+  public async atualizarPreco(id: string, novoPreco: number): Promise<Product> {
+    return this.atualizarProduto(id, { preco: novoPreco });
+  }
+
+  /**
+   * Atualiza a disponibilidade de um produto
+   * @param id ID do produto
+   * @param disponivel Status de disponibilidade
+   */
+  public async atualizarDisponibilidade(id: string, disponivel: boolean): Promise<Product> {
+    return this.atualizarProduto(id, { disponivel });
+  }
+
+  /**
+   * Lista todas as categorias de produtos cadastradas
+   */
+  public async listarCategorias(): Promise<string[]> {
+    try {
+      const snapshot = await f.getDocs(f.collection(this.collectionName));
+      const categorias = new Set<string>();
+      snapshot.docs.forEach((doc: any) => {
+        const data = doc.data() as Product;
+        if (data.categoria) categorias.add(data.categoria);
+      });
+      return Array.from(categorias).sort();
+    } catch (error: any) {
+      loggingService.error('Erro ao listar categorias', { error: error.message });
       throw error;
     }
   }
@@ -264,6 +321,54 @@ export class ProductService {
       return produtos;
     } catch (error: any) {
       loggingService.error('Erro ao consultar destaques', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Alias para consultarDestaques
+   */
+  public async listarProdutosDestacados(): Promise<Product[]> {
+    return this.consultarDestaques();
+  }
+
+  /**
+   * Atualiza o estoque de um produto
+   * @param id ID do produto
+   * @param quantidade Nova quantidade
+   */
+  public async atualizarEstoque(id: string, quantidade: number): Promise<Product> {
+    try {
+      const docRef = f.doc(this.collectionName, id);
+      await f.updateDoc(docRef, {
+        estoque: quantidade,
+        temEstoque: quantidade > 0,
+        dataAtualizacao: new Date()
+      } as any);
+      loggingService.info('Estoque atualizado com sucesso', { id, quantidade });
+      return await this.consultarProduto(id);
+    } catch (error: any) {
+      loggingService.error('Erro ao atualizar estoque', { id, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Obtém estatísticas básicas de um produto específico
+   * @param id ID do produto
+   */
+  public async obterEstatisticasProduto(id: string): Promise<any> {
+    try {
+      const produto = await this.consultarProduto(id);
+      return {
+        id: produto.id,
+        nome: produto.nome,
+        estoqueAtual: produto.estoque || 0,
+        disponivel: produto.disponivel,
+        totalVendas: 0, // Placeholder
+      };
+    } catch (error: any) {
+      loggingService.error('Erro ao obter estatísticas do produto', { id, error: error.message });
       throw error;
     }
   }

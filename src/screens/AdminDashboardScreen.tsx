@@ -11,7 +11,7 @@ import { OrderService } from '../services/OrderService';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { OrderWatchdogService } from '../services/OrderWatchdogService';
 import { SalesAutomationService } from '../services/SalesAutomationService';
-import { db, f } from '../config/firebase';
+import { f } from '../config/firebase';
 import { DemandForecastService, ProductDemandInsight } from '../services/DemandForecastService';
 import { RecommendationService, ProductRecommendation } from '../services/RecommendationService';
 import { GrowthIntelligenceService, GrowthMetrics } from '../services/GrowthIntelligenceService';
@@ -319,7 +319,10 @@ export function AdminDashboardScreen() {
   }
 
   // Verificar se o usuário é administrador ou produtor
-  if ((user as any)?.role !== 'admin' && (user as any)?.role !== 'producer') {
+  const role = ((user as any)?.role || (user as any)?.activeRole || '').toLowerCase();
+  const hasAccess = role === 'admin' || role === 'producer' || role === 'produtor';
+
+  if (!hasAccess) {
     return (
       <ErrorMessage
         message="Você não tem permissão para acessar esta área"
@@ -728,47 +731,54 @@ export function AdminDashboardScreen() {
           <Text variant="titleLarge" style={styles.sectionTitle}>
             Tendência de Vendas
           </Text>
-          <LineChart
-            data={{
-              labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
-              datasets: [
-                {
-                  data: [
-                    Math.random() * 100,
-                    Math.random() * 100,
-                    Math.random() * 100,
-                    Math.random() * 100,
-                    Math.random() * 100,
-                    Math.random() * 100,
-                    Math.random() * 100
-                  ]
+          {/* Gráfico Blindado contra crashes */}
+          {LineChart ? (
+            <LineChart
+              data={{
+                labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
+                datasets: [
+                  {
+                    data: [
+                      Math.random() * 100,
+                      Math.random() * 100,
+                      Math.random() * 100,
+                      Math.random() * 100,
+                      Math.random() * 100,
+                      Math.random() * 100,
+                      Math.random() * 100
+                    ]
+                  }
+                ]
+              }}
+              width={screenWidth - 32}
+              height={220}
+              chartConfig={{
+                backgroundColor: theme.colors.surface,
+                backgroundGradientFrom: theme.colors.surface,
+                backgroundGradientTo: theme.colors.surface,
+                decimalPlaces: 2,
+                color: (opacity = 1) => `rgba(255, 105, 180, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                style: {
+                  borderRadius: 16
+                },
+                propsForDots: {
+                  r: "6",
+                  strokeWidth: "2",
+                  stroke: theme.colors.primary
                 }
-              ]
-            }}
-            width={screenWidth - 32}
-            height={220}
-            chartConfig={{
-              backgroundColor: theme.colors.surface,
-              backgroundGradientFrom: theme.colors.surface,
-              backgroundGradientTo: theme.colors.surface,
-              decimalPlaces: 2,
-              color: (opacity = 1) => `rgba(255, 105, 180, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-              style: {
+              }}
+              bezier
+              style={{
+                marginVertical: 8,
                 borderRadius: 16
-              },
-              propsForDots: {
-                r: "6",
-                strokeWidth: "2",
-                stroke: theme.colors.primary
-              }
-            }}
-            bezier
-            style={{
-              marginVertical: 8,
-              borderRadius: 16
-            }}
-          />
+              }}
+            />
+          ) : (
+            <View style={{ height: 220, justifyContent: 'center', alignItems: 'center' }}>
+              <Text>Gráfico indisponível</Text>
+            </View>
+          )}
         </Surface>
 
         <Surface style={styles.mapSection}>
@@ -776,29 +786,37 @@ export function AdminDashboardScreen() {
             Entregadores Online ({activeDrivers.length})
           </Text>
           <View style={styles.mapContainer}>
-            <MapView
-              style={styles.map}
-              initialRegion={{
-                latitude: -23.5505,
-                longitude: -46.6333,
-                latitudeDelta: 0.0922,
-                longitudeDelta: 0.0421,
-              }}
-            >
-              {activeDrivers.map((driver) => (
-                driver.location && (
-                  <Marker
-                    key={driver.id}
-                    coordinate={{
-                      latitude: driver.location.latitude,
-                      longitude: driver.location.longitude,
-                    }}
-                    title={driver.name}
-                    description={`Veículo: ${driver.vehicle.model}`}
-                  />
-                )
-              ))}
-            </MapView>
+            {/* MapView Blindado contra crashes em builds sem nativo */}
+            {MapView ? (
+              <MapView
+                style={styles.map}
+                initialRegion={{
+                  latitude: -23.5505,
+                  longitude: -46.6333,
+                  latitudeDelta: 0.0922,
+                  longitudeDelta: 0.0421,
+                }}
+              >
+                {activeDrivers.map((driver) => (
+                  driver.location && (
+                    <Marker
+                      key={driver.id}
+                      coordinate={{
+                        latitude: driver.location.latitude,
+                        longitude: driver.location.longitude,
+                      }}
+                      title={driver.name}
+                      description={`Veículo: ${driver.vehicle.model}`}
+                    />
+                  )
+                ))}
+              </MapView>
+            ) : (
+              <View style={[styles.map, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#eee' }]}>
+                <Ionicons name="map-outline" size={48} color="#ccc" />
+                <Text>Mapa indisponível</Text>
+              </View>
+            )}
           </View>
         </Surface>
 

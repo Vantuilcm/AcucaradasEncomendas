@@ -239,7 +239,7 @@ const DriverTabs = () => {
 // Navegador principal do aplicativo
 const AppNavigator = () => {
   const { user, loading: authLoading, profileLoading, isReady } = useAuth();
-  const { isProdutor, isAdmin, isEntregador, loading: permissionsLoading } = usePermissions();
+  const { isProdutor: _isProdutor, isAdmin: _isAdmin, isEntregador, loading: permissionsLoading } = usePermissions();
   const { theme, isDark } = useAppTheme();
 
   // Mesclar o tema da navegação com o nosso tema customizado

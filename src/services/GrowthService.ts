@@ -1,4 +1,4 @@
-import { db, f } from '../config/firebase';
+import { getDb, f } from '../config/firebase';
 import { User } from '../models/User';
 import { Order } from '../types/Order';
 import { NotificationService } from './NotificationService';
@@ -47,7 +47,7 @@ export class GrowthService {
       loggingService.info('Growth: Aplicando indicação...', { newUserId, referralCode });
 
       // 1. Buscar quem indicou
-      const q = f.query(f.collection(db, 'usuarios'), f.where('referralCode', '==', referralCode), f.limit(1));
+      const q = f.query(f.collection(getDb(), 'users'), f.where('referralCode', '==', referralCode), f.limit(1));
       const snapshot = await f.getDocs(q);
 
       if (snapshot.empty) {
@@ -72,10 +72,10 @@ export class GrowthService {
         createdAt: f.serverTimestamp()
       };
 
-      await f.addDoc(f.collection(db, 'referrals'), referralLog);
+      await f.addDoc(f.collection(getDb(), 'referrals'), referralLog);
 
       // 3. Atualizar o usuário indicado
-      await f.updateDoc(f.doc(db, 'usuarios', newUserId), {
+      await f.updateDoc(f.doc(getDb(), 'users', newUserId), {
         referredBy: referrerId
       });
 
@@ -104,7 +104,7 @@ export class GrowthService {
       const userId = order.userId;
       
       // 1. Verificar se o pedido foi por indicação e completar o ciclo
-      const userDoc = await f.getDocs(f.query(f.collection(db, 'usuarios'), f.where('id', '==', userId), f.limit(1)));
+      const userDoc = await f.getDocs(f.query(f.collection(getDb(), 'users'), f.where('id', '==', userId), f.limit(1)));
       const userData = userDoc.docs[0]?.data() as unknown as User;
 
       if (userData?.referredBy) {
@@ -135,7 +135,7 @@ export class GrowthService {
     try {
       // Buscar o log pendente
       const q = f.query(
-        f.collection(db, 'referrals'),
+        f.collection(getDb(), 'referrals'),
         f.where('referrerId', '==', referrerId),
         f.where('referredId', '==', referredId),
         f.where('status', '==', 'pending'),
@@ -148,7 +148,7 @@ export class GrowthService {
       const logId = snapshot.docs[0].id;
 
       // Atualizar log
-      await f.updateDoc(f.doc(db, 'referrals', logId), {
+      await f.updateDoc(f.doc(getDb(), 'referrals', logId), {
         status: 'completed',
         orderId: order.id,
         valueGenerated: order.totalAmount,
@@ -156,8 +156,8 @@ export class GrowthService {
       });
 
       // Atualizar estatísticas do referrer
-      const referrerRef = f.doc(db, 'usuarios', referrerId);
-      const referrerSnap = await f.getDocs(f.query(f.collection(db, 'usuarios'), f.where('id', '==', referrerId), f.limit(1)));
+      const referrerRef = f.doc(getDb(), 'users', referrerId);
+      const referrerSnap = await f.getDocs(f.query(f.collection(getDb(), 'users'), f.where('id', '==', referrerId), f.limit(1)));
       const referrerData = referrerSnap.docs[0]?.data() as unknown as User;
 
       await f.updateDoc(referrerRef, {
@@ -193,7 +193,7 @@ export class GrowthService {
       
       // Buscar usuários que não compram há 7 dias (simplificado: baseado no último pedido ou data de criação)
       const q = f.query(
-        f.collection(db, 'usuarios'),
+        f.collection(getDb(), 'users'),
         f.where('role', '==', 'customer'),
         f.limit(50) // Processar em lotes
       );
@@ -206,7 +206,7 @@ export class GrowthService {
         
         // Verificar último pedido
         const lastOrderQ = f.query(
-          f.collection(db, 'orders'),
+          f.collection(getDb(), 'orders'),
           f.where('userId', '==', userId),
           f.orderBy('createdAt', 'desc'),
           f.limit(1)
@@ -265,7 +265,7 @@ export class GrowthService {
   private async checkAntiSpamGrowth(userId: string, type: string): Promise<boolean> {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const q = f.query(
-      f.collection(db, 'growth_events'),
+      f.collection(getDb(), 'growth_events'),
       f.where('userId', '==', userId),
       f.where('eventType', '==', type),
       f.where('timestamp', '>=', sevenDaysAgo),
@@ -276,7 +276,7 @@ export class GrowthService {
   }
 
   private async logGrowthEvent(userId: string, eventType: string): Promise<void> {
-    await f.addDoc(f.collection(db, 'growth_events'), {
+    await f.addDoc(f.collection(getDb(), 'growth_events'), {
       userId,
       eventType,
       timestamp: f.serverTimestamp()

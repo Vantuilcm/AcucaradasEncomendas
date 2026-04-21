@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getAuth, getDb, authFunctions, dbFunctions } from '../config/firebase';
+import { getAuth, authFunctions, dbFunctions } from '../config/firebase';
 import { TwoFactorAuthService } from '../services/TwoFactorAuthService';
-import { Alert } from 'react-native';
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Lazy-Getter
@@ -38,6 +37,7 @@ const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             if (firebaseUser) {
               console.log('👤 [AUTH] User detected:', firebaseUser.email);
+              setProfileLoading(true);
               
               // Buscar perfil no Firestore
               const userRef = dbFunctions.doc('users', firebaseUser.uid);
@@ -89,11 +90,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else {
               console.log('👤 [AUTH] No user found.');
               setUser(null);
+              setProfileLoading(false);
             }
           } catch (error) {
             console.error('❌ [AUTH] Error in onAuthStateChanged:', error);
+            setProfileLoading(false);
           } finally {
             setLoading(false);
+            setProfileLoading(false);
             setIsReady(true);
             console.log('🛡️ [AUTH] Bootstrap Complete. isReady=true');
           }
@@ -110,16 +114,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearTimeout(timer);
   }, []);
 
-  const login = async (email: string, password: string, role?: string) => {
+  const login = async (email: string, password: string, _role?: string) => {
     try {
       setLoading(true);
+      setProfileLoading(true);
       setError(null);
       
       // Normalização rigorosa do e-mail
       const normalizedEmail = email.trim().toLowerCase();
       console.log('🛡️ [DEBUG_LOGIN] INICIANDO PROCESSO PARA:', normalizedEmail);
       
-      const auth = getAuth();
       const signInFn = authFunctions.signInWithEmailAndPassword;
 
       if (typeof signInFn !== 'function') {
@@ -175,12 +179,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw { ...error, message: detailedMessage };
     } finally {
       setLoading(false);
+      setProfileLoading(false);
     }
   };
 
   const register = async (userData: any, password: string) => {
     try {
       setLoading(true);
+      setProfileLoading(true);
       const userCredential = await authFunctions.createUserWithEmailAndPassword(userData.email, password);
       
       // Criar doc no Firestore
@@ -204,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     } finally {
       setLoading(false);
+      setProfileLoading(false);
     }
   };
 
@@ -280,8 +287,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await authFunctions.signInWithCredential(auth, firebaseCredential);
       
       // Sincronizar perfil se necessário
-      const db = getDb();
-      const userRef = dbFunctions.doc(db, 'users', userCredential.user.uid);
+      const userRef = dbFunctions.doc('users', userCredential.user.uid);
       const userDoc = await dbFunctions.getDoc(userRef);
       
       if (!userDoc.exists()) {
@@ -314,8 +320,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await authFunctions.signInWithCredential(auth, credential);
       
       // Sincronizar perfil
-      const db = getDb();
-      const userRef = dbFunctions.doc(db, 'users', userCredential.user.uid);
+      const userRef = dbFunctions.doc('users', userCredential.user.uid);
       const userDoc = await dbFunctions.getDoc(userRef);
       
       if (!userDoc.exists()) {
@@ -343,7 +348,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         loading,
-        profileLoading: false,
+        profileLoading,
         isReady,
         login,
         register,

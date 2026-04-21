@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, RefreshControl, ActivityIndicator, Image, TouchableOpacity, FlatList } from 'react-native';
-import { Text, Button, IconButton, Searchbar, Card, Chip, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, StatusBar, RefreshControl, ActivityIndicator, TouchableOpacity, FlatList } from 'react-native';
+import { Text, Button, Searchbar, Card, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { MainTabNavigationProp } from '../types/navigation';
@@ -30,12 +30,12 @@ export function HomeScreen() {
   const { user } = useAuth();
   const { isProdutor, isEntregador, isAdmin } = usePermissions();
   const { redirectToDashboard } = useRoleRedirect();
-  const { updateLocation, nearbyStores, isLoadingStores } = useLocation();
+  const { updateLocation, nearbyStores, isLoadingStores: _isLoadingStores } = useLocation();
   const [refreshing, setRefreshing] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [productLoading, setProductLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const { theme, isDark, toggleTheme } = useAppTheme();
+  const { theme, isDark, toggleTheme: _toggleTheme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Redirecionamento automático por Role (Build 1117)

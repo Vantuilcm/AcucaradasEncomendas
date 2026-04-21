@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Button, Card, Avatar, Title, Paragraph, IconButton } from 'react-native-paper';
+import { Text, Button, Card, Title, Paragraph, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { EnhancedImage, PlaceholderType } from '../components/EnhancedImage';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type StoreDetailsRouteProp = RouteProp<RootStackParamList, 'StoreDetails'>;
@@ -11,7 +10,7 @@ type StoreDetailsRouteProp = RouteProp<RootStackParamList, 'StoreDetails'>;
 export function StoreDetailsScreen() {
   const navigation = useNavigation();
   const route = useRoute<StoreDetailsRouteProp>();
-  const { storeId, storeName } = route.params || {};
+  const { storeId: _storeId, storeName } = route.params || {};
 
   return (
     <SafeAreaView style={styles.container}>

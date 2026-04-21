@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import ProductDetailsScreen from '../../screens/ProductDetailsScreen';
+import ProductDetailsScreen from '../../screens/ProductDetailScreen';
 import CheckoutScreen from '../../screens/CheckoutScreen';
 import DeliveryDriverRegistration from '../../screens/DeliveryDriverRegistration';
 

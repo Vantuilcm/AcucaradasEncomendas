@@ -1,11 +1,7 @@
-import { a } from '../config/firebase';
-import { f } from '../config/firebase';
+import { a, f, getDb, auth } from '../config/firebase';
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { secureLoggingService } from './SecureLoggingService';
-// Importação modificada para resolver problema de compatibilidade
-import { SecurityService } from './SecurityService';
-import { db, auth } from '../config/firebase';
 import { User } from '../models/User';
 import { UserUtils } from '../utils/UserUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -102,7 +98,7 @@ export class SocialAuthService {
     try {
       const { signInWithCredential, GoogleAuthProvider } = a;
       const googleCredential = GoogleAuthProvider.credential(credential.idToken);
-      const userCredential = await signInWithCredential(auth, googleCredential);
+      await signInWithCredential(auth, googleCredential);
       return await this.signInWithCredential(googleCredential, role);
     } catch (error: any) {
       secureLoggingService.security('Erro no login com Google', {
@@ -126,7 +122,7 @@ export class SocialAuthService {
     role?: string;
   }): Promise<{ user: User; token: string }> {
     try {
-      const usersRef = f.collection(db, 'usuarios');
+      const usersRef = f.collection(getDb(), 'users');
       const q = f.query(usersRef, f.where('email', '==', userData.email), f.limit(1));
       const querySnapshot = await f.getDocs(q);
       
@@ -137,23 +133,24 @@ export class SocialAuthService {
         user = { id: userDoc.id, ...userDoc.data() } as User;
         
         // Atualizar informações do provedor se necessário
-        await f.updateDoc(f.doc(db, 'usuarios', user.id), {
-          lastLogin: new Date().toISOString(),
+        await f.updateDoc(f.doc(getDb(), 'users', user.id), {
+          ultimoLogin: new Date(),
           [`providers.${userData.provider}`]: userData.providerId
         });
       } else {
         // Criar novo usuário
-        const newUserRef = f.doc(f.collection(db, 'usuarios'));
+        const newUserRef = f.doc(f.collection(getDb(), 'users'));
         user = {
           id: newUserRef.id,
           email: userData.email,
           nome: userData.name,
           role: userData.role || 'customer',
-          providers: { [userData.provider]: userData.providerId },
+          // Note: providers is not in the User interface, so we'll store it but it won't be on the User type
+          // If needed, the User interface should be updated.
           profilePicture: userData.profilePicture || '',
-          dataCriacao: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        } as User;
+          dataCriacao: new Date(),
+          ultimoLogin: new Date()
+        } as unknown as User;
         
         await f.setDoc(newUserRef, user);
       }
@@ -290,7 +287,7 @@ export class SocialAuthService {
       }
 
       // Novos usuários sempre recebem papel de comprador por segurança
-      const userRef = f.doc(db, 'usuarios', user.uid);
+      const userRef = f.doc(getDb(), 'users', user.uid);
       await f.setDoc(userRef, {
         email: user?.email || '',
         nome: user?.displayName || user?.email?.split('@')[0] || 'Usuário',
@@ -315,7 +312,7 @@ export class SocialAuthService {
       return;
     }
     try {
-      const userRef = f.doc(db, 'usuarios', user.uid);
+      const userRef = f.doc(getDb(), 'users', user.uid);
       // Atualiza apenas dados básicos como login, sem tocar no papel (role)
       await f.setDoc(userRef, {
         email: user?.email || '',

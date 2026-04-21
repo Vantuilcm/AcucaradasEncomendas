@@ -5,7 +5,7 @@
 
 import { loggingService } from './LoggingService';
 import { User } from '../models/User';
-import { auth, db, f } from '../config/firebase';
+import { auth, f } from '../config/firebase';
 import { UserUtils } from '../utils/UserUtils';
 
 // Interface para informações básicas do usuário
@@ -49,7 +49,7 @@ export const getUserInfo = (): UserInfo | null => {
 // Obtém informações detalhadas do usuário do Firestore
 export const getUserDetails = async (userId: string): Promise<User | null> => {
   try {
-    const userDoc = await f.getDoc(f.doc('usuarios', userId));
+    const userDoc = await f.getDoc(f.doc('users', userId));
     
     if (!userDoc.exists()) {
       return null;

@@ -1,4 +1,4 @@
-import { db, f } from '../config/firebase';
+import { f } from '../config/firebase';
 import { useEffect, useState, useCallback } from 'react';
 import { Platform, Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
@@ -190,7 +190,7 @@ export function useNotifications(navigation?: NotificationsNavigationProp): UseN
           });
         }
         if (expoToken) {
-          mobileNotificationService.unregisterToken(expoToken).catch(err => {
+          mobileNotificationService.unregisterToken(expoToken).catch((err: any) => {
             loggingService.error('Erro ao desregistrar token:', normalizeError(err));
           });
         }

@@ -165,6 +165,13 @@ export class MobileNotificationService {
   }
 
   /**
+   * Alias para unregisterFromPushNotifications
+   */
+  public async unregisterToken(userId: string): Promise<void> {
+    return this.unregisterFromPushNotifications(userId);
+  }
+
+  /**
    * Obtém o token registrado para o usuário
    * @param userId ID do usuário
    */

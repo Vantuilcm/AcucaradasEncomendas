@@ -25,10 +25,10 @@ interface SocialAuthButtonsProps {
   role?: string;
 }
 
-const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role = 'comprador' }) => {
+const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role: _role = 'comprador' }) => {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const navigation = useNavigation<any>();
-  const { signInWithFacebook, is2FAEnabled } = useAuth();
+  const { is2FAEnabled } = useAuth();
 
   // Configuração Google Auth
   const [_request, response, promptAsync] = Google.useAuthRequest({
@@ -71,7 +71,7 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
   }, [response]);
 
   // Configuração Facebook Auth
-  const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
+  const [, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
     clientId: ENV.EXPO_PUBLIC_FACEBOOK_APP_ID,
     redirectUri: AuthSession.makeRedirectUri({
       scheme: 'acucaradas',
@@ -148,7 +148,7 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ onSuccess, role =
 
       setLoadingProvider(provider);
 
-      let result;
+      let result: { success: boolean; error?: string } | null = null;
 
       switch (provider) {
         case 'google':

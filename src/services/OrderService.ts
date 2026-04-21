@@ -1,7 +1,7 @@
 import { dbFunctions as f } from '../config/firebase';
 import { Order, OrderFilters, OrderSummary, OrderStatus } from '../types/Order';
 import { loggingService } from './LoggingService';
-import { DeliveryService } from './DeliveryService';
+// import { DeliveryService } from './DeliveryService';
 import { NotificationService } from './NotificationService';
 import { GrowthService } from './GrowthService';
 
@@ -252,7 +252,6 @@ export class OrderService {
       
       // Se concluído, atualizar serviço de entrega
       if (status === 'delivered' || status === 'cancelled') {
-        const deliveryService = new DeliveryService();
         // Nota: O DeliveryService original não tinha completeDelivery, 
         // mas tinha updateDeliveryStatus. Como o ID da entrega pode ser diferente do ID do pedido,
         // aqui precisaríamos buscar a entrega vinculada ao pedido.
@@ -424,15 +423,42 @@ export class OrderService {
         };
       }) as Order[];
       
-      // Recalcular estatísticas
+      // Recalcular estatísticas detalhadas (BUILD 1127)
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      
       const completedOrders = orders.filter(o => o.status === 'delivered');
+      const todayOrders = orders.filter(o => {
+        const date = o.createdAt ? new Date(o.createdAt).getTime() : 0;
+        return date >= startOfDay;
+      });
+      
+      const todayRevenue = todayOrders
+        .filter(o => o.status === 'delivered')
+        .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+      
       const totalRevenue = completedOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+      
+      const statusCounts = {
+        pending: orders.filter(o => o.status === 'pending').length,
+        confirmed: orders.filter(o => o.status === 'confirmed').length,
+        preparing: orders.filter(o => o.status === 'preparing').length,
+        ready: orders.filter(o => o.status === 'ready').length,
+        delivering: orders.filter(o => o.status === 'delivering').length,
+        delivered: orders.filter(o => o.status === 'delivered').length,
+        cancelled: orders.filter(o => o.status === 'cancelled').length,
+      };
+
+      const scheduledOrders = orders.filter(o => o.isScheduledOrder).length;
       
       callback({
         totalOrders: orders.length,
         completedOrders: completedOrders.length,
         totalRevenue,
-        averageOrderValue: completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0
+        todayRevenue,
+        averageOrderValue: completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0,
+        statusCounts,
+        scheduledOrders,
       });
     }, (error: any) => {
       loggingService.error('Erro ao monitorar estatísticas de pedidos', { error: error.message });

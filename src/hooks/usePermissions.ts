@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PermissionsService, Permission, Role } from '../services/PermissionsService';
 import { useAuth } from '../contexts/AuthContext';
 import { loggingService } from '../services/LoggingService';
-import { db, f } from '../config/firebase';
+import { f } from '../config/firebase';
 
 interface UsePermissionsReturn {
   loading: boolean;
@@ -36,7 +36,12 @@ export function usePermissions(): UsePermissionsReturn {
       }
 
       try {
-        setLoading(true);
+        // Se já temos a role no objeto user, não precisamos travar a UI com loading=true
+        const existingRole = (user as any).role || (user as any).activeRole;
+        if (!existingRole) {
+          setLoading(true);
+        }
+        
         const role = await permissionsService.getUserRole((user as any).id);
         setUserRole(role);
 
@@ -47,7 +52,9 @@ export function usePermissions(): UsePermissionsReturn {
           const permissions = permissionsDoc.data()?.permissions as Permission[] || [];
           setUserPermissions(permissions);
         } else {
-          setUserPermissions([]);
+          // Fallback para permissões padrão do papel se não houver doc de permissões
+          const defaultPermissions = permissionsService.getRolePermissions(role);
+          setUserPermissions(defaultPermissions);
         }
       } catch (error) {
         loggingService.error('Erro ao carregar permissões do usuário', { error });

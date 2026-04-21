@@ -1038,7 +1038,7 @@ export class PaymentService {
     }
   }
 
-  async processPixPayment(orderId: string, amount: number): Promise<{ success: boolean; qrCode: string; code: string }> {
+  async processPixPayment(orderId: string, _amount: number): Promise<{ success: boolean; qrCode: string; code: string }> {
     try {
       // Simulação de geração de PIX
       const code = '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-426655440000';

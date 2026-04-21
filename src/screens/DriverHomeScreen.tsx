@@ -8,8 +8,6 @@ import {
   Switch,
   Title,
   Paragraph,
-  Avatar,
-  IconButton,
   List,
   Surface,
   Chip,
@@ -31,7 +29,7 @@ export function DriverHomeScreen() {
   const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, _setRefreshing] = useState(false);
   const [driver, setDriver] = useState<DeliveryDriver | null>(null);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
@@ -68,7 +66,7 @@ export function DriverHomeScreen() {
     
     // Inscrever para todos os pedidos e filtrar localmente para garantir tempo real
     const unsubscribe = orderService.subscribeToAllOrders((allOrders) => {
-      const userId = (user as any).id || (user as any).uid;
+      // const userId = (user as any).id || (user as any).uid;
       
       // Pedidos disponíveis para retirada (ninguém assumiu ainda)
       const available = allOrders.filter(o => o.status === 'ready' && !o.deliveryDriver);

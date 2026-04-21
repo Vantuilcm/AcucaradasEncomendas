@@ -15,7 +15,7 @@ export class PaymentMethodService {
       const querySnapshot = await getDocs(q);
       const paymentMethods: PaymentMethod[] = [];
 
-      querySnapshot.docs.forEach(doc => {
+      querySnapshot.docs.forEach((doc: any) => {
         paymentMethods.push({
           id: doc.id,
           ...doc.data(),

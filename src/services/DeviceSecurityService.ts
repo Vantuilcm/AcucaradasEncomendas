@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+// import * as FileSystem from 'expo-file-system';
 import * as Application from 'expo-application';
 import { secureLoggingService } from './SecureLoggingService';
 
@@ -8,6 +8,7 @@ import { secureLoggingService } from './SecureLoggingService';
  * Detecta se o dispositivo está com root (Android) ou jailbreak (iOS)
  */
 export class DeviceSecurityService {
+  /*
   // Lista de caminhos comuns de binários de root no Android
   private static readonly ANDROID_ROOT_PATHS = [
     '/system/app/Superuser.apk',
@@ -46,6 +47,7 @@ export class DeviceSecurityService {
     '/private/var/tmp/cydia.log',
     '/var/lib/cydia',
   ];
+  */
 
   /**
    * Verifica se o dispositivo está comprometido (root ou jailbreak)
@@ -73,7 +75,8 @@ export class DeviceSecurityService {
    * Verifica se o dispositivo Android está com root
    * @returns Promise<boolean> - true se o dispositivo estiver com root
    */
-  private static async isAndroidRooted(): Promise<boolean> {
+  /*
+  private static async _isAndroidRooted(): Promise<boolean> {
     try {
       // Verificar caminhos de binários de root
       for (const path of this.ANDROID_ROOT_PATHS) {
@@ -99,11 +102,7 @@ export class DeviceSecurityService {
     }
   }
 
-  /**
-   * Verifica se o dispositivo iOS está com jailbreak
-   * @returns Promise<boolean> - true se o dispositivo estiver com jailbreak
-   */
-  private static async isIosJailbroken(): Promise<boolean> {
+  private static async _isIosJailbroken(): Promise<boolean> {
     try {
       // Verificar caminhos de aplicativos de jailbreak
       for (const path of this.IOS_JAILBREAK_PATHS) {
@@ -128,6 +127,7 @@ export class DeviceSecurityService {
       return false; // Em caso de erro, NÃO assumir que pode estar com jailbreak
     }
   }
+  */
 
   /**
    * Verifica se o dispositivo está executando um emulador

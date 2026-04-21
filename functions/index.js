@@ -417,8 +417,7 @@ exports.onUserCreateGrowth = functions.auth.user().onCreate(async (user) => {
   const suffix = Math.random().toString(36).substring(2, 5).toUpperCase();
   const referralCode = `${prefix}${suffix}`;
 
-  const userRef = db.collection('usuarios').doc(user.uid);
-  const userRef2 = db.collection('users').doc(user.uid);
+  const userRef = db.collection('users').doc(user.uid);
 
   const update = {
     referralCode,
@@ -427,10 +426,14 @@ exports.onUserCreateGrowth = functions.auth.user().onCreate(async (user) => {
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   };
 
-  await Promise.all([
-    userRef.set(update, { merge: true }),
-    userRef2.set(update, { merge: true })
-  ]);
+  await userRef.set(update, { merge: true });
+
+  // Opcional: manter compatibilidade com coleção legada se necessário
+  try {
+    await db.collection('usuarios').doc(user.uid).set(update, { merge: true });
+  } catch (e) {
+    // Ignora erros na coleção legada
+  }
 
   console.log(`🍰 [Growth] Referral code ${referralCode} gerado para ${user.uid}`);
 });
@@ -451,7 +454,7 @@ exports.onOrderUpdateGrowth = functions.firestore
       const totalAmount = newData.totalAmount;
 
       // 1. Verificar se o usuário foi indicado por alguém
-      const userDoc = await db.collection('usuarios').doc(userId).get();
+      const userDoc = await db.collection('users').doc(userId).get();
       const userData = userDoc.data();
 
       if (userData && userData.referredBy) {
@@ -477,11 +480,21 @@ exports.onOrderUpdateGrowth = functions.firestore
           });
 
           // Premiar quem indicou (Estatísticas + Notificação via log para o app processar ou enviar direto via OneSignal se integrado)
-          const referrerRef = db.collection('usuarios').doc(referrerId);
+          const referrerRef = db.collection('users').doc(referrerId);
           await referrerRef.update({
             referralCount: admin.firestore.FieldValue.increment(1),
             totalReferralValue: admin.firestore.FieldValue.increment(totalAmount)
           });
+
+          // Sincronizar com a coleção legada se necessário
+          try {
+            await db.collection('usuarios').doc(referrerId).update({
+              referralCount: admin.firestore.FieldValue.increment(1),
+              totalReferralValue: admin.firestore.FieldValue.increment(totalAmount)
+            });
+          } catch (e) {
+            // Ignora erro na coleção legada
+          }
 
           console.log(`🍰 [Growth] Ciclo de indicação finalizado para referrer ${referrerId}`);
         }
@@ -521,7 +534,7 @@ exports.scheduledGrowthAutomation = functions.pubsub.schedule('every 4 hours').o
   }
 
   // 2. Reengajamento (Usuários sem pedidos há 7 dias)
-  const usersSnap = await db.collection('usuarios')
+  const usersSnap = await db.collection('users')
     .where('role', '==', 'customer')
     .limit(100)
     .get();

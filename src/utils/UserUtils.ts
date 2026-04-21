@@ -39,14 +39,22 @@ export const UserUtils = {
   /**
    * Resolve a role do usuário a partir do perfil ou objeto de usuário
    * Suporta os tipos: 'comprador', 'produtor', 'entregador', 'admin'
+   * Mapeia variações (producer -> produtor, driver -> entregador)
    */
   getUserRole: (user: any): string | undefined => {
     if (!user) return undefined;
     
     // Prioridade para role explícita no objeto de usuário/perfil
-    const role = user.role || (user as any).role;
+    let role = user.role || user.activeRole || (user as any).role || (user as any).activeRole;
     
-    if (role) return role.toLowerCase();
+    if (role) {
+      role = role.toLowerCase();
+      // Mapeamento de normalização
+      if (role === 'producer') return 'produtor';
+      if (role === 'driver' || role === 'delivery') return 'entregador';
+      if (role === 'customer' || role === 'cliente') return 'comprador';
+      return role;
+    }
     
     // Fallback para isAdmin
     if (user.isAdmin) return 'admin';
@@ -59,25 +67,27 @@ export const UserUtils = {
    */
   isValidRole: (role: string | undefined): boolean => {
     if (!role) return false;
-    const validRoles = ['comprador', 'produtor', 'entregador', 'admin'];
+    const validRoles = ['comprador', 'produtor', 'entregador', 'admin', 'cliente', 'customer', 'producer', 'driver', 'delivery'];
     return validRoles.includes(role.toLowerCase());
   },
 
   /**
-   * Mapeia a role para o fluxo de navegação correspondente
+   * Mapeia a role para o fluxo de navegação correspondente (Alinhado com AppNavigator)
    */
   getNavigationTarget: (role: string | undefined): string => {
-    if (!role) return 'RoleSelection'; // Tela de seleção se role ausente
+    if (!role) return 'RoleSelection'; 
     
-    switch (role.toLowerCase()) {
+    const normalizedRole = UserUtils.getUserRole({ role });
+    
+    switch (normalizedRole) {
       case 'comprador':
-        return 'CustomerHome';
+        return 'MainTabs';
       case 'produtor':
-        return 'ProducerHome';
+        return 'AdminPanel';
       case 'entregador':
-        return 'DeliveryHome';
+        return 'DriverTabs';
       case 'admin':
-        return 'AdminHome';
+        return 'AdminDashboard';
       default:
         return 'RoleSelection';
     }

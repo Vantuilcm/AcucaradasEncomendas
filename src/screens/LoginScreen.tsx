@@ -1,8 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Alert, Pressable, ScrollView } from 'react-native';
 import { TextInput, Button, Text, SegmentedButtons, Checkbox } from 'react-native-paper';
-import { ENV } from '../config/env';
-import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';

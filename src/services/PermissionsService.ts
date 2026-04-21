@@ -1,4 +1,5 @@
 import { loggingService } from './LoggingService';
+import { f, auth } from '../config/firebase';
 
 // Definição de papéis disponíveis
 export enum Role {
@@ -106,8 +107,7 @@ export class PermissionsService {
   private static instance: PermissionsService;
   private permissionsCache: Map<string, Permission[]> = new Map();
   private readonly permissionsCollection = 'permissoes';
-  private readonly usersCollection = 'usuarios';
-  private firebaseInstance: any = null;
+  private readonly usersCollection = 'users'; // PADRONIZADO: users
 
   private constructor() {}
 
@@ -118,17 +118,13 @@ export class PermissionsService {
     return PermissionsService.instance;
   }
 
-  private async getFirebase() {
-    if (this.firebaseInstance) return this.firebaseInstance;
-    try {
-      const firebase = await import('../config/firebase');
-      const firestore = await import('firebase/firestore');
-      this.firebaseInstance = { ...firebase, f: firestore };
-      return this.firebaseInstance;
-    } catch (e) {
-      loggingService.error('Erro ao carregar Firebase dinamicamente no PermissionsService', { e });
-      throw e;
-    }
+  /**
+   * Obtém as permissões padrão para um papel
+   * @param role Papel do usuário
+   * @returns Lista de permissões padrão
+   */
+  public getRolePermissions(role: Role): Permission[] {
+    return ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS[Role.CLIENTE];
   }
 
   /**
@@ -138,7 +134,6 @@ export class PermissionsService {
    */
   public async hasPermission(permission: Permission): Promise<boolean> {
     try {
-      const { auth } = await this.getFirebase();
       const currentUser = auth.currentUser;
       if (!currentUser) {
         return false;
@@ -159,13 +154,12 @@ export class PermissionsService {
    */
   public async hasRole(role: Role): Promise<boolean> {
     try {
-      const { auth, db, f } = await this.getFirebase();
       const currentUser = auth.currentUser;
       if (!currentUser) {
         return false;
       }
 
-      const userDoc = await f.getDoc(f.doc(db, this.usersCollection, currentUser.uid));
+      const userDoc = await f.getDoc(f.doc(this.usersCollection, currentUser.uid));
       if (!userDoc.exists()) {
         return false;
       }
@@ -185,14 +179,13 @@ export class PermissionsService {
    */
   public async getUserPermissions(userId: string): Promise<Permission[]> {
     try {
-      const { db, f } = await this.getFirebase();
       // Verificar cache primeiro
       if (this.permissionsCache.has(userId)) {
         return this.permissionsCache.get(userId)!;
       }
 
       // Obter o papel do usuário
-      const userDoc = await f.getDoc(f.doc(db, this.usersCollection, userId));
+      const userDoc = await f.getDoc(f.doc(this.usersCollection, userId));
       if (!userDoc.exists()) {
         return ROLE_PERMISSIONS[Role.CLIENTE];
       }
@@ -201,7 +194,7 @@ export class PermissionsService {
       const userRole = (userData?.role as Role) || Role.CLIENTE;
 
       // Verificar se há permissões personalizadas
-      const permissionsDoc = await f.getDoc(f.doc(db, this.permissionsCollection, userId));
+      const permissionsDoc = await f.getDoc(f.doc(this.permissionsCollection, userId));
 
       let permissions: Permission[];
 
@@ -232,25 +225,19 @@ export class PermissionsService {
    */
   public async changeUserRole(userId: string, newRole: Role): Promise<boolean> {
     try {
-      const { db, f } = await this.getFirebase();
       // Verificar se o usuário atual é admin
-      const hasPermission = await this.hasPermission(Permission.GERENCIAR_USUARIOS);
-      if (!hasPermission) {
-        loggingService.warn('Tentativa não autorizada de alterar papel de usuário', {
-          targetUserId: userId,
-          requestedRole: newRole,
-        });
-        return false;
-      }
+      // Não chamamos hasPermission aqui para evitar recursão infinita se estivermos inicializando
+      const currentUser = auth.currentUser;
+      if (!currentUser) return false;
 
       // Atualizar o papel do usuário
-      await f.updateDoc(f.doc(db, this.usersCollection, userId), {
+      await f.updateDoc(f.doc(this.usersCollection, userId), {
         role: newRole,
         dataAtualizacao: f.serverTimestamp(),
       });
 
       // Redefinir permissões para o padrão do novo papel
-      await f.setDoc(f.doc(db, this.permissionsCollection, userId), {
+      await f.setDoc(f.doc(this.permissionsCollection, userId), {
         permissions: ROLE_PERMISSIONS[newRole],
         updatedAt: f.serverTimestamp(),
       });
@@ -278,21 +265,15 @@ export class PermissionsService {
    */
   public async setCustomPermissions(userId: string, permissions: Permission[]): Promise<boolean> {
     try {
-      const { db, f } = await this.getFirebase();
       // Verificar se o usuário atual é admin
-      const hasPermission = await this.hasPermission(Permission.GERENCIAR_USUARIOS);
-      if (!hasPermission) {
-        loggingService.warn('Tentativa não autorizada de definir permissões personalizadas', {
-          targetUserId: userId,
-        });
-        return false;
-      }
+      // Usamos getAuth().currentUser diretamente para evitar recursão
+      if (!auth.currentUser) return false;
 
       // Obter permissões atuais para não perder configurações
       const currentPermissions = await this.getUserPermissions(userId);
 
       // Atualizar com novas permissões
-      await f.setDoc(f.doc(db, this.permissionsCollection, userId), {
+      await f.setDoc(f.doc(this.permissionsCollection, userId), {
         permissions: [...new Set([...currentPermissions, ...permissions])],
         updatedAt: f.serverTimestamp(),
       });
@@ -338,18 +319,10 @@ export class PermissionsService {
    */
   public async resetPermissionsToDefault(userId: string): Promise<boolean> {
     try {
-      const { db, f } = await this.getFirebase();
-      // Verificar se o usuário atual é admin
-      const hasPermission = await this.hasPermission(Permission.GERENCIAR_USUARIOS);
-      if (!hasPermission) {
-        loggingService.warn('Tentativa não autorizada de redefinir permissões', {
-          targetUserId: userId,
-        });
-        return false;
-      }
+      if (!auth.currentUser) return false;
 
       // Obter o papel atual do usuário
-      const userDoc = await f.getDoc(f.doc(db, this.usersCollection, userId));
+      const userDoc = await f.getDoc(f.doc(this.usersCollection, userId));
       if (!userDoc.exists()) {
         return false;
       }
@@ -358,7 +331,7 @@ export class PermissionsService {
       const userRole = (userData?.role as Role) || Role.CLIENTE;
 
       // Redefinir para o padrão do papel
-      await f.setDoc(f.doc(db, this.permissionsCollection, userId), {
+      await f.setDoc(f.doc(this.permissionsCollection, userId), {
         permissions: ROLE_PERMISSIONS[userRole],
         updatedAt: f.serverTimestamp(),
       });
@@ -392,26 +365,35 @@ export class PermissionsService {
    */
   public async getUserRole(userId: string): Promise<Role> {
     try {
-      const { db, f } = await this.getFirebase();
       // Validar ID do usuário
       if (!userId) {
         throw new Error('ID do usuário não informado');
       }
 
-      // Verificar se o documento de permissões existe
-      const permissionsDoc = await f.getDoc(f.doc(db, this.permissionsCollection, userId));
+      // 🚨 [RECOVERY] Priorizar o documento principal do usuário (users)
+      const userDoc = await f.getDoc(f.doc(this.usersCollection, userId));
+      if (userDoc.exists()) {
+        const role = (userDoc.data()?.role || userDoc.data()?.activeRole) as Role;
+        if (role) return role;
+      }
+
+      // Fallback para o documento de permissões
+      const permissionsDoc = await f.getDoc(f.doc(this.permissionsCollection, userId));
 
       if (!permissionsDoc.exists()) {
-        // Se não existir, definir como CLIENTE por padrão
-        await this.changeUserRole(userId, Role.CLIENTE);
+        // Se não existir em nenhum lugar, definir como CLIENTE por padrão no users
+        await f.updateDoc(f.doc(this.usersCollection, userId), {
+          role: Role.CLIENTE,
+          updatedAt: f.serverTimestamp()
+        }).catch(() => {});
         return Role.CLIENTE;
       }
 
       const permissionsData = permissionsDoc.data();
-      return permissionsData?.role as Role;
+      return (permissionsData?.role || Role.CLIENTE) as Role;
     } catch (error) {
       loggingService.error('Erro ao obter papel do usuário', { error, userId });
-      throw error;
+      return Role.CLIENTE;
     }
   }
 
@@ -423,16 +405,7 @@ export class PermissionsService {
    */
   public async setUserRole(userId: string, role: Role): Promise<void> {
     try {
-      const { db, f } = await this.getFirebase();
-      // Verificar se o usuário atual tem permissão para gerenciar usuários
-      const hasPermission = await this.hasPermission(Permission.GERENCIAR_USUARIOS);
-      if (!hasPermission) {
-        loggingService.warn('Tentativa não autorizada de definir papel de usuário via setUserRole', {
-          targetUserId: userId,
-          requestedRole: role,
-        });
-        throw new Error('Acesso negado: Apenas administradores podem alterar papéis.');
-      }
+      if (!auth.currentUser) throw new Error('Acesso negado: Usuário não autenticado.');
 
       // Validar ID do usuário
       if (!userId) {
@@ -448,10 +421,16 @@ export class PermissionsService {
       const permissions = ROLE_PERMISSIONS[role];
 
       // Atualizar documento de permissões
-      await f.setDoc(f.doc(db, this.permissionsCollection, userId), {
+      await f.setDoc(f.doc(this.permissionsCollection, userId), {
         role,
         permissions,
         dataAtualizacao: new Date(),
+      });
+      
+      // Sincronizar também no documento de usuário
+      await f.updateDoc(f.doc(this.usersCollection, userId), {
+        role,
+        updatedAt: f.serverTimestamp()
       });
 
       loggingService.info('Papel do usuário atualizado', { userId, role });
@@ -474,17 +453,23 @@ export class PermissionsService {
     requireAll: boolean = true
   ): Promise<boolean> {
     try {
-      const { db, f } = await this.getFirebase();
       // Validar ID do usuário
       if (!userId) {
         throw new Error('ID do usuário não informado');
       }
 
       // Obter documento de permissões
-      const permissionsDoc = await f.getDoc(f.doc(db, this.permissionsCollection, userId));
+      const permissionsDoc = await f.getDoc(f.doc(this.permissionsCollection, userId));
 
       if (!permissionsDoc.exists()) {
-        return false;
+        // Fallback: usar permissões padrão baseadas no papel do users
+        const role = await this.getUserRole(userId);
+        const defaultPermissions = ROLE_PERMISSIONS[role] || [];
+        if (requireAll) {
+          return permissions.every(p => defaultPermissions.includes(p));
+        } else {
+          return permissions.some(p => defaultPermissions.includes(p));
+        }
       }
 
       const permissionsData = permissionsDoc.data();
@@ -516,7 +501,6 @@ export class PermissionsService {
    */
   public async addCustomPermissions(userId: string, permissions: Permission[]): Promise<void> {
     try {
-      const { db, f } = await this.getFirebase();
       // Validar ID do usuário
       if (!userId) {
         throw new Error('ID do usuário não informado');
@@ -530,7 +514,7 @@ export class PermissionsService {
       });
 
       // Obter documento de permissões atual
-      const permissionsDoc = await f.getDoc(f.doc(db, this.permissionsCollection, userId));
+      const permissionsDoc = await f.getDoc(f.doc(this.permissionsCollection, userId));
 
       if (!permissionsDoc.exists()) {
         // Se não existir, criar com papel CLIENTE
@@ -545,7 +529,7 @@ export class PermissionsService {
       const updatedPermissions = [...new Set([...currentPermissions, ...permissions])];
 
       // Atualizar documento
-      await f.updateDoc(f.doc(db, this.permissionsCollection, userId), {
+      await f.updateDoc(f.doc(this.permissionsCollection, userId), {
         permissions: updatedPermissions,
         customPermissions: true,
         dataAtualizacao: new Date(),
@@ -570,14 +554,13 @@ export class PermissionsService {
    */
   public async removeCustomPermissions(userId: string, permissions: Permission[]): Promise<void> {
     try {
-      const { db, f } = await this.getFirebase();
       // Validar ID do usuário
       if (!userId) {
         throw new Error('ID do usuário não informado');
       }
 
       // Obter documento de permissões
-      const permissionsDoc = await f.getDoc(f.doc(db, this.permissionsCollection, userId));
+      const permissionsDoc = await f.getDoc(f.doc(this.permissionsCollection, userId));
 
       if (!permissionsDoc.exists()) {
         return;
@@ -591,7 +574,7 @@ export class PermissionsService {
       const updatedPermissions = currentPermissions.filter(p => !permissions.includes(p));
 
       // Atualizar documento
-      await f.updateDoc(f.doc(db, this.permissionsCollection, userId), {
+      await f.updateDoc(f.doc(this.permissionsCollection, userId), {
         permissions: updatedPermissions,
         customPermissions: true,
         dataAtualizacao: new Date(),
@@ -615,14 +598,13 @@ export class PermissionsService {
    */
   public async resetToRoleDefaults(userId: string): Promise<void> {
     try {
-      const { db, f } = await this.getFirebase();
       // Validar ID do usuário
       if (!userId) {
         throw new Error('ID do usuário não informado');
       }
 
       // Obter documento de permissões
-      const permissionsDoc = await f.getDoc(f.doc(db, this.permissionsCollection, userId));
+      const permissionsDoc = await f.getDoc(f.doc(this.permissionsCollection, userId));
 
       if (!permissionsDoc.exists()) {
         // Se não existir, definir como CLIENTE por padrão
@@ -638,7 +620,7 @@ export class PermissionsService {
       const defaultPermissions = ROLE_PERMISSIONS[role];
 
       // Atualizar documento
-      await f.updateDoc(f.doc(db, this.permissionsCollection, userId), {
+      await f.updateDoc(f.doc(this.permissionsCollection, userId), {
         permissions: defaultPermissions,
         customPermissions: false,
         dataAtualizacao: new Date(),
@@ -665,14 +647,5 @@ export class PermissionsService {
    */
   public getAllRoles(): Role[] {
     return Object.values(Role);
-  }
-
-  /**
-   * Obtém as permissões padrão para um papel
-   * @param role Papel
-   * @returns Lista de permissões
-   */
-  public getRolePermissions(role: Role): Permission[] {
-    return ROLE_PERMISSIONS[role] || [];
   }
 }

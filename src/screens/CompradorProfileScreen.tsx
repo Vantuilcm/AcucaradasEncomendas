@@ -3,7 +3,6 @@ import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Avatar, Title, Caption, Text, Button, Divider, List } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigation } from '@react-navigation/native';
 import * as RootNavigation from '../services/RootNavigation';
 import { AppVersion } from '../utils/AppVersion';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Card, Title, Paragraph, Button, List, Divider, Text, Surface } from 'react-native-paper';
+import { Card, Title, Paragraph, List, Divider, Text, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../components/ThemeProvider';
@@ -26,11 +26,13 @@ const AdminPanelScreen = () => {
     }
   };
 
+  /*
   const recentOrders = [
     { id: '#12345', customer: 'Maria Silva', total: 'R$ 125,00', status: 'Pendente', date: '15/06/2023' },
     { id: '#12344', customer: 'João Santos', total: 'R$ 89,90', status: 'Entregue', date: '14/06/2023' },
     { id: '#12343', customer: 'Ana Oliveira', total: 'R$ 210,50', status: 'Em preparo', date: '14/06/2023' },
   ];
+  */
 
   const navigateToSection = (section: string) => {
     switch (section) {

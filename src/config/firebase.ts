@@ -24,6 +24,7 @@ let _app: any = null;
 let _auth: any = null;
 let _db: any = null;
 let _storage: any = null;
+let _messaging: any = null;
 
 /**
  * Obtém a instância do Firebase App de forma preguiçosa
@@ -72,6 +73,18 @@ export const getStorage = () => {
     _storage = require('firebase/storage').getStorage(getApp());
   }
   return _storage;
+};
+
+export const getMessaging = () => {
+  if (!_messaging) {
+    try {
+      _messaging = require('firebase/messaging').getMessaging(getApp());
+    } catch (e) {
+      console.log('🛡️ [FIREBASE] Messaging not supported or failed to initialize');
+      _messaging = null;
+    }
+  }
+  return _messaging;
 };
 
 // 🛠️ Funções de Autenticação (Auto-Injected)
@@ -138,3 +151,9 @@ export const s = {
 export const auth: any = new Proxy({}, { get: (_, prop) => getAuth()[prop] });
 export const db: any = new Proxy({}, { get: (_, prop) => getDb()[prop] });
 export const storage: any = new Proxy({}, { get: (_, prop) => getStorage()[prop] });
+export const messaging: any = new Proxy({}, { 
+  get: (_, prop) => {
+    const m = getMessaging();
+    return m ? m[prop] : null;
+  } 
+});

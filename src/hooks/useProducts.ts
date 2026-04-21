@@ -89,7 +89,7 @@ export const useProducts = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [productService]);
 
   // Criar um novo produto
   const createProduct = useCallback(async (productData: Partial<Product>) => {
@@ -108,7 +108,7 @@ export const useProducts = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [productService]);
 
   // Atualizar um produto existente
   const updateProduct = useCallback(async (productId: string, productData: Partial<Product>) => {
@@ -127,7 +127,7 @@ export const useProducts = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [productService]);
 
   // Obter estatísticas de um produto
   const getProductStats = useCallback(async (productId: string): Promise<ProductStats> => {
@@ -156,7 +156,7 @@ export const useProducts = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [productService]);
 
   // Filtrar produtos
   const filterProducts = useCallback(async (filters: ProductFilter) => {

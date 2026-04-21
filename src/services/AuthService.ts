@@ -7,12 +7,12 @@ import { SecureStorageService } from './SecureStorageService';
 import { User } from '../models/User';
 import { UserUtils } from '../utils/UserUtils';
 import { GrowthService } from './GrowthService';
+import { f, auth, a, getDb } from '../config/firebase';
 
 export class AuthService {
   private static instance: AuthService;
   private usuarios: Map<string, any>;
   private tokensRecuperacao: Map<string, any>;
-  private firebaseInstance: any = null;
 
   private constructor() {
     this.usuarios = new Map();
@@ -24,20 +24,6 @@ export class AuthService {
       AuthService.instance = new AuthService();
     }
     return AuthService.instance;
-  }
-
-  private async getFirebase() {
-    if (this.firebaseInstance) return this.firebaseInstance;
-    try {
-      const firebase = await import('../config/firebase');
-      const auth = await import('firebase/auth');
-      const firestore = await import('firebase/firestore');
-      this.firebaseInstance = { ...firebase, a: auth, f: firestore };
-      return this.firebaseInstance;
-    } catch (e) {
-      secureLoggingService.error('Erro ao carregar Firebase dinamicamente no AuthService', { e });
-      throw e;
-    }
   }
 
   /**
@@ -67,7 +53,6 @@ export class AuthService {
       throw new Error('Dados do usuário não fornecidos');
     }
     try {
-      const { auth, db, a, f } = await this.getFirebase();
       const validationService = ValidationService.getInstance();
       const growthService = GrowthService.getInstance();
 
@@ -87,7 +72,7 @@ export class AuthService {
       }
 
       // Verificar se o email já está cadastrado no Firestore
-      const usersRef = f.collection(db, 'users');
+      const usersRef = f.collection('users');
       const q = f.query(usersRef, f.where('email', '==', userData.email));
       const querySnapshot = await f.getDocs(q);
       
@@ -143,15 +128,8 @@ export class AuthService {
         totalReferralValue: 0
       };
 
-      await f.setDoc(f.doc(db, 'users', firebaseUser.uid), userDoc);
+      await f.setDoc(f.doc(getDb(), 'users', firebaseUser.uid), userDoc);
       
-      // Salvar também na coleção 'usuarios' se houver duplicidade de coleção no projeto
-      // (Alguns serviços usam 'users', outros 'usuarios'. Sincronizar por segurança)
-      await f.setDoc(f.doc(db, 'usuarios', firebaseUser.uid), {
-        ...userDoc,
-        dataCriacao: f.serverTimestamp()
-      });
-
       // Se o usuário foi indicado por alguém, aplicar a indicação
       if (userData.referralCode) {
         await growthService.applyReferral(firebaseUser.uid, userData.referralCode);
@@ -195,7 +173,6 @@ export class AuthService {
       throw new Error('Email e senha são obrigatórios');
     }
     try {
-      const { auth, db, a, f } = await this.getFirebase();
       // Validar email
       const validationService = ValidationService.getInstance();
       if (!validationService.validateEmail(email)) {
@@ -211,7 +188,7 @@ export class AuthService {
       }
 
       // Atualizar último login no Firestore
-      const userRef = f.doc(db, 'users', firebaseUser.uid);
+      const userRef = f.doc(getDb(), 'users', firebaseUser.uid);
       try {
         await f.updateDoc(userRef, {
           lastLogin: f.serverTimestamp()
@@ -269,7 +246,6 @@ export class AuthService {
    */
   public async logout(): Promise<void> {
     try {
-      const { auth, a } = await this.getFirebase();
       // Remover token de autenticação do armazenamento seguro
       await SecureStorageService.removeData('authToken');
 
@@ -292,7 +268,6 @@ export class AuthService {
       throw new Error('Email é obrigatório');
     }
     try {
-      const { auth, a } = await this.getFirebase();
       const validationService = ValidationService.getInstance();
       if (!validationService.validateEmail(email)) {
         throw new Error('Email inválido');
@@ -317,7 +292,6 @@ export class AuthService {
       throw new Error('Código e nova senha são obrigatórios');
     }
     try {
-      const { auth, a } = await this.getFirebase();
       if (!this.validatePassword(newPassword)) {
         throw new Error(
           'Senha deve conter pelo menos 8 caracteres, uma letra maiúscula, uma letra minúscula, um número e um caractere especial'
@@ -364,7 +338,6 @@ export class AuthService {
       throw new Error('Dados do usuário não fornecidos');
     }
     try {
-      const { auth, db, a, f } = await this.getFirebase();
       const validationService = ValidationService.getInstance();
       const senhaFinal = senha || dadosUsuario.senha || '';
 
@@ -426,13 +399,7 @@ export class AuthService {
         courierStatus: dadosUsuario.courierStatus || null,
       };
 
-      await f.setDoc(f.doc(db, 'users', user.uid), userData);
-      // Mantendo compatibilidade caso outro lugar use 'usuarios'
-      try {
-        await f.setDoc(f.doc(db, 'usuarios', user.uid), userData);
-      } catch (compatError) {
-        loggingService.error('Erro ao salvar em coleção legada', compatError as Error);
-      }
+      await f.setDoc(f.doc(getDb(), 'users', user.uid), userData);
 
       const usuarioSimulado = {
         id: user.uid,
@@ -507,7 +474,6 @@ export class AuthService {
       throw new Error('Email e senha são obrigatórios');
     }
     try {
-      const { auth, db, a, f } = await this.getFirebase();
       const validationService = ValidationService.getInstance();
 
       if (!validationService.validateEmail(credenciais.email)) {
@@ -541,14 +507,7 @@ export class AuthService {
 
       // Atualizar último login no Firestore
       try {
-        await f.updateDoc(f.doc(db, 'users', user.uid), {
-          ultimoLogin: f.serverTimestamp(),
-        });
-      } catch (e) {
-        // Ignora se não existir
-      }
-      try {
-        await f.updateDoc(f.doc(db, 'usuarios', user.uid), {
+        await f.updateDoc(f.doc(getDb(), 'users', user.uid), {
           ultimoLogin: f.serverTimestamp(),
         });
       } catch (e) {
@@ -620,7 +579,6 @@ export class AuthService {
     valido: boolean;
   }> {
     try {
-      const { auth, db, f } = await this.getFirebase();
       const decoded: any = jwtDecode(token);
       
       // Validar expiração
@@ -637,7 +595,7 @@ export class AuthService {
       }
 
       // Obter dados adicionais do Firestore
-      const userDoc = await f.getDoc(f.doc(db, 'usuarios', userId));
+      const userDoc = await f.getDoc(f.doc(getDb(), 'users', userId));
 
       if (!userDoc.exists()) {
         throw new Error('Usuário não encontrado');
@@ -700,7 +658,6 @@ export class AuthService {
     emailVerificado: boolean;
   }> {
     try {
-      const { auth, a } = await this.getFirebase();
       // Versão Firebase - reautenticar e atualizar senha
       const currentUser = auth.currentUser;
       if (currentUser) {
@@ -781,7 +738,6 @@ export class AuthService {
    */
   public async recuperarSenha(email: string): Promise<any> {
     try {
-      const { auth, a } = await this.getFirebase();
       const validationService = ValidationService.getInstance();
 
       if (!validationService.validateEmail(email)) {
@@ -846,7 +802,6 @@ export class AuthService {
     mensagem: string;
   }> {
     try {
-      const { auth, a } = await this.getFirebase();
       // Versão Firebase - confirmar redefinição de senha
       if (dados.actionCode) {
         // Validar nova senha
@@ -935,7 +890,6 @@ export class AuthService {
     email: string;
   }> {
     try {
-      const { auth } = await this.getFirebase();
       // Esta função só pode ser chamada internamente após login
       const currentUser = auth.currentUser;
       if (!currentUser || currentUser.email !== email) {
@@ -963,7 +917,6 @@ export class AuthService {
     mensagem: string;
   }> {
     try {
-      const { auth, a } = await this.getFirebase();
       const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error('Usuário não autenticado');
@@ -1002,16 +955,22 @@ export class AuthService {
     mensagem: string;
   }> {
     try {
-      const { auth, db, a, f } = await this.getFirebase();
       // Aplicar o código de verificação
       await a.applyActionCode(auth, actionCode);
 
       // Atualizar o status no Firestore
       const currentUser = auth.currentUser;
       if (currentUser) {
-        await f.updateDoc(f.doc(db, 'usuarios', currentUser.uid), {
-          emailVerificado: true,
-        });
+        try {
+          await f.updateDoc(f.doc(getDb(), 'users', currentUser.uid), {
+            emailVerificado: true,
+          });
+        } catch (e) {
+          loggingService.warn('Falha ao atualizar emailVerificado no Firestore', { 
+            userId: currentUser.uid, 
+            error: e 
+          });
+        }
       }
 
       loggingService.info('Email verificado com sucesso', {

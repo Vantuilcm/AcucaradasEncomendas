@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, f } from '../config/firebase';
+import { f } from '../config/firebase';
 import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import {
   Card, Text, Button, IconButton, Portal, Modal, SegmentedButtons, TextInput, useTheme, } from 'react-native-paper';

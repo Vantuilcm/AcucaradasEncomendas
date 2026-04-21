@@ -1,19 +1,14 @@
-import { f } from '../config/firebase';
+import { f, s, getDb } from '../config/firebase';
 import { loggingService } from './LoggingService';
 import { UserUtils } from '../utils/UserUtils';
-import { db, storage } from '../config/firebase';
 const {
   doc, getDoc, updateDoc, query, collection, where, getDocs, orderBy, limit, serverTimestamp } = f;
-import {
-  // @ts-ignore
+const {
   ref,
-  // @ts-ignore
   uploadBytes,
-  // @ts-ignore
   getDownloadURL,
-  // @ts-ignore
   deleteObject
-} from 'firebase/storage';
+} = s;
 import { User, Address } from '../models/User';
 import { ReviewService } from './ReviewService';
 import { ValidationService } from './validationService';
@@ -50,7 +45,7 @@ export interface UserStats {
 export class UserProfileService {
   private static instance: UserProfileService;
   private readonly reviewService: ReviewService;
-  private readonly usersCollection = 'usuarios';
+  private readonly usersCollection = 'users';
   private readonly ordersCollection = 'pedidos';
   private readonly profilePicsPath = 'profile_pictures';
 
@@ -72,7 +67,7 @@ export class UserProfileService {
    */
   public async getFullUserProfile(userId: string): Promise<User & { stats?: UserStats }> {
     try {
-      const userDoc = await getDoc(doc(db, this.usersCollection, userId));
+      const userDoc = await getDoc(doc(getDb(), this.usersCollection, userId));
 
       if (!userDoc.exists()) {
         throw new Error('Usuário não encontrado');
@@ -107,7 +102,7 @@ export class UserProfileService {
    */
   public async updateUserProfile(userId: string, profileData: ProfileUpdateData): Promise<User> {
     try {
-      const userRef = doc(db, this.usersCollection, userId);
+      const userRef = doc(getDb(), this.usersCollection, userId);
       const userDoc = await getDoc(userRef);
 
       if (!userDoc.exists()) {
@@ -158,7 +153,7 @@ export class UserProfileService {
   public async updateProfilePicture(userId: string, photoUri: string): Promise<string> {
     try {
       // Verificar se o usuário existe
-      const userRef = doc(db, this.usersCollection, userId);
+      const userRef = doc(getDb(), this.usersCollection, userId);
       const userDoc = await getDoc(userRef);
 
       if (!userDoc.exists()) {
@@ -172,7 +167,7 @@ export class UserProfileService {
       if (oldPhotoUrl) {
         try {
           // Tentar excluir a foto antiga
-          const oldPhotoRef = ref(storage, oldPhotoUrl);
+          const oldPhotoRef = ref(oldPhotoUrl);
           await deleteObject(oldPhotoRef);
         } catch (error) {
           // Se não conseguir excluir (pode não existir mais), apenas log
@@ -182,7 +177,7 @@ export class UserProfileService {
 
       // Upload da nova foto
       const filename = `${userId}_${Date.now()}.jpg`;
-      const storageRef = ref(storage, `${this.profilePicsPath}/${filename}`);
+      const storageRef = ref(`${this.profilePicsPath}/${filename}`);
 
       // Se for base64, converter para blob
       let photoBlob;
@@ -224,7 +219,7 @@ export class UserProfileService {
    */
   public async addUserAddress(userId: string, address: Address): Promise<Address[]> {
     try {
-      const userRef = doc(db, this.usersCollection, userId);
+      const userRef = doc(getDb(), this.usersCollection, userId);
       const userDoc = await getDoc(userRef);
 
       if (!userDoc.exists()) {
@@ -270,7 +265,7 @@ export class UserProfileService {
    */
   public async removeUserAddress(userId: string, addressIndex: number): Promise<Address[]> {
     try {
-      const userRef = doc(db, this.usersCollection, userId);
+      const userRef = doc(getDb(), this.usersCollection, userId);
       const userDoc = await getDoc(userRef);
 
       if (!userDoc.exists()) {
@@ -318,7 +313,7 @@ export class UserProfileService {
    */
   public async setAddressAsPrimary(userId: string, addressIndex: number): Promise<Address[]> {
     try {
-      const userRef = doc(db, this.usersCollection, userId);
+      const userRef = doc(getDb(), this.usersCollection, userId);
       const userDoc = await getDoc(userRef);
 
       if (!userDoc.exists()) {
@@ -360,7 +355,7 @@ export class UserProfileService {
     try {
       // Obter pedidos do usuário
       const pedidosQuery = query(
-        collection(db, this.ordersCollection),
+        collection(getDb(), this.ordersCollection),
         where('usuarioId', '==', userId),
         orderBy('dataCriacao', 'desc')
       );
@@ -383,7 +378,7 @@ export class UserProfileService {
       const mediaAvaliacoes = avaliacoes.length > 0 ? somaAvaliacoes / avaliacoes.length : 0;
 
       // Obter dados de criação da conta
-      const userDoc = await getDoc(doc(db, this.usersCollection, userId));
+      const userDoc = await getDoc(doc(getDb(), this.usersCollection, userId));
       const userData = userDoc.data();
 
       return {
@@ -423,7 +418,7 @@ export class UserProfileService {
       // Normalizar CPF (remover pontos e traços)
       const normalizedCPF = cpf.replace(/[.-]/g, '');
 
-      const q = query(collection(db, this.usersCollection), where('cpf', '==', normalizedCPF));
+      const q = query(collection(getDb(), this.usersCollection), where('cpf', '==', normalizedCPF));
 
       const querySnapshot = await getDocs(q);
 
@@ -460,7 +455,7 @@ export class UserProfileService {
 
       // Buscar por nome
       const nameQuery = query(
-        collection(db, this.usersCollection),
+        collection(getDb(), this.usersCollection),
         where('nomeLowercase', '>=', normalizedQuery),
         where('nomeLowercase', '<=', normalizedQuery + '\uf8ff'),
         limit(maxResults)
@@ -468,7 +463,7 @@ export class UserProfileService {
 
       // Buscar por email
       const emailQuery = query(
-        collection(db, this.usersCollection),
+        collection(getDb(), this.usersCollection),
         where('email', '>=', normalizedQuery),
         where('email', '<=', normalizedQuery + '\uf8ff'),
         limit(maxResults)
@@ -512,7 +507,7 @@ export class UserProfileService {
     preferences: { email?: boolean; push?: boolean; sms?: boolean }
   ): Promise<boolean> {
     try {
-      const userRef = doc(db, this.usersCollection, userId);
+      const userRef = doc(getDb(), this.usersCollection, userId);
 
       await updateDoc(userRef, {
         'perfil.notificacoes': preferences,
@@ -541,7 +536,7 @@ export class UserProfileService {
     language?: string
   ): Promise<boolean> {
     try {
-      const userRef = doc(db, this.usersCollection, userId);
+      const userRef = doc(getDb(), this.usersCollection, userId);
 
       const updateData: any = {
         dataAtualizacao: serverTimestamp(),
@@ -631,7 +626,7 @@ export class UserProfileService {
       }
 
       // Obter documento do usuário
-      const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      const userDoc = await getDoc(doc(getDb(), this.usersCollection, userId));
 
       if (!userDoc.exists()) {
         throw new Error('Usuário não encontrado');
@@ -693,13 +688,13 @@ export class UserProfileService {
       const { id, dataCriacao, isAdmin, ...dadosAtualizaveis } = dadosPerfil;
 
       // Atualizar no Firestore
-      await updateDoc(doc(db, 'usuarios', userId), {
+      await updateDoc(doc(getDb(), this.usersCollection, userId), {
         ...dadosAtualizaveis,
         dataAtualizacao: new Date(),
       } as any);
 
       // Buscar perfil atualizado
-      const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      const userDoc = await getDoc(doc(getDb(), this.usersCollection, userId));
 
       if (!userDoc.exists()) {
         throw new Error('Usuário não encontrado após atualização');
@@ -751,7 +746,7 @@ export class UserProfileService {
       }
 
       // Buscar perfil atual
-      const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      const userDoc = await getDoc(doc(getDb(), this.usersCollection, userId));
 
       if (!userDoc.exists()) {
         throw new Error('Usuário não encontrado');
@@ -766,21 +761,21 @@ export class UserProfileService {
           principal: false,
         }));
 
-        await updateDoc(doc(db, 'usuarios', userId), {
+        await updateDoc(doc(getDb(), this.usersCollection, userId), {
           endereco: [...enderecosAtualizados, endereco],
           dataAtualizacao: new Date(),
         } as any);
       } else {
         // Adicionar novo endereço manualmente para evitar problemas com arrayUnion
         const enderecosAtuais = userData.endereco || [];
-        await updateDoc(doc(db, 'usuarios', userId), {
+        await updateDoc(doc(getDb(), this.usersCollection, userId), {
           endereco: [...enderecosAtuais, endereco],
           dataAtualizacao: new Date(),
         } as any);
       }
 
       // Buscar perfil atualizado
-      const userDocAtualizado = await getDoc(doc(db, 'usuarios', userId));
+      const userDocAtualizado = await getDoc(doc(getDb(), this.usersCollection, userId));
       const updatedData = userDocAtualizado.data() as any;
 
       loggingService.info('Endereço adicionado ao perfil', { userId });
@@ -811,7 +806,7 @@ export class UserProfileService {
       }
 
       // Buscar perfil atual para remover manualmente
-      const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      const userDoc = await getDoc(doc(getDb(), this.usersCollection, userId));
 
       if (!userDoc.exists()) {
         throw new Error('Usuário não encontrado');
@@ -829,13 +824,13 @@ export class UserProfileService {
       );
 
       // Atualizar documento
-      await updateDoc(doc(db, 'usuarios', userId), {
+      await updateDoc(doc(getDb(), this.usersCollection, userId), {
         endereco: enderecosAtualizados,
         dataAtualizacao: new Date(),
       } as any);
 
       // Buscar perfil atualizado
-      const userDocAtualizado = await getDoc(doc(db, 'usuarios', userId));
+      const userDocAtualizado = await getDoc(doc(getDb(), this.usersCollection, userId));
       const updatedData = userDocAtualizado.data() as any;
 
       loggingService.info('Endereço removido do perfil', { userId });
@@ -866,7 +861,7 @@ export class UserProfileService {
       }
 
       // Criar referência para a nova imagem
-      const storageRef = ref(storage, `perfil/${userId}/foto-perfil.jpg`);
+      const storageRef = ref(`perfil/${userId}/foto-perfil.jpg`);
 
       // Converter URI para blob
       const response = await fetch(fotoUri);
@@ -879,7 +874,7 @@ export class UserProfileService {
       const downloadURL = await getDownloadURL(storageRef);
 
       // Atualizar URL no perfil do usuário
-      await updateDoc(doc(db, 'usuarios', userId), {
+      await updateDoc(doc(getDb(), this.usersCollection, userId), {
         'perfil.fotoPerfil': downloadURL,
         dataAtualizacao: new Date(),
       });
@@ -906,13 +901,13 @@ export class UserProfileService {
       }
 
       // Referência para a imagem
-      const storageRef = ref(storage, `perfil/${userId}/foto-perfil.jpg`);
+      const storageRef = ref(`perfil/${userId}/foto-perfil.jpg`);
 
       // Remover imagem do storage
       await deleteObject(storageRef);
 
       // Atualizar perfil do usuário
-      await updateDoc(doc(db, 'usuarios', userId), {
+      await updateDoc(doc(getDb(), this.usersCollection, userId), {
         'perfil.fotoPerfil': null,
         dataAtualizacao: new Date(),
       });
@@ -926,7 +921,7 @@ export class UserProfileService {
       }
 
       // Atualizar perfil mesmo se imagem não existir
-      await updateDoc(doc(db, 'usuarios', userId), {
+      await updateDoc(doc(getDb(), this.usersCollection, userId), {
         'perfil.fotoPerfil': null,
         dataAtualizacao: new Date(),
       });
@@ -947,13 +942,13 @@ export class UserProfileService {
       }
 
       // Atualizar preferências
-      await updateDoc(doc(db, 'usuarios', userId), {
+      await updateDoc(doc(getDb(), this.usersCollection, userId), {
         'perfil.preferencias': preferencias,
         dataAtualizacao: new Date(),
       });
 
       // Buscar perfil atualizado
-      const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      const userDoc = await getDoc(doc(getDb(), this.usersCollection, userId));
       const updatedData = userDoc.data() as any;
 
       loggingService.info('Preferências do usuário atualizadas', { userId });
@@ -984,13 +979,13 @@ export class UserProfileService {
       }
 
       // Atualizar configurações de notificação
-      await updateDoc(doc(db, 'usuarios', userId), {
+      await updateDoc(doc(getDb(), this.usersCollection, userId), {
         'perfil.notificacoes': notificacoes,
         dataAtualizacao: new Date(),
       });
 
       // Buscar perfil atualizado
-      const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      const userDoc = await getDoc(doc(getDb(), this.usersCollection, userId));
       const updatedData = userDoc.data() as any;
 
       loggingService.info('Configurações de notificação atualizadas', { userId });

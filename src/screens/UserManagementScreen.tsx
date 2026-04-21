@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, RefreshControl, ScrollView, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { db, f } from '../config/firebase';
+import { f, getDb } from '../config/firebase';
 import { UserUtils } from '../utils/UserUtils';
 import { User } from '../models/User';
 import usePermissions from '../hooks/usePermissions';
@@ -39,7 +39,7 @@ const UserManagementScreen: React.FC = () => {
           setCarregandoMais(true);
         }
 
-        const usuariosRef = f.collection('usuarios');
+        const usuariosRef = f.collection(getDb(), 'users');
         let q;
 
         if (filtroPapel !== 'todos') {
