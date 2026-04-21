@@ -148,6 +148,27 @@ jobs:
           fi
           echo "✅ [OK] Assets detectados com sucesso."
 
+      - name: 📁 Restore Firebase iOS Config (GoogleService-Info.plist)
+        run: |
+          echo "📂 [FIREBASE] Restaurando GoogleService-Info.plist..."
+          if [ -n "${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64 }}" ]; then
+            echo "📦 [BASE64] Decodificando via GOOGLE_SERVICES_INFO_PLIST_BASE64..."
+            echo "${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64 }}" | base64 --decode > GoogleService-Info.plist
+          elif [ -n "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" ]; then
+            echo "📝 [XML] Gravando via GOOGLE_SERVICE_INFO_PLIST..."
+            printf "%s" "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" > GoogleService-Info.plist
+          else
+            echo "⚠️ [WARN] Nenhuma Secret de Firebase encontrada. Verificando se arquivo já existe..."
+          fi
+          
+          if [ -f "GoogleService-Info.plist" ]; then
+            echo "✅ [OK] GoogleService-Info.plist pronto."
+            ls -lah GoogleService-Info.plist
+          else
+            echo "❌ [FATAL] GoogleService-Info.plist ausente. O build iOS irá falhar."
+            exit 1
+          fi
+
       - name: 🛡️ iOS-BUILD-GUARDIAN (Local Mode)
         run: |
           chmod +x ./scripts/ci/ios-build-guardian.sh
