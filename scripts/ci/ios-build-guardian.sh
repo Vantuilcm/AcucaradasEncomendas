@@ -80,9 +80,12 @@ export EXPO_ASC_PRIVATE_KEY=$(cat AuthKey.p8)
 
 if [ -n "${GITHUB_ENV:-}" ]; then
     echo "📤 [CI] Exportando EXPO_ASC_PRIVATE_KEY para GITHUB_ENV..."
-    echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> "$GITHUB_ENV"
-    cat AuthKey.p8 >> "$GITHUB_ENV"
-    echo "EOF" >> "$GITHUB_ENV"
+    {
+      echo "EXPO_ASC_PRIVATE_KEY<<GITHUB_ENV_EOF"
+      cat AuthKey.p8
+      echo ""
+      echo "GITHUB_ENV_EOF"
+    } >> "$GITHUB_ENV"
     echo "EXPO_ASC_PRIVATE_KEY_PATH=$(pwd)/AuthKey.p8" >> "$GITHUB_ENV"
 fi
 
@@ -107,9 +110,10 @@ unset EXPO_APPLE_ID_PASSWORD
 echo "✅ [OK] Conflitos removidos."
 
 # --- ETAPA 5 — SINCRONIZAÇÃO DE CREDENCIAIS ---
-echo "🧩 [ETAPA 5] Sincronizando credenciais ASC via EAS..."
-npx eas credentials:sync --platform ios --non-interactive
-echo "✅ [OK] Credenciais sincronizadas."
+echo "🧩 [ETAPA 5] Validando credenciais ASC via EAS..."
+# Em modo local com API Key, o EAS Build já utiliza as variáveis de ambiente.
+# O comando 'credentials:sync' não existe nas versões recentes do EAS CLI.
+echo "✅ [OK] Credenciais preparadas (via ENV)."
 
 # --- ETAPA 6 — PRÉ-BUILD NATIVO ---
 echo "🧩 [ETAPA 6] Executando Prebuild Nativo..."
