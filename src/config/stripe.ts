@@ -14,11 +14,7 @@ export const STRIPE_PUBLISHABLE_KEY =
     : process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY || '';
 
 // A chave secreta deve ser usada apenas no backend, nunca exposta no cliente
-// Esta variável é incluída apenas para referência e deve ser usada apenas no servidor
-export const STRIPE_SECRET_KEY =
-  ENV === 'production'
-    ? process.env.STRIPE_SECRET_KEY_PROD || ''
-    : process.env.EXPO_PUBLIC_STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY || '';
+// Esta variável foi removida do frontend por motivos de segurança e para evitar erros de bundling
 
 // Configurações do Stripe
 export const STRIPE_CONFIG = {

@@ -2,7 +2,7 @@
   "cli": {
     "version": ">= 5.9.0",
     "requireCommit": false,
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -40,8 +40,8 @@
     },
     "production": {
       "distribution": "store",
-      "credentialsSource": "remote",
-      "autoIncrement": true,
+      "credentialsSource": "local",
+      "autoIncrement": false,
       "env": {
         "APP_ENV": "production",
         "EXPO_PUBLIC_APP_ENV": "production",
