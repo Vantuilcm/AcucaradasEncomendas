@@ -38,7 +38,7 @@ jobs:
 
       - name: 🚀 7. Execute EAS Production Build
         run: |
-          EXPO_DEBUG=1 npx eas build --platform ios --local --profile production_v13 --non-interactive --verbose
+          EXPO_DEBUG=1 npx eas build --platform ios --local --profile production --non-interactive --verbose
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
