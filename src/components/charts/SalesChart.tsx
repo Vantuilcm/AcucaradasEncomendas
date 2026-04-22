@@ -1,7 +1,12 @@
 import React from 'react';
 import { View, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { Text, useTheme, Card } from 'react-native-paper';
-import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
+
+// MISSÃO ZERO TELA BRANCA: Comentando bibliotecas de gráficos pesadas
+// import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
+const BarChart: any = null;
+const LineChart: any = null;
+const PieChart: any = null;
 
 interface SalesData {
   labels: string[];
@@ -133,6 +138,16 @@ export const SalesChart = ({
       );
     }
 
+    // MISSÃO ZERO TELA BRANCA: Bypassing charts for diagnostic
+    return (
+      <View style={styles.placeholderContainer}>
+        <Text style={styles.placeholderText}>
+          📊 Gráfico de {type.toUpperCase()} (Desativado para Diagnóstico)
+        </Text>
+      </View>
+    );
+
+    /* 
     switch (type) {
       case 'bar':
         return (
@@ -194,6 +209,7 @@ export const SalesChart = ({
       default:
         return null;
     }
+    */
   };
 
   return (
@@ -260,5 +276,20 @@ const styles = StyleSheet.create({
     color: '#FF69B4',
     fontWeight: 'bold',
     textDecorationLine: 'underline',
+  },
+  placeholderContainer: {
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F7',
+    borderRadius: 8,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E1E1E1',
+    borderStyle: 'dashed',
+  },
+  placeholderText: {
+    color: '#86868B',
+    fontSize: 14,
   },
 });

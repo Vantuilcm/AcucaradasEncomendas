@@ -19,8 +19,12 @@ import { MarketplaceExpansionService, CityExpansionMetrics } from '../services/M
 import { AutonomousGrowthOrchestrator, AutonomousAction } from '../services/AutonomousGrowthOrchestrator';
 import { ReleaseService, ReleaseState } from '../services/ReleaseService';
 import { DeliveryDriver } from '../types/DeliveryDriver';
-import { LineChart } from 'react-native-chart-kit';
-import MapView, { Marker } from 'react-native-maps';
+// MISSÃO ZERO TELA BRANCA: Comentando bibliotecas nativas pesadas
+// import { LineChart } from 'react-native-chart-kit';
+// import MapView, { Marker } from 'react-native-maps';
+const LineChart: any = null;
+const MapView: any = null;
+const Marker: any = null;
 import { Ionicons } from '@expo/vector-icons';
 import { Dimensions } from 'react-native';
 import { Order, OrderStatus } from '../types/Order';
@@ -126,174 +130,39 @@ export function AdminDashboardScreen() {
     scheduledOrders: 0,
   });
 
-  // Função para carregar inteligência de dados
+  // Função para carregar inteligência de dados - DESATIVADA PARA DIAGNÓSTICO
   const loadIntelligence = React.useCallback(async () => {
+    /* 
     try {
-      const insights = await demandService.generateDemandInsights();
-      setDemandInsights(insights);
-      
-      const recs = await recommendationService.generateMarketBasketAnalysis();
-      setRecommendations(recs);
-
-      const metrics = await growthIntelService.calculateMetrics();
-      setGrowthMetrics(metrics);
-      const growthAlerts = await growthIntelService.detectAnomalies(metrics);
-      
-      const newGrowthAlerts = growthAlerts.map((msg: string, idx: number) => ({
-        id: `growth-${idx}-${Date.now()}`,
-        type: 'growth' as const,
-        message: msg,
-        timestamp: new Date()
-      }));
-
-      const cities = await marketplaceService.getCityMetrics();
-      setCityMetrics(cities);
-      
-      const marketplaceAlerts = cities
-        .filter(c => c.opportunityLevel === 'EXPANSION_OPPORTUNITY')
-        .map(c => ({
-          id: `market-${c.cityId}`,
-          type: 'marketplace' as const,
-          message: `OPORTUNIDADE: ${c.cityName} tem ${c.activeUsers} usuários e 0 produtores!`,
-          timestamp: new Date()
-        }));
-
-      const stockAlerts = insights
-        .filter(i => i.repositionRequired)
-        .map(i => ({
-          id: `stock-${i.productId}`,
-          type: 'stock' as const,
-          message: `REPOR AGORA: ${i.productName} (Demanda Alta / Estoque ${i.currentStock})`,
-          timestamp: new Date()
-        }));
-      
-      setAlerts(prev => {
-        const filtered = prev.filter(a => a.type !== 'stock' && a.type !== 'growth' && a.type !== 'marketplace');
-        return [...filtered, ...stockAlerts, ...newGrowthAlerts, ...marketplaceAlerts];
-      });
+      // ... logic
     } catch (error) {
       console.error('Erro ao carregar inteligência:', error);
     }
-  }, [demandService, recommendationService, growthIntelService, marketplaceService]);
+    */
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    // Iniciar Watchdog Operacional e Automação de Vendas
+    // MISSÃO ZERO TELA BRANCA: Bypassing heavy initializations
+    /*
     watchdogService.checkStuckOrders();
     automationService.runAutomations();
     autonomousOrchestrator.runOrchestrationCycle();
+    */
     
-    loadIntelligence();
+    setLoading(false);
     
-    // Configurar Watchdog e Automação para rodar periodicamente
+    // Configurar Watchdog e Automação para rodar periodicamente - DESATIVADO
+    /*
     const watchdogInterval = setInterval(() => {
-      watchdogService.checkStuckOrders();
-      automationService.runAutomations();
-      loadIntelligence();
+      // ...
     }, 5 * 60 * 1000);
-
-    const unsubscribeOrders = orderService.subscribeToOrderStats((realtimeStats: any) => {
-      setStats(prev => ({
-        ...prev,
-        dailySales: realtimeStats.todayRevenue,
-        weeklySales: realtimeStats.totalRevenue,
-        monthlySales: realtimeStats.totalRevenue,
-        pendingOrders: realtimeStats.statusCounts.pending,
-        activeOrders: (realtimeStats.statusCounts.pending || 0) + 
-                      (realtimeStats.statusCounts.confirmed || 0) + 
-                      (realtimeStats.statusCounts.preparing || 0) + 
-                      (realtimeStats.statusCounts.ready || 0) + 
-                      (realtimeStats.statusCounts.delivering || 0),
-        scheduledOrders: realtimeStats.scheduledOrders,
-      }));
-      setLoading(false);
-    });
-
-    const unsubscribeLiveOrders = orderService.subscribeToAllOrders((orders: Order[]) => {
-      setLiveOrders(orders.slice(0, 50));
-      
-      const now = new Date();
-      const newStuckAlerts = orders
-        .filter(o => {
-          if (['delivered', 'cancelled'].includes(o.status)) return false;
-          const updated = new Date(o.updatedAt);
-          const diff = (now.getTime() - updated.getTime()) / (1000 * 60);
-          return diff > 30;
-        })
-        .map(o => ({
-          id: `stuck-${o.id}`,
-          type: 'stuck' as const,
-          message: `Pedido #${o.id.substring(0, 8)} está parado há mais de 30 min`,
-          timestamp: new Date()
-        }));
-      
-      setAlerts(prev => {
-        const filtered = prev.filter(a => a.type !== 'stuck');
-        return [...filtered, ...newStuckAlerts].slice(0, 10);
-      });
-
-      setStats(prev => ({
-        ...prev,
-        stuckOrders: newStuckAlerts.length
-      }));
-    });
-
-    const unsubscribeDrivers = driverService.subscribeToActiveDrivers((drivers: DeliveryDriver[]) => {
-      setActiveDrivers(drivers);
-    });
-
-    const unsubscribeAutonomous = f.onSnapshot(
-      f.query(
-        f.collection('autonomous_actions_log'),
-        f.orderBy('timestamp', 'desc'),
-        f.limit(10)
-      ),
-      (snap: any) => {
-      const actions = snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as AutonomousAction[];
-      setAutonomousActions(actions);
-      
-      const autonomousAlerts = actions.map(action => ({
-        id: `auto-${action.id}`,
-        type: 'autonomous' as const,
-        message: `ROBÔ: ${action.action === 'coupon_created' ? 'Cupom gerado' : 'Expansão ativada'} por ${action.reason}`,
-        timestamp: new Date()
-      }));
-      
-      setAlerts(prev => {
-        const filtered = prev.filter(a => a.type !== 'autonomous');
-        return [...filtered, ...autonomousAlerts].slice(0, 10);
-      });
-    });
-
-    const unsubscribeRelease = releaseService.subscribeToReleaseState((state: ReleaseState) => {
-      setReleaseState(state);
-      
-      const active = state.releases[state.activeReleaseId];
-      if (active && active.status !== 'STABLE') {
-        const releaseAlert = {
-          id: `release-${active.buildNumber}`,
-          type: 'release' as const,
-          message: `⚠️ RELEASE ${active.status}: v${active.version} (${active.buildNumber})`,
-          timestamp: new Date()
-        };
-        
-        setAlerts(prev => {
-          const filtered = prev.filter(a => a.type !== 'release');
-          return [releaseAlert, ...filtered].slice(0, 10);
-        });
-      } else {
-        setAlerts(prev => prev.filter(a => a.type !== 'release'));
-      }
-    });
+    */
 
     return () => {
-      clearInterval(watchdogInterval);
-      unsubscribeOrders();
-      unsubscribeLiveOrders();
-      unsubscribeDrivers();
-      unsubscribeAutonomous();
-      unsubscribeRelease();
+      // clearInterval(watchdogInterval);
     };
-  }, [orderService, driverService, watchdogService, automationService, autonomousOrchestrator, loadIntelligence, releaseService]);
+  }, []);
 
   const loadDashboardData = async () => {
     setRefreshing(true);
@@ -332,23 +201,28 @@ export function AdminDashboardScreen() {
     );
   }
 
+  // MISSÃO ZERO TELA BRANCA: Render simplificado para diagnóstico
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text variant="headlineSmall" style={styles.title}>
-          Centro de Comando Live
-        </Text>
-        <View style={styles.liveBadge}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>AO VIVO</Text>
-        </View>
-      </View>
-
-      <ScrollView
+      <ScrollView 
         style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        contentContainerStyle={{ padding: 20, alignItems: 'center' }}
       >
-        {/* Top Metrics Bar */}
+        <Text variant="headlineMedium" style={{ marginBottom: 20, color: theme.colors.primary }}>
+          🛡️ Admin Diagnostic Mode
+        </Text>
+        
+        <Card style={{ width: '100%', marginBottom: 20 }}>
+          <Card.Content>
+            <Text variant="titleMedium">Status da Operação</Text>
+            <Divider style={{ marginVertical: 10 }} />
+            <Text variant="bodyLarge">✅ Dashboard carregado com sucesso</Text>
+            <Text variant="bodyMedium" style={{ marginTop: 10 }}>
+              Os componentes pesados (Gráficos e Mapas) foram desativados temporariamente para isolar o problema da tela branca.
+            </Text>
+          </Card.Content>
+        </Card>
+
         <View style={styles.metricsBar}>
           <View style={styles.metricItem}>
             <Text style={styles.metricValue}>{stats.activeOrders}</Text>
@@ -359,184 +233,31 @@ export function AdminDashboardScreen() {
             <Text style={styles.metricLabel}>Travados</Text>
           </View>
           <View style={styles.metricItem}>
-            <Text style={styles.metricValue}>{activeDrivers.length}</Text>
-            <Text style={styles.metricLabel}>Drivers</Text>
-          </View>
-          <View style={styles.metricItem}>
             <Text style={[styles.metricValue, { color: theme.colors.primary }]}>{formatCurrency(stats.dailySales)}</Text>
             <Text style={styles.metricLabel}>Hoje</Text>
           </View>
         </View>
 
-        {/* Alertas Críticos */}
-        {alerts.length > 0 && (
-          <Surface style={styles.alertsSection}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
-              <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.error, marginLeft: 8 }]}>
-                ALERTAS AGORA ({alerts.length})
-              </Text>
-            </View>
-            {alerts.map(alert => (
-              <View key={alert.id} style={styles.alertItem}>
-                <View style={[styles.alertDot, { backgroundColor: alert.type === 'payment' ? theme.colors.error : (alert.type === 'stock' ? '#E91E63' : (alert.type === 'growth' ? '#673AB7' : (alert.type === 'marketplace' ? '#009688' : (alert.type === 'autonomous' ? '#FFD600' : theme.colors.warning)))) }]} />
-                <Text style={[styles.alertText, (alert.type === 'stock' || alert.type === 'growth' || alert.type === 'marketplace' || alert.type === 'autonomous') && { color: alert.type === 'growth' ? '#4527A0' : (alert.type === 'marketplace' ? '#004D40' : (alert.type === 'autonomous' ? '#F57F17' : '#880E4F')), fontWeight: 'bold' }]}>{alert.message}</Text>
-              </View>
-            ))}
-          </Surface>
-        )}
+        <Button 
+          mode="contained" 
+          onPress={() => navigation.navigate('BootDiagnostic' as any)}
+          style={{ marginTop: 30, width: '100%' }}
+        >
+          Ver Diagnóstico de Boot
+        </Button>
+        
+        <Text style={{ marginTop: 40, color: '#999', fontSize: 12 }}>
+          Se você está vendo esta tela, o problema da tela branca NÃO é estrutural no Dashboard.
+        </Text>
+      </ScrollView>
+    </SafeAreaView>
+  );
 
-        {/* Inteligência de Demanda */}
-        {(demandInsights.length > 0 || recommendations.length > 0) && (
-          <Surface style={styles.intelligenceSection}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              🔥 Inteligência de Vendas
-            </Text>
-            
-            <Text variant="labelSmall" style={{ marginBottom: 8, color: theme.colors.text.secondary }}>
-              Produtos com Alta Procura
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-              {demandInsights.slice(0, 5).map(insight => (
-                <View key={insight.productId} style={styles.insightCard}>
-                  <Text variant="labelMedium" numberOfLines={1}>{insight.productName}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                    <Ionicons 
-                      name={insight.trend === 'UP' ? 'trending-up' : (insight.trend === 'DOWN' ? 'trending-down' : 'remove')} 
-                      size={16} 
-                      color={insight.trend === 'UP' ? theme.colors.success : (insight.trend === 'DOWN' ? theme.colors.error : theme.colors.text.secondary)} 
-                    />
-                    <Text variant="bodySmall" style={{ marginLeft: 4 }}>Score: {insight.score.toFixed(1)}</Text>
-                  </View>
-                  {insight.repositionRequired && (
-                    <Badge style={{ backgroundColor: theme.colors.error, marginTop: 4 }}>REPOR</Badge>
-                  )}
-                </View>
-              ))}
-            </ScrollView>
-
-            {recommendations.length > 0 && (
-              <>
-                <Text variant="labelSmall" style={{ marginBottom: 8, color: theme.colors.text.secondary }}>
-                  Sugestão: Itens Comprados Juntos
-                </Text>
-                <View style={styles.recommendationContainer}>
-                  {recommendations.slice(0, 3).map((rec, index) => (
-                    <View key={`rec-${index}`} style={styles.recommendationItem}>
-                      <Ionicons name="link" size={12} color={theme.colors.primary} />
-                      <Text variant="bodySmall" style={{ marginLeft: 4 }}>
-                        Frequência: {rec.strength}x
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </>
-            )}
-          </Surface>
-        )}
-
-        {/* Operação ao Vivo */}
-        <Surface style={styles.liveSection}>
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            Operação ao Vivo
-          </Text>
-          {liveOrders.length === 0 ? (
-            <Text style={styles.emptyText}>Nenhum pedido ativo no momento</Text>
-          ) : (
-            liveOrders.map(order => (
-              <LiveOrderItem key={order.id} order={order} theme={theme} />
-            ))
-          )}
-        </Surface>
-
-        {/* 📊 Growth Intelligence */}
-        {growthMetrics && (
-          <Surface style={styles.growthSection}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="analytics" size={22} color={theme.colors.primary} />
-              <Text variant="titleMedium" style={[styles.sectionTitle, { marginLeft: 8 }]}>
-                Growth Intelligence
-              </Text>
-            </View>
-
-            <View style={styles.growthMetricsRow}>
-              <View style={styles.growthMetricBox}>
-                <Text variant="labelSmall">CAC</Text>
-                <Text variant="titleMedium" style={{ color: theme.colors.error }}>{formatCurrency(growthMetrics.cac)}</Text>
-              </View>
-              <View style={styles.growthMetricBox}>
-                <Text variant="labelSmall">LTV</Text>
-                <Text variant="titleMedium" style={{ color: theme.colors.primary }}>{formatCurrency(growthMetrics.ltv)}</Text>
-              </View>
-              <View style={styles.growthMetricBox}>
-                <Text variant="labelSmall">ROI (LTV/CAC)</Text>
-                <Text variant="titleMedium" style={{ color: theme.colors.success }}>{(growthMetrics.ltv / growthMetrics.cac).toFixed(1)}x</Text>
-              </View>
-            </View>
-
-            <Divider style={{ marginVertical: 12 }} />
-
-            <Text variant="labelSmall" style={{ marginBottom: 8 }}>Funil de Vendas (AARRR)</Text>
-            <View style={styles.funnelContainer}>
-              <View style={[styles.funnelStep, { width: '100%', backgroundColor: '#E1F5FE' }]}>
-                <Text variant="bodySmall">Visitantes: {growthMetrics.funnel.visitors}</Text>
-              </View>
-              <View style={[styles.funnelStep, { width: '85%', backgroundColor: '#B3E5FC' }]}>
-                <Text variant="bodySmall">Cadastros: {growthMetrics.funnel.registered} ({(growthMetrics.funnel.registered / growthMetrics.funnel.visitors * 100).toFixed(0)}%)</Text>
-              </View>
-              <View style={[styles.funnelStep, { width: '70%', backgroundColor: '#81D4FA' }]}>
-                <Text variant="bodySmall">Conversão: {growthMetrics.funnel.purchased} ({growthMetrics.conversionRate.toFixed(1)}%)</Text>
-              </View>
-              <View style={[styles.funnelStep, { width: '55%', backgroundColor: '#4FC3F7' }]}>
-                <Text variant="bodySmall">Retenção: {growthMetrics.funnel.returned} ({growthMetrics.retentionRate.toFixed(1)}%)</Text>
-              </View>
-            </View>
-
-            <Divider style={{ marginVertical: 12 }} />
-
-            <Text variant="labelSmall" style={{ marginBottom: 8 }}>Top 3 Embaixadores (Indicação)</Text>
-            {growthMetrics.topReferrers.slice(0, 3).map((ref, idx) => (
-              <List.Item
-                key={ref.userId}
-                title={ref.name}
-                description={`${ref.count} amigos indicados • ${formatCurrency(ref.value)} gerados`}
-                left={() => <Text style={styles.rankText}>{idx + 1}º</Text>}
-                style={{ paddingVertical: 0 }}
-              />
-            ))}
-            
-            <View style={styles.referralRevenueBox}>
-              <Text variant="labelSmall">Receita por Indicação:</Text>
-              <Text variant="titleMedium" style={{ color: theme.colors.primary }}>{formatCurrency(growthMetrics.referralRevenue)}</Text>
-            </View>
-          </Surface>
-        )}
-
-        {/* 🤖 Autonomous Growth Orchestrator Log */}
-        {autonomousActions.length > 0 && (
-          <Surface style={styles.autonomousSection}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="hardware-chip-outline" size={22} color="#FFD600" />
-              <Text variant="titleMedium" style={[styles.sectionTitle, { marginLeft: 8 }]}>
-                Ações Autônomas (AI)
-              </Text>
-            </View>
-            {autonomousActions.map(action => (
-              <View key={action.id} style={styles.actionLogItem}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text variant="labelMedium" style={{ color: '#F57F17', fontWeight: 'bold' }}>
-                    {action.action.toUpperCase().replace('_', ' ')}
-                  </Text>
-                  <Text variant="labelSmall" style={{ color: theme.colors.text.secondary }}>
-                    {new Date(action.timestamp?.toDate ? action.timestamp.toDate() : action.timestamp).toLocaleTimeString()}
-                  </Text>
-                </View>
-                <Text variant="bodySmall" style={{ marginTop: 4 }}>Motivo: {action.reason}</Text>
-                <Text variant="bodySmall" style={{ color: theme.colors.primary }}>Impacto: {action.impact}</Text>
-              </View>
-            ))}
-          </Surface>
-        )}
+  /* Original Render Commented Out for Diagnostic
+  return (
+    <SafeAreaView style={styles.container}>
+  ...
+  */
 
         {/* 🛡️ Release Guardian Status (Global Scale) */}
         {releaseState && releaseState.releases[releaseState.activeReleaseId] && (() => {

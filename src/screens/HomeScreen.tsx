@@ -51,43 +51,18 @@ export function HomeScreen() {
   }
 
   const loadProducts = async () => {
-    try {
-      setProductLoading(true);
-      const productService = ProductService.getInstance();
-      const products = await productService.consultarDestaques();
-      setFeaturedProducts(products);
-    } catch (error) {
-      loggingService.error('Erro ao carregar produtos destacados', { error });
-    } finally {
-      setProductLoading(false);
-    }
+    // MISSÃO ZERO TELA BRANCA: Bypassing product queries
+    setFeaturedProducts([]);
+    setProductLoading(false);
   };
 
   const handleRefresh = async () => {
-    try {
-      setRefreshing(true);
-      // Blindagem: Executar carregamentos de forma isolada
-      await loadProducts().catch(e => console.error('Erro loadProducts', e));
-      await updateLocation().catch(e => console.error('Erro updateLocation', e));
-    } catch (error) {
-      loggingService.error('Erro ao atualizar a tela inicial', { error });
-    } finally {
-      setRefreshing(false);
-    }
+    setRefreshing(true);
+    setRefreshing(false);
   };
 
   useEffect(() => {
-    // [BUILD 1126] Carregamento sequencial e seguro
-    const initHome = async () => {
-      try {
-        await loadProducts();
-        // Geodecodificação automática suspensa no boot para evitar travamento
-        // updateLocation(); 
-      } catch (e) {
-        console.error('Falha no boot da Home', e);
-      }
-    };
-    initHome();
+    setProductLoading(false);
   }, []);
 
   const renderCategory = ({ item }: { item: typeof CATEGORIES[0] }) => (

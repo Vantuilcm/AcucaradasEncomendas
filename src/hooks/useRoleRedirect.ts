@@ -21,6 +21,14 @@ export const useRoleRedirect = () => {
 
     const role = (user.role || '').toLowerCase();
 
+    // MISSÃO ZERO TELA BRANCA: Forçar todos para BootDiagnostic
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'BootDiagnostic' }],
+    });
+    return true;
+
+    /* Original Logic Commented Out for Debugging
     if (isProdutor || isAdmin || role === Role.PRODUTOR || role === Role.ADMIN) {
       navigation.reset({
         index: 0,
@@ -39,6 +47,7 @@ export const useRoleRedirect = () => {
 
     // Default for Comprador
     return false;
+    */
   }, [user, isProdutor, isEntregador, isAdmin, navigation]);
 
   return { redirectToDashboard };

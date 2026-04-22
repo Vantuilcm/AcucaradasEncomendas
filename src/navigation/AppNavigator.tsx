@@ -60,6 +60,8 @@ import type { DeliverySchedule, Order } from '../types/Order';
 import { StoreDetailsScreen } from '../screens/StoreDetailsScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 
+import BootDiagnosticScreen from '../screens/BootDiagnosticScreen';
+
 export type MainTabParamList = {
   Home: undefined;
   Catalog: undefined;
@@ -117,6 +119,7 @@ export type RootStackParamList = {
   Register: { role?: string };
   ForgotPassword: undefined;
   RoleSelection: undefined;
+  BootDiagnostic: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -311,8 +314,14 @@ const AppNavigator = () => {
         }}
       >
         {isAuthenticated ? (
-          // Rotas privadas (usuário autenticado)
+          // Rotas de Diagnóstico (MISSÃO ZERO TELA BRANCA)
           <>
+            <Stack.Screen
+              name="BootDiagnostic"
+              component={BootDiagnosticScreen}
+              options={{ title: 'Diagnóstico de Inicialização', headerShown: true }}
+            />
+            {/* Outras rotas permanecem registradas para navegação manual se necessário */}
             {!userRole ? (
               // Se role ausente, forçar seleção de papel
               <Stack.Screen
