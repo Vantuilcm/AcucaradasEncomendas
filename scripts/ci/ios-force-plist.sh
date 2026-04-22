@@ -3,7 +3,7 @@
 # 🍎 iOSNativePrivacyFixAI - Injetor Nativo de Info.plist
 # Garante que as permissões obrigatórias estejam presentes no Info.plist nativo após o prebuild.
 
-INFO_PLIST="ios/AucaradasEncomendas/Info.plist"
+INFO_PLIST="ios/AcucaradasEncomendas/Info.plist"
 
 if [ ! -f "$INFO_PLIST" ]; then
     # Tentar localizar dinamicamente se o caminho fixo falhar

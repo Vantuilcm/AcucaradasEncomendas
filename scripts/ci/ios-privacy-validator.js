@@ -118,7 +118,7 @@ class PrivacyValidator {
       this.validateConfig(config, 'Expo Config Resolved');
       
       // Validação Extra: Tentar localizar o Info.plist nativo se ele existir
-      const nativePlist = path.join(this.projectRoot, 'ios/AucaradasEncomendas/Info.plist');
+      const nativePlist = path.join(this.projectRoot, 'ios/AcucaradasEncomendas/Info.plist');
       if (fs.existsSync(nativePlist)) {
         console.log('🔍 [NATIVE] Validando Info.plist nativo existente...');
         const plistContent = fs.readFileSync(nativePlist, 'utf8');
