@@ -193,8 +193,46 @@ if [ -f "scripts/ci/force-build-number.js" ]; then
     node scripts/ci/force-build-number.js --validate-ipa "./dist/app.ipa" "$CURRENT_BN" "$TARGET_VER" "$TARGET_BUNDLE_ID" || echo "⚠️ [WARN] Validação profunda falhou, mas IPA existe."
 fi
 
-# --- ETAPA 10 — OUTPUT ---
-echo "🧩 [ETAPA 10] Finalizando e gerando artefatos..."
+# --- ETAPA 11 — SUBMISSION TO TESTFLIGHT ---
+echo "🧩 [ETAPA 11] Iniciando Submissão para TestFlight..."
+
+# A submissão utiliza o perfil correspondente e as credenciais via ENV
+# A variável ASC_API_KEY_PATH deve ser exportada para que o EAS Submit a encontre
+export EXPO_ASC_KEY_PATH="$EXPO_ASC_PRIVATE_KEY_PATH"
+
+run_submit_with_retry() {
+    local attempt=1
+    local max_attempts=2
+    
+    while [ $attempt -le $max_attempts ]; do
+        echo "🚀 [SUBMIT] Tentativa $attempt de $max_attempts..."
+        
+        set +e
+        # Nota: Usamos --path para apontar para o IPA local gerado
+        npx eas submit --platform ios --path "./dist/app.ipa" --profile "$PROFILE" --non-interactive 2>&1 | tee -a "$BUILD_LOG"
+        local current_exit_code=${PIPESTATUS[0]}
+        set -e
+        
+        if [ $current_exit_code -eq 0 ]; then
+            echo "✅ [SUCCESS] Submissão para TestFlight concluída com sucesso na tentativa $attempt."
+            return 0
+        fi
+        
+        echo "⚠️ [SUBMIT FAILED] Tentativa $attempt falhou."
+        attempt=$((attempt + 1))
+        [ $attempt -le $max_attempts ] && sleep 20
+    done
+    return 1
+}
+
+if ! run_submit_with_retry; then
+    echo "❌ [FATAL] Submissão para TestFlight falhou após retentativas. Verifique os logs."
+    # Não vamos dar exit 1 aqui para que o artefato ainda seja salvo no artifact do GitHub
+    echo "⚠️ [WARN] O build foi gerado localmente mas não pôde ser enviado para a Apple."
+fi
+
+# --- ETAPA 12 — OUTPUT FINAL ---
+echo "🧩 [ETAPA 12] Finalizando e gerando relatório..."
 echo "🚀 [READY] IPA pronta em: ./dist/app.ipa"
 echo "------------------------------------------------------------"
 echo "✅ [DONE] Missão cumprida: Build iOS LOCAL concluído com sucesso!"
