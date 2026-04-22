@@ -9,12 +9,11 @@ echo "------------------------------------------------------------"
 
 ## ETAPA 1 — ORQUESTRAÇÃO MULTI-APP
 echo "🚀 [ORCHESTRATOR] Inicializando Orquestrador de Pipeline..."
-# Se TARGET_APP não estiver definido, o orchestrator usará o defaultApp do apps.config.json
 export TARGET_APP="${TARGET_APP:-acucaradas-encomendas}"
 export APP_ENV="${APP_ENV:-production}"
-
-# Rodar orchestrator para validar config e salvar status inicial
+set -x
 node -r ts-node/register scripts/ci/PipelineOrchestrator.ts build
+set +x
 
 BRANCH_NAME="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
 COMMIT_MSG="${GITHUB_EVENT_PATH:+$(jq -r '.head_commit.message' "$GITHUB_EVENT_PATH")}"
@@ -35,7 +34,7 @@ node scripts/build-state-check.js check
 
 # REGRAS ESTRITAS: SEMPRE LOCAL, NUNCA CLOUD
 BUILD_MODE="LOCAL"
-PROFILE="${PROFILE:-production_v13}"
+PROFILE="${PROFILE:-production}"
 echo "🚀 [CONTEXTO] Modo LOCAL forçado (Perfil: $PROFILE). Nunca usando EAS Cloud."
 
 # 2.0 Hardening: Fail-Fast macOS
@@ -254,6 +253,14 @@ if [ -n "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
         process.exit(1);
     }
     " || exit 1
+
+    # Logar primeiras 3 linhas para debug
+    echo "📄 [DEBUG] Primeiras 3 linhas do arquivo:"
+    head -n 3 GoogleService-Info.plist
+    echo "------------------------------------------------------------"
+else
+    echo "❌ [FATAL] GOOGLE_SERVICES_INFO_PLIST_BASE64 não encontrado no ambiente."
+    exit 1
 fi
 
 # Criar um google-services.json vazio se não existir para passar na validação (iOS não usa)
@@ -266,15 +273,6 @@ node scripts/validate-env.js
 
 echo "🛡️ [SYNC-CHECK] Auditando sincronia com template de produção..."
 node scripts/env-sync-check.js
-
-    # 5. Logar primeiras 3 linhas
-    echo "📄 [DEBUG] Primeiras 3 linhas do arquivo:"
-    head -n 3 GoogleService-Info.plist
-    echo "------------------------------------------------------------"
-else
-    echo "❌ [FATAL] GOOGLE_SERVICES_INFO_PLIST_BASE64 não encontrado no ambiente."
-    exit 1
-fi
 
 ## ETAPA 3 — EXECUÇÃO DO BUILD COM RETRY E FALLBACK
 
@@ -301,13 +299,17 @@ run_build_with_retry() {
 
         # 2. Sincronizar Credenciais (Obrigatório para build LOCAL CI)
         echo "🔄 [SYNC] Sincronizando credenciais ASC via EAS..."
-        npx eas credentials:sync --platform ios --non-interactive
+        set -x
+        npx eas credentials:sync --platform ios --non-interactive || { echo "❌ [ERROR] eas credentials:sync falhou!"; set +x; return 1; }
+        set +x
 
         # 3. Limpeza rápida antes de cada tentativa local
         rm -rf ios .expo
         
         echo "🔧 [PREBUILD] Executando npx expo prebuild --clean..."
-        npx expo prebuild --platform ios --clean --non-interactive
+        set -x
+        npx expo prebuild --platform ios --clean --non-interactive || { echo "❌ [ERROR] expo prebuild falhou!"; set +x; return 1; }
+        set +x
         
         # 🍎 [NATIVE-PRIVACY] iOSNativePrivacyFixAI: Forçar injeção no Info.plist nativo
         echo "💉 [NATIVE] Forçando permissões no Info.plist nativo após prebuild..."
@@ -321,14 +323,18 @@ run_build_with_retry() {
 
         echo "📦 [PODS] Instalando CocoaPods..."
         cd ios
+        set -x
         # Tentar instalar pods com correção automática de ambiente se falhar
         if ! pod install; then
+            set +x
             echo "⚠️ [WARN] pod install falhou. Tentando reparar ambiente Ruby..."
             brew install libyaml || true
             # Reinstalar cocoapods localmente
             gem install cocoapods -NV || true
-            pod install || { echo "❌ [FATAL] pod install falhou permanentemente."; cd ..; return 1; }
+            set -x
+            pod install || { echo "❌ [FATAL] pod install falhou permanentemente."; set +x; cd ..; return 1; }
         fi
+        set +x
         cd ..
 
         echo "🏗️ [EXEC] Iniciando eas build LOCAL (Tentativa $attempt)..."
@@ -351,8 +357,10 @@ run_build_with_retry() {
         echo "🕒 [TIME] Iniciando build em $(date)"
         # Adicionando flags de verbose e timeout interno
         set +e
+        set -x
         EXPO_DEBUG=1 DEBUG=eas:* npx eas build --platform ios --profile "$PROFILE" --local --non-interactive 2>&1 | tee "$BUILD_LOG"
         current_exit_code=${PIPESTATUS[0]}
+        set +x
         set -e
         echo "🕒 [TIME] Build finalizado em $(date) com código $current_exit_code"
         

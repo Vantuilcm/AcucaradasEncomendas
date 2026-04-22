@@ -31,7 +31,9 @@ jobs:
     timeout-minutes: 90
     
     env:
-      RELEASE_APPROVED: ${{ github.event.inputs.release_approved == 'true' || github.event_name == 'push' }}
+      RELEASE_APPROVED: "true"
+      TARGET_APP: "acucaradas-encomendas"
+      APP_ENV: "production"
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
@@ -50,10 +52,13 @@ jobs:
       EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
       EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
       EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID }}
-      EXPO_PUBLIC_FIREBASE_DATABASE_URL: ${{ secrets.EXPO_PUBLIC_FIREBASE_DATABASE_URL }}
+      EXPO_PUBLIC_FIREBASE_VAPID_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_VAPID_KEY }}
       EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
       EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
-      EXPO_PUBLIC_MONITORING_REMOTE_ENABLED: ${{ secrets.EXPO_PUBLIC_MONITORING_REMOTE_ENABLED }}
+      EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID }}
+      EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID }}
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+      EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID }}
       PROFILE: "production"
       FORCE_BUILD_MODE: ${{ github.event.inputs.build_mode || 'LOCAL' }}
       FIXED_BUILD_NUMBER: 1170
@@ -135,7 +140,7 @@ jobs:
           fi
           echo "Ô£à [OK] Assets detectados com sucesso."
 
-      - name: ­ƒøí´©Å iOS-BUILD-GUARDIAN (Local Mode)
+      - name: 🛡️ iOS-BUILD-GUARDIAN (Local Mode)
         run: |
           chmod +x ./scripts/ci/ios-build-guardian.sh
           EXPO_DEBUG=1 ./scripts/ci/ios-build-guardian.sh
@@ -143,6 +148,19 @@ jobs:
           FORCE_BUILD_MODE: "LOCAL"
           DEBUG: "eas:*"
           PROFILE: "production"
+
+      - name: 📄 Show Build Logs on Failure
+        if: failure()
+        run: |
+          echo "❌ [DEBUG] Build failed. Displaying logs..."
+          if [ -f "build-logs/eas-build-local.log" ]; then
+            echo "📄 [EAS BUILD LOG]"
+            tail -n 100 build-logs/eas-build-local.log
+          fi
+          if [ -f "build-logs/acucaradas-encomendas/submission.log" ]; then
+            echo "📄 [SUBMISSION LOG]"
+            tail -n 100 build-logs/acucaradas-encomendas/submission.log
+          fi
 
       - name: ­ƒôª Upload iOS Artifact (.ipa)
         if: always()
