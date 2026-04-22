@@ -14,6 +14,7 @@ export default ({ config }) => {
 
   return {
     ...config,
+    runtimeVersion: "1.0.1",
     plugins: plugins,
     version: "1.0.1", // Mantendo fixo conforme solicitado ou pode ser dinâmico
     ios: {
