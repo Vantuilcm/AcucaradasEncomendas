@@ -73,10 +73,12 @@ jobs:
       - name: 🚀 6. Prepare Native & Execute EAS Local Build
         run: |
           echo "--- 🔍 Debug Config ---"
+          ls -la GoogleService-Info.plist google-services.json
           npx expo config --type prebuild
           
           echo "--- 🛠️ Starting Expo Prebuild ---"
-          EXPO_DEBUG=1 npx expo prebuild --platform ios --non-interactive --verbose 2>&1 | tee prebuild.log || {
+          # Use --no-install to separate pod install for better debugging
+          EXPO_DEBUG=1 npx expo prebuild --platform ios --non-interactive --no-install --verbose 2>&1 | tee prebuild.log || {
             echo "❌ Expo Prebuild Failed. Last 100 lines of log:"
             tail -n 100 prebuild.log
             exit 1
@@ -89,13 +91,17 @@ jobs:
 
           echo "--- 📦 Starting Pod Install ---"
           cd ios
-          pod install --repo-update || { 
-            echo "❌ Pod install failed."
+          # Ensure CocoaPods is using the right encoding
+          export LANG=en_US.UTF-8
+          pod install --repo-update --verbose 2>&1 | tee ../pod_install.log || { 
+            echo "❌ Pod install failed. Last 100 lines of log:"
+            tail -n 100 ../pod_install.log
             exit 1; 
           }
           cd ..
           
           echo "--- 🚀 Starting EAS Local Build ---"
+          # Ensure all env vars are available
           EXPO_DEBUG=1 npx eas build --platform ios --local --profile production --non-interactive --verbose 2>&1 | tee eas_build.log || {
             echo "❌ EAS Build Failed. Last 100 lines of log:"
             tail -n 100 eas_build.log
@@ -117,6 +123,9 @@ jobs:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
           EXPO_DEBUG: 1
+          EXPO_PUBLIC_APP_ENV: production
+          EXPO_PUBLIC_APP_NAME: "Açucaradas Encomendas"
+          EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
 
       - name: 🍎 8. Submit to TestFlight
         run: |
