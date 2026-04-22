@@ -43,23 +43,26 @@ jobs:
         env:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
 
-      - name: 🔑 5.1. Normalize ASC Private Key
+      - name: 🔐 5.1. Cleanup & Prepare Credentials
         run: |
+          # Cleanup conflicts
+          unset IOS_DIST_CERT_BASE64
+          unset IOS_PROV_PROFILE_BASE64
+          unset IOS_CERT_PASSWORD
+          unset EXPO_APP_STORE_CONNECT_API_KEY
+
+          # Normalize ASC Private Key
           echo "${{ secrets.EXPO_ASC_PRIVATE_KEY }}" | sed 's/\\n/\n/g' > AuthKey.p8
-          if grep -q "BEGIN PRIVATE KEY" AuthKey.p8; then
-            echo "✅ Private key normalized successfully"
-          else
-            echo "❌ Private key normalization failed"
-            exit 1
-          fi
+          
           echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
           cat AuthKey.p8 >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
         env:
           EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
 
-      - name: 🔐 5.2. Sync Credentials
-        run: EXPO_DEBUG=1 npx eas credentials:sync -p ios --profile production --non-interactive
+      - name: 🔄 5.2. Sync Credentials
+        run: |
+          npx eas credentials:sync -p ios --profile production --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
