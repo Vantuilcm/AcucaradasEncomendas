@@ -31,7 +31,7 @@ jobs:
           # npm run lint (Descomentar se existir script)
 
       - name: 🔢 5. Increment Build Number
-        run: npm run force-build-number -- --inc
+        run: echo "Build number already set to 1170 in app.json"
 
       - name: 🧹 6. Expo Prebuild Clean (Production)
         run: npx expo prebuild --platform ios --clean
