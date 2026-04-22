@@ -27,8 +27,15 @@ jobs:
 
       - name: � 3.1. Prepare Config Files
         run: |
-          echo "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" > GoogleService-Info.plist
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > google-services.json
+          # Use sed to handle escaped newlines if present
+          echo "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" | sed 's/\\n/\n/g' > GoogleService-Info.plist
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | sed 's/\\n/\n/g' > google-services.json
+          
+          # Check if files are created and valid
+          if [ ! -s "GoogleService-Info.plist" ]; then echo "❌ GoogleService-Info.plist is empty"; exit 1; fi
+          if [ ! -s "google-services.json" ]; then echo "❌ google-services.json is empty"; exit 1; fi
+          
+          echo "✅ Config files prepared."
         env:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -36,7 +43,6 @@ jobs:
       - name: � 4. Hard Typecheck & Lint
         run: |
           npm run type-check
-          # npm run lint (Descomentar se existir script)
 
       - name: 🔢 5. Increment Build Number
         run: node ./scripts/prepare-ios-build.js
@@ -59,27 +65,42 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
           
           # Verificar se a chave foi criada
+          if [ ! -s "AuthKey.p8" ]; then echo "❌ AuthKey.p8 is empty"; exit 1; fi
           ls -l AuthKey.p8
         env:
           EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
 
       - name: 🚀 6. Prepare Native & Execute EAS Local Build
         run: |
-          echo "Starting Expo Prebuild..."
-          EXPO_DEBUG=1 npx expo prebuild --platform ios --non-interactive --verbose
+          echo "--- 🔍 Debug Config ---"
+          npx expo config --type prebuild
+          
+          echo "--- 🛠️ Starting Expo Prebuild ---"
+          EXPO_DEBUG=1 npx expo prebuild --platform ios --non-interactive --verbose 2>&1 | tee prebuild.log || {
+            echo "❌ Expo Prebuild Failed. Last 100 lines of log:"
+            tail -n 100 prebuild.log
+            exit 1
+          }
           
           if [ ! -d "ios" ]; then
             echo "❌ Error: 'ios' directory was not created by prebuild."
             exit 1
           fi
 
-          echo "Starting Pod Install..."
+          echo "--- 📦 Starting Pod Install ---"
           cd ios
-          pod install --repo-update || { echo "❌ Pod install failed"; exit 1; }
+          pod install --repo-update || { 
+            echo "❌ Pod install failed."
+            exit 1; 
+          }
           cd ..
           
-          echo "Starting EAS Local Build..."
-          EXPO_DEBUG=1 npx eas build --platform ios --local --profile production --non-interactive --verbose
+          echo "--- 🚀 Starting EAS Local Build ---"
+          EXPO_DEBUG=1 npx eas build --platform ios --local --profile production --non-interactive --verbose 2>&1 | tee eas_build.log || {
+            echo "❌ EAS Build Failed. Last 100 lines of log:"
+            tail -n 100 eas_build.log
+            exit 1
+          }
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
