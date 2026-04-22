@@ -1,142 +1,159 @@
-name: 🚀 iOS PRODUCTION RELEASE
+name: ­ƒÜÇ iOS PRODUCTION RELEASE
+
+concurrency:
+  group: ios-release-lock
+  cancel-in-progress: true
+
 on:
+  push:
+    branches:
+      - prod-release-1170
   workflow_dispatch:
     inputs:
-      version_bump:
-        description: 'Tipo de incremento (patch, minor, major)'
+      release_approved:
+        description: 'Aprovar build de produ├º├úo?'
         required: true
-        default: 'patch'
+        default: 'true'
+        type: boolean
+      build_mode:
+        description: 'Modo de Build'
+        required: true
+        default: 'LOCAL'
+        type: choice
+        options:
+          - LOCAL
+          - CLOUD
 
 jobs:
-  ios-production:
+  ios-hybrid-pipeline:
+    name: Hybrid Pipeline
     runs-on: macos-latest
+    timeout-minutes: 90
+    
+    env:
+      RELEASE_APPROVED: ${{ github.event.inputs.release_approved == 'true' || github.event_name == 'push' }}
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      GOOGLE_SERVICES_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64 }}
+      EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+      EXPO_PUBLIC_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_PROJECT_ID }}
+      EXPO_PUBLIC_APP_NAME: ${{ secrets.EXPO_PUBLIC_APP_NAME }}
+      EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+      EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+      EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
+      EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID }}
+      EXPO_PUBLIC_FIREBASE_DATABASE_URL: ${{ secrets.EXPO_PUBLIC_FIREBASE_DATABASE_URL }}
+      EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+      EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+      EXPO_PUBLIC_MONITORING_REMOTE_ENABLED: ${{ secrets.EXPO_PUBLIC_MONITORING_REMOTE_ENABLED }}
+      PROFILE: "production"
+      FORCE_BUILD_MODE: ${{ github.event.inputs.build_mode || 'LOCAL' }}
+      FIXED_BUILD_NUMBER: 1170
+
     steps:
-      - name: 🏗️ 1. Checkout Main (Production)
+      - name: ­ƒº╣ Clean Previous Zombie Processes
+        run: |
+          echo "­ƒº╣ [CLEAN] Killing previous zombie build processes..."
+          killall xcodebuild || true
+          killall SWBBuildService || true
+          killall node || true
+          killall tail || true
+
+      - name: ­ƒöì Debug Context & Environment
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Release Approved: $RELEASE_APPROVED"
+          echo "Xcode version:"
+          xcodebuild -version
+          echo "Available SDKs:"
+          xcodebuild -showsdks
+
+      - name: ­ƒÅù´©Å Checkout Repository
         uses: actions/checkout@v4
         with:
           ref: prod-release-1170
 
-      - name: 🟢 2. Setup Node.js (Fixed Node 20)
+      - name: ­ƒƒó Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: 📦 3. Install Dependencies (Clean)
-        run: npm ci
-
-      - name: � 3.1. Prepare Config Files
+      - name: ­ƒøí´©Å Hardening macOS Runner Environment
         run: |
-          # Use sed to handle escaped newlines if present
-          echo "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" | sed 's/\\n/\n/g' > GoogleService-Info.plist
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | sed 's/\\n/\n/g' > google-services.json
+          # 1. Fix Xcode path
+          sudo xcode-select -s /Applications/Xcode.app
           
-          # Check if files are created and valid
-          if [ ! -s "GoogleService-Info.plist" ]; then echo "❌ GoogleService-Info.plist is empty"; exit 1; fi
-          if [ ! -s "google-services.json" ]; then echo "❌ google-services.json is empty"; exit 1; fi
+          # 2. Fix Ruby/CocoaPods environment (LibYAML issue)
+          brew install libyaml || brew link --overwrite libyaml
           
-          echo "✅ Config files prepared."
-        env:
-          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          # 3. Fix npm/node-gyp issues
+          npm install -g node-gyp
+          
+          # 4. Global EAS CLI
+          npm install -g eas-cli@latest
+          
+          # 4.1 Global ts-node (Required for PipelineOrchestrator)
+          npm install -g ts-node
+          
+          # 5. Set CI environment variables
+          echo "CI=true" >> $GITHUB_ENV
+          echo "TERM=dumb" >> $GITHUB_ENV
 
-      - name: � 4. Hard Typecheck & Lint
+      - name: ­ƒôª Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: ­ƒôì Typecheck
+        run: npm run type-check
+
+      - name: ­ƒøí´©Å Build Number Enforcer (Source of Truth)
         run: |
-          npm run type-check
-
-      - name: 🔢 5. Increment Build Number
-        run: node ./scripts/prepare-ios-build.js
-        env:
-          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-
-      - name: 🔐 5.1. Cleanup & Prepare Credentials
+          echo "­ƒöä [ENFORCE] Sincronizando Build Number (V7.0)..."
+          # Ensure build number is 1170
+          node scripts/prepare-ios-build.js
+          
+          # Exportar vari├íveis para o ambiente do runner
+          BUILD_NUMBER=$(jq -r '.expo.ios.buildNumber' app.json)
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "CURRENT_BN=$BUILD_NUMBER" >> $GITHUB_ENV
+          
+      - name: ­ƒÄ¿ Verify Assets Integrity
         run: |
-          # Cleanup conflicts
-          unset IOS_DIST_CERT_BASE64
-          unset IOS_PROV_PROFILE_BASE64
-          unset IOS_CERT_PASSWORD
-          unset EXPO_APP_STORE_CONNECT_API_KEY
-
-          # Normalize ASC Private Key
-          echo "${{ secrets.EXPO_ASC_PRIVATE_KEY }}" | sed 's/\\n/\n/g' > AuthKey.p8
-          
-          echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
-          cat AuthKey.p8 >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-          
-          # Verificar se a chave foi criada
-          if [ ! -s "AuthKey.p8" ]; then echo "❌ AuthKey.p8 is empty"; exit 1; fi
-          ls -l AuthKey.p8
-        env:
-          EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
-
-      - name: 🚀 6. Prepare Native & Execute EAS Local Build
-        run: |
-          echo "--- 🔍 Debug Config ---"
-          ls -la GoogleService-Info.plist google-services.json
-          npx expo config --type prebuild
-          
-          echo "--- 🛠️ Starting Expo Prebuild ---"
-          # Use --no-install to separate pod install for better debugging
-          EXPO_DEBUG=1 npx expo prebuild --platform ios --non-interactive --no-install --verbose 2>&1 | tee prebuild.log || {
-            echo "❌ Expo Prebuild Failed. Last 100 lines of log:"
-            tail -n 100 prebuild.log
-            exit 1
-          }
-          
-          if [ ! -d "ios" ]; then
-            echo "❌ Error: 'ios' directory was not created by prebuild."
+          echo "­ƒöì [ASSETS] Verificando integridade das imagens..."
+          if [ ! -f "assets/app-icon.png" ]; then
+            echo "ÔØî [FATAL] assets/app-icon.png n├úo encontrado!"
             exit 1
           fi
-
-          echo "--- 📦 Starting Pod Install ---"
-          cd ios
-          # Ensure CocoaPods is using the right encoding
-          export LANG=en_US.UTF-8
-          pod install --repo-update --verbose 2>&1 | tee ../pod_install.log || { 
-            echo "❌ Pod install failed. Last 100 lines of log:"
-            tail -n 100 ../pod_install.log
-            exit 1; 
-          }
-          cd ..
-          
-          echo "--- 🚀 Starting EAS Local Build ---"
-          # Ensure all env vars are available
-          EXPO_DEBUG=1 npx eas build --platform ios --local --profile production --non-interactive --verbose 2>&1 | tee eas_build.log || {
-            echo "❌ EAS Build Failed. Last 100 lines of log:"
-            tail -n 100 eas_build.log
+          if [ ! -f "assets/splash.png" ]; then
+            echo "ÔØî [FATAL] assets/splash.png n├úo encontrado!"
             exit 1
-          }
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-          EXPO_ASC_PRIVATE_KEY: ${{ env.EXPO_ASC_PRIVATE_KEY }}
-          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
-          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-          EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
-          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
-          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-          EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
-          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
-          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
-          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-          EXPO_DEBUG: 1
-          EXPO_PUBLIC_APP_ENV: production
-          EXPO_PUBLIC_APP_NAME: "Açucaradas Encomendas"
-          EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
+          fi
+          echo "Ô£à [OK] Assets detectados com sucesso."
 
-      - name: 🍎 8. Submit to TestFlight
+      - name: ­ƒøí´©Å iOS-BUILD-GUARDIAN (Local Mode)
         run: |
-          npx eas submit -p ios --latest --non-interactive
+          chmod +x ./scripts/ci/ios-build-guardian.sh
+          EXPO_DEBUG=1 ./scripts/ci/ios-build-guardian.sh
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-          EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+          FORCE_BUILD_MODE: "LOCAL"
+          DEBUG: "eas:*"
+          PROFILE: "production"
 
-      - name: 🏁 9. Final Report
-        run: |
-          echo "✅ Build de Produção concluído e enviado ao TestFlight."
-          echo "Build Number: $(cat version-state.json | jq -r .buildNumber)"
+      - name: ­ƒôª Upload iOS Artifact (.ipa)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-ipa
+          path: |
+            dist/app.ipa
+            build-logs/ios-build-log.json
+          if-no-files-found: warn
+          retention-days: 7
