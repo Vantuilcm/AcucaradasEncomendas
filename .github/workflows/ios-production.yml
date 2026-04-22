@@ -57,17 +57,11 @@ jobs:
           echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
           cat AuthKey.p8 >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+          
+          # Verificar se a chave foi criada
+          ls -l AuthKey.p8
         env:
           EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
-
-      - name: 🔄 5.2. Sync Credentials
-        run: |
-          npx eas credentials:sync -p ios --profile production --non-interactive
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-          EXPO_ASC_PRIVATE_KEY: ${{ env.EXPO_ASC_PRIVATE_KEY }}
 
       - name: 🧹 6. Expo Prebuild Clean (Production)
         run: npx expo prebuild --platform ios --clean
