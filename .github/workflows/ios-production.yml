@@ -33,13 +33,15 @@ jobs:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
-      - name: �🔍 4. Hard Typecheck & Lint
+      - name: � 4. Hard Typecheck & Lint
         run: |
           npm run type-check
           # npm run lint (Descomentar se existir script)
 
       - name: 🔢 5. Increment Build Number
-        run: echo "Build number already set to 1170 in app.json"
+        run: node ./scripts/prepare-ios-build.js
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
 
       - name: 🧹 6. Expo Prebuild Clean (Production)
         run: npx expo prebuild --platform ios --clean

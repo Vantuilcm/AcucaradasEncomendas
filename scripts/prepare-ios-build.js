@@ -10,7 +10,7 @@ function prepare() {
   console.log('\n--- 🍎 PREPARAÇÃO PARA BUILD IOS (GITHUB FREE) ---');
 
   const appJsonPath = path.join(process.cwd(), 'app.json');
-  const minBuildNumber = 362;
+  const minBuildNumber = 1170;
   if (fs.existsSync(appJsonPath)) {
     try {
       const raw = fs.readFileSync(appJsonPath, 'utf8');
