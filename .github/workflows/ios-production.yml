@@ -63,18 +63,17 @@ jobs:
         env:
           EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
 
-      - name: 🧹 6. Expo Prebuild Clean (Production)
+      - name: 🚀 6. Prepare Native & Execute EAS Local Build
         run: |
-          npx expo prebuild --platform ios --clean
+          # 1. Expo Prebuild
+          npx expo prebuild --platform ios --non-interactive
+          
+          # 2. Pod Install
           cd ios
           pod install
           cd ..
-        env:
-          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-
-      - name: 🚀 7. Execute EAS Production Build
-        run: |
+          
+          # 3. EAS Local Build
           EXPO_DEBUG=1 npx eas build --platform ios --local --profile production --non-interactive --verbose
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
