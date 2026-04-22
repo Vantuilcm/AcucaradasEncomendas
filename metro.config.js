@@ -5,6 +5,8 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.blockList = exclusionList([
   /node_modules_old\/.*/,
+  /backup-protecao\/.*/,
+  /temp_jest_v29\/.*/,
 ]);
 
 config.resolver.sourceExts.push('mjs');
