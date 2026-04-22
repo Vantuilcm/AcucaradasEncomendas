@@ -50,9 +50,8 @@ if ! command -v xcodebuild &> /dev/null; then
 fi
 
 ## ETAPA 2 — PRÉ-VALIDAÇÃO E LIMPEZA TOTAL (ANTI-CACHE)
-echo "🧹 [INFO] Limpeza TOTAL do ambiente (Anti-Cache)..."
-# Limpeza agressiva solicitada pela missão BuildIntegrityEnforcerAI
-rm -rf node_modules
+echo "🧹 [INFO] Limpeza seletiva do ambiente (Anti-Cache)..."
+# Limpeza inteligente para evitar reinstalação de node_modules desnecessária
 rm -rf ios
 rm -rf dist
 rm -f app.ipa
@@ -61,8 +60,8 @@ rm -rf ~/.eas
 rm -rf .expo
 mkdir -p dist build-logs
 
-echo "📦 [INSTALL] Reinstalando dependências (npm install)..."
-npm install --legacy-peer-deps
+# echo "📦 [INSTALL] Reinstalando dependências (npm install)..."
+# npm install --legacy-peer-deps
 
 # Verificação de Variáveis Críticas
 MISSING_VARS=()
@@ -300,9 +299,9 @@ run_build_with_retry() {
         # 1. Configurar Keychain
         setup_macos_keychain
 
-        # 2. Sincronizar Credenciais (Opcional se as variáveis de ambiente estiverem corretas)
-        # echo "🔄 [SYNC] Sincronizando credenciais ASC via EAS..."
-        # npx eas credentials:sync --platform ios --non-interactive
+        # 2. Sincronizar Credenciais (Obrigatório para build LOCAL CI)
+        echo "🔄 [SYNC] Sincronizando credenciais ASC via EAS..."
+        npx eas credentials:sync --platform ios --non-interactive
 
         # 3. Limpeza rápida antes de cada tentativa local
         rm -rf ios .expo
