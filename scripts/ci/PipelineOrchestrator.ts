@@ -38,7 +38,8 @@ class PipelineOrchestrator {
 
   constructor() {
     const configPath = path.resolve(process.cwd(), 'apps.config.json');
-    this.config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const content = fs.readFileSync(configPath, 'utf-8').replace(/^\uFEFF/, '');
+    this.config = JSON.parse(content);
     this.currentApp = process.env.TARGET_APP || this.config.defaultApp;
     this.currentEnv = process.env.APP_ENV || 'production';
 
