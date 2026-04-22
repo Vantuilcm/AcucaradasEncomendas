@@ -6,8 +6,15 @@ export default ({ config }) => {
   const buildNumber = "1170";
   const versionCode = 1170;
 
+  // Injetar plugins personalizados
+  const plugins = config.plugins || [];
+  if (!plugins.some(p => (Array.isArray(p) ? p[0] : p) === "./plugins/withIosPermissions")) {
+    plugins.push("./plugins/withIosPermissions");
+  }
+
   return {
     ...config,
+    plugins: plugins,
     version: "1.0.1", // Mantendo fixo conforme solicitado ou pode ser dinâmico
     ios: {
       ...config.ios,

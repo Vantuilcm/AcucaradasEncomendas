@@ -298,9 +298,10 @@ run_build_with_retry() {
         setup_macos_keychain
 
         # 2. Sincronizar Credenciais (Obrigatório para build LOCAL CI)
-        echo "🔄 [SYNC] Sincronizando credenciais ASC via EAS..."
+        echo "🔄 [SYNC] Configurando credenciais via EAS..."
         set -x
-        npx eas credentials:sync --platform ios --non-interactive || { echo "❌ [ERROR] eas credentials:sync falhou!"; set +x; return 1; }
+        # npx eas credentials:sync foi removido pois não existe no EAS CLI atual.
+        # O eas build --local utilizará as variáveis EXPO_ASC_* automaticamente.
         set +x
 
         # 3. Limpeza rápida antes de cada tentativa local
