@@ -3,8 +3,8 @@ export default ({ config }) => {
   const isPreview = process.env.APP_ENV === "preview" || process.env.EXPO_PUBLIC_APP_ENV === "preview";
 
   // Incremento automático baseado no ambiente ou variável de build
-  const buildNumber = process.env.GITHUB_RUN_NUMBER || config.ios?.buildNumber || "1";
-  const versionCode = process.env.GITHUB_RUN_NUMBER ? parseInt(process.env.GITHUB_RUN_NUMBER) : (config.android?.versionCode || 1);
+  const buildNumber = "1170";
+  const versionCode = 1170;
 
   return {
     ...config,
