@@ -101,9 +101,6 @@ jobs:
           # 4. Global EAS CLI
           npm install -g eas-cli@latest
           
-          # 4.1 Global ts-node (Required for PipelineOrchestrator)
-          npm install -g ts-node
-          
           # 5. Set CI environment variables
           echo "CI=true" >> $GITHUB_ENV
           echo "TERM=dumb" >> $GITHUB_ENV
