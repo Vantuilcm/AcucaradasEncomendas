@@ -46,6 +46,12 @@ jobs:
       - name: 🔑 5.1. Normalize ASC Private Key
         run: |
           echo "${{ secrets.EXPO_ASC_PRIVATE_KEY }}" | sed 's/\\n/\n/g' > AuthKey.p8
+          if grep -q "BEGIN PRIVATE KEY" AuthKey.p8; then
+            echo "✅ Private key normalized successfully"
+          else
+            echo "❌ Private key normalization failed"
+            exit 1
+          fi
           echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
           cat AuthKey.p8 >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -53,7 +59,7 @@ jobs:
           EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
 
       - name: 🔐 5.2. Sync Credentials
-        run: npx eas credentials:sync -p ios --non-interactive
+        run: EXPO_DEBUG=1 npx eas credentials:sync -p ios --profile production --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
