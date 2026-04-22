@@ -34,7 +34,7 @@ jobs:
     
     env:
       RELEASE_APPROVED: ${{ github.event.inputs.release_approved == 'true' || contains(github.event.head_commit.message, '[release]') || github.event_name == 'workflow_dispatch' }}
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      # FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true (Removido para estabilidade)
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
       EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
@@ -97,7 +97,7 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: 'npm'
 
       - name: 🛠️ Hardening macOS Runner Environment

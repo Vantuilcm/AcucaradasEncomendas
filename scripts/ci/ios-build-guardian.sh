@@ -143,7 +143,7 @@ run_build_with_retry() {
         echo "🚀 [BUILD] Tentativa $attempt de $max_attempts..."
         
         set +e
-        EXPO_DEBUG=1 npx eas build --platform ios --local --profile "$PROFILE" --non-interactive 2>&1 | tee "$BUILD_LOG"
+        EAS_LOCAL_BUILD_SKIP_CLEANUP=1 EXPO_DEBUG=1 npx eas build --platform ios --local --profile "$PROFILE" --non-interactive --verbose 2>&1 | tee "$BUILD_LOG"
         local current_exit_code=${PIPESTATUS[0]}
         set -e
         

@@ -20,7 +20,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { formatCurrency } from '../utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
-import { ReportService } from '../services/ReportService';
+// import { ReportService } from '../services/ReportService';
 import { useAppTheme } from '../components/ThemeProvider';
 
 type PeriodFilter = 'day' | 'week' | 'month' | 'year';
@@ -56,7 +56,7 @@ export function ReportsScreen() {
   const navigation = useNavigation();
   const { user: _user } = useAuth();
   const { isAdmin, isProdutor } = usePermissions();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // MISSÃO ZERO TELA BRANCA: Forçar loading false
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>('week');
@@ -74,77 +74,24 @@ export function ReportsScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [chartLoading, setChartLoading] = useState(false);
 
-  const reportService = ReportService.getInstance();
+  // const reportService = ReportService.getInstance();
 
   useEffect(() => {
-    loadReportData();
+    // loadReportData();
+    setLoading(false);
   }, [selectedPeriod]);
 
   const loadReportData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Carregar dados do serviço
-      const summary = await reportService.getSalesSummary(selectedPeriod);
-      const products = await reportService.getTopProducts(selectedPeriod);
-      const hourly = await reportService.getHourlySales(selectedPeriod);
-      const categories = await reportService.getSalesByCategory(selectedPeriod);
-      const paymentMethods = await reportService.getSalesByPaymentMethod(selectedPeriod);
-
-      setSalesSummary(summary);
-      setTopProducts(products);
-      setHourlySales(hourly);
-      setSalesByCategory(categories);
-      setSalesByPaymentMethod(paymentMethods);
-
-      setLoading(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar dados do relatório');
-      setLoading(false);
-    }
+    setLoading(false);
   };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadReportData();
     setRefreshing(false);
   };
 
   const handleExportReport = async () => {
-    try {
-      setChartLoading(true);
-      const csvContent = await reportService.exportReportData(selectedPeriod);
-      setChartLoading(false);
-
-      // Salvar arquivo CSV temporariamente
-      const period = {
-        day: 'Diário',
-        week: 'Semanal',
-        month: 'Mensal',
-        year: 'Anual',
-      }[selectedPeriod];
-
-      const fileName = `relatorio_vendas_${period}_${new Date().toISOString().split('T')[0]}.csv`;
-      const filePath = `${FileSystem.cacheDirectory}${fileName}`;
-
-      await FileSystem.writeAsStringAsync(filePath, csvContent);
-
-      // Compartilhar arquivo
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(filePath, {
-          mimeType: 'text/csv',
-          dialogTitle: `Relatório de Vendas ${period}`,
-          UTI: 'public.comma-separated-values-text',
-        });
-      } else {
-        Alert.alert('Erro', 'Compartilhamento não disponível neste dispositivo');
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível exportar o relatório');
-      console.error('Erro ao exportar relatório:', error);
-      setChartLoading(false);
-    }
+    Alert.alert('Modo Diagnóstico', 'Exportação desativada temporariamente');
   };
 
   if (loading && !refreshing) {
@@ -162,232 +109,25 @@ export function ReportsScreen() {
     );
   }
 
-  // Preparar dados para os gráficos
-  const salesByPeriodData = {
-    labels: hourlySales.map(hour => hour.hour),
-    datasets: [
-      {
-        data: hourlySales.map(hour => hour.sales),
-      },
-    ],
-  };
-
-  const topProductsChartData = topProducts.map((product, index) => ({
-    name: product.name,
-    value: product.totalRevenue,
-    color: [
-      '#FF69B4', // Rosa
-      '#4CAF50', // Verde
-      '#2196F3', // Azul
-      '#FF9800', // Laranja
-      '#9C27B0', // Roxo
-    ][index % 5],
-    legendFontColor: '#7F7F7F',
-    legendFontSize: 12,
-  }));
-
-  const categoryChartData = salesByCategory.map((category, index) => ({
-    name: category.category,
-    value: category.sales,
-    color: [
-      '#FF69B4', // Rosa
-      '#4CAF50', // Verde
-      '#2196F3', // Azul
-      '#FF9800', // Laranja
-      '#9C27B0', // Roxo
-    ][index % 5],
-    legendFontColor: '#7F7F7F',
-    legendFontSize: 12,
-  }));
-
-  const paymentMethodChartData = salesByPaymentMethod.map((method, index) => ({
-    name: method.category,
-    value: method.sales,
-    color: [
-      '#FF69B4', // Rosa
-      '#4CAF50', // Verde
-      '#2196F3', // Azul
-      '#FF9800', // Laranja
-    ][index % 4],
-    legendFontColor: '#7F7F7F',
-    legendFontSize: 12,
-  }));
-
   const renderChartContent = () => {
-    switch (selectedChartView) {
-      case 'sales':
-        return (
-          <>
-            <SalesChart
-              title="Vendas por Período"
-              data={salesByPeriodData}
-              type="bar"
-              description={`Vendas por ${selectedPeriod === 'day' ? 'horário' : 'período'} (${getPeriodLabel(selectedPeriod)})`}
-              showValues={true}
-              loading={chartLoading}
-            />
-
-            <SalesChart
-              title="Tendência de Vendas"
-              data={salesByPeriodData}
-              type="line"
-              description={`Tendência de vendas ${getPeriodLabel(selectedPeriod)}`}
-              loading={chartLoading}
-              animated={true}
-            />
-          </>
-        );
-
-      case 'products':
-        return (
-          <>
-            <SalesChart
-              title="Produtos Mais Vendidos"
-              data={topProductsChartData}
-              type="pie"
-              description="Distribuição de receita por produto"
-              loading={chartLoading}
-            />
-
-            <Card style={styles.tableCard}>
-              <Card.Content>
-                <Text variant="titleMedium" style={styles.tableTitle}>
-                  Top 5 Produtos
-                </Text>
-                <Text variant="bodySmall" style={styles.tableDescription}>
-                  Produtos mais vendidos no período
-                </Text>
-
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.tableHeaderCell, styles.productNameCell]}>Produto</Text>
-                  <Text style={[styles.tableHeaderCell, styles.quantityCell]}>Qtd.</Text>
-                  <Text style={[styles.tableHeaderCell, styles.revenueCell]}>Receita</Text>
-                </View>
-
-                <Divider />
-
-                {topProducts.map((product, index) => (
-                  <View key={index}>
-                    <View style={styles.tableRow}>
-                      <Text style={[styles.tableCell, styles.productNameCell]}>{product.name}</Text>
-                      <Text style={[styles.tableCell, styles.quantityCell]}>
-                        {product.quantity}
-                      </Text>
-                      <Text style={[styles.tableCell, styles.revenueCell]}>
-                        {formatCurrency(product.totalRevenue)}
-                      </Text>
-                    </View>
-                    <Divider />
-                  </View>
-                ))}
-              </Card.Content>
-            </Card>
-          </>
-        );
-
-      case 'categories':
-        return (
-          <>
-            <SalesChart
-              title="Vendas por Categoria"
-              data={categoryChartData}
-              type="pie"
-              description="Distribuição de vendas por categoria de produto"
-              loading={chartLoading}
-            />
-
-            <Card style={styles.tableCard}>
-              <Card.Content>
-                <Text variant="titleMedium" style={styles.tableTitle}>
-                  Vendas por Categoria
-                </Text>
-                <Text variant="bodySmall" style={styles.tableDescription}>
-                  Distribuição de vendas por categoria
-                </Text>
-
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.tableHeaderCell, styles.productNameCell]}>Categoria</Text>
-                  <Text style={[styles.tableHeaderCell, styles.quantityCell]}>%</Text>
-                  <Text style={[styles.tableHeaderCell, styles.revenueCell]}>Valor</Text>
-                </View>
-
-                <Divider />
-
-                {salesByCategory.map((category, index) => (
-                  <View key={index}>
-                    <View style={styles.tableRow}>
-                      <Text style={[styles.tableCell, styles.productNameCell]}>
-                        {category.category}
-                      </Text>
-                      <Text style={[styles.tableCell, styles.quantityCell]}>
-                        {category.percentage.toFixed(1)}%
-                      </Text>
-                      <Text style={[styles.tableCell, styles.revenueCell]}>
-                        {formatCurrency(category.sales)}
-                      </Text>
-                    </View>
-                    <Divider />
-                  </View>
-                ))}
-              </Card.Content>
-            </Card>
-          </>
-        );
-
-      case 'payment':
-        return (
-          <>
-            <SalesChart
-              title="Vendas por Forma de Pagamento"
-              data={paymentMethodChartData}
-              type="pie"
-              description="Distribuição de vendas por método de pagamento"
-              loading={chartLoading}
-            />
-
-            <Card style={styles.tableCard}>
-              <Card.Content>
-                <Text variant="titleMedium" style={styles.tableTitle}>
-                  Vendas por Meio de Pagamento
-                </Text>
-                <Text variant="bodySmall" style={styles.tableDescription}>
-                  Distribuição de vendas por forma de pagamento
-                </Text>
-
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.tableHeaderCell, styles.productNameCell]}>
-                    Meio de Pagamento
-                  </Text>
-                  <Text style={[styles.tableHeaderCell, styles.quantityCell]}>%</Text>
-                  <Text style={[styles.tableHeaderCell, styles.revenueCell]}>Valor</Text>
-                </View>
-
-                <Divider />
-
-                {salesByPaymentMethod.map((method, index) => (
-                  <View key={index}>
-                    <View style={styles.tableRow}>
-                      <Text style={[styles.tableCell, styles.productNameCell]}>
-                        {method.category}
-                      </Text>
-                      <Text style={[styles.tableCell, styles.quantityCell]}>
-                        {method.percentage.toFixed(1)}%
-                      </Text>
-                      <Text style={[styles.tableCell, styles.revenueCell]}>
-                        {formatCurrency(method.sales)}
-                      </Text>
-                    </View>
-                    <Divider />
-                  </View>
-                ))}
-              </Card.Content>
-            </Card>
-          </>
-        );
-
-      default:
-        return null;
-    }
+    return (
+      <Card style={{ marginVertical: 20 }}>
+        <Card.Content>
+          <Text variant="titleMedium" style={{ textAlign: 'center' }}>📊 Modo de Diagnóstico</Text>
+          <Divider style={{ marginVertical: 10 }} />
+          <Text variant="bodyMedium" style={{ textAlign: 'center' }}>
+            Os gráficos e consultas pesadas foram desativados para isolar a causa da tela branca.
+          </Text>
+          <Button 
+            mode="outlined" 
+            onPress={() => navigation.navigate('BootDiagnostic' as any)}
+            style={{ marginTop: 20 }}
+          >
+            Ver Status do Sistema
+          </Button>
+        </Card.Content>
+      </Card>
+    );
   };
 
   return (

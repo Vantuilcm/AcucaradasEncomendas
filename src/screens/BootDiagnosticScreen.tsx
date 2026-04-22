@@ -37,6 +37,11 @@ const BootDiagnosticScreen = () => {
         </View>
 
         <View style={styles.card}>
+          <Text style={styles.label}>Build Number:</Text>
+          <Text style={styles.value}>1170</Text>
+        </View>
+
+        <View style={styles.card}>
           <Text style={styles.label}>isReady:</Text>
           <Text style={styles.value}>✅ True (Screen mounted)</Text>
         </View>

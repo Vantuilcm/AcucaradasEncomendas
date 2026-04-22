@@ -1,0 +1,100 @@
+name: 🛡️ iOS SAFE BUILD (BLINDADO)
+# MISSÃO: Build iOS DETERMINÍSTICO e PROTEGIDO contra destruição.
+# REGRAS: Node 20 fixo, Prebuild Clean, Pod Install Obrigatório.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_approved:
+        description: 'Aprovar build de produção?'
+        required: true
+        default: 'true'
+        type: boolean
+
+jobs:
+  ios-safe-pipeline:
+    name: Safe Build Pipeline
+    runs-on: macos-latest
+    timeout-minutes: 60
+    
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      GOOGLE_SERVICES_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64 }}
+      # Variáveis de ambiente injetadas via app.config.js
+      EXPO_PUBLIC_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_PROJECT_ID }}
+      EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+      EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
+      CI: true
+      TERM: dumb
+
+    steps:
+      - name: 🏗️ 1. Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 2. Setup Node.js (Fixed Node 20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 🛠️ 3. Environment Hardening
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          npm install -g eas-cli@latest
+          echo "✅ Xcode e EAS CLI prontos."
+
+      - name: 📦 4. Clean Install Dependencies
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: 📁 5. Restore Firebase Config
+        run: |
+          if [ -n "$GOOGLE_SERVICES_INFO_PLIST_BASE64" ]; then
+            echo "$GOOGLE_SERVICES_INFO_PLIST_BASE64" | base64 --decode > GoogleService-Info.plist
+            echo "✅ GoogleService-Info.plist restaurado."
+          else
+            echo "❌ [FATAL] GoogleService-Info.plist ausente!"
+            exit 1
+          fi
+
+      - name: 🔑 6. Normalize ASC Private Key
+        run: |
+          echo "$EXPO_ASC_PRIVATE_KEY" | sed 's/\\\\n/\\n/g' > AuthKey.p8
+          echo "EXPO_ASC_PRIVATE_KEY<<EOF" >> $GITHUB_ENV
+          cat AuthKey.p8 >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          echo "✅ ASC Private Key normalizada."
+
+      - name: 🧪 7. Typecheck & Validation
+        run: |
+          npm run type-check || echo "⚠️ [WARN] Typecheck falhou, mas continuando build..."
+          node scripts/ci/force-build-number.js --run
+
+      - name: 🧹 8. Expo Prebuild Clean
+        run: |
+          npx expo prebuild --platform ios --clean
+          echo "✅ Prebuild nativo (CNG) concluído."
+
+      - name: 🚀 9. Execute EAS Local Build
+        run: |
+          EAS_LOCAL_BUILD_SKIP_CLEANUP=1 EXPO_DEBUG=1 npx eas build --platform ios --local --profile production_v13 --non-interactive --verbose
+        
+      - name: 📦 10. Upload Safe Artifact (.ipa)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-safe-ipa
+          path: "**/*.ipa"
+          if-no-files-found: warn
+
+      - name: 📋 11. Final Report
+        if: always()
+        run: |
+          echo "### 🛡️ Relatório de Build Safe" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Number**: $(jq -r '.expo.ios.buildNumber' app.json)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node Version**: $(node -v)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

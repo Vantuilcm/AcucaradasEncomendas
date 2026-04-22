@@ -1,0 +1,57 @@
+name: 🚀 iOS PRODUCTION RELEASE
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Tipo de incremento (patch, minor, major)'
+        required: true
+        default: 'patch'
+
+jobs:
+  ios-production:
+    runs-on: macos-latest
+    steps:
+      - name: 🏗️ 1. Checkout Main (Production)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 🟢 2. Setup Node.js (Fixed Node 20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 3. Install Dependencies (Clean)
+        run: npm ci
+
+      - name: 🔍 4. Hard Typecheck & Lint
+        run: |
+          npm run type-check
+          # npm run lint (Descomentar se existir script)
+
+      - name: 🔢 5. Increment Build Number
+        run: npm run force-build-number -- --inc
+
+      - name: 🧹 6. Expo Prebuild Clean (Production)
+        run: npx expo prebuild --platform ios --clean
+
+      - name: 🚀 7. Execute EAS Production Build
+        run: |
+          EXPO_DEBUG=1 npx eas build --platform ios --local --profile production_v13 --non-interactive --verbose
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🍎 8. Submit to TestFlight
+        run: |
+          npx eas submit -p ios --latest --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+          EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+
+      - name: 🏁 9. Final Report
+        run: |
+          echo "✅ Build de Produção concluído e enviado ao TestFlight."
+          echo "Build Number: $(cat version-state.json | jq -r .buildNumber)"

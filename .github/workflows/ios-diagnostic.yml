@@ -1,0 +1,47 @@
+name: 🧪 iOS DIAGNOSTIC BUILD
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch para diagnóstico'
+        required: true
+        default: 'lab/diagnostic'
+
+jobs:
+  ios-diagnostic:
+    runs-on: macos-latest
+    steps:
+      - name: 🏗️ 1. Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: 🟢 2. Setup Node.js (Fixed Node 20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 3. Install Dependencies
+        run: npm ci
+
+      - name: 🔍 4. Run Typecheck
+        run: npx tsc --noEmit
+
+      - name: 🛠️ 5. Expo Prebuild (Diagnostic Mode)
+        run: |
+          npx expo prebuild --platform ios --clean
+          echo "✅ Prebuild nativo concluído para diagnóstico."
+
+      - name: 🚀 6. Execute EAS Local Build (Verbose)
+        run: |
+          EAS_LOCAL_BUILD_SKIP_CLEANUP=1 EXPO_DEBUG=1 npx eas build --platform ios --local --profile production_v13 --non-interactive --verbose
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🎁 7. Upload Diagnostic Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-diagnostic-ipa
+          path: ./dist/*.ipa
+          if-no-files-found: error
