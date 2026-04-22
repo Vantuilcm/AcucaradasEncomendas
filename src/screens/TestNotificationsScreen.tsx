@@ -390,7 +390,11 @@ export default function TestNotificationsScreen({ navigation }: { navigation: an
             timestamp: new Date().toISOString(),
           },
         },
-        trigger: { seconds: 3 },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 3,
+          repeats: false,
+        } as Notifications.NotificationTriggerInput,
       });
 
       Alert.alert(

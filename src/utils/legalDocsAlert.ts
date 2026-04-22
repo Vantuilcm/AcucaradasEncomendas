@@ -79,7 +79,11 @@ export async function sendLegalDocsAlert(
         body,
         data: { diagnostics },
       },
-      trigger: null, // Mostrar imediatamente
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 1,
+        repeats: false,
+      } as any, // Mostrar quase imediatamente com o tipo correto para evitar erro de TSC
     });
   }
 

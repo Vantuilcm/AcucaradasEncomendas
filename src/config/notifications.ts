@@ -45,13 +45,13 @@ export const requestNotificationPermission = async () => {
       if (Constants.expoConfig?.extra?.eas?.projectId) {
         tokenOptions.projectId = Constants.expoConfig.extra.eas.projectId;
       }
-      // Fallback para a estrutura antiga do Constants
-      else if (Constants.manifest?.extra?.eas?.projectId) {
-        tokenOptions.projectId = Constants.manifest.extra.eas.projectId;
+      // Fallback para a estrutura do expoConfig se manifest não estiver disponível
+      else if (Constants.expoConfig?.extra?.eas?.projectId) {
+        tokenOptions.projectId = Constants.expoConfig.extra.eas.projectId;
       }
-      // Usar o ID do manifesto como fallback
-      else if (Constants.manifest?.id) {
-        (tokenOptions as any).experienceId = Constants.manifest.id;
+      // Usar o slug do expoConfig como fallback para experienceId
+      else if (Constants.expoConfig?.slug) {
+        (tokenOptions as any).experienceId = `@vantuiljunior/${Constants.expoConfig.slug}`;
       }
       // Último recurso: usar o valor definido no app.json
       else {

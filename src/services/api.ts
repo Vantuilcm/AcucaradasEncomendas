@@ -53,19 +53,18 @@ api.interceptors.request.use(
   async (config) => {
     const token = await getAuthToken();
     if (!config.headers) {
-      config.headers = {};
+      config.headers = axios.create().defaults.headers as any;
     }
 
     if (token) {
-      // @ts-ignore
-      config.headers.Authorization = `Bearer ${token}`;
+      if (config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     
     // Adicionar headers específicos para mobile
-    if (Platform.OS !== 'web') {
-      // @ts-ignore
+    if (Platform.OS !== 'web' && config.headers) {
       config.headers['X-Platform'] = Platform.OS;
-      // @ts-ignore
       config.headers['X-App-Version'] = Constants.expoConfig?.version || '1.0.0';
     }
     

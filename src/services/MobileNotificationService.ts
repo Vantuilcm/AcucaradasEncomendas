@@ -111,17 +111,13 @@ export class MobileNotificationService {
    * Obtém o ID do projeto Expo
    */
   private getProjectId(): string {
-    // Tenta obter o projectId de diferentes fontes
+    // Tenta obter o projectId do expoConfig (Expo SDK 48+)
     let projectId = '';
 
     if (Constants.expoConfig?.extra?.eas?.projectId) {
       projectId = Constants.expoConfig.extra.eas.projectId;
-    } else if (Constants.manifest?.extra?.eas?.projectId) {
-      projectId = Constants.manifest.extra.eas.projectId;
     } else if ((Constants.expoConfig as any)?.projectId) {
       projectId = (Constants.expoConfig as any).projectId;
-    } else if ((Constants.manifest as any)?.projectId) {
-      projectId = (Constants.manifest as any).projectId;
     } else {
       // Valor fixo para desenvolvimento
       projectId = 'your-project-id';
@@ -282,6 +278,21 @@ export class MobileNotificationService {
     trigger: Notifications.NotificationTriggerInput = null
   ): Promise<string> {
     try {
+      // Normalizar trigger para incluir type: 'timeInterval' se necessário
+      let normalizedTrigger = trigger;
+      if (typeof trigger === 'number') {
+        normalizedTrigger = {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: trigger,
+          repeats: false,
+        };
+      } else if (trigger && typeof trigger === 'object' && 'seconds' in trigger && !('type' in trigger)) {
+        normalizedTrigger = {
+          ...(trigger as any),
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        } as Notifications.NotificationTriggerInput;
+      }
+
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
           title,
@@ -289,7 +300,7 @@ export class MobileNotificationService {
           data,
           sound: 'default',
         },
-        trigger,
+        trigger: normalizedTrigger,
       });
 
       loggingService.info(`Notificação local agendada com ID ${identifier}`);
