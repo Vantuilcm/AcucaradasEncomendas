@@ -65,15 +65,20 @@ jobs:
 
       - name: 🚀 6. Prepare Native & Execute EAS Local Build
         run: |
-          # 1. Expo Prebuild
-          npx expo prebuild --platform ios --non-interactive
+          echo "Starting Expo Prebuild..."
+          EXPO_DEBUG=1 npx expo prebuild --platform ios --non-interactive --verbose
           
-          # 2. Pod Install
+          if [ ! -d "ios" ]; then
+            echo "❌ Error: 'ios' directory was not created by prebuild."
+            exit 1
+          fi
+
+          echo "Starting Pod Install..."
           cd ios
-          pod install
+          pod install --repo-update || { echo "❌ Pod install failed"; exit 1; }
           cd ..
           
-          # 3. EAS Local Build
+          echo "Starting EAS Local Build..."
           EXPO_DEBUG=1 npx eas build --platform ios --local --profile production --non-interactive --verbose
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -90,6 +95,7 @@ jobs:
           EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          EXPO_DEBUG: 1
 
       - name: 🍎 8. Submit to TestFlight
         run: |

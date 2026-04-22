@@ -35,17 +35,11 @@ function prepare() {
     process.exit(1);
   }
 
-  // 1. Limpeza da pasta ios/ manual
+  // 1. Limpeza da pasta ios/ manual - Removido para evitar conflito com expo prebuild
+  /*
   const iosPath = path.join(process.cwd(), 'ios');
-  if (fs.existsSync(iosPath)) {
-    console.log('🧹 Removendo pasta ios/ antiga para consistência...');
-    try {
-      fs.rmSync(iosPath, { recursive: true, force: true });
-      console.log('✅ Pasta ios/ removida.');
-    } catch (e) {
-      console.warn('⚠️ Erro ao remover pasta ios/:', e.message);
-    }
-  }
+  ...
+  */
 
   const source = 'GoogleService-Info.prod.plist';
   
