@@ -48,6 +48,7 @@
     "jest.config.js",
     "jest.setup.ts",
     "backup-protecao",
+    "backup-protecao/**/*",
     "src/__tests__",
     "**/*.test.ts",
     "**/*.test.tsx",
