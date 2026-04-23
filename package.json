@@ -10,7 +10,7 @@
   "scripts": {
     "prebuild": "node scripts/validate-env.js",
     "prepare:ios": "node ./scripts/prepare-ios-build.js",
-    "postinstall": "patch-package",
+    "postinstall": "patch-package && node scripts/postinstall-patch.js",
     "build:ios": "eas build --platform ios --profile production --local --non-interactive",
     "build:android": "eas build --platform android --profile production --local --non-interactive",
     "rellbuild:scan": "bash ./scripts/security-scan.sh",
