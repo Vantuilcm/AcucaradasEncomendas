@@ -12,6 +12,16 @@ mkdir -p build-logs
 # 1. Validação de Ambiente (Fail-Fast)
 echo "🕵️ [VALIDATE] Verificando sanidade das variáveis de ambiente críticas..."
 
+# Tentar recuperar APPLE_ID do eas.json se estiver ausente no ENV
+if [ -z "${APPLE_ID:-}" ] && [ -f "eas.json" ]; then
+    echo "🔍 [INFO] APPLE_ID não detectado no ENV. Tentando recuperar do eas.json..."
+    APPLE_ID=$(jq -r '.submit.production.ios.appleId' eas.json 2>/dev/null || echo "")
+    if [ "$APPLE_ID" != "null" ] && [ -n "$APPLE_ID" ]; then
+        export APPLE_ID="$APPLE_ID"
+        echo "✅ [RECOVERY] APPLE_ID recuperado do eas.json: $APPLE_ID"
+    fi
+fi
+
 MISSING_VARS=()
 [ -z "${EXPO_TOKEN:-}" ] && MISSING_VARS+=("EXPO_TOKEN")
 [ -z "${APPLE_ID:-}" ] && MISSING_VARS+=("APPLE_ID")
@@ -22,6 +32,7 @@ MISSING_VARS=()
 
 if [ ${#MISSING_VARS[@]} -ne 0 ]; then
     echo "❌ [FATAL] Variáveis de ambiente obrigatórias ausentes: ${MISSING_VARS[*]}"
+    echo "💡 Certifique-se de que os Secrets estão configurados no GitHub."
     exit 1
 fi
 echo "✅ [OK] Todas as variáveis críticas detectadas."
