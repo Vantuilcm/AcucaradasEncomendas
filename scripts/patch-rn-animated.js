@@ -11,12 +11,20 @@ if (fs.existsSync(filePath)) {
   // }) as $NonMaybeType<NativeAnimatedModule>;
   // We want to change 'as' to ':' for Flow compatibility if that's the issue.
   
-  const original = '}) as $NonMaybeType';
-  const replacement = '}) : $NonMaybeType';
+  const lines = content.split('\n');
+  let patched = false;
   
-  if (content.includes(original)) {
-    content = content.split(original).join(replacement);
-    fs.writeFileSync(filePath, content);
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('}) as $NonMaybeType')) {
+      console.log(`[PATCH] Found problematic line at ${i + 1}: ${lines[i].trim()}`);
+      // Replace '}) as $NonMaybeType<...>' with '}),'
+      lines[i] = lines[i].replace(/}\) as \$NonMaybeType<[^>]+>(\['[^'\]]+'\])?/, '})');
+      patched = true;
+    }
+  }
+  
+  if (patched) {
+    fs.writeFileSync(filePath, lines.join('\n'));
     console.log('✅ [PATCH] Successfully patched NativeAnimatedHelper.js');
   } else {
     console.log('⚠️ [PATCH] Pattern not found in NativeAnimatedHelper.js. It might already be correct or the version is different.');
