@@ -1,22 +1,39 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
+/** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// 🛡️ [METRO-STABLE] Exclusão cirúrgica de pastas que causam "Duplicated files or mocks"
+// 🛡️ [METRO-ENTERPRISE] Configuração Robusta contra Arquivos Duplicados
 config.resolver.blockList = [
-  /node_modules_old\/.*/,
+  // Pastas de arquivos arquivados/backups
+  /\.archives\/.*/,
   /backup-protecao\/.*/,
-  /temp_jest_v29\/.*/,
-  /test-2fa\/.*/,
-  /__mocks__\/.*/,
+  /node_modules_old\/.*/,
   /project-old\/.*/,
   /src antigo\/.*/,
   /src copy\/.*/,
+  /test-2fa\/.*/,
+  
+  // Pastas de testes e mocks que podem conflitar
+  /__mocks__\/.*/,
+  /src\/__mocks__\/.*/,
+  /src\/services\/__mocks__\/.*/,
+  
+  // Pastas temporárias e de sistema
   /\.github\/.*/,
   /docs\/.*/,
   /play-store-.*\/.*/,
-  /relatorios-seguranca\/.*/
+  /relatorios-seguranca\/.*/,
+  /temp_jest_v29\/.*/,
+  
+  // Caches
+  /\.expo\/.*/,
+  /\.eas\/.*/
 ];
+
+// Garantir que Metro não tente resolver módulos fora da raiz de forma indevida
+config.projectRoot = __dirname;
+config.watchFolders = [__dirname];
 
 module.exports = config;
