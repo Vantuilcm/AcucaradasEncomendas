@@ -6,7 +6,7 @@ const config = getDefaultConfig(__dirname);
 
 // 🛡️ [METRO-ENTERPRISE] Configuração Robusta contra Arquivos Duplicados
 config.resolver.blockList = [
-  // Pastas de arquivos arquivados/backups
+  // Pastas de arquivos arquivados/backups (REAIS DUPLICATAS)
   /\.archives\/.*/,
   /backup-protecao\/.*/,
   /node_modules_old\/.*/,
@@ -14,11 +14,6 @@ config.resolver.blockList = [
   /src antigo\/.*/,
   /src copy\/.*/,
   /test-2fa\/.*/,
-  
-  // Pastas de testes e mocks que podem conflitar
-  /__mocks__\/.*/,
-  /src\/__mocks__\/.*/,
-  /src\/services\/__mocks__\/.*/,
   
   // Pastas temporárias e de sistema
   /\.github\/.*/,
