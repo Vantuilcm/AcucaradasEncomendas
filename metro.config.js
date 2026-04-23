@@ -24,7 +24,10 @@ config.resolver.blockList = [
   
   // Caches
   /\.expo\/.*/,
-  /\.eas\/.*/
+  /\.eas\/.*/,
+
+  // Bloquear duplicatas específicas se necessário
+  /App\.js$/, // Bloquear o App.js na raiz se estiver usando src/App.tsx
 ];
 
 // Garantir que Metro não tente resolver módulos fora da raiz de forma indevida
