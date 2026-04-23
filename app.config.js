@@ -14,13 +14,11 @@ export default ({ config }) => {
     plugins.push("./plugins/withIosPermissions");
   }
 
-  // 2. Injetar OneSignal App ID se disponível no ambiente para o prebuild
-  const oneSignalAppId = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID || "2df9c7f0-6fb7-4cbe-87e9-c6fb116203f7";
+  // 2. Configurar OneSignal plugin corretamente (Removendo appId inválido)
   const oneSignalIndex = plugins.findIndex(p => (Array.isArray(p) ? p[0] : p) === "onesignal-expo-plugin");
   if (oneSignalIndex !== -1) {
     plugins[oneSignalIndex] = ["onesignal-expo-plugin", { 
-      mode: isProduction ? "production" : "development", 
-      appId: oneSignalAppId 
+      mode: isProduction ? "production" : "development"
     }];
   }
 
