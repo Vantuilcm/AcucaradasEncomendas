@@ -79,12 +79,19 @@
     "production": {
       "ios": {
         "appleId": "vantuilcaramez@gmail.com",
-        "ascAppId": "6478954215",
+        "ascAppId": "6756029389",
         "appleTeamId": "7L9P9U9Z9R"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
         "track": "production"
+      }
+    },
+    "production_v13": {
+      "ios": {
+        "appleId": "vantuilcaramez@gmail.com",
+        "ascAppId": "6756029389",
+        "appleTeamId": "7L9P9U9Z9R"
       }
     },
     "preview": {
