@@ -20,12 +20,12 @@ export default ({ config }) => {
     ios: {
       ...config.ios,
       buildNumber: buildNumber.toString(),
-      googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || config.ios?.googleServicesFile || "./GoogleService-Info.plist"
+      googleServicesFile: "./GoogleService-Info.plist"
     },
     android: {
       ...config.android,
       versionCode: versionCode,
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON || config.android?.googleServicesFile || "./google-services.json"
+      googleServicesFile: "./google-services.json"
     },
     extra: {
       ...config.extra,
