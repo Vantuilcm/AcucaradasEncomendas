@@ -110,16 +110,12 @@ jobs:
           echo "CI=true" >> $GITHUB_ENV
           echo "TERM=dumb" >> $GITHUB_ENV
 
-      - name: ­ƒôª Install Dependencies
+      - name: ┬¡ãÆ├┤┬¬ Install Dependencies
         run: |
           npm install --legacy-peer-deps
           npm install -g eas-cli
           
-      - name: 🩹 Patch React Native (NativeAnimatedHelper.js)
-        run: |
-          node scripts/patch-rn-animated.js
-
-      - name: ­ƒôì Typecheck
+      - name: ┬¡ãÆ├┤├¼ Typecheck
         run: npm run type-check
 
       - name: ­ƒøí´©Å Build Number Enforcer (Source of Truth)
