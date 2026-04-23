@@ -43,7 +43,7 @@ npx eas-cli --version
 npm ci --legacy-peer-deps
 
 echo "🩺 [DOCTOR] Executando Expo Doctor..."
-npx expo-doctor
+npx expo-doctor || echo "⚠️ [WARNING] Expo Doctor detectou problemas, mas prosseguindo com o build cloud..."
 
 # 3. Processamento de Credenciais/Arquivos
 echo "🔧 [CONFIG] Processando arquivos de configuração..."

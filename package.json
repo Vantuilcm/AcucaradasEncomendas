@@ -113,6 +113,7 @@
     "@babel/plugin-transform-export-namespace-from": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
     "@babel/preset-react": "^7.24.7",
+    "@expo/config-plugins": "~9.0.0",
     "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/react-native": "^13.3.3",
     "@types/bcryptjs": "2.4.6",
