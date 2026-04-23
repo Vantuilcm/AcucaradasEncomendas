@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V4.1 - ULTRA STABLE CLOUD)
-# Missão: Pipeline 100% Cloud EAS com Validação Fail-Fast, Fallback Local e Submissão Automática.
+# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V4.2 - EXPLICIT SUBMIT)
+# Missão: Pipeline 100% Cloud EAS com Validação Fail-Fast, Fallback Local e Submissão Explícita de IPA.
 
-echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando ULTRA STABLE V4.1 (CLOUD MODE)..."
+echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando ULTRA STABLE V4.2 (EXPLICIT SUBMIT)..."
 echo "------------------------------------------------------------"
 
 mkdir -p build-logs
@@ -101,11 +101,21 @@ if [ $BUILD_EXIT_CODE -ne 0 ]; then
     fi
 fi
 
-# 5. Submissão Automática
-echo "📤 [SUBMIT] Iniciando submissão para TestFlight..."
-# O eas submit --latest pega o build mais recente (cloud ou local enviado).
-eas submit --platform ios --latest --non-interactive | tee -a build-logs/cloud-build.log
+# 5. Submissão Explícita de IPA
+echo "📤 [SUBMIT] Localizando IPA recém-gerada para submissão explícita..."
+
+# Localizar a IPA mais recente no diretório atual (padrão do build local)
+LATEST_IPA=$(ls -t build-*.ipa 2>/dev/null | head -n 1 || ls -t *.ipa 2>/dev/null | head -n 1 || echo "")
+
+if [ -n "$LATEST_IPA" ]; then
+    echo "📦 [FOUND] IPA detectada: $LATEST_IPA"
+    echo "🚀 [SUBMIT] Enviando IPA explicitamente para o TestFlight..."
+    eas submit --platform ios --path "$LATEST_IPA" --profile production_v13 --non-interactive | tee -a build-logs/cloud-build.log
+else
+    echo "⚠️ [WARNING] Nenhuma IPA local encontrada. Tentando submissão via --latest (Cloud)..."
+    eas submit --platform ios --latest --profile production_v13 --non-interactive | tee -a build-logs/cloud-build.log
+fi
 
 echo "------------------------------------------------------------"
-echo "✅ [SUCCESS] Missão ULTRA STABLE V4 concluída com sucesso!"
+echo "✅ [SUCCESS] Missão ULTRA STABLE V4.2 concluída com sucesso!"
 echo "🕒 [TIME] $(date)"
