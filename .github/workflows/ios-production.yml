@@ -111,7 +111,16 @@ jobs:
           echo "TERM=dumb" >> $GITHUB_ENV
 
       - name: ­ƒôª Install Dependencies
-        run: npm install --legacy-peer-deps
+        run: |
+          npm install --legacy-peer-deps
+          npm install -g eas-cli
+          
+      - name: 🩹 Patch React Native (NativeAnimatedHelper.js)
+        run: |
+          echo "🩹 [PATCH] Corrigindo NativeAnimatedHelper.js para RN 0.76..."
+          # Substituir '}) as $NonMaybeType' por '}) : $NonMaybeType' para compatibilidade com parser Flow
+          sed -i '' 's/}) as \$NonMaybeType/}) : \$NonMaybeType/g' node_modules/react-native/src/private/animated/NativeAnimatedHelper.js
+          echo "✅ [PATCH] NativeAnimatedHelper.js corrigido."
 
       - name: ­ƒôì Typecheck
         run: npm run type-check

@@ -7,6 +7,8 @@ config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
   crypto: require.resolve('crypto-browserify'),
   stream: require.resolve('stream-browserify'),
+  events: require.resolve('events'),
+  vm: require.resolve('vm-browserify'),
   '@react-native-vector-icons/material-design-icons': require.resolve('react-native-vector-icons'),
 };
 
