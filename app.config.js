@@ -3,8 +3,8 @@ export default ({ config }) => {
   const isPreview = process.env.APP_ENV === "preview" || process.env.EXPO_PUBLIC_APP_ENV === "preview";
 
   // Incremento automático baseado no ambiente ou variável de build
-  const buildNumber = "1172";
-  const versionCode = 1172;
+  const buildNumber = "1173";
+  const versionCode = 1173;
 
   // Injetar plugins personalizados e atualizar configurações de plugins existentes
   const plugins = config.plugins || [];
@@ -34,7 +34,7 @@ export default ({ config }) => {
       infoPlist: {
         ...config.ios?.infoPlist,
         NSSpeechRecognitionUsageDescription: "Usamos reconhecimento de voz para facilitar interações e melhorar sua experiência.",
-        NSLocationWhenInUseUsageDescription: "Usamos sua localização para mostrar lojas, produtores e entregas próximas."
+        NSLocationWhenInUseUsageDescription: "Usamos sua localização para mostrar lojas, produtores e entregadores próximos."
       }
     },
     android: {

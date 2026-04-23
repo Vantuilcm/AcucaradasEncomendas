@@ -10,10 +10,10 @@ module.exports = function withIosPermissions(config) {
     console.log("💉 [PLUGIN] Injetando permissões de privacidade no Info.plist...");
 
     config.modResults.NSSpeechRecognitionUsageDescription =
-      "Este aplicativo utiliza o reconhecimento de voz para permitir buscas de produtos e navegação por voz.";
+      "Usamos reconhecimento de voz para facilitar interações e melhorar sua experiência.";
 
     config.modResults.NSLocationWhenInUseUsageDescription =
-      "Sua localização é utilizada para exibir lojas próximas e calcular valores de entrega.";
+      "Usamos sua localização para mostrar lojas, produtores e entregadores próximos.";
 
     config.modResults.NSLocationAlwaysAndWhenInUseUsageDescription =
       "Sua localização é utilizada para oferecer uma experiência personalizada de entrega mesmo em segundo plano.";

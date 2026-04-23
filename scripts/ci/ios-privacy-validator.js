@@ -18,8 +18,8 @@ const REQUIRED_KEYS = [
 ];
 
 const DEFAULT_DESCRIPTIONS = {
-  "NSSpeechRecognitionUsageDescription": "Este aplicativo utiliza o reconhecimento de voz para permitir buscas de produtos e navegação por voz.",
-  "NSLocationWhenInUseUsageDescription": "Sua localização é utilizada para exibir lojas próximas e calcular valores de entrega.",
+  "NSSpeechRecognitionUsageDescription": "Usamos reconhecimento de voz para facilitar interações e melhorar sua experiência.",
+  "NSLocationWhenInUseUsageDescription": "Usamos sua localização para mostrar lojas, produtores e entregadores próximos.",
   "NSLocationAlwaysAndWhenInUseUsageDescription": "Sua localização é utilizada para oferecer uma experiência personalizada de entrega mesmo em segundo plano.",
   "NSLocationAlwaysUsageDescription": "Este aplicativo precisa da sua localização para otimizar o rastreamento da entrega e informar sobre promoções.",
   "NSCameraUsageDescription": "O acesso à câmera permite capturar fotos para o seu perfil e pedidos.",

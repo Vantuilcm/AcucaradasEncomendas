@@ -31,9 +31,9 @@ add_privacy_key() {
     fi
 }
 
-# Permissões Obrigatórias Apple (Textos curtos e diretos para aceitação rápida)
-add_privacy_key "NSSpeechRecognitionUsageDescription" "Este aplicativo utiliza o reconhecimento de voz para permitir buscas de produtos e navegação por voz."
-add_privacy_key "NSLocationWhenInUseUsageDescription" "Sua localização é utilizada para exibir lojas próximas e calcular valores de entrega."
+# Permissões Obrigatórias Apple (Textos exatos conforme solicitação do usuário)
+add_privacy_key "NSSpeechRecognitionUsageDescription" "Usamos reconhecimento de voz para facilitar interações e melhorar sua experiência."
+add_privacy_key "NSLocationWhenInUseUsageDescription" "Usamos sua localização para mostrar lojas, produtores e entregadores próximos."
 add_privacy_key "NSCameraUsageDescription" "O acesso à câmera permite capturar fotos para o seu perfil e pedidos."
 add_privacy_key "NSPhotoLibraryUsageDescription" "O acesso à galeria permite selecionar fotos para o seu perfil e pedidos."
 add_privacy_key "NSMicrophoneUsageDescription" "O acesso ao microfone é necessário para comandos de voz e buscas."
