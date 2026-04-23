@@ -19,8 +19,8 @@ on:
 jobs:
   ios-cloud-pipeline:
     name: 🍎 iOS Cloud Build & Submit
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    runs-on: macos-latest # Voltando para macOS para permitir fallback local se os créditos EAS Cloud acabarem.
+    timeout-minutes: 100
     
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

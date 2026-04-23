@@ -71,10 +71,28 @@ fi
 
 # 4. Execução do Build EAS Cloud
 echo "🚀 [BUILD] Iniciando EAS Build Cloud (Perfil: production_v13)..."
-eas build --platform ios --profile production_v13 --non-interactive --wait | tee build-logs/cloud-build.log
+set +e
+eas build --platform ios --profile production_v13 --non-interactive --wait 2>&1 | tee build-logs/cloud-build.log
+BUILD_EXIT_CODE=$?
+set -e
+
+if [ $BUILD_EXIT_CODE -ne 0 ]; then
+    if grep -q "Free plan" build-logs/cloud-build.log; then
+        echo "⚠️ [WARNING] Créditos de Build Cloud esgotados (Free Plan Limit)."
+        echo "🔄 [FALLBACK] Iniciando Build Local para garantir entrega hoje..."
+        
+        # Build Local
+        eas build --platform ios --profile production_v13 --local --non-interactive | tee -a build-logs/cloud-build.log
+    else
+        echo "❌ [ERROR] Build Cloud falhou por outros motivos. Abortando."
+        exit 1
+    fi
+fi
 
 # 5. Submissão Automática
 echo "📤 [SUBMIT] Iniciando submissão para TestFlight..."
+# Se for local, o EAS CLI costuma salvar na pasta dist/ ou retornar o path.
+# O eas submit --latest pega o build mais recente (cloud ou local enviado).
 eas submit --platform ios --latest --non-interactive | tee -a build-logs/cloud-build.log
 
 echo "------------------------------------------------------------"
