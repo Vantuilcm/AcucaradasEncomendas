@@ -3,8 +3,8 @@ export default ({ config }) => {
   const isPreview = process.env.APP_ENV === "preview" || process.env.EXPO_PUBLIC_APP_ENV === "preview";
 
   // Incremento automático baseado no ambiente ou variável de build
-  const buildNumber = "1173";
-  const versionCode = 1173;
+  const buildNumber = "1174";
+  const versionCode = 1174;
 
   // Injetar plugins personalizados e atualizar configurações de plugins existentes
   const plugins = config.plugins || [];
@@ -14,13 +14,23 @@ export default ({ config }) => {
     plugins.push("./plugins/withIosPermissions");
   }
 
-  // 2. Configurar OneSignal plugin corretamente (Removendo appId inválido)
+  // 2. Configurar OneSignal plugin corretamente
   const oneSignalIndex = plugins.findIndex(p => (Array.isArray(p) ? p[0] : p) === "onesignal-expo-plugin");
   if (oneSignalIndex !== -1) {
     plugins[oneSignalIndex] = ["onesignal-expo-plugin", { 
       mode: isProduction ? "production" : "development"
     }];
   }
+
+  // Merge do infoPlist para garantir que as keys de privacidade NUNCA sejam sobrescritas
+  const infoPlist = {
+    ...(config.ios?.infoPlist || {}),
+    NSSpeechRecognitionUsageDescription: "Usamos reconhecimento de voz para facilitar interações e melhorar sua experiência.",
+    NSLocationWhenInUseUsageDescription: "Usamos sua localização para mostrar lojas, produtores e entregadores próximos.",
+    NSCameraUsageDescription: "Este aplicativo usa a câmera para escanear códigos QR e tirar fotos dos produtos.",
+    NSPhotoLibraryUsageDescription: "Este aplicativo precisa acessar sua galeria para selecionar imagens para os produtos.",
+    NSMicrophoneUsageDescription: "Este aplicativo usa o microfone para gravar notas de voz para os pedidos."
+  };
 
   return {
     ...config,
@@ -31,11 +41,7 @@ export default ({ config }) => {
       ...config.ios,
       buildNumber: buildNumber.toString(),
       googleServicesFile: "./GoogleService-Info.plist",
-      infoPlist: {
-        ...config.ios?.infoPlist,
-        NSSpeechRecognitionUsageDescription: "Usamos reconhecimento de voz para facilitar interações e melhorar sua experiência.",
-        NSLocationWhenInUseUsageDescription: "Usamos sua localização para mostrar lojas, produtores e entregadores próximos."
-      }
+      infoPlist: infoPlist
     },
     android: {
       ...config.android,
