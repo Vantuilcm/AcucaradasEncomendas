@@ -117,10 +117,7 @@ jobs:
           
       - name: 🩹 Patch React Native (NativeAnimatedHelper.js)
         run: |
-          echo "🩹 [PATCH] Corrigindo NativeAnimatedHelper.js para RN 0.76..."
-          # Substituir '}) as $NonMaybeType' por '}) : $NonMaybeType' para compatibilidade com parser Flow
-          sed -i '' 's/}) as \$NonMaybeType/}) : \$NonMaybeType/g' node_modules/react-native/src/private/animated/NativeAnimatedHelper.js
-          echo "✅ [PATCH] NativeAnimatedHelper.js corrigido."
+          node scripts/patch-rn-animated.js
 
       - name: ­ƒôì Typecheck
         run: npm run type-check
