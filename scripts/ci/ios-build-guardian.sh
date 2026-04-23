@@ -48,15 +48,24 @@ npx expo-doctor || echo "⚠️ [WARNING] Expo Doctor detectou problemas, mas pr
 # 3. Processamento de Credenciais/Arquivos
 echo "🔧 [CONFIG] Processando arquivos de configuração..."
 
-# GoogleService-Info.plist
+# GoogleService-Info.plist (Obrigatório para Firebase)
 if [ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]; then
-    # Se começar com <?xml, já é o conteúdo direto. Se não, assumimos base64.
+    echo "📄 [GENERATE] Criando GoogleService-Info.plist..."
     if [[ "${GOOGLE_SERVICE_INFO_PLIST}" == *"<?xml"* ]]; then
         echo "${GOOGLE_SERVICE_INFO_PLIST}" > GoogleService-Info.plist
     else
         echo "${GOOGLE_SERVICE_INFO_PLIST}" | base64 --decode > GoogleService-Info.plist
     fi
-    echo "✅ [SUCCESS] GoogleService-Info.plist gerado."
+    echo "✅ [SUCCESS] GoogleService-Info.plist gerado com sucesso."
+    ls -l GoogleService-Info.plist
+else
+    echo "⚠️ [WARNING] GOOGLE_SERVICE_INFO_PLIST não fornecido! O build pode falhar se o Firebase estiver ativo."
+fi
+
+# google-services.json (Opcional no iOS, mas bom ter se o projeto for multiplataforma)
+if [ -n "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then
+    echo "${GOOGLE_SERVICES_JSON_BASE64}" | base64 --decode > google-services.json
+    echo "✅ [SUCCESS] google-services.json gerado."
 fi
 
 # AuthKey.p8
