@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V4.0 - ULTRA STABLE CLOUD)
-# Missão: Pipeline 100% Cloud EAS com Validação Fail-Fast e Submissão Automática.
+# 🍎 scripts/ci/ios-build-guardian.sh - O Guardião do Build iOS (V4.1 - ULTRA STABLE CLOUD)
+# Missão: Pipeline 100% Cloud EAS com Validação Fail-Fast, Fallback Local e Submissão Automática.
 
-echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando ULTRA STABLE V4.0 (CLOUD MODE)..."
+echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando ULTRA STABLE V4.1 (CLOUD MODE)..."
 echo "------------------------------------------------------------"
 
 mkdir -p build-logs
@@ -30,6 +30,10 @@ MISSING_VARS=()
 [ -z "${EXPO_ASC_PRIVATE_KEY:-}" ] && MISSING_VARS+=("EXPO_ASC_PRIVATE_KEY")
 [ -z "${GOOGLE_SERVICE_INFO_PLIST:-}" ] && MISSING_VARS+=("GOOGLE_SERVICE_INFO_PLIST")
 
+# Variáveis EXPO_PUBLIC obrigatórias para o app e validação
+[ -z "${EXPO_PUBLIC_FIREBASE_API_KEY:-}" ] && MISSING_VARS+=("EXPO_PUBLIC_FIREBASE_API_KEY")
+[ -z "${EXPO_PUBLIC_ONESIGNAL_APP_ID:-}" ] && MISSING_VARS+=("EXPO_PUBLIC_ONESIGNAL_APP_ID")
+
 if [ ${#MISSING_VARS[@]} -ne 0 ]; then
     echo "❌ [FATAL] Variáveis de ambiente obrigatórias ausentes: ${MISSING_VARS[*]}"
     echo "💡 Certifique-se de que os Secrets estão configurados no GitHub."
@@ -43,7 +47,7 @@ npx eas-cli --version
 npm ci --legacy-peer-deps
 
 echo "🩺 [DOCTOR] Executando Expo Doctor..."
-npx expo-doctor || echo "⚠️ [WARNING] Expo Doctor detectou problemas, mas prosseguindo com o build cloud..."
+npx expo-doctor || echo "⚠️ [WARNING] Expo Doctor detectou problemas, mas prosseguindo..."
 
 # 3. Processamento de Credenciais/Arquivos
 echo "🔧 [CONFIG] Processando arquivos de configuração..."
@@ -58,11 +62,9 @@ if [ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]; then
     fi
     echo "✅ [SUCCESS] GoogleService-Info.plist gerado com sucesso."
     ls -l GoogleService-Info.plist
-else
-    echo "⚠️ [WARNING] GOOGLE_SERVICE_INFO_PLIST não fornecido! O build pode falhar se o Firebase estiver ativo."
 fi
 
-# google-services.json (Opcional no iOS, mas bom ter se o projeto for multiplataforma)
+# google-services.json (Opcional no iOS, mas bom ter)
 if [ -n "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then
     echo "${GOOGLE_SERVICES_JSON_BASE64}" | base64 --decode > google-services.json
     echo "✅ [SUCCESS] google-services.json gerado."
@@ -86,21 +88,21 @@ BUILD_EXIT_CODE=$?
 set -e
 
 if [ $BUILD_EXIT_CODE -ne 0 ]; then
-    if grep -q "Free plan" build-logs/cloud-build.log; then
-        echo "⚠️ [WARNING] Créditos de Build Cloud esgotados (Free Plan Limit)."
+    if grep -q -E "Free plan|limit|credits" build-logs/cloud-build.log; then
+        echo "⚠️ [WARNING] Limitação de conta Cloud detectada (Free Plan ou Créditos)."
         echo "🔄 [FALLBACK] Iniciando Build Local para garantir entrega hoje..."
         
-        # Build Local
-        eas build --platform ios --profile production_v13 --local --non-interactive | tee -a build-logs/cloud-build.log
+        # Build Local (Garantir que prebuild rode limpo)
+        rm -rf ios android
+        eas build --platform ios --profile production_v13 --local --non-interactive 2>&1 | tee -a build-logs/cloud-build.log
     else
-        echo "❌ [ERROR] Build Cloud falhou por outros motivos. Abortando."
+        echo "❌ [ERROR] Build Cloud falhou por outros motivos. Verifique os logs."
         exit 1
     fi
 fi
 
 # 5. Submissão Automática
 echo "📤 [SUBMIT] Iniciando submissão para TestFlight..."
-# Se for local, o EAS CLI costuma salvar na pasta dist/ ou retornar o path.
 # O eas submit --latest pega o build mais recente (cloud ou local enviado).
 eas submit --platform ios --latest --non-interactive | tee -a build-logs/cloud-build.log
 
