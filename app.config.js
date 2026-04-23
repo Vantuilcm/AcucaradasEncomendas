@@ -3,8 +3,8 @@ export default ({ config }) => {
   const isPreview = process.env.APP_ENV === "preview" || process.env.EXPO_PUBLIC_APP_ENV === "preview";
 
   // Incremento automático baseado no ambiente ou variável de build
-  const buildNumber = "1171";
-  const versionCode = 1171;
+  const buildNumber = "1172";
+  const versionCode = 1172;
 
   // Injetar plugins personalizados e atualizar configurações de plugins existentes
   const plugins = config.plugins || [];
