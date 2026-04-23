@@ -3,8 +3,8 @@ export default ({ config }) => {
   const isPreview = process.env.APP_ENV === "preview" || process.env.EXPO_PUBLIC_APP_ENV === "preview";
 
   // Incremento automático baseado no ambiente ou variável de build
-  const buildNumber = "1170";
-  const versionCode = 1170;
+  const buildNumber = "1171";
+  const versionCode = 1171;
 
   // Injetar plugins personalizados e atualizar configurações de plugins existentes
   const plugins = config.plugins || [];
@@ -30,7 +30,12 @@ export default ({ config }) => {
     ios: {
       ...config.ios,
       buildNumber: buildNumber.toString(),
-      googleServicesFile: "./GoogleService-Info.plist"
+      googleServicesFile: "./GoogleService-Info.plist",
+      infoPlist: {
+        ...config.ios?.infoPlist,
+        NSSpeechRecognitionUsageDescription: "Usamos reconhecimento de voz para facilitar interações e melhorar sua experiência.",
+        NSLocationWhenInUseUsageDescription: "Usamos sua localização para mostrar lojas, produtores e entregas próximas."
+      }
     },
     android: {
       ...config.android,
