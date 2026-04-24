@@ -1,0 +1,17 @@
+# EAS Build Ignore Configuration
+# Este arquivo substitui o .gitignore durante o processo de build EAS.
+# Para o build LOCAL funcionar, precisamos que os arquivos gerados no CI (plist, json, p8) 
+# NÃO sejam ignorados, mesmo que estejam no .gitignore.
+
+node_modules/
+.expo/
+dist/
+web-build/
+build/
+.archives/
+
+# Garantir que arquivos gerados dinamicamente no CI SEJAM incluídos no build local
+!GoogleService-Info.plist
+!google-services.json
+!AuthKey.p8
+!.env

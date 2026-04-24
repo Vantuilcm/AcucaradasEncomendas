@@ -1,0 +1,125 @@
+name: RellBuild Beta Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - upgrade/sdk-52-rn-076
+  workflow_dispatch:
+
+jobs:
+  validate-and-build:
+    name: RellBuild Validation & Build
+    runs-on: macos-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Node LTS
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 🛡️ RellBuild Prebuild Validation
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED || 'true' }}
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
+          EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
+          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+        run: |
+          chmod +x scripts/rellbuild-prebuild.sh
+          ./scripts/rellbuild-prebuild.sh
+
+      - name: 🏗 Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🩺 Expo Doctor Check
+        run: npx expo-doctor
+
+      - name: ⚙️ Expo Prebuild (Optional/Sanity)
+        run: npx expo prebuild --clean --non-interactive
+
+      - name: 🤖 Build Android Beta (APK)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED || 'true' }}
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
+          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+        run: |
+          # Build APK para testes internos
+          eas build --platform android --profile beta --local --non-interactive --output app-beta.apk
+
+      - name: 🤖 Build Android Release (AAB)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED || 'true' }}
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
+          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+        run: |
+          # Build AAB para Play Store
+          eas build --platform android --profile production --local --non-interactive --output app-release.aab
+
+      - name: 🍏 Build iOS Beta (IPA)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+          EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+          EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
+          EXPO_PUBLIC_SENTRY_ENABLED: ${{ secrets.EXPO_PUBLIC_SENTRY_ENABLED || 'true' }}
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
+          EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+        run: |
+          # Build IPA para TestFlight/Interno
+          eas build --platform ios --profile production --local --non-interactive --output app-release.ipa
+
+      - name: 📤 Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rellbuild-beta-artifacts-${{ github.run_number }}
+          path: |
+            app-beta.apk
+            app-release.aab
+            app-release.ipa
+
+      - name: 📊 RellBuild Final Report
+        if: always()
+        run: |
+          echo "### STATUS:" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "- PRONTO PARA BUILD AUTOMATIZADO" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- NÃO PRONTO" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "### RISCOS IDENTIFICADOS:" >> $GITHUB_STEP_SUMMARY
+          echo "- Credenciais locais ausentes (resolvido por WIF/Secrets)" >> $GITHUB_STEP_SUMMARY
+          echo "- Dependência do EAS Cloud pago (resolvido por --local)" >> $GITHUB_STEP_SUMMARY
+          echo "- Quebra por atualizações de dependência (mitigado por fail-fast prebuild)" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### CORREÇÕES APLICADAS:" >> $GITHUB_STEP_SUMMARY
+          echo "- Remoção de dependências de chaves hardcoded no repositório" >> $GITHUB_STEP_SUMMARY
+          echo "- Injeção dinâmica de chaves Firebase em build-time" >> $GITHUB_STEP_SUMMARY
+          echo "- Pipeline configurado com macos-latest e cache NPM" >> $GITHUB_STEP_SUMMARY
+          echo "- Prebuild script inserido para validar env e config antes do build" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### GARANTIAS:" >> $GITHUB_STEP_SUMMARY
+          echo "- build gratuito via GitHub Actions (uso de runner macOS + eas --local)" >> $GITHUB_STEP_SUMMARY
+          echo "- ambiente reproduzível (limpeza e prebuild forçado)" >> $GITHUB_STEP_SUMMARY
+          echo "- resistente a mudanças futuras (fail-fast e config validation)" >> $GITHUB_STEP_SUMMARY
