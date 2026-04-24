@@ -1,0 +1,113 @@
+{
+  "expo": {
+    "name": "Açucaradas Encomendas",
+    "slug": "acucaradas-encomendas",
+    "version": "1.1.8",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/app-icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.acucaradas.encomendas",
+      "buildNumber": "1175",
+      "entitlements": {
+        "com.apple.developer.applesignin": [
+          "Default"
+        ]
+      },
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Este aplicativo usa a câmera para escanear códigos QR e tirar fotos dos produtos.",
+        "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar sua galeria para selecionar imagens para os produtos.",
+        "NSPhotoLibraryAddUsageDescription": "Este aplicativo precisa salvar fotos na sua galeria.",
+        "NSMicrophoneUsageDescription": "Este aplicativo usa o microfone para gravar notas de voz para os pedidos.",
+        "NSSpeechRecognitionUsageDescription": "Usamos reconhecimento de voz para facilitar interações e melhorar sua experiência.",
+        "NSLocationWhenInUseUsageDescription": "Usamos sua localização para mostrar lojas, produtores e entregadores próximos.",
+        "NSUserTrackingUsageDescription": "Este aplicativo usa dados de uso para melhorar sua experiência e oferecer conteúdo personalizado.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Sua localização é utilizada para oferecer uma experiência personalizada de entrega mesmo em segundo plano.",
+        "NSLocationAlwaysUsageDescription": "Este aplicativo precisa da sua localização para otimizar o rastreamento da entrega e informar sobre promoções."
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.acucaradas.encomendas",
+      "versionCode": 384,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "RECORD_AUDIO"
+      ],
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "favicon": "./assets/app-icon.png",
+      "bundler": "metro"
+    },
+    "scheme": "acucaradas-encomendas",
+    "plugins": [
+      "expo-apple-authentication",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff"
+        }
+      ],
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.acucaradas.encomendas"
+        }
+      ]
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/acucaradas-encomendas",
+      "fallbackToCacheTimeout": 0
+    },
+    "extra": {
+      "hostUri": "177.192.13.46:8081",
+      "eas": {
+        "projectId": "6090106b-e327-4744-bce5-9ddb0d037045"
+      }
+    },
+    "owner": "acucaradaencomendas",
+    "runtimeVersion": "1.0.1"
+  }
+}

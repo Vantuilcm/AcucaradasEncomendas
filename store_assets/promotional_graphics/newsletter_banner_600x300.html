@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newsletter Banner - Açucaradas Encomendas</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .banner-frame {
+            width: 600px;
+            height: 300px;
+            background: linear-gradient(135deg, #FFE6F2 0%, #FFC0CB 100%);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+            display: flex;
+        }
+        
+        .banner-content {
+            width: 60%;
+            padding: 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 2;
+        }
+        
+        .banner-logo {
+            font-size: 22px;
+            font-weight: 800;
+            color: #FF69B4;
+            margin-bottom: 15px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .banner-logo:after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background-color: #FF69B4;
+        }
+        
+        .banner-title {
+            font-size: 28px;
+            font-weight: 900;
+            color: #333;
+            line-height: 1.2;
+            margin-bottom: 15px;
+        }
+        
+        .banner-subtitle {
+            font-size: 16px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        
+        .banner-cta {
+            padding: 10px 25px;
+            background-color: #FF69B4;
+            color: white;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            display: inline-block;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(255, 105, 180, 0.4);
+        }
+        
+        .banner-image {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .device-mockup {
+            position: absolute;
+            right: -60px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-10deg);
+            width: 180px;
+            height: 360px;
+            background-color: #333;
+            border-radius: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            border: 5px solid #222;
+            overflow: hidden;
+        }
+        
+        .device-screen {
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .device-header {
+            height: 40px;
+            background-color: #FF69B4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .device-content {
+            padding: 10px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: hidden;
+        }
+        
+        .product-card {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .product-image {
+            width: 40px;
+            height: 40px;
+            background-color: #FFE6F2;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+        }
+        
+        .product-details {
+            flex-grow: 1;
+        }
+        
+        .product-name {
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: #333;
+        }
+        
+        .product-price {
+            color: #FF69B4;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        
+        .background-element {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+        }
+        
+        .bg-circle-1 {
+            width: 200px;
+            height: 200px;
+            top: -80px;
+            right: -40px;
+        }
+        
+        .bg-circle-2 {
+            width: 80px;
+            height: 80px;
+            bottom: 20px;
+            left: 100px;
+        }
+        
+        .discount-badge {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            background-color: #FF69B4;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 5;
+            transform: rotate(12deg);
+        }
+        
+        .store-badges {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .store-badge {
+            height: 25px;
+        }
+        
+        .dimensions {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: rgba(0,0,0,0.4);
+            background-color: rgba(255,255,255,0.8);
+            padding: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="banner-frame">
+        <div class="background-element bg-circle-1"></div>
+        <div class="background-element bg-circle-2"></div>
+        
+        <div class="discount-badge">20% OFF</div>
+        
+        <div class="banner-content">
+            <div class="banner-logo">Açucaradas</div>
+            <h1 class="banner-title">Baixe Nosso App e Ganhe Desconto!</h1>
+            <p class="banner-subtitle">Peça pelo aplicativo e ganhe 20% de desconto na primeira compra.</p>
+            
+            <a href="#" class="banner-cta">Baixar Agora</a>
+            
+            <div class="store-badges">
+                <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='25' viewBox='0 0 80 25'><rect width='80' height='25' rx='5' fill='%23000'/><text x='40' y='17' font-family='Arial' font-size='9' fill='%23fff' text-anchor='middle'>App Store</text></svg>" alt="App Store" class="store-badge">
+                <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='25' viewBox='0 0 80 25'><rect width='80' height='25' rx='5' fill='%23000'/><text x='40' y='17' font-family='Arial' font-size='9' fill='%23fff' text-anchor='middle'>Google Play</text></svg>" alt="Google Play" class="store-badge">
+            </div>
+        </div>
+        
+        <div class="banner-image">
+            <div class="device-mockup">
+                <div class="device-screen">
+                    <div class="device-header">Açucaradas</div>
+                    <div class="device-content">
+                        <div class="product-card">
+                            <div class="product-image">🍰</div>
+                            <div class="product-details">
+                                <div class="product-name">Bolo de Chocolate</div>
+                                <div class="product-price">R$ 89,90</div>
+                            </div>
+                        </div>
+                        
+                        <div class="product-card">
+                            <div class="product-image">🧁</div>
+                            <div class="product-details">
+                                <div class="product-name">Cupcakes (6 un)</div>
+                                <div class="product-price">R$ 42,50</div>
+                            </div>
+                        </div>
+                        
+                        <div class="product-card">
+                            <div class="product-image">🍮</div>
+                            <div class="product-details">
+                                <div class="product-name">Pudim</div>
+                                <div class="product-price">R$ 35,90</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="dimensions">600 x 300</div>
+    </div>
+</body>
+</html> 
