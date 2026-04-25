@@ -105,10 +105,10 @@ export EXPO_ASC_ISSUER_ID="${EXPO_ASC_ISSUER_ID}"
 eas credentials:sync -p ios --non-interactive || echo "⚠️ Sync falhou, prosseguindo com credentials-file..."
 
 # 🧩 ETAPA 6 — PRÉ-BUILD NATIVO
-echo "ðŸ—ï¸ [ETAPA 6] Executando Expo Prebuild..."
+echo "🏗️ [ETAPA 6] Executando Expo Prebuild..."
 
-# FIX ASSETS - MissÃ£o de Resgate de Arquivos Faltantes
-echo "ðŸŽ¨ [FIX] Garantindo que os assets existem para o prebuild..."
+# FIX ASSETS - Missão de Resgate de Arquivos Faltantes
+echo "🎨 [FIX] Garantindo que os assets existem para o prebuild..."
 mkdir -p assets
 if [ -f assets/app-icon.png ]; then
     cp assets/app-icon.png assets/icon.png
@@ -122,25 +122,25 @@ fi
 
 # Garantir que splash.png existe
 [ -f assets/splash.png ] || {
-    echo "âš ï¸ splash.png nÃ£o encontrado, tentando usar icon como fallback..."
+    echo "⚠️ splash.png não encontrado, tentando usar icon como fallback..."
     [ -f assets/icon.png ] && cp assets/icon.png assets/splash.png
 }
 
-# Limpar arquivos temporÃ¡rios antes
+# Limpar arquivos temporários antes
 rm -f public_config.json
 
 # Tentar obter o config em formato JSON
-echo "ðŸ“ Gerando public_config.json..."
+echo "📝 Gerando public_config.json..."
 npx expo config --type public --json > public_config.json 2>config_error.log || {
-    echo "âš ï¸ Falha ao gerar config JSON, tentando sem flag --json como fallback..."
+    echo "⚠️ Falha ao gerar config JSON, tentando sem flag --json como fallback..."
     npx expo config --type public > public_config.json 2>>config_error.log
 }
 
-# Verificar se o arquivo foi criado e tem conteÃºdo
+# Verificar se o arquivo foi criado e tem conteúdo
 if [ ! -s public_config.json ]; then
-    echo "âŒ [FATAL] public_config.json estÃ¡ vazio!"
+    echo "❌ [FATAL] public_config.json está vazio!"
     echo "--- LOG DE ERRO ---"
-    cat config_error.log || echo "Sem log de erro disponÃ­vel."
+    cat config_error.log || echo "Sem log de erro disponível."
     echo "-------------------"
     exit 1
 fi
@@ -150,7 +150,7 @@ try {
   const fs = require('fs');
   const content = fs.readFileSync('public_config.json', 'utf8');
   const jsonStart = content.indexOf('{');
-  if (jsonStart === -1) throw new Error('JSON nÃ£o encontrado');
+  if (jsonStart === -1) throw new Error('JSON não encontrado');
   const config = JSON.parse(content.substring(jsonStart));
   console.log(config.ios.buildNumber);
 } catch (e) {
@@ -160,56 +160,56 @@ try {
 ")
 
 if [ "$BN_CHECK" != "1190" ]; then
-    echo "âŒ [FATAL] Build Number Incorreto! Esperado: 1190, Encontrado: $BN_CHECK"
+    echo "❌ [FATAL] Build Number Incorreto! Esperado: 1190, Encontrado: $BN_CHECK"
     exit 1
 fi
 
-echo "âœ… Build Number validado no config: $BN_CHECK"
+echo "✅ Build Number validado no config: $BN_CHECK"
 
 # EXPO PREBUILD
-echo "ðŸ”¨ Executando npx expo prebuild..."
+echo "🔨 Executando npx expo prebuild..."
 # Usar CI=1 para evitar o warning do --non-interactive
 CI=1 npx expo prebuild --platform ios --no-install || {
-    echo "âŒ [FATAL] expo prebuild falhou!"
+    echo "❌ [FATAL] expo prebuild falhou!"
     ls -la
     exit 1
 }
 
-echo "ðŸ“‚ ConteÃºdo apÃ³s prebuild:"
+echo "📂 Conteúdo após prebuild:"
 ls -la
 if [ -d "ios" ]; then
     ls -la ios
 fi
 
-echo "ðŸ“¦ Instalando Pods..."
+echo "📦 Instalando Pods..."
 if [ -d "ios" ]; then
     cd ios
-    # Pod install pode falhar se nÃ£o houver repo local atualizado
+    # Pod install pode falhar se não houver repo local atualizado
     echo "Running pod install..."
     pod install > pod_install.log 2>&1 || {
-        echo "âš ï¸ Pod install falhou, tentando repo update..."
+        echo "⚠️ Pod install falhou, tentando repo update..."
         pod repo update >> pod_install.log 2>&1
         pod install >> pod_install.log 2>&1 || {
-            echo "âŒ [FATAL] Pod install falhou definitivamente!"
+            echo "❌ [FATAL] Pod install falhou definitivamente!"
             cat pod_install.log
             exit 1
         }
     }
     cd ..
 else
-    echo "âŒ [FATAL] Pasta 'ios' nÃ£o foi criada pelo prebuild!"
+    echo "❌ [FATAL] Pasta 'ios' não foi criada pelo prebuild!"
     exit 1
 fi
 
-# ðŸ§© ETAPA 7 â€” BUILD IOS LOCAL
-echo "ðŸš€ [ETAPA 7] Iniciando Build iOS LOCAL (1190)..."
+# 🧩 ETAPA 7 — BUILD IOS LOCAL
+echo "🚀 [ETAPA 7] Iniciando Build iOS LOCAL (1190)..."
 export EXPO_DEBUG=1
 mkdir -p build-logs
 
 # Usar EXPO_DEBUG=1 para mais detalhes e --credentials-file para evitar prompts
 if ! eas build --platform ios --local --non-interactive --profile production_v13 --credentials-file credentials.json > build-logs/local-build.log 2>&1; then
-    echo "âŒ [ETAPA 8] Build falhou. Analisando logs..."
-    echo "--- ÃšLTIMAS 100 LINHAS DO LOG DE BUILD ---"
+    echo "❌ [ETAPA 8] Build falhou. Analisando logs..."
+    echo "--- ÚLTIMAS 100 LINHAS DO LOG DE BUILD ---"
     tail -n 100 build-logs/local-build.log || cat build-logs/local-build.log
     echo "------------------------------------------"
     if grep -q "xcodebuild failed" build-logs/local-build.log; then
