@@ -223,7 +223,7 @@ if ! eas build --platform ios --local --non-interactive --profile production_v13
     if grep -q "xcodebuild failed" build-logs/local-build.log; then
         echo "🔄 Tentando correção automática e retry..."
         rm -rf ios/build
-        eas build --platform ios --local --non-interactive --profile production_v13 --credentials-file credentials.json
+        eas build --platform ios --local --non-interactive --profile production_v13
     else
         exit 1
     fi
