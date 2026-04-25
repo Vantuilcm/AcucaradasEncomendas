@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # HOTFIX: UTF-8 s/ BOM - 2026-04-25
 # DEBUG TRIGGER: 1190-v9
 # 🍎 iOSBuildGuardianAI_V2_LOCAL
