@@ -215,7 +215,7 @@ export EXPO_DEBUG=1
 mkdir -p build-logs
 
 # Usar EXPO_DEBUG=1 para mais detalhes e --credentials-file para evitar prompts
-if ! eas build --platform ios --local --non-interactive --profile production_v13 --credentials-file credentials.json > build-logs/local-build.log 2>&1; then
+if ! eas build --platform ios --local --non-interactive --profile production_v13 > build-logs/local-build.log 2>&1; then
     echo "❌ [ETAPA 8] Build falhou. Analisando logs..."
     echo "--- ÚLTIMAS 100 LINHAS DO LOG DE BUILD ---"
     tail -n 100 build-logs/local-build.log || cat build-logs/local-build.log
