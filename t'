@@ -1,0 +1,129 @@
+[33mcommit f6714963335b74c7401a257d5f604cb06b743109[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfix-build-sdk-52[m[33m, [m[1;31morigin/fix-build-sdk-52[m[33m)[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Tue Mar 10 10:58:28 2026 -0300
+
+    fix: remove Sentry, fix test types and diagnostics for GitHub build
+
+[33mcommit 5ff97d1b1db9dcd40fed753868fc153737908c6e[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Tue Mar 10 10:12:32 2026 -0300
+
+    fix: complete sentry removal and deep cleaning for build 376
+
+[33mcommit 86246b131c0bc0e3611c424f16f5acffe7668b5d[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Tue Mar 10 10:09:32 2026 -0300
+
+    fix: remove all sentry references and increment build 375
+
+[33mcommit 1f8701e6d9f267e05b19febc5f6ab4a67316af45[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Tue Mar 10 09:35:48 2026 -0300
+
+    fix: resolve linter errors and diagnostics in assets removal
+
+[33mcommit 882855181ea46dfcf9f1e39b4db05e6519556f31[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Tue Mar 10 09:30:50 2026 -0300
+
+    fix: corrige assets inexistentes para build 374
+[33mcommit e17d0c3e6a6f00af3b4c99b8a7ee92facd7c418b[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Wed Mar 18 22:07:45 2026 -0300
+
+    fix: update build profile to production and ensure remote credentials
+
+[1mdiff --git a/.github/workflows/ios-build-free.yml b/.github/workflows/ios-build-free.yml[m
+[1mindex f333dcd8..c9e695ac 100644[m
+[1m--- a/.github/workflows/ios-build-free.yml[m
+[1m+++ b/.github/workflows/ios-build-free.yml[m
+[36m@@ -22,10 +22,10 @@[m [mon:[m
+       profile:[m
+         description: 'EAS Build Profile'[m
+         required: true[m
+[31m-        default: 'production_local'[m
+[32m+[m[32m        default: 'production'[m
+         type: choice[m
+         options:[m
+[31m-          - production_local[m
+[32m+[m[32m          - production[m
+           - preview[m
+           - development[m
+       mode:[m
+[36m@@ -48,7 +48,7 @@[m [mon:[m
+ env:[m
+   # Using safe access to inputs[m
+   INPUT_REF: ${{ inputs.ref || github.event.client_payload.ref || github.ref_name }}[m
+[31m-  INPUT_PROFILE: ${{ inputs.profile || github.event.client_payload.profile || 'production_local' }}[m
+[32m+[m[32m  INPUT_PROFILE: ${{ inputs.profile || github.event.client_payload.profile || 'production' }}[m
+   INPUT_MODE: ${{ inputs.mode || github.event.client_payload.mode || 'github_macos' }}[m
+   INPUT_PUBLISH_UPDATE: ${{ inputs.publish_update || github.event.client_payload.publish_update || false }}[m
+   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true[m
+[36m@@ -130,9 +130,6 @@[m [mjobs:[m
+         run: npm run prepare:ios[m
+         env:[m
+           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}[m
+[31m-          APPLE_CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}[m
+[31m-          APPLE_PROVISION_BASE64: ${{ secrets.IOS_PROV_PROFILE_BASE64 }}[m
+[31m-          APPLE_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}[m
+           ONESIGNAL_CERT_BASE64: ${{ secrets.ONESIGNAL_CERT_BASE64 }}[m
+           ONESIGNAL_PROVISION_BASE64: ${{ secrets.ONESIGNAL_PROVISION_BASE64 }}[m
+           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}[m
+
+[33mcommit 65d6d6a60361e33c05b755d4dbf428f14c4af85f[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Wed Mar 18 21:07:40 2026 -0300
+
+    fix: correct expo cache parameters to expo-cache and eas-cache
+
+[1mdiff --git a/.github/workflows/ios-build-free.yml b/.github/workflows/ios-build-free.yml[m
+[1mindex 3dea00e4..f333dcd8 100644[m
+[1m--- a/.github/workflows/ios-build-free.yml[m
+[1m+++ b/.github/workflows/ios-build-free.yml[m
+[36m@@ -99,7 +99,8 @@[m [mjobs:[m
+           eas-version: latest[m
+           token: ${{ secrets.EXPO_TOKEN }}[m
+           packager: npm[m
+[31m-          cache: false[m
+[32m+[m[32m          expo-cache: false[m
+[32m+[m[32m          eas-cache: false[m
+ [m
+   build:[m
+     name: Build iOS IPA[m
+
+[33mcommit ea4711f3e595f6a8d679d9357ba3ac712e9d971c[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Wed Mar 18 20:43:50 2026 -0300
+
+    fix: update node version to 22 and disable expo cache
+
+[1mdiff --git a/.github/workflows/ios-build-free.yml b/.github/workflows/ios-build-free.yml[m
+[1mindex 6f42a31a..3dea00e4 100644[m
+[1m--- a/.github/workflows/ios-build-free.yml[m
+[1m+++ b/.github/workflows/ios-build-free.yml[m
+[36m@@ -76,7 +76,7 @@[m [mjobs:[m
+       - name: Setup Node[m
+         uses: actions/setup-node@v4[m
+         with:[m
+[31m-          node-version: 20.12.2[m
+[32m+[m[32m          node-version: 22[m
+           cache: 'npm'[m
+ [m
+       - name: Install dependencies[m
+[36m@@ -99,6 +99,7 @@[m [mjobs:[m
+           eas-version: latest[m
+           token: ${{ secrets.EXPO_TOKEN }}[m
+           packager: npm[m
+[32m+[m[32m          cache: false[m
+ [m
+   build:[m
+     name: Build iOS IPA[m
+[36m@@ -114,7 +115,7 @@[m [mjobs:[m
+       - name: Setup Node[m
+         uses: actions/setup-node@v4[m
+         with:[m
+[31m-          node-version: 20.12.2[m
+[32m+[m[32m          node-version: 22[m
+           cache: 'npm'[m
+ [m
+       - name: Install dependencies[m

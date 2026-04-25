@@ -1,0 +1,1 @@
+﻿â€¢ Bug fixes and performance improvements\nâ€¢ Renewed interface for better user experience\nâ€¢ New reporting and statistics features\nâ€¢ Support for multiple user profiles

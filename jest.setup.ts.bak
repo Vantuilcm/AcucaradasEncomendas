@@ -1,0 +1,263 @@
+import 'react-native-gesture-handler/jestSetup';
+
+// Mock timers
+jest.mock('scheduler', () => require('scheduler/unstable_mock'));
+
+// Mock AsyncStorage
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+// Mock NetInfo
+jest.mock('@react-native-community/netinfo', () => ({
+  useNetInfo: jest.fn().mockReturnValue({
+    isConnected: true,
+    isInternetReachable: true,
+    type: 'wifi',
+  }),
+  addEventListener: jest.fn(),
+  fetch: jest.fn().mockResolvedValue({
+    isConnected: true,
+    isInternetReachable: true,
+    type: 'wifi',
+  }),
+}));
+
+// Mock SafeAreaContext
+jest.mock('react-native-safe-area-context', () => {
+  const inset = { top: 0, right: 0, bottom: 0, left: 0 };
+  return {
+    SafeAreaProvider: jest.fn(({ children }) => children),
+    SafeAreaConsumer: jest.fn(({ children }) => children(inset)),
+    useSafeAreaInsets: jest.fn(() => inset),
+    useSafeAreaFrame: jest.fn(() => ({ x: 0, y: 0, width: 390, height: 844 })),
+    initialWindowMetrics: {
+      frame: { x: 0, y: 0, width: 390, height: 844 },
+      insets: inset,
+    },
+  };
+});
+
+// Mock React Native Screens
+jest.mock('react-native-screens', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    enableScreens: jest.fn(),
+    ScreenContainer: View,
+    Screen: View,
+    NativeScreen: View,
+    NativeScreenContainer: View,
+    ScreenStack: View,
+    ScreenStackHeaderConfig: View,
+    ScreenStackHeaderSubview: View,
+    ScreenStackHeaderRightView: View,
+    ScreenStackHeaderLeftView: View,
+    ScreenStackHeaderTitleView: View,
+    ScreenStackHeaderCenterView: View,
+    ScreenStackSearchBar: View,
+    shouldUseActivityState: true,
+  };
+});
+
+// Mock Reanimated
+jest.mock('react-native-reanimated', () => {
+  const Reanimated = require('react-native-reanimated/mock');
+  Reanimated.default.call = () => {};
+  return Reanimated;
+});
+
+// Mock Expo Modules
+jest.mock('expo-font', () => ({
+  loadAsync: jest.fn(),
+  isLoaded: jest.fn().mockReturnValue(true),
+}));
+
+jest.mock('expo-asset', () => ({
+  Asset: {
+    loadAsync: jest.fn(),
+    fromModule: jest.fn().mockReturnValue({ uri: 'mock-uri' }),
+  },
+}));
+
+jest.mock('expo-constants', () => ({
+  expoConfig: { extra: {} },
+  manifest: { extra: {} },
+}));
+
+jest.mock('expo-application', () => ({
+  applicationName: 'Acucaradas Encomendas',
+  applicationId: 'com.acucaradas.encomendas',
+  nativeApplicationVersion: '1.0.0',
+  nativeBuildVersion: '1',
+}));
+
+jest.mock('expo-location', () => ({
+  requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+  getCurrentPositionAsync: jest.fn().mockResolvedValue({
+    coords: { latitude: -23.5505, longitude: -46.6333 },
+  }),
+  reverseGeocodeAsync: jest.fn().mockResolvedValue([{
+    street: 'Rua Mock',
+    city: 'Cidade Mock',
+    region: 'Estado Mock',
+    postalCode: '00000-000',
+    name: '123',
+  }]),
+}));
+
+// Mock Firebase
+jest.mock('firebase/app', () => ({
+  initializeApp: jest.fn(),
+  getApp: jest.fn(),
+  getApps: jest.fn().mockReturnValue([]),
+}));
+
+jest.mock('firebase/auth', () => ({
+  getAuth: jest.fn(() => ({
+    currentUser: { uid: 'test-user-id', email: 'test@example.com' },
+    onAuthStateChanged: jest.fn((callback) => {
+      if (typeof callback === 'function') {
+        callback({ uid: 'test-user-id', email: 'test@example.com' });
+      }
+      return jest.fn(); // unsubscribe
+    }),
+    signInWithEmailAndPassword: jest.fn().mockResolvedValue({
+      user: { uid: 'test-user-id', email: 'test@example.com' },
+    }),
+    createUserWithEmailAndPassword: jest.fn().mockResolvedValue({
+      user: { uid: 'new-user-id', email: 'new@example.com' },
+    }),
+    signOut: jest.fn().mockResolvedValue(undefined),
+  })),
+  initializeAuth: jest.fn(),
+  getReactNativePersistence: jest.fn(),
+}));
+
+jest.mock('firebase/firestore', () => {
+  const originalModule = jest.requireActual('firebase/firestore');
+  return {
+    ...originalModule,
+    getFirestore: jest.fn(),
+    collection: jest.fn(),
+    doc: jest.fn(),
+    getDoc: jest.fn().mockResolvedValue({
+      exists: () => false,
+      data: () => ({}),
+    }),
+    setDoc: jest.fn().mockResolvedValue(void 0),
+    updateDoc: jest.fn().mockResolvedValue(void 0),
+    deleteDoc: jest.fn().mockResolvedValue(void 0),
+    getDocs: jest.fn().mockResolvedValue({
+      docs: [],
+      empty: true,
+      forEach: jest.fn(),
+    }),
+    query: jest.fn(),
+    where: jest.fn(),
+    orderBy: jest.fn(),
+    limit: jest.fn(),
+    addDoc: jest.fn().mockResolvedValue({ id: 'mock-doc-id' }),
+    onSnapshot: jest.fn(() => jest.fn()),
+    Timestamp: {
+      now: jest.fn(() => ({ toDate: () => new Date() })),
+      fromDate: jest.fn((date) => ({ toDate: () => date })),
+    },
+  };
+});
+
+// Mock SecurityService
+jest.mock('./src/services/SecurityService', () => ({
+  SecurityService: {
+    registerLoginAttempt: jest.fn().mockResolvedValue(true),
+    sanitizeInput: jest.fn().mockImplementation((val) => val),
+    validateToken: jest.fn().mockReturnValue(true),
+    getTokenPayload: jest.fn().mockReturnValue({ id: 'test-user-id' }),
+    startActivityMonitor: jest.fn(),
+    stopActivityMonitor: jest.fn(),
+    getDeviceId: jest.fn().mockResolvedValue('mock-device-id'),
+    updateLastActivity: jest.fn(),
+    resetActivityTimer: jest.fn(),
+    checkPasswordStrength: jest.fn().mockReturnValue({ score: 4, feedback: '', isStrong: true }),
+    isDeviceTrusted: jest.fn().mockResolvedValue(true),
+    registerTrustedDevice: jest.fn().mockResolvedValue(true),
+    removeTrustedDevice: jest.fn().mockResolvedValue(true),
+    getTrustedDevices: jest.fn().mockResolvedValue([]),
+    performSecurityCheck: jest.fn().mockResolvedValue({ compromised: false, emulator: false, debugging: false }),
+  },
+  DeviceSecurityService: class {
+    static getInstance() {
+      return new this();
+    }
+    performSecurityCheck() {
+      return Promise.resolve({ compromised: false, emulator: false, debugging: false });
+    }
+  },
+}));
+
+// Mock usePermissions
+jest.mock('./src/hooks/usePermissions', () => {
+  const mockUsePermissions = jest.fn().mockReturnValue({
+    loading: false,
+    userRole: null,
+    isEntregador: false,
+    hasPermission: jest.fn().mockReturnValue(false),
+    hasPermissions: jest.fn().mockReturnValue(false),
+    updatePermissions: jest.fn(),
+    isAdmin: false,
+    isGerente: false,
+    isAtendente: false,
+    isCliente: true,
+  });
+  return {
+    __esModule: true,
+    default: mockUsePermissions,
+    usePermissions: mockUsePermissions,
+  };
+});
+
+// Mock useNotifications
+jest.mock('./src/hooks/useNotifications', () => ({
+  useNotifications: jest.fn().mockReturnValue({
+    pushToken: 'mock-push-token',
+    isLoading: false,
+    notification: null,
+    sendNotification: jest.fn(),
+  }),
+}));
+
+// Mock MobileNotificationService
+jest.mock('./src/services/MobileNotificationService', () => ({
+  MobileNotificationService: {
+    getInstance: jest.fn().mockReturnValue({
+      configure: jest.fn(),
+      registerForPushNotifications: jest.fn().mockResolvedValue('mock-token'),
+      sendLocalNotification: jest.fn(),
+    }),
+  },
+}));
+
+// Mock react-native-calendars
+jest.mock('react-native-calendars', () => {
+  const React = require('react');
+  const { View, Button } = require('react-native');
+  return {
+    Calendar: (props) => (
+      <View testID="calendar-mock">
+        <Button
+          testID="select-date-button"
+          title="Select Date"
+          onPress={() => props.onDayPress({ dateString: '2026-05-15' })}
+        />
+      </View>
+    ),
+    LocaleConfig: {
+      locales: {
+        'pt-br': {},
+      },
+    },
+  };
+});
+
+// Global setups
+LogBox.ignoreAllLogs(true);
