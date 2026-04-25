@@ -25,6 +25,13 @@ MISSING_VARS=()
 [ -z "${EXPO_ASC_KEY_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_KEY_ID")
 [ -z "${EXPO_ASC_ISSUER_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_ISSUER_ID")
 [ -z "${EXPO_ASC_PRIVATE_KEY:-}" ] && MISSING_VARS+=("EXPO_ASC_PRIVATE_KEY")
+
+# Fallback para APPLE_ID
+if [ -z "${APPLE_ID:-}" ] && [ -n "${EXPO_APPLE_ID:-}" ]; then
+    echo "ℹ️ Usando EXPO_APPLE_ID como fallback para APPLE_ID"
+    APPLE_ID="${EXPO_APPLE_ID}"
+fi
+
 [ -z "${APPLE_ID:-}" ] && MISSING_VARS+=("APPLE_ID")
 
 if [ ${#MISSING_VARS[@]} -ne 0 ]; then
