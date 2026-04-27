@@ -1,0 +1,85 @@
+
+{
+  name: [32m'Açucaradas Encomendas'[39m,
+  slug: [32m'acucaradas-encomendas'[39m,
+  version: [32m'1.1.8'[39m,
+  orientation: [32m'portrait'[39m,
+  icon: [32m'./assets/icon.png'[39m,
+  userInterfaceStyle: [32m'light'[39m,
+  assetBundlePatterns: [
+    [32m'**/*'[39m
+  ],
+  owner: [32m'vantuilcm'[39m,
+  plugins: [
+    [
+      [32m'onesignal-expo-plugin'[39m,
+      {
+        mode: [32m'development'[39m
+      }
+    ],
+    [32m'./plugins/withYogaFix'[39m,
+    [32m'./plugins/withIosPermissions'[39m
+  ],
+  description: [90mundefined[39m,
+  sdkVersion: [32m'52.0.0'[39m,
+  platforms: [
+    [32m'ios'[39m,
+    [32m'android'[39m,
+    [32m'web'[39m
+  ],
+  runtimeVersion: [32m'1.0.1'[39m,
+  splash: {
+    image: [32m'./assets/splash.png'[39m,
+    resizeMode: [32m'contain'[39m,
+    backgroundColor: [32m'#ffffff'[39m
+  },
+  ios: {
+    supportsTablet: [33mtrue[39m,
+    bundleIdentifier: [32m'com.vantuilcm.acucaradasencomendas'[39m,
+    buildNumber: [32m'1190'[39m,
+    googleServicesFile: [32m'./GoogleService-Info.plist'[39m,
+    infoPlist: {
+      NSSpeechRecognitionUsageDescription: [32m'Usamos reconhecimento de voz para facilitar interações e melhorar sua experiência.'[39m,
+      NSLocationWhenInUseUsageDescription: [32m'Usamos sua localização para mostrar lojas, produtores e entregadores próximos.'[39m,
+      NSCameraUsageDescription: [32m'Este aplicativo usa a câmera para escanear códigos QR e tirar fotos dos produtos.'[39m,
+      NSPhotoLibraryUsageDescription: [32m'Este aplicativo precisa acessar sua galeria para selecionar imagens para os produtos.'[39m,
+      NSMicrophoneUsageDescription: [32m'Este aplicativo usa o microfone para gravar notas de voz para os pedidos.'[39m
+    }
+  },
+  android: {
+    package: [32m'com.vantuilcm.acucaradasencomendas'[39m,
+    versionCode: [33m1190[39m,
+    googleServicesFile: [32m'./google-services.json'[39m,
+    adaptiveIcon: {
+      foregroundImage: [32m'./assets/adaptive-icon.png'[39m,
+      backgroundColor: [32m'#ffffff'[39m
+    }
+  },
+  web: {
+    favicon: [32m'./assets/favicon.png'[39m
+  },
+  extra: {
+    env: [32m'development'[39m,
+    eas: {
+      projectId: [32m'6090106b-e327-4744-bce5-9ddb0d037045'[39m,
+      build: {
+        experimental: {
+          ios: {
+            appExtensions: [
+              {
+                targetName: [32m'OneSignalNotificationServiceExtension'[39m,
+                bundleIdentifier: [32m'com.vantuilcm.acucaradasencomendas.OneSignalNotificationServiceExtension'[39m,
+                entitlements: {
+                  [32m'com.apple.security.application-groups'[39m: [
+                    [32m'group.com.vantuilcm.acucaradasencomendas.onesignal'[39m
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+

@@ -1,0 +1,50 @@
+﻿{
+  "apps": {
+    "acucaradas-encomendas": {
+      "id": "6090106b-e327-4744-bce5-9ddb0d037045",
+      "name": "A├ºucaradas Encomendas",
+      "slug": "acucaradas-encomendas",
+      "icon": "./assets/app-icon.png",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      },
+      "bundleIdentifier": "com.acucaradas.encomendas",
+      "package": "com.acucaradas.encomendas",
+      "scheme": "acucaradas",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Este aplicativo utiliza sua localiza├º├úo para exibir lojas pr├│ximas, calcular o tempo de entrega e garantir que o seu pedido chegue ao local correto.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Sua localiza├º├úo ├® utilizada para oferecer uma experi├¬ncia personalizada de entrega e notifica├º├Áes sobre o status do seu pedido mesmo em segundo plano.",
+        "NSLocationAlwaysUsageDescription": "Este aplicativo precisa da sua localiza├º├úo para otimizar o rastreamento da entrega e informar sobre promo├º├Áes em lojas pr├│ximas.",
+        "NSSpeechRecognitionUsageDescription": "Este aplicativo utiliza o reconhecimento de voz para permitir que voc├¬ busque produtos e navegue pelo cat├ílogo usando comandos de voz com facilidade.",
+        "NSMicrophoneUsageDescription": "O acesso ao microfone ├® necess├írio para capturar seus comandos de voz durante a busca de produtos e intera├º├úo com o assistente virtual.",
+        "NSCameraUsageDescription": "O acesso ├á c├ómera permite que voc├¬ tire fotos para o seu perfil e capture imagens de comprovantes de pagamento quando necess├írio.",
+        "NSPhotoLibraryUsageDescription": "O acesso ├á galeria permite que voc├¬ selecione fotos para o seu perfil e anexe imagens a avalia├º├Áes de produtos."
+      },
+      "firebase": {
+        "ios": "./GoogleService-Info.plist",
+        "android": "./google-services.json"
+      },
+      "plugins": [
+        "./plugins/withIosPermissions"
+      ],
+      "environments": {
+        "production": {
+          "easProfile": "production",
+          "channel": "production"
+        },
+        "preview": {
+          "easProfile": "preview",
+          "channel": "preview"
+        },
+        "development": {
+          "easProfile": "development",
+          "channel": "development"
+        }
+      }
+    }
+  },
+  "defaultApp": "acucaradas-encomendas"
+}

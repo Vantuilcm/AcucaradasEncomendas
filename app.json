@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Açucaradas Encomendas",
+    "slug": "acucaradas-encomendas",
+    "version": "1.1.8",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.acucaradas.encomendas",
+      "buildNumber": "1192"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.acucaradas.encomendas",
+      "versionCode": 1191
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6090106b-e327-4744-bce5-9ddb0d037045"
+      }
+    },
+    "owner": "acucaradaencomendas",
+    "plugins": [
+      "onesignal-expo-plugin",
+      "./plugins/withYogaFix",
+      "./plugins/withIosPermissions"
+    ]
+  }
+}

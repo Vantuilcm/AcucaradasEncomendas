@@ -1,0 +1,98 @@
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered
+Checkpoint 1: Imports start
+Checkpoint 2: @testing-library/react-native imported
+Checkpoint 3: App imported
+Test body executing
+Rendering App
+App rendered

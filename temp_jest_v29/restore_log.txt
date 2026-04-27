@@ -1,0 +1,33 @@
+﻿**********************
+Início da transcrição do Windows PowerShell
+Hora de início: 20260312082816
+Nome de Usuário: RENATA\vantu
+Executar como Usuário: RENATA\vantu
+Nome da Configuração: 
+Computador: RENATA (Microsoft Windows NT 10.0.26200.0)
+Aplicativo Host: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File restore_babel_runtime_only.ps1
+ID do Processo: 1336
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcrição iniciada, o arquivo de saída é restore_log.txt
+Target Dir: ..\node_modules\@babel
+Dest Path: ..\node_modules\@babel\plugin-transform-runtime
+Downloading @babel/plugin-transform-runtime...
+
+Found tarball: babel-plugin-transform-runtime-7.29.0.tgz
+Extracting...
+
+Extraction successful.
+Kept tarball for inspection: babel-plugin-transform-runtime-7.29.0.tgz
+DONE
+**********************
+Fim da transcrição do Windows PowerShell
+Hora de término: 20260312082822
+**********************
