@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
 import usePermissions from '../hooks/usePermissions';
-import { useNotifications } from '../hooks/useNotifications';
+// import { useNotifications } from '../hooks/useNotifications'; // DESLIGADO NA FASE 1194
 
 // Telas de autenticação
 import LoginScreen from '../screens/LoginScreen';
@@ -197,7 +197,7 @@ const AppNavigator = () => {
     : { ...NavigationDefaultTheme, colors: { ...NavigationDefaultTheme.colors, primary: theme.colors.primary, background: theme.colors.background, card: theme.colors.card, text: theme.colors.text.primary, border: theme.colors.border, notification: theme.colors.notification } };
   
   // Inicializar notificações
-  useNotifications();
+  // useNotifications(); // DESLIGADO NA FASE 1194
 
   useEffect(() => {
     // Simular um tempo de carregamento para garantir que o estado de autenticação esteja pronto
