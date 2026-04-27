@@ -1,0 +1,357 @@
+﻿# Script para resolver conflitos de dependÃªncias NPM
+# AÃ§ucaradas Encomendas - NPM Conflict Solver
+
+# ConfiguraÃ§Ãµes
+$backupDir = "./backup-package-json"
+$packageJsonPath = "./package.json"
+$packageLockPath = "./package-lock.json"
+$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+$conflitosDetectados = 0
+$conflitosResolvidos = 0
+
+Write-Host 'RELATÃ“RIO DE CONFLITOS NPM' -ForegroundColor Cyan
+Write-Host '===========================' -ForegroundColor Cyan
+
+# Verificar versÃ£o do Node.js
+$nodeVersion = node --version
+Write-Host 'VersÃ£o atual do Node.js: ' -NoNewline -ForegroundColor Yellow
+Write-Host $nodeVersion -ForegroundColor Yellow
+
+# Verificar versÃ£o do NPM
+$npmVersion = npm --version
+Write-Host 'VersÃ£o atual do NPM: ' -NoNewline -ForegroundColor Yellow
+Write-Host $npmVersion -ForegroundColor Yellow
+
+# Verificar versÃ£o recomendada no .nvmrc
+$nvmrcVersion = Get-Content .nvmrc -ErrorAction SilentlyContinue
+Write-Host 'VersÃ£o recomendada no .nvmrc: ' -NoNewline -ForegroundColor Yellow
+Write-Host $nvmrcVersion -ForegroundColor Yellow
+
+# Criar diretÃ³rio de backup se nÃ£o existir
+if (-not (Test-Path $backupDir)) {
+    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+    Write-Host "DiretÃ³rio de backup criado: $backupDir" -ForegroundColor Green
+}
+
+# Fazer backup do package.json atual
+function Backup-PackageJson {
+    $backupPath = "$backupDir/package.json.$timestamp"
+    Copy-Item $packageJsonPath $backupPath
+    Write-Host "Backup do package.json criado em: $backupPath" -ForegroundColor Green
+    
+    if (Test-Path $packageLockPath) {
+        $backupLockPath = "$backupDir/package-lock.json.$timestamp"
+        Copy-Item $packageLockPath $backupLockPath
+        Write-Host "Backup do package-lock.json criado em: $backupLockPath" -ForegroundColor Green
+    }
+}
+
+# Verificar se o package.json existe
+if (-not (Test-Path $packageJsonPath)) {
+    Write-Host "Arquivo package.json nÃ£o encontrado!" -ForegroundColor Red
+    exit 1
+}
+
+# Fazer backup antes de qualquer modificaÃ§Ã£o
+Backup-PackageJson
+
+# Ler o conteÃºdo do package.json
+$packageJson = Get-Content -Path $packageJsonPath -Raw | ConvertFrom-Json
+
+# Analisar dependÃªncias e identificar conflitos
+Write-Host "`nAnalisando dependÃªncias e identificando conflitos..." -ForegroundColor Cyan
+
+# Verificar versÃ£o do Expo
+$expoVersion = $packageJson.dependencies.expo -replace "\^|~", ""
+Write-Host "VersÃ£o do Expo: $expoVersion" -ForegroundColor Yellow
+
+# Lista de conflitos detectados
+$listaConflitos = @()
+
+# Verificar conflitos entre React e React DOM
+$reactVersion = $packageJson.dependencies.react
+$reactDomVersion = $packageJson.dependencies["react-dom"]
+
+if ($reactVersion -ne $reactDomVersion) {
+    $conflitosDetectados++
+    $listaConflitos += "React ($reactVersion) e React DOM ($reactDomVersion) tÃªm versÃµes diferentes"
+    Write-Host "Conflito detectado: React ($reactVersion) e React DOM ($reactDomVersion) tÃªm versÃµes diferentes" -ForegroundColor Red
+    
+    # Verificar se jÃ¡ existe uma resoluÃ§Ã£o
+    if (-not $packageJson.resolutions -or -not $packageJson.resolutions.react -or -not $packageJson.resolutions["react-dom"]) {
+        Write-Host "Adicionando resolutions para react e react-dom" -ForegroundColor Yellow
+        
+        # Criar objeto resolutions se nÃ£o existir
+        if (-not $packageJson.PSObject.Properties.Name -contains "resolutions") {
+            $packageJson | Add-Member -NotePropertyName "resolutions" -NotePropertyValue (New-Object PSObject)
+        }
+        
+        # Adicionar resolutions para react e react-dom
+        $packageJson.resolutions | Add-Member -NotePropertyName "react" -NotePropertyValue "18.2.0" -Force
+        $packageJson.resolutions | Add-Member -NotePropertyName "react-dom" -NotePropertyValue "18.2.0" -Force
+        $conflitosResolvidos++
+    }
+    
+    # Verificar se jÃ¡ existe um override
+    if (-not $packageJson.overrides -or -not $packageJson.overrides.react -or -not $packageJson.overrides["react-dom"]) {
+        Write-Host "Adicionando overrides para react e react-dom" -ForegroundColor Yellow
+        
+        # Criar objeto overrides se nÃ£o existir
+        if (-not $packageJson.PSObject.Properties.Name -contains "overrides") {
+            $packageJson | Add-Member -NotePropertyName "overrides" -NotePropertyValue (New-Object PSObject)
+        }
+        
+        # Adicionar overrides para react e react-dom
+        $packageJson.overrides | Add-Member -NotePropertyName "react" -NotePropertyValue "18.2.0" -Force
+        $packageJson.overrides | Add-Member -NotePropertyName "react-dom" -NotePropertyValue "18.2.0" -Force
+        $conflitosResolvidos++
+    }
+}
+
+# Verificar conflitos entre @types/react e React
+$typesReactVersion = $packageJson.devDependencies["@types/react"]
+if ($typesReactVersion -and $reactVersion) {
+    # Extrair versÃ£o principal do React (18.x.x)
+    $reactMainVersion = $reactVersion -replace "\^|~|>|<|=|\s", "" -replace "(\d+)\..*", "$1"
+    $typesReactMainVersion = $typesReactVersion -replace "\^|~|>|<|=|\s", "" -replace "(\d+)\..*", "$1"
+    
+    if ($reactMainVersion -ne $typesReactMainVersion) {
+        $conflitosDetectados++
+        $listaConflitos += "@types/react ($typesReactVersion) nÃ£o Ã© compatÃ­vel com react ($reactVersion)"
+        Write-Host "Conflito detectado: @types/react ($typesReactVersion) nÃ£o Ã© compatÃ­vel com react ($reactVersion)" -ForegroundColor Red
+        
+        # Atualizar @types/react para versÃ£o compatÃ­vel
+        Write-Host "Atualizando @types/react para versÃ£o compatÃ­vel com React $reactMainVersion" -ForegroundColor Yellow
+        $packageJson.devDependencies["@types/react"] = "~18.2.45"
+        
+        # Adicionar Ã  resoluÃ§Ã£o e override
+        $packageJson.resolutions | Add-Member -NotePropertyName "@types/react" -NotePropertyValue "~18.2.45" -Force
+        $packageJson.overrides | Add-Member -NotePropertyName "@types/react" -NotePropertyValue "~18.2.45" -Force
+        $conflitosResolvidos++
+    }
+}
+
+# Verificar conflitos entre dependÃªncias do Expo
+Write-Host "`nVerificando compatibilidade das dependÃªncias do Expo com a versÃ£o $expoVersion..." -ForegroundColor Cyan
+
+# Mapeamento de versÃµes compatÃ­veis com Expo SDK 53
+$expoSDK53Deps = @{
+    "expo-constants" = "~15.4.6"
+    "expo-crypto" = "~12.8.0"
+    "expo-device" = "~5.9.0"
+    "expo-notifications" = "^0.31.4"
+    "expo-router" = "^3.5.24"
+    "expo-secure-store" = "~12.8.0"
+    "expo-status-bar" = "~1.11.1"
+    "react-native-gesture-handler" = "~2.14.0"
+    "react-native-reanimated" = "~3.6.2"
+    "react-native-safe-area-context" = "4.8.2"
+    "react-native-screens" = "~3.29.0"
+    "react-native-web" = "~0.19.6"
+    "metro" = "^0.80.0"
+    "metro-resolver" = "^0.80.0"
+    "metro-runtime" = "^0.80.0"
+    "metro-source-map" = "^0.80.0"
+    "metro-config" = "^0.80.0"
+}
+
+# Verificar se as dependÃªncias do Expo sÃ£o compatÃ­veis com a versÃ£o principal do Expo
+$expoPackages = $packageJson.dependencies.PSObject.Properties | Where-Object { $_.Name -like "expo-*" }
+foreach ($package in $expoPackages) {
+    $packageName = $package.Name
+    $packageVersion = $package.Value -replace "\^|~", ""
+    
+    # Verificar se a versÃ£o Ã© compatÃ­vel com o Expo SDK atual
+    if ($expoSDK53Deps.ContainsKey($packageName) -and $packageVersion -ne ($expoSDK53Deps[$packageName] -replace "\^|~", "")) {
+        $conflitosDetectados++
+        $listaConflitos += "$packageName ($packageVersion) nÃ£o Ã© compatÃ­vel com Expo SDK 53"
+        Write-Host "Conflito detectado: $packageName ($packageVersion) nÃ£o Ã© compatÃ­vel com Expo SDK 53" -ForegroundColor Red
+        
+        # Atualizar para a versÃ£o compatÃ­vel
+        Write-Host "Atualizando $packageName para versÃ£o compatÃ­vel: $($expoSDK53Deps[$packageName])" -ForegroundColor Yellow
+        $packageJson.dependencies.$packageName = $expoSDK53Deps[$packageName]
+        $conflitosResolvidos++
+    }
+}
+
+# Verificar dependÃªncias do Metro Bundler
+Write-Host "\nVerificando compatibilidade das dependÃªncias do Metro Bundler..." -ForegroundColor Cyan
+
+# Lista de pacotes Metro para verificar
+$metroPackages = @("metro", "metro-resolver", "metro-runtime", "metro-source-map", "metro-config")
+
+# Verificar se todas as dependÃªncias do Metro estÃ£o presentes e com versÃµes compatÃ­veis
+foreach ($packageName in $metroPackages) {
+    # Verificar se o pacote existe nas dependÃªncias ou devDependencies
+    $packageExists = $false
+    $packageVersion = $null
+    
+    if ($packageJson.dependencies.PSObject.Properties.Name -contains $packageName) {
+        $packageExists = $true
+        $packageVersion = $packageJson.dependencies.$packageName
+    } elseif ($packageJson.devDependencies.PSObject.Properties.Name -contains $packageName) {
+        $packageExists = $true
+        $packageVersion = $packageJson.devDependencies.$packageName
+    }
+    
+    # Se o pacote nÃ£o existe ou tem versÃ£o incompatÃ­vel
+    if (-not $packageExists -or ($packageVersion -and ($packageVersion -notlike "*0.80*"))) {
+        $conflitosDetectados++
+        $currentVersion = if ($packageVersion) { $packageVersion } else { "nÃ£o instalado" }
+        $listaConflitos += "$packageName ($currentVersion) nÃ£o Ã© compatÃ­vel com Expo SDK 53"
+        Write-Host "Conflito detectado: $packageName ($currentVersion) nÃ£o Ã© compatÃ­vel com Expo SDK 53" -ForegroundColor Red
+        
+        # Adicionar ou atualizar para a versÃ£o compatÃ­vel
+        Write-Host "Adicionando/atualizando $packageName para versÃ£o compatÃ­vel: $($expoSDK53Deps[$packageName])" -ForegroundColor Yellow
+        
+        # Decidir se adiciona em dependencies ou devDependencies
+        if ($packageExists -and $packageJson.devDependencies.PSObject.Properties.Name -contains $packageName) {
+            $packageJson.devDependencies.$packageName = $expoSDK53Deps[$packageName]
+        } else {
+            # Garantir que o objeto dependencies existe
+            if (-not $packageJson.PSObject.Properties.Name -contains "dependencies") {
+                $packageJson | Add-Member -NotePropertyName "dependencies" -NotePropertyValue (New-Object PSObject)
+            }
+            $packageJson.dependencies.$packageName = $expoSDK53Deps[$packageName]
+        }
+        
+        # Adicionar Ã  resoluÃ§Ã£o e override
+        $packageJson.resolutions | Add-Member -NotePropertyName $packageName -NotePropertyValue $expoSDK53Deps[$packageName] -Force
+        $packageJson.overrides | Add-Member -NotePropertyName $packageName -NotePropertyValue $expoSDK53Deps[$packageName] -Force
+        
+        $conflitosResolvidos++
+    }
+}
+
+# Verificar conflitos de peer dependencies
+Write-Host "`nVerificando conflitos de peer dependencies..." -ForegroundColor Cyan
+
+# Verificar se o React Native estÃ¡ na versÃ£o correta para o Expo SDK 53
+$reactNativeVersion = $packageJson.dependencies["react-native"]
+if ($reactNativeVersion -and $reactNativeVersion -notlike "*0.73*") {
+    $conflitosDetectados++
+    $listaConflitos += "react-native ($reactNativeVersion) nÃ£o Ã© compatÃ­vel com Expo SDK 53 (requer ~0.73.2)"
+    Write-Host "Conflito detectado: react-native ($reactNativeVersion) nÃ£o Ã© compatÃ­vel com Expo SDK 53 (requer ~0.73.2)" -ForegroundColor Red
+    
+    # Atualizar para a versÃ£o compatÃ­vel
+    Write-Host "Atualizando react-native para versÃ£o compatÃ­vel: ~0.73.2" -ForegroundColor Yellow
+    $packageJson.dependencies["react-native"] = "~0.73.2"
+    
+    # Adicionar Ã  resoluÃ§Ã£o e override
+    $packageJson.resolutions | Add-Member -NotePropertyName "react-native" -NotePropertyValue "~0.73.2" -Force
+    $packageJson.overrides | Add-Member -NotePropertyName "react-native" -NotePropertyValue "~0.73.2" -Force
+    
+    $conflitosResolvidos++
+}
+
+# Atualizar package.json com versÃµes compatÃ­veis
+Write-Host '`nAtualizando package.json...' -ForegroundColor Yellow
+
+# Salvar o package.json atualizado
+$packageJsonPath = Join-Path $projectRoot "package.json"
+$packageJson | ConvertTo-Json -Depth 10 | Set-Content -Path $packageJsonPath -Encoding UTF8
+
+# Criar arquivo .npmrc se nÃ£o existir
+$npmrcPath = Join-Path $projectRoot ".npmrc"
+if (-not (Test-Path $npmrcPath)) {
+    Write-Host "Criando arquivo .npmrc com configuraÃ§Ãµes otimizadas..." -ForegroundColor Yellow
+    @"
+legacy-peer-deps=true
+strict-peer-dependencies=false
+engine-strict=false
+resolve-peers-from-workspace-root=true
+"@ | Set-Content -Path $npmrcPath -Encoding UTF8
+}
+
+# Gerar relatÃ³rio de conflitos
+Write-Host "`n`nðŸ” RELATÃ“RIO DE CONFLITOS NPM" -ForegroundColor Cyan
+Write-Host "============================" -ForegroundColor Cyan
+
+# Determinar status geral
+$statusGeral = "Sem conflitos"
+if ($conflitosDetectados -gt 0) {
+    if ($conflitosDetectados -eq $conflitosResolvidos) {
+        $statusGeral = "Conflitos resolvidos"
+    } elseif ($conflitosResolvidos -gt 0) {
+        $statusGeral = "Conflitos parcialmente resolvidos"
+    } else {
+        $statusGeral = "Conflitos graves nÃ£o resolvidos"
+    }
+}
+
+Write-Host "STATUS GERAL: $statusGeral" -ForegroundColor $(if ($statusGeral -eq "Sem conflitos") { "Green" } elseif ($statusGeral -eq "Conflitos resolvidos") { "Yellow" } else { "Red" })
+Write-Host "Conflitos detectados: $conflitosDetectados" -ForegroundColor $(if ($conflitosDetectados -eq 0) { "Green" } else { "Yellow" })
+Write-Host "Conflitos resolvidos: $conflitosResolvidos" -ForegroundColor $(if ($conflitosResolvidos -eq $conflitosDetectados) { "Green" } else { "Yellow" })
+
+# Listar conflitos detectados
+if ($listaConflitos.Count -gt 0) {
+    Write-Host "`nðŸ“¦ CONFLITOS DETECTADOS:" -ForegroundColor Yellow
+    foreach ($conflito in $listaConflitos) {
+        Write-Host "- $conflito" -ForegroundColor Yellow
+    }
+}
+
+# SugestÃµes avanÃ§adas
+Write-Host "`nðŸ§  SUGESTÃ•ES AVANÃ‡ADAS:" -ForegroundColor Cyan
+Write-Host "- Execute 'npm install --legacy-peer-deps' para aplicar as alteraÃ§Ãµes" -ForegroundColor White
+Write-Host "- Execute 'npx expo-doctor' para verificar a integridade do projeto" -ForegroundColor White
+Write-Host "- Execute 'npx expo start --clear' para iniciar o projeto com cache limpo" -ForegroundColor White
+Write-Host "- Considere usar o script 'dev-with-node20.bat' para desenvolvimento" -ForegroundColor White
+
+# Verificar se hÃ¡ conflitos nÃ£o resolvidos
+if ($conflitosDetectados -gt $conflitosResolvidos) {
+    Write-Host "`nâš ï¸ ATENÃ‡ÃƒO: Existem conflitos que nÃ£o puderam ser resolvidos automaticamente." -ForegroundColor Red
+    Write-Host "   Recomenda-se revisar manualmente o package.json e resolver os conflitos restantes." -ForegroundColor Red
+} elseif ($conflitosResolvidos -gt 0) {
+    Write-Host "`nâœ… SUCESSO: Todos os conflitos foram resolvidos automaticamente." -ForegroundColor Green
+    Write-Host "   Execute 'npm install --legacy-peer-deps' para aplicar as alteraÃ§Ãµes." -ForegroundColor Green
+} else {
+    Write-Host "`nâœ… SUCESSO: NÃ£o foram detectados conflitos no projeto." -ForegroundColor Green
+}
+
+Write-Host "`nRelatÃ³rio concluÃ­do em $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Cyan
+
+# Limpar cache e arquivos antigos
+Write-Host "`nDeseja limpar o cache do NPM e reinstalar as dependÃªncias? (S/N)" -ForegroundColor Cyan
+$resposta = Read-Host
+
+if ($resposta -eq "S" -or $resposta -eq "s") {
+    Write-Host "`nLimpando cache e arquivos temporÃ¡rios..." -ForegroundColor Yellow
+    
+    # Limpar cache do NPM
+    npm cache clean --force
+    
+    # Remover node_modules
+    $nodeModulesPath = Join-Path $projectRoot "node_modules"
+    if (Test-Path $nodeModulesPath) {
+        Write-Host "Removendo node_modules..." -ForegroundColor Yellow
+        Remove-Item -Path $nodeModulesPath -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    
+    # Remover .expo
+    $expoPath = Join-Path $projectRoot ".expo"
+    if (Test-Path $expoPath) {
+        Write-Host "Removendo .expo..." -ForegroundColor Yellow
+        Remove-Item -Path $expoPath -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    
+    # Reinstalar dependÃªncias
+    Write-Host "`nReinstalando dependÃªncias..." -ForegroundColor Yellow
+    npm install --legacy-peer-deps
+    
+    # Verificar integridade do projeto
+    Write-Host "`nVerificando integridade do projeto com expo-doctor..." -ForegroundColor Yellow
+    npx expo-doctor
+    
+    Write-Host "`nâœ… Processo de limpeza e reinstalaÃ§Ã£o concluÃ­do!" -ForegroundColor Green
+    Write-Host "   VocÃª pode iniciar o projeto com 'npx expo start --clear' ou usar o script 'dev-with-node20.bat'" -ForegroundColor Green
+} else {
+    Write-Host "`nOperaÃ§Ã£o de limpeza e reinstalaÃ§Ã£o cancelada pelo usuÃ¡rio." -ForegroundColor Yellow
+    Write-Host "Para aplicar as alteraÃ§Ãµes manualmente, execute:" -ForegroundColor Yellow
+    Write-Host "1. npm cache clean --force" -ForegroundColor White
+    Write-Host "2. npm install --legacy-peer-deps" -ForegroundColor White
+    Write-Host "3. npx expo-doctor" -ForegroundColor White
+    Write-Host "4. npx expo start --clear" -ForegroundColor White
+}
+
+Write-Host 'Script concluido!' -ForegroundColor Cyan

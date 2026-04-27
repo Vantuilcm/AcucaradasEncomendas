@@ -1,0 +1,114 @@
+name: 🚀 iOS PRODUCTION RESCUE (LOCAL)
+
+concurrency:
+  group: ios-rescue-1168
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - 'release/*'
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Enable debug logging'
+        required: false
+        default: 'true'
+
+jobs:
+  ios-local-rescue:
+    name: 🍎 iOS Local Build & Explicit Submit
+    runs-on: macos-latest
+    timeout-minutes: 120
+    
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+      GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      
+      # Variáveis Públicas Obrigatórias
+      EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+      EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+      EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
+      EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+      EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+      
+      EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
+      PROFILE: "production_v13"
+    
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          # Removido cache: 'npm' temporariamente para evitar falha se o lockfile divergir no runner
+
+      - name: 🛠️ Setup EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: � Install Dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: 🛡️ iOS-BUILD-GUARDIAN (LOCAL RESCUE)
+        run: |
+          set -o pipefail
+          echo "🔍 [DEBUG] Localizando scripts..."
+          pwd
+          find . -maxdepth 4 -name "ios-build-guardian.sh"
+          
+          # Definir caminho real (fallback para o esperado)
+          SCRIPT_PATH="./scripts/ci/ios-build-guardian.sh"
+          
+          if [ ! -f "$SCRIPT_PATH" ]; then
+            echo "❌ [FATAL] Script não encontrado em $SCRIPT_PATH"
+            echo "Tentando encontrar localização alternativa..."
+            REAL_PATH=$(find . -name "ios-build-guardian.sh" | head -n 1)
+            if [ -z "$REAL_PATH" ]; then
+              echo "❌ [FATAL] Script não existe no repositório!"
+              ls -R .
+              exit 1
+            fi
+            SCRIPT_PATH="$REAL_PATH"
+            echo "✅ Encontrado em: $SCRIPT_PATH"
+          fi
+          
+          chmod +x "$SCRIPT_PATH"
+          echo "🚀 Executing with bash -x..."
+          bash -x "$SCRIPT_PATH" 2>&1 | tee guardian_full_output.log
+        continue-on-error: false
+
+      - name: 📂 Debug Filesystem
+        if: always()
+        run: |
+          echo "Current Directory Structure:"
+          ls -R . | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /'
+          echo "Root files:"
+          ls -la
+
+      - name: 📄 Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-rescue-artifacts
+          path: |
+            *.ipa
+            *.log
+            guardian_full_output.log
+            build-logs/
+            extracted_info.plist
+            public_config.json
+            ios/Podfile.lock
+            ios/*.log
+          retention-days: 5

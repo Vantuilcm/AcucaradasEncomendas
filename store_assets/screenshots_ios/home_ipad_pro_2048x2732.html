@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screenshot Tela Inicial iPad Pro - Açucaradas Encomendas</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .device-frame {
+            width: 2048px;
+            height: 2732px;
+            background-color: white;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .status-bar {
+            height: 70px;
+            background-color: #FF69B4;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            box-sizing: border-box;
+            color: white;
+        }
+        
+        .time {
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .icons {
+            display: flex;
+            gap: 20px;
+            font-size: 20px;
+        }
+        
+        .app-header {
+            height: 140px;
+            background-color: #FFF;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #EEE;
+        }
+        
+        .app-logo {
+            font-size: 40px;
+            font-weight: bold;
+            color: #FF69B4;
+        }
+        
+        .header-icons {
+            display: flex;
+            gap: 35px;
+            font-size: 30px;
+        }
+        
+        .content-area {
+            padding: 40px;
+            height: calc(100% - 210px - 140px);
+            overflow: auto;
+            box-sizing: border-box;
+        }
+        
+        .search-bar {
+            width: 100%;
+            padding: 25px;
+            background-color: #F9F9F9;
+            border-radius: 30px;
+            border: 1px solid #EEE;
+            margin-bottom: 40px;
+            box-sizing: border-box;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .search-icon {
+            margin-right: 15px;
+            font-size: 24px;
+            color: #999;
+        }
+        
+        .search-placeholder {
+            color: #999;
+        }
+        
+        .banner {
+            height: 400px;
+            background-color: #FFE6F2;
+            border-radius: 30px;
+            margin-bottom: 50px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+        
+        .banner-content {
+            padding: 50px;
+            width: 50%;
+            z-index: 2;
+        }
+        
+        .banner-title {
+            font-size: 50px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .banner-text {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .banner-button {
+            display: inline-block;
+            padding: 20px 40px;
+            background-color: #FF69B4;
+            color: white;
+            border-radius: 30px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .banner-image {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            height: 400px;
+            width: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 100px;
+        }
+        
+        .section-title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .see-all {
+            font-size: 22px;
+            color: #FF69B4;
+            font-weight: normal;
+        }
+        
+        .category-tabs {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 40px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+        }
+        
+        .category-tab {
+            padding: 20px 40px;
+            background-color: #FFE6F2;
+            border-radius: 30px;
+            color: #FF69B4;
+            font-weight: bold;
+            white-space: nowrap;
+            font-size: 24px;
+        }
+        
+        .category-tab.active {
+            background-color: #FF69B4;
+            color: white;
+        }
+        
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+        
+        .product-card {
+            background-color: white;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .product-image {
+            height: 250px;
+            background-color: #FFE6F2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 100px;
+        }
+        
+        .product-details {
+            padding: 25px;
+        }
+        
+        .product-name {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 26px;
+        }
+        
+        .product-description {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 20px;
+            line-height: 1.5;
+        }
+        
+        .product-price {
+            color: #FF69B4;
+            font-weight: bold;
+            font-size: 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .add-button {
+            width: 50px;
+            height: 50px;
+            background-color: #FF69B4;
+            border-radius: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .dimensions {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            font-size: 18px;
+            color: rgba(0,0,0,0.5);
+            background-color: rgba(255,255,255,0.8);
+            padding: 15px;
+            border-radius: 15px;
+            z-index: 100;
+        }
+        
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 140px;
+            background-color: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #EEE;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 22px;
+            color: #999;
+        }
+        
+        .nav-item.active {
+            color: #FF69B4;
+        }
+        
+        .nav-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="status-bar">
+            <div class="time">10:30</div>
+            <div class="icons">
+                <span>📶</span>
+                <span>📊</span>
+                <span>🔋</span>
+            </div>
+        </div>
+        
+        <div class="app-header">
+            <div class="app-logo">Açucaradas Encomendas</div>
+            <div class="header-icons">
+                <span>🔍</span>
+                <span>🔔</span>
+                <span>🛒</span>
+                <span>👤</span>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            <div class="search-bar">
+                <div class="search-icon">🔍</div>
+                <div class="search-placeholder">Buscar bolos, doces, tortas...</div>
+            </div>
+            
+            <div class="banner">
+                <div class="banner-content">
+                    <div class="banner-title">Doces para Momentos Especiais</div>
+                    <div class="banner-text">
+                        Descubra nossas deliciosas opções de bolos e doces para suas festas e comemorações.
+                    </div>
+                    <div class="banner-button">Ver Promoções</div>
+                </div>
+                <div class="banner-image">🧁🍰🍮</div>
+            </div>
+            
+            <div class="section-title">
+                Categorias
+                <span class="see-all">Ver todas</span>
+            </div>
+            
+            <div class="category-tabs">
+                <div class="category-tab active">Todos</div>
+                <div class="category-tab">Bolos</div>
+                <div class="category-tab">Cupcakes</div>
+                <div class="category-tab">Tortas</div>
+                <div class="category-tab">Pudins</div>
+                <div class="category-tab">Doces Finos</div>
+                <div class="category-tab">Sem Açúcar</div>
+            </div>
+            
+            <div class="section-title">
+                Mais Vendidos
+                <span class="see-all">Ver todos</span>
+            </div>
+            
+            <div class="product-grid">
+                <div class="product-card">
+                    <div class="product-image">🍰</div>
+                    <div class="product-details">
+                        <div class="product-name">Bolo de Chocolate com Morango</div>
+                        <div class="product-description">Delicioso bolo de chocolate com cobertura de ganache e morangos.</div>
+                        <div class="product-price">
+                            R$ 89,90
+                            <div class="add-button">+</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-image">🧁</div>
+                    <div class="product-details">
+                        <div class="product-name">Cupcakes de Baunilha (6 un)</div>
+                        <div class="product-description">Cupcakes macios de baunilha com cobertura de chantilly.</div>
+                        <div class="product-price">
+                            R$ 42,50
+                            <div class="add-button">+</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-image">🍮</div>
+                    <div class="product-details">
+                        <div class="product-name">Pudim de Leite Condensado</div>
+                        <div class="product-description">Tradicional pudim cremoso com calda de caramelo.</div>
+                        <div class="product-price">
+                            R$ 35,90
+                            <div class="add-button">+</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-image">🍫</div>
+                    <div class="product-details">
+                        <div class="product-name">Torta de Chocolate Belga</div>
+                        <div class="product-description">Torta de chocolate com ganache de chocolate belga.</div>
+                        <div class="product-price">
+                            R$ 75,00
+                            <div class="add-button">+</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section-title">
+                Novidades
+                <span class="see-all">Ver todas</span>
+            </div>
+            
+            <div class="product-grid">
+                <div class="product-card">
+                    <div class="product-image">🫐</div>
+                    <div class="product-details">
+                        <div class="product-name">Cheesecake de Blueberry</div>
+                        <div class="product-description">Cheesecake cremoso com calda de blueberry fresca.</div>
+                        <div class="product-price">
+                            R$ 68,90
+                            <div class="add-button">+</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-image">🍓</div>
+                    <div class="product-details">
+                        <div class="product-name">Pavlova de Frutas Vermelhas</div>
+                        <div class="product-description">Merengue crocante com chantilly e frutas vermelhas.</div>
+                        <div class="product-price">
+                            R$ 59,90
+                            <div class="add-button">+</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-image">🥜</div>
+                    <div class="product-details">
+                        <div class="product-name">Tartelettes de Caramelo e Nozes</div>
+                        <div class="product-description">Mini tortas com recheio de caramelo e nozes.</div>
+                        <div class="product-price">
+                            R$ 48,50
+                            <div class="add-button">+</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-image">🍋</div>
+                    <div class="product-details">
+                        <div class="product-name">Bolo de Limão Siciliano</div>
+                        <div class="product-description">Bolo úmido de limão siciliano com cobertura de glacê.</div>
+                        <div class="product-price">
+                            R$ 65,00
+                            <div class="add-button">+</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <div>Início</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">🧁</div>
+                <div>Produtos</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">🛒</div>
+                <div>Carrinho</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">❤️</div>
+                <div>Favoritos</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">👤</div>
+                <div>Perfil</div>
+            </div>
+        </div>
+        
+        <div class="dimensions">2048 x 2732</div>
+    </div>
+</body>
+</html> 

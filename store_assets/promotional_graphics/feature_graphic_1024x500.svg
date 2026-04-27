@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <!-- Fundo com gradiente em tons de rosa -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF69B4" />
+      <stop offset="100%" stop-color="#FFB6C1" />
+    </linearGradient>
+    
+    <!-- Padrão decorativo para o fundo -->
+    <pattern id="dotsPattern" width="30" height="30" patternUnits="userSpaceOnUse">
+      <circle cx="15" cy="15" r="2" fill="#FFFFFF" opacity="0.2" />
+    </pattern>
+  </defs>
+  
+  <!-- Retângulo de fundo com gradiente -->
+  <rect width="1024" height="500" fill="url(#bgGradient)" />
+  
+  <!-- Camada decorativa com padrão de pontos -->
+  <rect width="1024" height="500" fill="url(#dotsPattern)" />
+  
+  <!-- Elemento decorativo circular à esquerda -->
+  <circle cx="250" cy="250" r="200" fill="#FFFFFF" opacity="0.15" />
+  
+  <!-- Ícones de doces -->
+  <g transform="translate(180, 250)">
+    <!-- Bolo -->
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="80" text-anchor="middle" fill="#FFFFFF">🎂</text>
+    <!-- Cupcake -->
+    <text x="-80" y="-60" font-family="Arial, sans-serif" font-size="60" text-anchor="middle" fill="#FFFFFF">🧁</text>
+    <!-- Doce -->
+    <text x="80" y="-40" font-family="Arial, sans-serif" font-size="60" text-anchor="middle" fill="#FFFFFF">🍰</text>
+    <!-- Cookie -->
+    <text x="-40" y="80" font-family="Arial, sans-serif" font-size="60" text-anchor="middle" fill="#FFFFFF">🍪</text>
+  </g>
+  
+  <!-- Conteúdo principal à direita -->
+  <g transform="translate(650, 250)">
+    <!-- Nome do aplicativo -->
+    <text x="0" y="-50" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#FFFFFF" text-shadow="2px 2px 4px rgba(0,0,0,0.3)">Açucaradas</text>
+    <text x="0" y="10" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#FFFFFF" text-shadow="2px 2px 4px rgba(0,0,0,0.3)">Encomendas</text>
+    
+    <!-- Tagline -->
+    <text x="0" y="70" font-family="Arial, sans-serif" font-size="28" text-anchor="middle" fill="#FFFFFF" text-shadow="1px 1px 2px rgba(0,0,0,0.3)">Doces artesanais</text>
+    <text x="0" y="105" font-family="Arial, sans-serif" font-size="28" text-anchor="middle" fill="#FFFFFF" text-shadow="1px 1px 2px rgba(0,0,0,0.3)">direto na sua porta</text>
+  </g>
+  
+  <!-- Elementos decorativos adicionais -->
+  <circle cx="900" cy="100" r="30" fill="#FFFFFF" opacity="0.2" />
+  <circle cx="850" cy="400" r="20" fill="#FFFFFF" opacity="0.2" />
+  <circle cx="950" cy="350" r="15" fill="#FFFFFF" opacity="0.2" />
+  <circle cx="100" cy="400" r="25" fill="#FFFFFF" opacity="0.2" />
+  <circle cx="150" cy="100" r="15" fill="#FFFFFF" opacity="0.2" />
+  
+  <!-- Informação de dimensão (apenas para referência, pode ser removido para produção) -->
+  <text x="1014" y="490" font-family="Arial, sans-serif" font-size="10" text-anchor="end" fill="#FFFFFF" opacity="0.5">1024 x 500 px</text>
+</svg>

@@ -1,0 +1,104 @@
+{
+  "cli": {
+    "version": ">= 5.9.0",
+    "requireCommit": false,
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "credentialsSource": "remote",
+      "env": {
+        "APP_ENV": "development"
+      },
+      "channel": "development",
+      "ios": {
+        "resourceClass": "m-medium",
+        "image": "macos-sequoia-15.3-xcode-16.2"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "autoIncrement": true,
+      "env": {
+        "APP_ENV": "preview",
+        "EXPO_PUBLIC_APP_ENV": "preview",
+        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "resourceClass": "m-medium",
+        "image": "macos-sequoia-15.3-xcode-16.2"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "autoIncrement": false,
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_APP_NAME": "Açucaradas Encomendas",
+        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045"
+      },
+      "channel": "production",
+      "ios": {
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Release",
+        "image": "macos-sequoia-15.3-xcode-16.2"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "production_v13": {
+      "extends": "production",
+      "ios": {
+        "resourceClass": "m-medium",
+        "image": "macos-sequoia-15.3-xcode-16.2"
+      }
+    },
+    "beta": {
+      "extends": "production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "vantuilcaramez@gmail.com",
+        "ascAppId": "6756029389",
+        "appleTeamId": "7L9P9U9Z9R"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "production"
+      }
+    },
+    "production_v13": {
+      "ios": {
+        "appleId": "vantuilcaramez@gmail.com",
+        "ascAppId": "6756029389",
+        "appleTeamId": "7L9P9U9Z9R"
+      }
+    },
+    "preview": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template para Screenshots - Google Play Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #d81b60;
+            border-bottom: 2px solid #d81b60;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #d81b60;
+            margin-top: 30px;
+        }
+        .screenshot-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .phone-frame {
+            width: 270px;
+            height: 480px;
+            background-color: #e0e0e0;
+            border: 10px solid #333;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .phone-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .upload-area {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .upload-button {
+            background-color: #d81b60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Template para Screenshots - Google Play Store</h1>
+        
+        <div class="upload-area">
+            <h2>Carregar Screenshot</h2>
+            <p>Selecione uma imagem com resolucao minima de 1080x1920 pixels</p>
+            <input type="file" id="screenshot-upload" accept="image/*">
+        </div>
+        
+        <div class="screenshot-preview">
+            <h2>Visualizacao da Screenshot</h2>
+            <div class="phone-frame" id="preview-container">
+                <p>Sua imagem aparecera aqui</p>
+            </div>
+        </div>
+        
+        <h2>Requisitos para Screenshots</h2>
+        <ul>
+            <li><strong>Formato:</strong> JPG ou PNG</li>
+            <li><strong>Resolucao minima:</strong> 1080x1920 pixels (retrato) ou 1920x1080 (paisagem)</li>
+            <li><strong>Quantidade:</strong> Minimo de 2, maximo de 8 screenshots</li>
+            <li><strong>Qualidade:</strong> Alta resolucao, sem compressao excessiva</li>
+        </ul>
+        
+        <h2>Dicas para Boas Screenshots</h2>
+        <ul>
+            <li>Mostre as principais funcionalidades do app</li>
+            <li>Organize em ordem logica (da funcionalidade mais importante para a menos importante)</li>
+            <li>Use texto explicativo quando necessario</li>
+            <li>Mantenha consistencia visual entre todas as screenshots</li>
+            <li>Evite mostrar informacoes sensiveis ou dados pessoais</li>
+        </ul>
+    </div>
+    
+    <script>
+        document.getElementById("screenshot-upload").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement("img");
+                img.src = e.target.result;
+                img.alt = "Screenshot do App";
+                
+                const container = document.getElementById("preview-container");
+                container.innerHTML = "";
+                container.appendChild(img);
+                
+                // Verificar dimensoes
+                img.onload = function() {
+                    if (img.naturalWidth < 1080 || img.naturalHeight < 1920) {
+                        if (img.naturalWidth < img.naturalHeight) {
+                            // Modo retrato
+                            alert("Atencao: A imagem tem " + img.naturalWidth + "x" + img.naturalHeight + "px. O tamanho minimo recomendado e 1080x1920px para modo retrato.");
+                        } else {
+                            // Modo paisagem
+                            alert("Atencao: A imagem tem " + img.naturalWidth + "x" + img.naturalHeight + "px. O tamanho minimo recomendado e 1920x1080px para modo paisagem.");
+                        }
+                    }
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>
