@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vantuilcm.acucaradasencomendas",
+      "bundleIdentifier": "com.acucaradas.encomendas",
       "buildNumber": "1190"
     },
     "android": {
@@ -24,7 +24,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.vantuilcm.acucaradasencomendas",
+      "package": "com.acucaradas.encomendas",
       "versionCode": 1190
     },
     "web": {
