@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # HOTFIX: UTF-8 s/ BOM - 2026-04-25
-# DEBUG TRIGGER: 1192-v9
+# DEBUG TRIGGER: 1193-v1
 # 🍎 iOSBuildGuardianAI_V2_LOCAL
-# MISSÃO: Garantir build iOS LOCAL 100% independente, com Build Number 1192.
+# MISSÃO: Garantir build iOS LOCAL 100% independente, com Build Number 1193.
 # V9: Usar credentials.json para evitar prompts interativos de extensões.
 
 # Usar -x para debug total e -e para parar em erros
@@ -167,8 +167,8 @@ try {
 }
 ")
 
-if [ "$BN_CHECK" != "1192" ]; then
-    echo "❌ [FATAL] Build Number Incorreto! Esperado: 1192, Encontrado: $BN_CHECK"
+if [ "$BN_CHECK" != "1193" ]; then
+    echo "❌ [FATAL] Build Number Incorreto! Esperado: 1193, Encontrado: $BN_CHECK"
     exit 1
 fi
 
@@ -210,7 +210,7 @@ else
 fi
 
 # 🧩 ETAPA 7 — BUILD IOS LOCAL
-echo "🚀 [ETAPA 7] Iniciando Build iOS LOCAL (1192)..."
+echo "🚀 [ETAPA 7] Iniciando Build iOS LOCAL (1193)..."
 export EXPO_DEBUG=1
 mkdir -p build-logs
 
@@ -245,12 +245,12 @@ echo "💎 IPA Encontrada: $LATEST_IPA"
 unzip -p "$LATEST_IPA" "Payload/*.app/Info.plist" > extracted_info.plist
 ACTUAL_BN=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" extracted_info.plist)
 
-if [ "$ACTUAL_BN" != "1192" ]; then
-        echo "❌ [FATAL] IPA gerada com Build Number errado: $ACTUAL_BN (Esperado: 1192)"
+if [ "$ACTUAL_BN" != "1193" ]; then
+        echo "❌ [FATAL] IPA gerada com Build Number errado: $ACTUAL_BN (Esperado: 1193)"
         exit 1
     fi
     
-    echo "✅ IPA Validada com Sucesso (Build 1192)!"
+    echo "✅ IPA Validada com Sucesso (Build 1193)!"
 ls -lh *.ipa || echo "Nenhum IPA no root"
 
 # 🧩 ETAPA 10 — SUBMISSÃO EXPLICITA
