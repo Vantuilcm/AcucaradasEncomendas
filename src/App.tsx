@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './components/ThemeProvider';
@@ -18,6 +18,11 @@ function ThemedApp() {
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       <StatusBar style="light" />
       <AppNavigator />
+      <View pointerEvents="none" style={{ position: 'absolute', bottom: 30, left: 0, right: 0, alignItems: 'center', zIndex: 9999 }}>
+        <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 'bold' }}>
+          Build 1196 | Base 8173a1e
+        </Text>
+      </View>
     </View>
   );
 }
