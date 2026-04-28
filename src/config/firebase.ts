@@ -1,9 +1,10 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 // @ts-ignore
-import { getAuth, Auth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -42,7 +43,9 @@ let storage: FirebaseStorage;
 // Inicializa Firebase com modo de verificação de erros
 try {
   app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+  });
   db = getFirestore(app);
   storage = getStorage(app);
 

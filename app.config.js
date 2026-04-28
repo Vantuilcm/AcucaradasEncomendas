@@ -2,9 +2,9 @@ export default ({ config }) => {
   const isProduction = process.env.APP_ENV === "production" || process.env.EXPO_PUBLIC_APP_ENV === "production";
   const isPreview = process.env.APP_ENV === "preview" || process.env.EXPO_PUBLIC_APP_ENV === "preview";
 
-  // FORÇAR BUILD NUMBER REAL - MISSÃO APPLE 1194
-const buildNumber = "1194";
-const versionCode = 1194;
+  // FORÇAR BUILD NUMBER REAL - MISSÃO APPLE 1195
+  const buildNumber = "1195";
+  const versionCode = 1195;
   const version = "1.1.8";
 
   // Obter commit hash real ou placeholder

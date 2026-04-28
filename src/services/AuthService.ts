@@ -118,12 +118,14 @@ export class AuthService {
         uid: firebaseUser.uid,
         email: userData.email,
         name: userData.name,
+        nome: userData.name,
         phone: userData.phone,
+        telefone: userData.phone,
         address: userData.address || '',
         emailVerified: firebaseUser.emailVerified,
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
-        role: 'customer',
+        role: 'comprador',
         active: true
       };
 
@@ -211,6 +213,7 @@ export class AuthService {
           nome,
           email: userEmail,
           telefone,
+          role: typeof userData.role === 'string' ? userData.role : 'comprador',
           ultimoLogin: new Date(),
         } as User,
         token
@@ -492,6 +495,7 @@ export class AuthService {
         nome: user.displayName || usuario?.nome || '',
         email: user.email || credenciais.email,
         telefone: usuario?.telefone,
+        role: usuario?.role || 'comprador',
         ultimoLogin: new Date(),
       };
 

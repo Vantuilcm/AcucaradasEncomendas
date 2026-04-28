@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PermissionsService, Permission, Role } from '../services/PermissionsService';
-import { useAuth } from './useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { loggingService } from '../services/LoggingService';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
