@@ -41,12 +41,12 @@ jobs:
       PROFILE: "production_v13"
 
     steps:
-      - name: Checkout Repository
+            - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           ref: release-stable-1168
 
-            - name: List Installed Xcode Versions
+      - name: List Installed Xcode Versions
         run: ls /Applications | grep Xcode || true
 
       - name: Auto Select Latest Xcode
@@ -57,6 +57,7 @@ jobs:
 
       - name: Show Xcode Version
         run: xcodebuild -version
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
