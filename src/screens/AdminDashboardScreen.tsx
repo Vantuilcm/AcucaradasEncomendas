@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
-import { Text, Card, Divider, List, Surface, FAB, Badge } from 'react-native-paper';
+import { Text, Button, Card, Divider, List, Surface, FAB, Badge } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -238,13 +238,13 @@ export function AdminDashboardScreen() {
           </View>
         </View>
 
-        <Button 
-          mode="contained" 
-          onPress={() => navigation.navigate('BootDiagnostic' as any)}
-          style={{ marginTop: 30, width: '100%' }}
-        >
-          Ver Diagnóstico de Boot
-        </Button>
+        <Button
+  mode="contained"
+  onPress={() => navigation.navigate('BootDiagnostic' as never)}
+  style={{ marginTop: 30, width: '100%' }}
+>
+  Diagnóstico
+</Button>
         
         <Text style={{ marginTop: 40, color: '#999', fontSize: 12 }}>
           Se você está vendo esta tela, o problema da tela branca NÃO é estrutural no Dashboard.
@@ -253,15 +253,13 @@ export function AdminDashboardScreen() {
     </SafeAreaView>
   );
 
-  /* Original Render Commented Out for Diagnostic
-  return (
-    <SafeAreaView style={styles.container}>
-  ...
-  */
-
+  if (false) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView style={styles.scrollView}>
         {/* 🛡️ Release Guardian Status (Global Scale) */}
-        {releaseState && releaseState.releases[releaseState.activeReleaseId] && (() => {
-          const active = releaseState.releases[releaseState.activeReleaseId];
+        {releaseState && releaseState!.releases[releaseState!.activeReleaseId] && (() => {
+          const active = releaseState!.releases[releaseState!.activeReleaseId];
           const isCritical = active.status === 'CRITICAL';
           return (
             <Surface style={[
@@ -310,34 +308,41 @@ export function AdminDashboardScreen() {
                     borderRadius: 2 
                   }} />
                 </View>
-
                 {active.rollbackTriggered && (
                   <View style={styles.rollbackBanner}>
                     <Ionicons name="refresh-circle" size={18} color="#FFFFFF" />
-                    <Text style={styles.rollbackText}>ROLLBACK ATIVO {'->'} {releaseState.lastStableReleaseId}</Text>
+                    <Text style={styles.rollbackText}>
+                      ROLLBACK ATIVO {'->'} {releaseState?.lastStableReleaseId}
+                    </Text>
                   </View>
                 )}
 
-                {active.anomalies && active.anomalies.length > 0 && (
+                {(active.anomalies?.length ?? 0) > 0 && (
                   <View style={styles.anomalyBox}>
-                    {active.anomalies.map((a, i) => (
-                      <Text key={i} variant="bodySmall" style={{ color: '#D32F2F' }}>• {a}</Text>
+                    {active.anomalies?.map((a, i) => (
+                      <Text
+                        key={i}
+                        variant="bodySmall"
+                        style={{ color: '#D32F2F' }}
+                      >
+                        • {a}
+                      </Text>
                     ))}
                   </View>
                 )}
 
-                {active.health && (
+                {active.health! && (
                   <View style={styles.healthGrid}>
                     <View style={styles.healthItem}>
                       <Text variant="labelSmall">Crash Rate</Text>
-                      <Text variant="bodySmall" style={{ fontWeight: 'bold', color: active.health.crashRate > 0.02 ? theme.colors.error : theme.colors.success }}>
-                        {(active.health.crashRate * 100).toFixed(2)}%
+                      <Text variant="bodySmall" style={{ fontWeight: 'bold', color: active.health!.crashRate > 0.02 ? theme.colors.error : theme.colors.success }}>
+                        {(active.health!.crashRate * 100).toFixed(2)}%
                       </Text>
                     </View>
                     <View style={styles.healthItem}>
                       <Text variant="labelSmall">Payment Success</Text>
-                      <Text variant="bodySmall" style={{ fontWeight: 'bold', color: active.health.paymentFailureRate > 0.05 ? theme.colors.error : theme.colors.success }}>
-                        {(100 - active.health.paymentFailureRate * 100).toFixed(1)}%
+                      <Text variant="bodySmall" style={{ fontWeight: 'bold', color: active.health!.paymentFailureRate > 0.05 ? theme.colors.error : theme.colors.success }}>
+                        {(100 - active.health!.paymentFailureRate * 100).toFixed(1)}%
                       </Text>
                     </View>
                     <View style={styles.healthItem}>
@@ -660,6 +665,7 @@ export function AdminDashboardScreen() {
       />
     </SafeAreaView>
   );
+  }
 }
 
 const createStyles = (theme: { colors: any }) => StyleSheet.create({

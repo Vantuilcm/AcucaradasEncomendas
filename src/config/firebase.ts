@@ -88,7 +88,7 @@ export const getMessaging = () => {
 };
 
 // 🛠️ Funções de Autenticação (Auto-Injected)
-export const authFunctions: any = {
+const firebaseAuthFunctions: any = {
   get signInWithEmailAndPassword() { 
     return (email: string, pass: string) => require('firebase/auth').signInWithEmailAndPassword(getAuth(), email, pass); 
   },
@@ -115,6 +115,7 @@ export const authFunctions: any = {
   get FacebookAuthProvider() { return require('firebase/auth').FacebookAuthProvider; },
   get OAuthProvider() { return require('firebase/auth').OAuthProvider; },
 };
+export { firebaseAuthFunctions as authFunctions };
 
 // 🛠️ Funções de Banco de Dados (Auto-Injected)
 export const dbFunctions: any = {
@@ -138,7 +139,7 @@ export const dbFunctions: any = {
 };
 
 // Mapeamento curto para compatibilidade
-export const a = authFunctions;
+export const a = firebaseAuthFunctions;
 export const f = dbFunctions;
 export const s = {
   get ref() { return (path?: string) => require('firebase/storage').ref(getStorage(), path); },

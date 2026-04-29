@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 const BootDiagnosticScreen = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const navigation = useNavigation();
   const route = useRoute();
 
@@ -33,7 +33,7 @@ const BootDiagnosticScreen = () => {
 
         <View style={styles.card}>
           <Text style={styles.label}>Role:</Text>
-          <Text style={styles.value}>{profile?.role || '❌ Nulo'}</Text>
+          <Text style={styles.value}>{user?.role || '❌ Nulo'}</Text>
         </View>
 
         <View style={styles.card}>

@@ -35,7 +35,6 @@ import { PaymentMethodsScreen } from '../screens/PaymentMethodsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import AdminPanelScreen from '../screens/AdminPanelScreen';
 import { StorePreviewScreen } from '../screens/StorePreviewScreen';
-import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
 import { ProductManagementScreen } from '../screens/ProductManagementScreen';
 import { OrderManagementScreen } from '../screens/OrderManagementScreen';
 import { ReportsScreen } from '../screens/ReportsScreen';
@@ -373,7 +372,7 @@ const AppNavigator = () => {
                 />
                 <Stack.Screen
                   name="AdminDashboard"
-                  component={AdminDashboardScreen}
+                  component={PlaceholderScreen}
                   options={{ title: 'Dashboard Administrativo' }}
                 />
                 <Stack.Screen
