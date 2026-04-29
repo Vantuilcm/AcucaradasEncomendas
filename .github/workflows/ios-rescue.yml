@@ -41,7 +41,7 @@ jobs:
       PROFILE: "production_v13"
 
     steps:
-            - name: Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           ref: release-stable-1168
@@ -78,7 +78,6 @@ jobs:
       - name: Run iOS Build Guardian
         run: |
           set -o pipefail
-
           SCRIPT_PATH="./scripts/ci/ios-build-guardian.sh"
 
           if [ ! -f "$SCRIPT_PATH" ]; then
