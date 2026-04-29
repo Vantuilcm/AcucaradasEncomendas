@@ -45,11 +45,12 @@ jobs:
       EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
       PROFILE: "production_v13"
     
-    steps:
+       steps:
       - name: 📦 Checkout Repository
-uses: actions/checkout@v4
-with:
-  ref: release-stable-1168
+        uses: actions/checkout@v4
+        with:
+          ref: release-stable-1168
+
       - name: 🏗️ Setup Node.js
         uses: actions/setup-node@v4
         with:
