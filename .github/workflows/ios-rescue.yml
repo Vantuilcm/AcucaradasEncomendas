@@ -13,7 +13,7 @@ concurrency:
 jobs:
   ios-local-rescue:
     name: iOS Local Build
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 120
 
     env:
@@ -25,7 +25,9 @@ jobs:
       EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
       GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
       GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
       EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
       EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
       EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
@@ -34,6 +36,7 @@ jobs:
       EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
       EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
       EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+
       EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
       PROFILE: "production_v13"
 
@@ -42,6 +45,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: release-stable-1168
+
+      - name: List Installed Xcode Versions
+        run: ls /Applications | grep Xcode || true
+
+      - name: Select Xcode 26
+        run: sudo xcode-select -s /Applications/Xcode_26.app
+
+      - name: Show Xcode Version
+        run: xcodebuild -version
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -63,6 +75,7 @@ jobs:
       - name: Run iOS Build Guardian
         run: |
           set -o pipefail
+
           SCRIPT_PATH="./scripts/ci/ios-build-guardian.sh"
 
           if [ ! -f "$SCRIPT_PATH" ]; then
