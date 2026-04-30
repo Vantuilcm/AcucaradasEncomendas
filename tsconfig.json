@@ -2,45 +2,36 @@
   "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
     "strict": true,
-    "ignoreDeprecations": "5.0",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "src/*"
-      ]
-    },
-    "types": [
-      "node",
-      "jest",
-      "express"
-    ],
+
+    "moduleResolution": "bundler",
+
+    "types": ["node", "jest"],
+
     "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node",
+
     "noEmit": true,
     "jsx": "react-native",
-    "lib": [
-      "dom",
-      "esnext"
-    ],
+
+    "lib": ["dom", "esnext"],
     "target": "esnext",
-    "module": "commonjs",
+    "module": "esnext",
+
     "isolatedModules": true,
+
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "forceConsistentCasingInFileNames": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+
+    "forceConsistentCasingInFileNames": true
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ],
+
+  "include": ["**/*.ts", "**/*.tsx"],
+
   "exclude": [
     "node_modules",
     "node_modules_old",

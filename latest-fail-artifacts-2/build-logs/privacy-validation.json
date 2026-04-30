@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-04-24T10:37:21.327Z",
+  "platform": "ios",
+  "origin": "Expo Config Resolved",
+  "status": "PASS",
+  "assets": {
+    "hasIcon": true,
+    "hasSplash": true
+  },
+  "detected": [
+    "NSSpeechRecognitionUsageDescription",
+    "NSLocationWhenInUseUsageDescription",
+    "NSLocationAlwaysAndWhenInUseUsageDescription",
+    "NSLocationAlwaysUsageDescription",
+    "NSCameraUsageDescription",
+    "NSPhotoLibraryUsageDescription",
+    "NSMicrophoneUsageDescription"
+  ],
+  "missing": []
+}

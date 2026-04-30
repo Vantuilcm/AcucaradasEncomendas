@@ -1,0 +1,437 @@
+[33m9120a0c6[m Initial commit
+[1mdiff --git a/plano_publicacao.md b/plano_publicacao.md[m
+[1mnew file mode 100644[m
+[1mindex 00000000..bfa1adb7[m
+[1m--- /dev/null[m
+[1m+++ b/plano_publicacao.md[m
+[36m@@ -0,0 +1,291 @@[m
+[32m+[m[32m# Plano de Publicação - Açucaradas Encomendas[m
+[32m+[m
+[32m+[m[32m## 1. Configuração do Ambiente de Build[m
+[32m+[m
+[32m+[m[32m### 1.1 Configuração do EAS (Expo Application Services)[m
+[32m+[m
+[32m+[m[32m- Criar arquivo `eas.json` na raiz do projeto com as seguintes configurações:[m
+[32m+[m
+[32m+[m[32m```json[m
+[32m+[m[32m{[m
+[32m+[m[32m  "cli": {[m
+[32m+[m[32m    "version": ">= 3.13.3"[m
+[32m+[m[32m  },[m
+[32m+[m[32m  "build": {[m
+[32m+[m[32m    "development": {[m
+[32m+[m[32m      "developmentClient": true,[m
+[32m+[m[32m      "distribution": "internal"[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "preview": {[m
+[32m+[m[32m      "distribution": "internal",[m
+[32m+[m[32m      "android": {[m
+[32m+[m[32m        "buildType": "apk"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "production": {[m
+[32m+[m[32m      "android": {[m
+[32m+[m[32m        "buildType": "app-bundle"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "ios": {[m
+[32m+[m[32m        "image": "latest"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    }[m
+[32m+[m[32m  },[m
+[32m+[m[32m  "submit": {[m
+[32m+[m[32m    "production": {[m
+[32m+[m[32m      "android": {[m
+[32m+[m[32m        "serviceAccountKeyPath": "./google-service-account.json",[m
+[32m+[m[32m        "track": "production"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "ios": {[m
+[32m+[m[32m        "appleId": "SEU_APPLE_ID",[m
+[32m+[m[32m        "ascAppId": "ID_DO_APP_NA_APP_STORE_CONNECT",[m
+[32m+[m[32m        "appleTeamId": "SEU_TEAM_ID"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m- Instalar EAS CLI: `npm install -g eas-cli`[m
+[32m+[m[32m- Fazer login no Expo: `eas login`[m
+[32m+[m[32m- Configurar o projeto: `eas build:configure`[m
+[32m+[m
+[32m+[m[32m### 1.2 Configuração do app.json[m
+[32m+[m
+[32m+[m[32m- Atualizar o arquivo `app.json` com informações de versão, identificadores e permissões:[m
+[32m+[m
+[32m+[m[32m```json[m
+[32m+[m[32m{[m
+[32m+[m[32m  "expo": {[m
+[32m+[m[32m    "name": "Açucaradas Encomendas",[m
+[32m+[m[32m    "slug": "acucaradas-encomendas",[m
+[32m+[m[32m    "version": "1.0.0",[m
+[32m+[m[32m    "orientation": "portrait",[m
+[32m+[m[32m    "icon": "./assets/icon.png",[m
+[32m+[m[32m    "splash": {[m
+[32m+[m[32m      "image": "./assets/splash.png",[m
+[32m+[m[32m      "resizeMode": "contain",[m
+[32m+[m[32m      "backgroundColor": "#ffffff"[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "updates": {[m
+[32m+[m[32m      "fallbackToCacheTimeout": 0[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "assetBundlePatterns": ["**/*"],[m
+[32m+[m[32m    "ios": {[m
+[32m+[m[32m      "supportsTablet": true,[m
+[32m+[m[32m      "bundleIdentifier": "com.acucaradas.encomendas",[m
+[32m+[m[32m      "buildNumber": "1.0.0",[m
+[32m+[m[32m      "infoPlist": {[m
+[32m+[m[32m        "NSCameraUsageDescription": "Este aplicativo usa a câmera para escanear códigos QR de pagamento.",[m
+[32m+[m[32m        "NSLocationWhenInUseUsageDescription": "Este aplicativo usa sua localização para calcular o frete e tempo de entrega."[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "android": {[m
+[32m+[m[32m      "adaptiveIcon": {[m
+[32m+[m[32m        "foregroundImage": "./assets/adaptive-icon.png",[m
+[32m+[m[32m        "backgroundColor": "#FFFFFF"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "package": "com.acucaradas.encomendas",[m
+[32m+[m[32m      "versionCode": 1,[m
+[32m+[m[32m      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION"][m
+[32m+[m[32m    },[m
+[32m+[m[32m    "web": {[m
+[32m+[m[32m      "favicon": "./assets/favicon.png"[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "plugins": ["expo-notifications"][m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m## 2. Preparação de Assets Gráficos[m
+[32m+[m
+[32m+[m[32m### 2.1 Ícones e Splash Screens[m
+[32m+[m
+[32m+[m[32m- **Ícone do aplicativo**:[m
+[32m+[m
+[32m+[m[32m  - Android: 512x512px (PNG)[m
+[32m+[m[32m  - iOS: 1024x1024px (PNG)[m
+[32m+[m[32m  - Ícone adaptativo Android: 108x108px (foreground e background)[m
+[32m+[m
+[32m+[m[32m- **Splash Screen**:[m
+[32m+[m
+[32m+[m[32m  - Resolução base: 1242x2436px (PNG)[m
+[32m+[m[32m  - Proporção 16:9 para Android[m
+[32m+[m[32m  - Várias resoluções para iOS (consultar documentação do Expo)[m
+[32m+[m
+[32m+[m[32m- **Screenshots**:[m
+[32m+[m[32m  - Android: 1080x1920px (mínimo 2 screenshots)[m
+[32m+[m[32m  - iOS: 1242x2688px (iPhone XS Max), 1125x2436px (iPhone X/XS), 1242x2208px (iPhone 8 Plus)[m
+[32m+[m[32m  - Mínimo 3 screenshots por plataforma[m
+[32m+[m
+[32m+[m[32m### 2.2 Banners e Imagens Promocionais[m
+[32m+[m
+[32m+[m[32m- **Feature Graphic (Android)**: 1024x500px[m
+[32m+[m[32m- **App Preview Video**: 15-30 segundos, demonstrando principais funcionalidades[m
+[32m+[m[32m- **Banner promocional para Google Play**: 1024x500px[m
+[32m+[m
+[32m+[m[32m## 3. Textos de Marketing e Descrições[m
+[32m+[m
+[32m+[m[32m### 3.1 Google Play Store[m
+[32m+[m
+[32m+[m[32m- **Título**: "Açucaradas Encomendas - Confeitaria Delivery"[m
+[32m+[m[32m- **Descrição curta**: "Encomende deliciosos doces e bolos artesanais com entrega rápida e personalizada!"[m
+[32m+[m[32m- **Descrição completa**: (limite de 4000 caracteres)[m
+[32m+[m
+[32m+[m[32m  ```[m
+[32m+[m[32m  O aplicativo Açucaradas Encomendas traz toda a magia da confeitaria artesanal para o seu smartphone! Faça pedidos de bolos, doces, tortas e sobremesas especiais com apenas alguns toques.[m
+[32m+[m
+[32m+[m[32m  PRINCIPAIS FUNCIONALIDADES:[m
+[32m+[m
+[32m+[m[32m  ✓ Catálogo completo de produtos com fotos e descrições detalhadas[m
+[32m+[m[32m  ✓ Personalização de encomendas para ocasiões especiais[m
+[32m+[m[32m  ✓ Acompanhamento em tempo real do status do seu pedido[m
+[32m+[m[32m  ✓ Múltiplas opções de pagamento (cartão, boleto, PIX)[m
+[32m+[m[32m  ✓ Programa de fidelidade com descontos exclusivos[m
+[32m+[m[32m  ✓ Notificações sobre promoções e novidades[m
+[32m+[m
+[32m+[m[32m  Ideal para aniversários, casamentos, eventos corporativos ou simplesmente para adoçar seu dia![m
+[32m+[m
+[32m+[m[32m  Baixe agora e experimente o sabor da felicidade entregue na sua porta.[m
+[32m+[m[32m  ```[m
+[32m+[m
+[32m+[m[32m### 3.2 Apple App Store[m
+[32m+[m
+[32m+[m[32m- **Título**: "Açucaradas Encomendas"[m
+[32m+[m[32m- **Subtítulo**: "Confeitaria Delivery"[m
+[32m+[m[32m- **Descrição promocional**: (limite de 170 caracteres)[m
+[32m+[m[32m  ```[m
+[32m+[m[32m  Encomende doces artesanais, bolos personalizados e sobremesas especiais com entrega rápida e segura![m
+[32m+[m[32m  ```[m
+[32m+[m[32m- **Palavras-chave**: confeitaria, doces, bolos, encomendas, delivery, sobremesas, tortas, brigadeiros[m
+[32m+[m
+[32m+[m[32m## 4. Políticas e Documentação Legal[m
+[32m+[m
+[32m+[m[32m### 4.1 Política de Privacidade[m
+[32m+[m
+[32m+[m[32m- Criar documento de política de privacidade abordando:[m
+[32m+[m[32m  - Dados coletados e finalidade[m
+[32m+[m[32m  - Compartilhamento de informações[m
+[32m+[m[32m  - Armazenamento e segurança[m
+[32m+[m[32m  - Direitos do usuário[m
+[32m+[m[32m  - Uso de cookies e tecnologias similares[m
+[32m+[m[32m  - Contato para dúvidas sobre privacidade[m
+[32m+[m
+[32m+[m[32m### 4.2 Termos de Uso[m
+[32m+[m
+[32m+[m[32m- Criar documento de termos de uso abordando:[m
+[32m+[m[32m  - Regras de utilização do aplicativo[m
+[32m+[m[32m  - Responsabilidades do usuário[m
+[32m+[m[32m  - Propriedade intelectual[m
+[32m+[m[32m  - Limitações de responsabilidade[m
+[32m+[m[32m  - Política de cancelamento e reembolso[m
+[32m+[m[32m  - Resolução de disputas[m
+[32m+[m
+[32m+[m[32m### 4.3 Classificação Indicativa[m
+[32m+[m
+[32m+[m[32m- Google Play: Livre[m
+[32m+[m[32m- App Store: 4+[m
+[32m+[m
+[32m+[m[32m## 5. Verificação de Integrações Externas[m
+[32m+[m
+[32m+[m[32m### 5.1 Firebase[m
+[32m+[m
+[32m+[m[32m- Configurar projeto Firebase para produção[m
+[32m+[m[32m- Verificar configuração do Firebase Authentication[m
+[32m+[m[32m- Configurar regras de segurança do Firestore[m
+[32m+[m[32m- Verificar limites de uso do plano gratuito ou fazer upgrade[m
+[32m+[m[32m- Testar integrações em ambiente de produção[m
+[32m+[m
+[32m+[m[32m### 5.2 Stripe[m
+[32m+[m
+[32m+[m[32m- Migrar de chaves de teste para chaves de produção[m
+[32m+[m[32m- Configurar webhook para notificações de pagamento[m
+[32m+[m[32m- Testar fluxo completo de pagamento em ambiente de produção[m
+[32m+[m[32m- Verificar conformidade com requisitos de segurança (PCI DSS)[m
+[32m+[m
+[32m+[m[32m### 5.3 OneSignal[m
+[32m+[m
+[32m+[m[32m- Configurar aplicativo para ambiente de produção[m
+[32m+[m[32m- Criar segmentos de usuários para notificações[m
+[32m+[m[32m- Testar envio de notificações push[m
+[32m+[m[32m- Configurar automações de notificações[m
+[32m+[m
+[32m+[m[32m## 6. Testes Finais[m
+[32m+[m
+[32m+[m[32m### 6.1 Testes de Funcionalidade[m
+[32m+[m
+[32m+[m[32m- Testar fluxo completo de compra[m
+[32m+[m[32m- Verificar funcionamento de todas as telas[m
+[32m+[m[32m- Testar diferentes perfis de usuário (cliente, administrador)[m
+[32m+[m[32m- Verificar integração com métodos de pagamento[m
+[32m+[m[32m- Testar notificações push[m
+[32m+[m
+[32m+[m[32m### 6.2 Testes de Performance[m
+[32m+[m
+[32m+[m[32m- Verificar tempo de carregamento das telas[m
+[32m+[m[32m- Testar consumo de memória e bateria[m
+[32m+[m[32m- Verificar comportamento offline[m
+[32m+[m[32m- Testar em diferentes dispositivos e tamanhos de tela[m
+[32m+[m
+[32m+[m[32m### 6.3 Testes de Segurança[m
+[32m+[m
+[32m+[m[32m- Verificar proteção de dados sensíveis[m
+[32m+[m[32m- Testar autenticação e autorização[m
+[32m+[m[32m- Verificar validação de entradas do usuário[m
+[32m+[m[32m- Testar proteção contra ataques comuns[m
+[32m+[m
+[32m+[m[32m## 7. Processo de Submissão[m
+[32m+[m
+[32m+[m[32m### 7.1 Google Play Store[m
+[32m+[m
+[32m+[m[32m- Criar conta de desenvolvedor (US$ 25, pagamento único)[m
+[32m+[m[32m- Preencher informações da ficha do aplicativo[m
+[32m+[m[32m- Fazer upload do APK/AAB via Google Play Console ou EAS Submit[m
+[32m+[m[32m- Preencher questionário de classificação de conteúdo[m
+[32m+[m[32m- Aguardar revisão (geralmente 1-3 dias úteis)[m
+[32m+[m
+[32m+[m[32m### 7.2 Apple App Store[m
+[32m+[m
+[32m+[m[32m- Criar conta no Apple Developer Program (US$ 99/ano)[m
+[32m+[m[32m- Configurar certificados e perfis de provisionamento[m
+[32m+[m[32m- Fazer upload do build via App Store Connect ou EAS Submit[m
+[32m+[m[32m- Preencher informações da ficha do aplicativo[m
+[32m+[m[32m- Preparar para revisão da App Store (TestFlight)[m
+[32m+[m[32m- Aguardar revisão (geralmente 1-3 dias úteis)[m
+[32m+[m
+[32m+[m[32m## 8. Pós-Lançamento[m
+[32m+[m
+[32m+[m[32m### 8.1 Monitoramento[m
+[32m+[m
+[32m+[m[32m- Configurar Firebase Crashlytics para monitoramento de erros[m
+[32m+[m[32m- Implementar analytics para acompanhar uso do aplicativo[m
+[32m+[m[32m- Monitorar avaliações e comentários nas lojas[m
+[32m+[m
+[32m+[m[32m### 8.2 Atualizações[m
+[32m+[m
+[32m+[m[32m- Planejar ciclo de atualizações regulares[m
+[32m+[m[32m- Preparar hotfixes para problemas críticos[m
+[32m+[m[32m- Utilizar atualizações OTA do Expo quando possível[m
+[32m+[m
+[32m+[m[32m### 8.3 Marketing[m
+[32m+[m
+[32m+[m[32m- Implementar estratégia de ASO (App Store Optimization)[m
+[32m+[m[32m- Planejar campanhas de divulgação[m
+[32m+[m[32m- Considerar programa de indicação de usuários[m
+[32m+[m
+[32m+[m[32m## 9. Checklist Final Pré-Submissão[m
+[32m+[m
+[32m+[m[32m- [ ] Versão e build number atualizados[m
+[32m+[m[32m- [ ] Todos os assets gráficos preparados nas dimensões corretas[m
+[32m+[m[32m- [ ] Textos de marketing e descrições finalizados[m
+[32m+[m[32m- [ ] Política de privacidade e termos de uso publicados[m
+[32m+[m[32m- [ ] Integrações externas configuradas para produção[m
+[32m+[m[32m- [ ] Testes finais concluídos e bugs críticos corrigidos[m
+[32m+[m[32m- [ ] Informações de contato atualizadas[m
+[32m+[m[32m- [ ] Contas de desenvolvedor ativas nas lojas[m
+[32m+[m[32m- [ ] Método de pagamento para taxas das lojas configurado[m
+[32m+[m
+[32m+[m[32m---[m
+[32m+[m
+[32m+[m[32mEste plano de publicação serve como guia completo para preparar o aplicativo Açucaradas Encomendas para lançamento nas lojas de aplicativos. Cada etapa deve ser verificada e concluída para garantir um processo de submissão tranquilo e aprovação rápida.[m
+[1mdiff --git a/store_assets/textos_marketing.md b/store_assets/textos_marketing.md[m
+[1mnew file mode 100644[m
+[1mindex 00000000..ff4149b1[m
+[1m--- /dev/null[m
+[1m+++ b/store_assets/textos_marketing.md[m
+[36m@@ -0,0 +1,185 @@[m
+[32m+[m[32m# Textos de Marketing - Açucaradas Encomendas[m
+[32m+[m
+[32m+[m[32mEste documento contém todos os textos de marketing finalizados para publicação nas lojas de aplicativos.[m
+[32m+[m
+[32m+[m[32m## Google Play Store[m
+[32m+[m
+[32m+[m[32m### Título (50 caracteres máx.)[m
+[32m+[m
+[32m+[m[32m```[m
+[32m+[m[32mAçucaradas Encomendas - Confeitaria Delivery[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m### Descrição Curta (80 caracteres máx.)[m
+[32m+[m
+[32m+[m[32m```[m
+[32m+[m[32mEncomende deliciosos doces e bolos artesanais com entrega rápida![m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m### Descrição Completa (4000 caracteres máx.)[m
+[32m+[m
+[32m+[m[32m```[m
+[32m+[m[32mO aplicativo Açucaradas Encomendas traz toda a magia da confeitaria artesanal para o seu smartphone! Faça pedidos de bolos, doces, tortas e sobremesas especiais com apenas alguns toques.[m
+[32m+[m
+[32m+[m[32mPRINCIPAIS FUNCIONALIDADES:[m
+[32m+[m
+[32m+[m[32m✓ Catálogo completo de produtos com fotos e descrições detalhadas[m
+[32m+[m[32m✓ Personalização de encomendas para ocasiões especiais[m
+[32m+[m[32m✓ Acompanhamento em tempo real do status do seu pedido[m
+[32m+[m[32m✓ Múltiplas opções de pagamento (cartão, boleto, PIX)[m
+[32m+[m[32m✓ Programa de fidelidade com descontos exclusivos[m
+[32m+[m[32m✓ Notificações sobre promoções e novidades[m
+[32m+[m
+[32m+[m[32mVARIEDADE DE PRODUTOS:[m
+[32m+[m
+[32m+[m[32m• Bolos personalizados para aniversários, casamentos e eventos[m
+[32m+[m[32m• Doces finos para festas e ocasiões especiais[m
+[32m+[m[32m• Sobremesas tradicionais e gourmet[m
+[32m+[m[32m• Opções sem glúten e sem lactose[m
+[32m+[m[32m• Kits para datas comemorativas[m
+[32m+[m
+[32m+[m[32mCOMO FUNCIONA:[m
+[32m+[m
+[32m+[m[32m1. Crie sua conta e adicione seu endereço de entrega[m
+[32m+[m[32m2. Navegue pelo catálogo e escolha seus produtos favoritos[m
+[32m+[m[32m3. Personalize seu pedido conforme necessário[m
+[32m+[m[32m4. Escolha a data e horário de entrega desejados[m
+[32m+[m[32m5. Selecione o método de pagamento[m
+[32m+[m[32m6. Acompanhe o status do seu pedido em tempo real[m
+[32m+[m
+[32m+[m[32mVANTAGENS EXCLUSIVAS:[m
+[32m+[m
+[32m+[m[32m• Acumule pontos a cada compra e troque por descontos[m
+[32m+[m[32m• Receba ofertas personalizadas baseadas em suas preferências[m
+[32m+[m[32m• Peça novamente seus itens favoritos com apenas um toque[m
+[32m+[m[32m• Salve diferentes endereços para entrega em casa ou no trabalho[m
+[32m+[m[32m• Configure lembretes para datas especiais[m
+[32m+[m
+[32m+[m[32mO Açucaradas Encomendas é ideal para aniversários, casamentos, eventos corporativos ou simplesmente para adoçar seu dia![m
+[32m+[m
+[32m+[m[32mNossa confeitaria utiliza apenas ingredientes selecionados e receitas exclusivas, garantindo sabor e qualidade em cada produto.[m
+[32m+[m
+[32m+[m[32mTodos os itens são preparados com cuidado artesanal e entregues com o carinho que sua ocasião especial merece.[m
+[32m+[m
+[32m+[m[32mBaixe agora e experimente o sabor da felicidade entregue na sua porta.[m
+[32m+[m
+[32m+[m[32mNota: Área de entrega sujeita à consulta. Verifique a disponibilidade para seu CEP no momento do pedido.[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m### Palavras-chave[m
+[32m+[m
+[32m+[m[32m```[m
+[32m+[m[32mconfeitaria, doces, bolos, encomendas, delivery, sobremesas, tortas, brigadeiros, aniversário, casamento, festa, artesanal[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m## Apple App Store[m
+[32m+[m
+[32m+[m[32m### Título (30 caracteres máx.)[m
+[32m+[m
+[32m+[m[32m```[m
+[32m+[m[32mAçucaradas Encomendas[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m### Subtítulo (30 caracteres máx.)[m
+[32m+[m
+[32m+[m[32m```[m
+[32m+[m[32mConfeitaria Delivery[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m### Descrição Promocional (170 caracteres máx.)[m
+[32m+[m
+[32m+[m[32m```[m
+[32m+[m[32mEncomende doces artesanais, bolos personalizados e sobremesas especiais com entrega rápida e segura. Ideal para festas, eventos ou para adoçar seu dia![m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m### Descrição Completa (4000 caracteres máx.)[m
+[32m+[m
+[32m+[m[32m```[m
+[32m+[m[32mO Açucaradas Encomendas é o aplicativo perfeito para quem deseja saborear deliciosos doces e bolos artesanais com toda comodidade. Com uma interface intuitiva e processo de pedido simplificado, você pode encomendar uma variedade de produtos confeitados para qualquer ocasião.[m
+[32m+[m
+[32m+[m[32m# PRINCIPAIS FUNCIONALIDADES[m
+[32m+[m
+[32m+[m[32m• Catálogo digital completo com fotos e descrições detalhadas[m
+[32m+[m[32m• Personalização de produtos para suas necessidades específicas[m
+[32m+[m[32m• Sistema de busca por categoria, sabor ou tipo de evento[m
+[32m+[m[32m• Acompanhamento em tempo real do status do seu pedido[m
+[32m+[m[32m• Múltiplas formas de pagamento (cartão, boleto, PIX)[m
+[32m+[m[32m• Avaliações e comentários de outros clientes[m
+[32m+[m[32m• Notificações sobre status do pedido e promoções[m
+[32m+[m
+[32m+[m[32m# NOSSOS PRODUTOS[m
+[32m+[m
+[32m+[m[32m• Bolos personalizados para aniversários, casamentos e eventos especiais[m
+[32m+[m[32m• Docinhos tradicionais e finos para festas[m
+[32m+[m[32m• Tortas doces e salgadas[m
+[32m+[m[32m• Sobremesas especiais e gourmet[m
+[32m+[m[32m• Opções sem glúten, sem lactose e veganas[m
+[32m+[m[32m• Kits celebrativos para datas comemorativas[m
+[32m+[m
+[32m+[m[32m# PROGRAMA DE FIDELIDADE[m
+[32m+[m
+[32m+[m[32mAcumule pontos a cada compra realizada pelo aplicativo e troque por descontos especiais em pedidos futuros. Quanto mais você utiliza o Açucaradas Encomendas, mais vantagens você obtém.[m
+[32m+[m
+[32m+[m[32m# PEDIDOS PERSONALIZADOS[m
+[32m+[m
+[32m+[m[32mTem uma ideia especial ou necessidades específicas? Utilize nossa função de pedido personalizado para descrever exatamente o que você deseja. Nossa equipe entrará em contato para viabilizar sua solicitação.[m
+[32m+[m
+[32m+[m[32m# ENTREGAS[m
+[32m+[m
+[32m+[m[32mAcompanhe o status da sua entrega em tempo real. O aplicativo exibe informações atualizadas sobre o andamento da produção e envio do seu pedido. Receba notificações em cada etapa do processo.[m
+[32m+[m
+[32m+[m[32m# SEGURANÇA E PRATICIDADE[m
+[32m+[m
+[32m+[m[32m• Pagamentos seguros

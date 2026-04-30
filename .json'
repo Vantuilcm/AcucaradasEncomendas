@@ -1,0 +1,31 @@
+[33mcommit 946edd09db752775da3dd8b78ca75b079ec9ea1e[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Wed Mar 18 14:39:37 2026 -0300
+
+    fix(ios): adicionar permissoes de privacidade (tracking, photo add) e incrementar build (374)
+
+[1mdiff --git a/app.json b/app.json[m
+[1mindex a44e1306..85b9f54d 100644[m
+[1m--- a/app.json[m
+[1m+++ b/app.json[m
+[36m@@ -22,7 +22,7 @@[m
+     "ios": {[m
+       "supportsTablet": true,[m
+       "bundleIdentifier": "com.acucaradas.encomendas",[m
+[31m-      "buildNumber": "373",[m
+[32m+[m[32m      "buildNumber": "374",[m
+       "entitlements": {[m
+         "com.apple.developer.applesignin": ["Default"][m
+       },[m
+[36m@@ -30,9 +30,11 @@[m
+       "infoPlist": {[m
+         "NSCameraUsageDescription": "Este aplicativo usa a câmera para escanear códigos QR e tirar fotos dos produtos.",[m
+         "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar sua galeria para selecionar imagens para os produtos.",[m
+[32m+[m[32m        "NSPhotoLibraryAddUsageDescription": "Este aplicativo precisa salvar fotos na sua galeria.",[m
+         "NSMicrophoneUsageDescription": "Este aplicativo usa o microfone para gravar notas de voz para os pedidos.",[m
+         "NSSpeechRecognitionUsageDescription": "Este aplicativo pode usar reconhecimento de fala para facilitar a busca de produtos por voz.",[m
+         "NSLocationWhenInUseUsageDescription": "Este aplicativo usa sua localização para encontrar confeitarias próximas e calcular o tempo de entrega.",[m
+[32m+[m[32m        "NSUserTrackingUsageDescription": "Este aplicativo usa dados de uso para melhorar sua experiência e oferecer conteúdo personalizado.",[m
+         "UIBackgroundModes": [[m
+           "remote-notification"[m
+         ],[m

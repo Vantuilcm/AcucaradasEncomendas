@@ -59,8 +59,6 @@ import type { DeliverySchedule, Order } from '../types/Order';
 import { StoreDetailsScreen } from '../screens/StoreDetailsScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 
-import BootDiagnosticScreen from '../screens/BootDiagnosticScreen';
-
 export type MainTabParamList = {
   Home: undefined;
   Catalog: undefined;
@@ -118,7 +116,6 @@ export type RootStackParamList = {
   Register: { role?: string };
   ForgotPassword: undefined;
   RoleSelection: undefined;
-  BootDiagnostic: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -240,7 +237,7 @@ const DriverTabs = () => {
 
 // Navegador principal do aplicativo
 const AppNavigator = () => {
-  const { user, loading: authLoading, profileLoading, isReady } = useAuth();
+  const { user, loading: authLoading, profileLoading, isReady, logout } = useAuth();
   const { isProdutor: _isProdutor, isAdmin: _isAdmin, isEntregador, loading: permissionsLoading } = usePermissions();
   const { theme, isDark } = useAppTheme();
 
@@ -286,7 +283,7 @@ const AppNavigator = () => {
         <Text style={{ textAlign: 'center', marginBottom: 20 }}>
           Detectamos um problema ao carregar seu perfil.
         </Text>
-        <Button mode="contained" onPress={() => useAuth().logout()}>
+        <Button mode="contained" onPress={logout}>
           Tentar Novamente (Logout)
         </Button>
       </View>
@@ -300,41 +297,35 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer theme={navigationTheme} ref={navigationRef}>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: theme?.colors?.card || '#FFFFFF',
-          },
-          headerTintColor: theme?.colors?.text?.primary || '#000000',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      >
-        {isAuthenticated ? (
-          // Rotas de Diagnóstico (MISSÃO ZERO TELA BRANCA)
-          <>
+  <NavigationContainer theme={navigationTheme} ref={navigationRef}>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: theme?.colors?.card || '#FFFFFF',
+        },
+        headerTintColor: theme?.colors?.text?.primary || '#000000',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
+      {isAuthenticated ? (
+        <>
+          {/* BootDiagnostic removido como rota inicial */}
+
+          {!userRole ? (
             <Stack.Screen
-              name="BootDiagnostic"
-              component={BootDiagnosticScreen}
-              options={{ title: 'Diagnóstico de Inicialização', headerShown: true }}
+              name="RoleSelection"
+              component={RoleSelectionScreen}
+              options={{ title: 'Completar Cadastro', headerShown: false }}
             />
-            {/* Outras rotas permanecem registradas para navegação manual se necessário */}
-            {!userRole ? (
-              // Se role ausente, forçar seleção de papel
+          ) : isEntregador ? (
+            <>
               <Stack.Screen
-                name="RoleSelection"
-                component={RoleSelectionScreen}
-                options={{ title: 'Completar Cadastro', headerShown: false }}
+                name="DriverTabs"
+                component={DriverTabs}
+                options={{ headerShown: false }}
               />
-            ) : isEntregador ? (
-              <>
-                <Stack.Screen
-                  name="DriverTabs"
-                  component={DriverTabs}
-                  options={{ headerShown: false }}
-                />
                 <Stack.Screen
                   name="OrderDetails"
                   component={OrderDetailsScreen}

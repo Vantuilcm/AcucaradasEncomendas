@@ -1,0 +1,29 @@
+[33mcommit 0a0fddd2a0b1f39ba0e57400ca0387c0bf5d8ba1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfix-build-sdk-52[m[33m, [m[1;31morigin/fix-build-sdk-52[m[33m)[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Tue Mar 10 11:36:31 2026 -0300
+
+    ci: upgrade node-version to 20 for eas-cli compatibility
+
+[33mcommit 16f28e2b8ac9fe396c7045ee9541df9e4ac84719[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Tue Mar 10 11:27:00 2026 -0300
+
+    fix: resolve linter errors in notificationSettingsMigration.ts
+
+[33mcommit 0eef323536aecafbabc349f9762d136490c38e93[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Tue Mar 10 11:22:41 2026 -0300
+
+    fix: resolve module resolution errors and type mismatches in migration and tests
+
+[33mcommit cd66dcbffdb7f49410e102904d3738706154dd2d[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Tue Mar 10 11:20:22 2026 -0300
+
+    fix: resolve module resolution error for firebase/config and fix type mismatches in migration utility
+
+[33mcommit f6714963335b74c7401a257d5f604cb06b743109[m
+Author: Vantuilcm <vantuilcaramez@gmail.com>
+Date:   Tue Mar 10 10:58:28 2026 -0300
+
+    fix: remove Sentry, fix test types and diagnostics for GitHub build
