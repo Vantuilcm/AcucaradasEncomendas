@@ -63,13 +63,23 @@ jobs:
       - name: 🧪 Type Check
         run: npm run type-check
 
+      - name: 🛡️ Version Bump
+        run: |
+          echo "🔄 [VERSION] Incrementando build number antes do enforce"
+          node scripts/version-bump.js
+
       - name: 🛡️ Build Number Enforcer (Source of Truth)
         run: |
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
           node scripts/ci/force-build-number.js --run
-          BUILD_NUMBER=$(jq -r '.expo.ios.buildNumber' app.json)
+          BUILD_NUMBER=$(jq -r '.buildNumber' version-state.json)
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
           echo "CURRENT_BN=$BUILD_NUMBER" >> $GITHUB_ENV
+
+      - name: Generate public_config.json
+        run: |
+          echo "🔄 [CONFIG] Gerando public_config.json antes do guardião"
+          npx expo config --type public --json > public_config.json
 
       - name: 🛡️ iOS-BUILD-GUARDIAN V4 (Cloud Mode)
         run: |

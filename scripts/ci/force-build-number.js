@@ -64,7 +64,14 @@ class BuildNumberEnforcer {
     console.log('🚀 [ENFORCE] Iniciando auto-incremento de Build Number...');
     
     const appJson = JSON.parse(fs.readFileSync(this.appJsonPath, 'utf8'));
-    const currentLocal = parseInt(appJson.expo.ios.buildNumber || '0', 10);
+    const statePath = path.join(this.projectRoot, 'version-state.json');
+    let currentLocal = parseInt(appJson.expo.ios.buildNumber || '0', 10);
+    if (fs.existsSync(statePath)) {
+      const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+      if (state.buildNumber) {
+        currentLocal = parseInt(state.buildNumber, 10);
+      }
+    }
     const appleLatest = this.getAppleLatest();
     const historyLatest = this.getHistoryLatest();
 
@@ -82,7 +89,6 @@ class BuildNumberEnforcer {
     fs.writeFileSync(this.appJsonPath, JSON.stringify(appJson, null, 2));
 
     // Sincronizar version-state.json
-    const statePath = path.join(this.projectRoot, 'version-state.json');
     if (fs.existsSync(statePath)) {
       const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
       state.buildNumber = finalBN;

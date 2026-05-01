@@ -23,7 +23,7 @@ export default ({ config }) => {
   try {
     versionState = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'version-state.json'), 'utf-8'));
   } catch (e) {
-    versionState = { version: config.version, buildNumber: parseInt(config.ios?.buildNumber || "1201") };
+    versionState = { version: config.version, buildNumber: parseInt(config.ios?.buildNumber || "1211") };
   }
 
   const buildNumber = process.env.BUILD_NUMBER || process.env.CURRENT_BN || versionState.buildNumber.toString();

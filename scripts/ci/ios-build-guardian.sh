@@ -109,8 +109,8 @@ export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
 export EXPO_ASC_KEY_ID="${EXPO_ASC_KEY_ID}"
 export EXPO_ASC_ISSUER_ID="${EXPO_ASC_ISSUER_ID}"
 
-# Tentar sync. Se falhar, o build --credentials-file pode resolver
-eas credentials:sync -p ios --non-interactive || echo "⚠️ Sync falhou, prosseguindo com credentials-file..."
+# Tentar sync. Não bloquear a pipeline neste ambiente
+echo "ℹ️ EAS credentials:sync não disponível nesta versão; seguindo com credenciais configuradas."
 
 # 🧩 ETAPA 6 — PRÉ-BUILD NATIVO
 echo "🏗️ [ETAPA 6] Executando Expo Prebuild..."
@@ -153,27 +153,55 @@ if [ ! -s public_config.json ]; then
     exit 1
 fi
 
-EXPECTED_BN="${CURRENT_BN:-$(jq -r '.expo.ios.buildNumber' app.json 2>/dev/null || true)}"
+if [ ! -f "version-state.json" ]; then
+    echo "❌ [FATAL] version-state.json ausente. Fonte de verdade obrigatória."
+    exit 1
+fi
+
+EXPECTED_BN=$(jq -r '.buildNumber' version-state.json 2>/dev/null || true)
 if [ -z "${EXPECTED_BN}" ] || [ "${EXPECTED_BN}" == "null" ]; then
-    echo "❌ [FATAL] Não foi possível resolver o Build Number esperado."
+    echo "❌ [FATAL] version-state.json inválido ou sem buildNumber."
     exit 1
 fi
 
 echo "🔍 Build Number esperado: ${EXPECTED_BN}"
 
-BN_CHECK=$(node -e "
+BN_CHECK=$(node - <<'NODE'
+const fs = require('fs');
 try {
-  const fs = require('fs');
-  const content = fs.readFileSync('public_config.json', 'utf8');
+  const buffer = fs.readFileSync('public_config.json');
+  let content;
+  if (buffer.length >= 2 && buffer[0] === 0xFF && buffer[1] === 0xFE) {
+    content = buffer.toString('utf16le');
+  } else if (buffer.length >= 2 && buffer[0] === 0xFE && buffer[1] === 0xFF) {
+    const be = buffer.slice(2);
+    const le = Buffer.alloc(be.length);
+    for (let i = 0; i + 1 < be.length; i += 2) {
+      le[i] = be[i + 1];
+      le[i + 1] = be[i];
+    }
+    content = le.toString('utf16le');
+  } else {
+    content = buffer.toString('utf8');
+  }
+
+  // Normalize and strip any BOM before parsing
+  content = content.replace(/^\uFEFF/, '').trim();
   const jsonStart = content.indexOf('{');
   if (jsonStart === -1) throw new Error('JSON não encontrado');
-  const config = JSON.parse(content.substring(jsonStart));
+  content = content.substring(jsonStart);
+
+  const config = JSON.parse(content);
+  if (!config.ios || !config.ios.buildNumber) {
+    throw new Error('Campo ios.buildNumber não encontrado');
+  }
   console.log(config.ios.buildNumber);
 } catch (e) {
-  console.error('Erro ao processar JSON:', e.message);
+  console.error('Erro ao processar public_config.json:', e.message);
   process.exit(1);
 }
-")
+NODE
+)
 
 if [ "$BN_CHECK" != "$EXPECTED_BN" ]; then
     echo "❌ [FATAL] Build Number Incorreto! Esperado: ${EXPECTED_BN}, Encontrado: $BN_CHECK"

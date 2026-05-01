@@ -70,8 +70,20 @@ jobs:
       - name: Type Check
         run: npm run type-check
 
-      - name: Expo Export iOS
-        run: npx expo export --platform ios
+      - name: 🛡️ Version Bump
+        run: |
+          echo "🔄 [VERSION] Incrementando build number antes do enforce"
+          node scripts/version-bump.js
+
+      - name: 🛡️ Build Number Enforcer (Source of Truth)
+        run: |
+          echo "🔄 [ENFORCE] Sincronizando Build Number..."
+          node scripts/ci/force-build-number.js --run
+
+      - name: Generate public_config.json
+        run: |
+          echo "🔄 [CONFIG] Gerando public_config.json antes do guardião"
+          npx expo config --type public --json > public_config.json
 
       - name: Run iOS Build Guardian
         run: |
