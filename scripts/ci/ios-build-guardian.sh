@@ -26,16 +26,8 @@ MISSING_VARS=()
 [ -z "${EXPO_ASC_ISSUER_ID:-}" ] && MISSING_VARS+=("EXPO_ASC_ISSUER_ID")
 [ -z "${EXPO_ASC_PRIVATE_KEY:-}" ] && MISSING_VARS+=("EXPO_ASC_PRIVATE_KEY")
 
-# Fallback para APPLE_ID
-if [ -z "${APPLE_ID:-}" ] && [ -n "${EXPO_APPLE_ID:-}" ]; then
-    echo "ℹ️ Usando EXPO_APPLE_ID como fallback para APPLE_ID"
-    APPLE_ID="${EXPO_APPLE_ID}"
-fi
-
-[ -z "${APPLE_ID:-}" ] && MISSING_VARS+=("APPLE_ID")
-
 if [ ${#MISSING_VARS[@]} -ne 0 ]; then
-    echo "❌ [FATAL] Faltam variáveis obrigatórias: ${MISSING_VARS[*]}"
+    echo "❌ [FATAL] Credenciais ASC API Key incompletas ou faltam variáveis obrigatórias: ${MISSING_VARS[*]}"
     exit 1
 fi
 
@@ -91,7 +83,6 @@ ASC_APP_ID="6756029389"
 cat > credentials.json <<EOF
 {
   "ios": {
-    "appleId": "${APPLE_ID}",
     "ascApiKey": {
       "keyId": "${EXPO_ASC_KEY_ID}",
       "issuerId": "${EXPO_ASC_ISSUER_ID}",
