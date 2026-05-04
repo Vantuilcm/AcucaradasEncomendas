@@ -19,12 +19,8 @@ import { MarketplaceExpansionService, CityExpansionMetrics } from '../services/M
 import { AutonomousGrowthOrchestrator, AutonomousAction } from '../services/AutonomousGrowthOrchestrator';
 import { ReleaseService, ReleaseState } from '../services/ReleaseService';
 import { DeliveryDriver } from '../types/DeliveryDriver';
-// MISSÃO ZERO TELA BRANCA: Reativando Mapa com proteção, Gráfico ainda desativado
-// import { LineChart } from 'react-native-chart-kit';
+// MISSÃO ZERO TELA BRANCA: Reativando Mapa com proteção, Gráfico nativo customizado em uso
 import MapView, { Marker } from 'react-native-maps';
-const LineChart: any = null;
-// const MapView: any = null;
-// const Marker: any = null;
 import { Ionicons } from '@expo/vector-icons';
 import { Dimensions } from 'react-native';
 import { Order, OrderStatus } from '../types/Order';
@@ -104,6 +100,27 @@ const LiveOrderItem = ({ order, theme }: { order: Order; theme: any }) => {
         <Text variant="titleSmall" style={{ marginLeft: 8 }}>{formatCurrency(order.totalAmount)}</Text>
       </Card.Content>
     </Card>
+  );
+};
+
+// Gráfico Seguro (Pure React Native Views) para evitar crashes do react-native-svg
+const SafeBarChart = ({ data, labels, theme }: { data: number[], labels: string[], theme: any }) => {
+  const max = Math.max(...data, 1); // evita divisão por zero
+  return (
+    <View style={{ height: 220, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 32, paddingBottom: 16, backgroundColor: theme.colors.surface, borderRadius: 16 }}>
+      {data.map((val, i) => {
+        const heightPct = (val / max) * 100;
+        return (
+          <View key={i} style={{ alignItems: 'center', width: 30 }}>
+            <Text style={{ fontSize: 10, color: theme.colors.text.secondary, marginBottom: 4 }}>{Math.round(val)}</Text>
+            <View style={{ height: 120, width: '100%', justifyContent: 'flex-end', backgroundColor: '#F5F5F5', borderRadius: 4, overflow: 'hidden' }}>
+              <View style={{ height: `${heightPct}%`, width: '100%', backgroundColor: theme.colors.primary, borderRadius: 4 }} />
+            </View>
+            <Text style={{ fontSize: 10, color: theme.colors.text.primary, marginTop: 8, fontWeight: 'bold' }}>{labels[i]}</Text>
+          </View>
+        );
+      })}
+    </View>
   );
 };
 
@@ -425,71 +442,19 @@ export function AdminDashboardScreen() {
           <Text variant="titleLarge" style={styles.sectionTitle}>
             Tendência de Vendas
           </Text>
-          <ModuleBoundary
-            name="Gráfico de Vendas"
-            fallback={
-              <View style={{ height: 220, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF3E0', borderRadius: 16 }}>
-                <Ionicons name="stats-chart" size={48} color="#FF9800" />
-                <Text style={{ marginTop: 8, color: '#E65100' }}>Gráfico indisponível</Text>
-                <Button
-                  mode="outlined"
-                  onPress={() => (navigation as any).navigate('ChartTest')}
-                  style={{ marginTop: 15, width: '80%', borderColor: '#FF9800' }}
-                  textColor="#E65100"
-                >
-                  Teste Isolado do Gráfico
-                </Button>
-              </View>
-            }
-          >
-            {LineChart ? (
-              <LineChart
-                data={{
-                  labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
-                  datasets: [
-                    {
-                      data: [
-                        Math.random() * 100,
-                        Math.random() * 100,
-                        Math.random() * 100,
-                        Math.random() * 100,
-                        Math.random() * 100,
-                        Math.random() * 100,
-                        Math.random() * 100
-                      ]
-                    }
-                  ]
-                }}
-                width={screenWidth - 32}
-                height={220}
-                chartConfig={{
-                  backgroundColor: theme.colors.surface,
-                  backgroundGradientFrom: theme.colors.surface,
-                  backgroundGradientTo: theme.colors.surface,
-                  decimalPlaces: 2,
-                  color: (opacity = 1) => `rgba(255, 105, 180, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                  style: {
-                    borderRadius: 16
-                  },
-                  propsForDots: {
-                    r: "6",
-                    strokeWidth: "2",
-                    stroke: theme.colors.primary
-                  }
-                }}
-                bezier
-                style={{
-                  marginVertical: 8,
-                  borderRadius: 16
-                }}
-              />
-            ) : (
-              <View style={{ height: 220, justifyContent: 'center', alignItems: 'center' }}>
-                <Text>Gráfico desativado temporariamente</Text>
-              </View>
-            )}
-          </ModuleBoundary>
+          <SafeBarChart
+            theme={theme}
+            labels={["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]}
+            data={[
+              stats.dailySales > 0 ? stats.dailySales : Math.random() * 100,
+              Math.random() * 100,
+              Math.random() * 100,
+              Math.random() * 100,
+              Math.random() * 100,
+              Math.random() * 100,
+              Math.random() * 100
+            ]}
+          />
         </Surface>
 
         <Surface style={styles.mapSection}>
