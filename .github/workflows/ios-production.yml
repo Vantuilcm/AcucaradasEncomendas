@@ -1,4 +1,4 @@
-name: 🚀 iOS ULTRA STABLE V4 (CLOUD)
+name: 🚀 iOS ULTRA STABLE V4 (LOCAL)
 
 concurrency:
   group: ios-release-v4
@@ -17,8 +17,8 @@ on:
         type: boolean
 
 jobs:
-  ios-cloud-pipeline:
-    name: 🍎 iOS Cloud Build & Submit
+  ios-local-pipeline:
+    name: 🍎 iOS Local Build & Submit
     runs-on: macos-latest
     timeout-minutes: 100
     
@@ -43,6 +43,7 @@ jobs:
       
       EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
       PROFILE: "production_v13"
+      FORCE_BUILD_MODE: "LOCAL"
 
     steps:
       - name: 📦 Checkout Repository
@@ -63,11 +64,6 @@ jobs:
       - name: 🧪 Type Check
         run: npm run type-check
 
-      - name: 🛡️ Version Bump
-        run: |
-          echo "🔄 [VERSION] Incrementando build number antes do enforce"
-          node scripts/version-bump.js
-
       - name: 🛡️ Build Number Enforcer (Source of Truth)
         run: |
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
@@ -81,7 +77,7 @@ jobs:
           echo "🔄 [CONFIG] Gerando public_config.json antes do guardião"
           npx expo config --type public --json > public_config.json
 
-      - name: 🛡️ iOS-BUILD-GUARDIAN V4 (Cloud Mode)
+      - name: 🛡️ iOS-BUILD-GUARDIAN V4 (Local Mode)
         run: |
           chmod +x ./scripts/ci/ios-build-guardian.sh
           ./scripts/ci/ios-build-guardian.sh
