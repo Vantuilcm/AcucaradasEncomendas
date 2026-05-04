@@ -76,8 +76,8 @@ class BuildNumberEnforcer {
     const historyLatest = this.getHistoryLatest();
 
     // Lógica: Maior de todos + 1 (Fonte de verdade absoluta)
-    // Adicionado floor de 1215 para garantir que estamos longe de problemas passados e que o proximo seja no minimo 1216
-    const baseline = Math.max(currentLocal, appleLatest, historyLatest, 1215);
+    // Adicionado floor de 1216 para garantir que o proximo seja 1217 para validacao do sandbox
+    const baseline = Math.max(currentLocal, appleLatest, historyLatest, 1216);
     const finalBN = baseline + 1;
 
     console.log(`📊 [Metrics] Local: ${currentLocal} | Apple: ${appleLatest} | History: ${historyLatest}`);

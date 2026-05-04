@@ -431,6 +431,14 @@ export function AdminDashboardScreen() {
               <View style={{ height: 220, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF3E0', borderRadius: 16 }}>
                 <Ionicons name="stats-chart" size={48} color="#FF9800" />
                 <Text style={{ marginTop: 8, color: '#E65100' }}>Gráfico indisponível</Text>
+                <Button
+                  mode="outlined"
+                  onPress={() => (navigation as any).navigate('ChartTest')}
+                  style={{ marginTop: 15, width: '80%', borderColor: '#FF9800' }}
+                  textColor="#E65100"
+                >
+                  Teste Isolado do Gráfico
+                </Button>
               </View>
             }
           >

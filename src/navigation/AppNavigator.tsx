@@ -58,6 +58,7 @@ import type { DeliverySchedule, Order } from '../types/Order';
 
 import { StoreDetailsScreen } from '../screens/StoreDetailsScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { ChartTestScreen } from '../screens/ChartTestScreen';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -103,6 +104,7 @@ export type RootStackParamList = {
   CreateReview: { orderId: string };
   Chat: { orderId: string, targetName?: string };
   PremiumTest: undefined;
+  ChartTest: undefined;
   DeliveryDriverRegistration: undefined;
   OrdersHistory: undefined;
   Favorites: undefined;
@@ -370,6 +372,11 @@ const AppNavigator = () => {
                   name="PremiumTest"
                   component={PremiumTestScreen}
                   options={{ title: 'Testes Premium' }}
+                />
+                <Stack.Screen
+                  name="ChartTest"
+                  component={ChartTestScreen}
+                  options={{ title: 'Teste Isolado de Gráfico' }}
                 />
                 <Stack.Screen
                   name="ProductManagement"
