@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - prod-release-1170
+      - release-stable-1168
   workflow_dispatch:
     inputs:
       release_approved:
