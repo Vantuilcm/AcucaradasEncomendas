@@ -19,16 +19,36 @@ import { MarketplaceExpansionService, CityExpansionMetrics } from '../services/M
 import { AutonomousGrowthOrchestrator, AutonomousAction } from '../services/AutonomousGrowthOrchestrator';
 import { ReleaseService, ReleaseState } from '../services/ReleaseService';
 import { DeliveryDriver } from '../types/DeliveryDriver';
-// MISSÃO ZERO TELA BRANCA: Comentando bibliotecas nativas pesadas
+// MISSÃO ZERO TELA BRANCA: Reativando Mapa com proteção, Gráfico ainda desativado
 // import { LineChart } from 'react-native-chart-kit';
-// import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 const LineChart: any = null;
-const MapView: any = null;
-const Marker: any = null;
+// const MapView: any = null;
+// const Marker: any = null;
 import { Ionicons } from '@expo/vector-icons';
 import { Dimensions } from 'react-native';
 import { Order, OrderStatus } from '../types/Order';
 import { formatCurrency } from '../utils/formatters';
+
+// Componente de proteção de módulo para evitar tela branca (ErrorBoundary local)
+class ModuleBoundary extends React.Component<{ name: string, fallback: React.ReactNode, children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true };
+  }
+  componentDidCatch(error: any, errorInfo: any) {
+    console.log(`[Diagnostic] Erro isolado no módulo ${this.props.name}:`, error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -201,62 +221,10 @@ export function AdminDashboardScreen() {
     );
   }
 
-  // MISSÃO ZERO TELA BRANCA: Render simplificado para diagnóstico
+  // MISSÃO ZERO TELA BRANCA: Diagnostic Mode Removido, renderizando dashboard real com proteção nos módulos pesados.
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={{ padding: 20, alignItems: 'center' }}
-      >
-        <Text variant="headlineMedium" style={{ marginBottom: 20, color: theme.colors.primary }}>
-          🛡️ Admin Diagnostic Mode
-        </Text>
-        
-        <Card style={{ width: '100%', marginBottom: 20 }}>
-          <Card.Content>
-            <Text variant="titleMedium">Status da Operação</Text>
-            <Divider style={{ marginVertical: 10 }} />
-            <Text variant="bodyLarge">✅ Dashboard carregado com sucesso</Text>
-            <Text variant="bodyMedium" style={{ marginTop: 10 }}>
-              Os componentes pesados (Gráficos e Mapas) foram desativados temporariamente para isolar o problema da tela branca.
-            </Text>
-          </Card.Content>
-        </Card>
-
-        <View style={styles.metricsBar}>
-          <View style={styles.metricItem}>
-            <Text style={styles.metricValue}>{stats.activeOrders}</Text>
-            <Text style={styles.metricLabel}>Ativos</Text>
-          </View>
-          <View style={styles.metricItem}>
-            <Text style={[styles.metricValue, { color: theme.colors.error }]}>{stats.stuckOrders}</Text>
-            <Text style={styles.metricLabel}>Travados</Text>
-          </View>
-          <View style={styles.metricItem}>
-            <Text style={[styles.metricValue, { color: theme.colors.primary }]}>{formatCurrency(stats.dailySales)}</Text>
-            <Text style={styles.metricLabel}>Hoje</Text>
-          </View>
-        </View>
-
-        <Button
-  mode="contained"
-  onPress={() => navigation.navigate('BootDiagnostic' as never)}
-  style={{ marginTop: 30, width: '100%' }}
->
-  Diagnóstico
-</Button>
-        
-        <Text style={{ marginTop: 40, color: '#999', fontSize: 12 }}>
-          Se você está vendo esta tela, o problema da tela branca NÃO é estrutural no Dashboard.
-        </Text>
-      </ScrollView>
-    </SafeAreaView>
-  );
-
-  if (false) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView}>
         {/* 🛡️ Release Guardian Status (Global Scale) */}
         {releaseState && releaseState!.releases[releaseState!.activeReleaseId] && (() => {
           const active = releaseState!.releases[releaseState!.activeReleaseId];
@@ -457,54 +425,63 @@ export function AdminDashboardScreen() {
           <Text variant="titleLarge" style={styles.sectionTitle}>
             Tendência de Vendas
           </Text>
-          {/* Gráfico Blindado contra crashes */}
-          {LineChart ? (
-            <LineChart
-              data={{
-                labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
-                datasets: [
-                  {
-                    data: [
-                      Math.random() * 100,
-                      Math.random() * 100,
-                      Math.random() * 100,
-                      Math.random() * 100,
-                      Math.random() * 100,
-                      Math.random() * 100,
-                      Math.random() * 100
-                    ]
+          <ModuleBoundary
+            name="Gráfico de Vendas"
+            fallback={
+              <View style={{ height: 220, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF3E0', borderRadius: 16 }}>
+                <Ionicons name="stats-chart" size={48} color="#FF9800" />
+                <Text style={{ marginTop: 8, color: '#E65100' }}>Gráfico indisponível</Text>
+              </View>
+            }
+          >
+            {LineChart ? (
+              <LineChart
+                data={{
+                  labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
+                  datasets: [
+                    {
+                      data: [
+                        Math.random() * 100,
+                        Math.random() * 100,
+                        Math.random() * 100,
+                        Math.random() * 100,
+                        Math.random() * 100,
+                        Math.random() * 100,
+                        Math.random() * 100
+                      ]
+                    }
+                  ]
+                }}
+                width={screenWidth - 32}
+                height={220}
+                chartConfig={{
+                  backgroundColor: theme.colors.surface,
+                  backgroundGradientFrom: theme.colors.surface,
+                  backgroundGradientTo: theme.colors.surface,
+                  decimalPlaces: 2,
+                  color: (opacity = 1) => `rgba(255, 105, 180, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                  style: {
+                    borderRadius: 16
+                  },
+                  propsForDots: {
+                    r: "6",
+                    strokeWidth: "2",
+                    stroke: theme.colors.primary
                   }
-                ]
-              }}
-              width={screenWidth - 32}
-              height={220}
-              chartConfig={{
-                backgroundColor: theme.colors.surface,
-                backgroundGradientFrom: theme.colors.surface,
-                backgroundGradientTo: theme.colors.surface,
-                decimalPlaces: 2,
-                color: (opacity = 1) => `rgba(255, 105, 180, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                style: {
+                }}
+                bezier
+                style={{
+                  marginVertical: 8,
                   borderRadius: 16
-                },
-                propsForDots: {
-                  r: "6",
-                  strokeWidth: "2",
-                  stroke: theme.colors.primary
-                }
-              }}
-              bezier
-              style={{
-                marginVertical: 8,
-                borderRadius: 16
-              }}
-            />
-          ) : (
-            <View style={{ height: 220, justifyContent: 'center', alignItems: 'center' }}>
-              <Text>Gráfico indisponível</Text>
-            </View>
-          )}
+                }}
+              />
+            ) : (
+              <View style={{ height: 220, justifyContent: 'center', alignItems: 'center' }}>
+                <Text>Gráfico desativado temporariamente</Text>
+              </View>
+            )}
+          </ModuleBoundary>
         </Surface>
 
         <Surface style={styles.mapSection}>
@@ -512,37 +489,46 @@ export function AdminDashboardScreen() {
             Entregadores Online ({activeDrivers.length})
           </Text>
           <View style={styles.mapContainer}>
-            {/* MapView Blindado contra crashes em builds sem nativo */}
-            {MapView ? (
-              <MapView
-                style={styles.map}
-                initialRegion={{
-                  latitude: -23.5505,
-                  longitude: -46.6333,
-                  latitudeDelta: 0.0922,
-                  longitudeDelta: 0.0421,
-                }}
-              >
-                {activeDrivers.map((driver) => (
-                  driver.location && (
-                    <Marker
-                      key={driver.id}
-                      coordinate={{
-                        latitude: driver.location.latitude,
-                        longitude: driver.location.longitude,
-                      }}
-                      title={driver.name}
-                      description={`Veículo: ${driver.vehicle.model}`}
-                    />
-                  )
-                ))}
-              </MapView>
-            ) : (
-              <View style={[styles.map, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#eee' }]}>
-                <Ionicons name="map-outline" size={48} color="#ccc" />
-                <Text>Mapa indisponível</Text>
-              </View>
-            )}
+            <ModuleBoundary
+              name="Mapa de Entregadores"
+              fallback={
+                <View style={[styles.map, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFEBEE', borderRadius: 16 }]}>
+                  <Ionicons name="map-outline" size={48} color="#D32F2F" />
+                  <Text style={{ marginTop: 8, color: '#C62828' }}>Mapa indisponível</Text>
+                </View>
+              }
+            >
+              {MapView ? (
+                <MapView
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: -23.5505,
+                    longitude: -46.6333,
+                    latitudeDelta: 0.0922,
+                    longitudeDelta: 0.0421,
+                  }}
+                >
+                  {activeDrivers.map((driver) => (
+                    driver.location && (
+                      <Marker
+                        key={driver.id}
+                        coordinate={{
+                          latitude: driver.location.latitude,
+                          longitude: driver.location.longitude,
+                        }}
+                        title={driver.name}
+                        description={`Veículo: ${driver.vehicle.model}`}
+                      />
+                    )
+                  ))}
+                </MapView>
+              ) : (
+                <View style={[styles.map, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#eee' }]}>
+                  <Ionicons name="map-outline" size={48} color="#ccc" />
+                  <Text>Mapa desativado temporariamente</Text>
+                </View>
+              )}
+            </ModuleBoundary>
           </View>
         </Surface>
 
@@ -665,7 +651,6 @@ export function AdminDashboardScreen() {
       />
     </SafeAreaView>
   );
-  }
 }
 
 const createStyles = (theme: { colors: any }) => StyleSheet.create({
