@@ -337,25 +337,25 @@ export default function CheckoutScreen() {
               // se enviarmos propriedades com valor undefined. Devemos anexar apenas o que existe.
               const initParams: any = {
                 merchantDisplayName: 'Açucaradas Encomendas',
-                paymentIntentClientSecret: data.clientSecret,
-                allowsDelayedPaymentMethods: true,
-                defaultBillingDetails: {
-                  name: userNameForLog || 'Cliente',
-                }
+                paymentIntentClientSecret: data.clientSecret
               };
 
-              if (data.customer) {
+              // Só enviar se não for null nem undefined
+              if (data.customer && data.customer !== null) {
                 initParams.customerId = data.customer;
               }
 
-              if (data.ephemeralKey) {
+              if (data.ephemeralKey && data.ephemeralKey !== null) {
                 initParams.customerEphemeralKeySecret = data.ephemeralKey;
               }
 
               console.log('🧩 [Fase 2.2] Parâmetros do initPaymentSheet (chaves limpas):', Object.keys(initParams));
 
               // 3. Configurar e inicializar o PaymentSheet
-              const { error: initError } = await initPaymentSheet(initParams);
+              const initResponse = await initPaymentSheet(initParams);
+              console.log('📋 [Fase 2.2] Resposta do initPaymentSheet:', initResponse);
+
+              const { error: initError } = initResponse;
 
               if (initError) {
                 console.error('❌ [Fase 2.2] Erro no initPaymentSheet:', initError);
