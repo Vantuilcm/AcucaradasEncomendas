@@ -539,30 +539,23 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
               const producerDoc = await transaction.get(db.collection('users').doc(producerId));
               const producerStripeAccountId = producerDoc.data()?.stripeAccountId;
 
-              // Buscar Conta Conectada do Entregador (Se houver entregador definido na hora da compra)
-              let courierStripeAccountId = null;
-              if (targetCourierId) {
-                const courierDoc = await transaction.get(db.collection('users').doc(targetCourierId));
-                courierStripeAccountId = courierDoc.data()?.stripeAccountId;
-              }
+              // Buscar Conta Conectada do Entregador (Logística do Repasse)
+              // OBS: Entregador não recebe agora! Ficará retido até 'delivered'.
+              // Apenas sinalizamos no pedido que o dinheiro está reservado.
 
-              // Validação de Integridade do Connect
+              // Validação de Integridade do Connect (Apenas Produtor neste momento)
               if (!producerStripeAccountId) {
                 payoutStatus = 'missing_connected_account';
                 console.warn(`⚠️ [Split] Produtor ${producerId} não possui stripeAccountId. Repasse manual necessário.`);
-              } else if (targetCourierId && !courierStripeAccountId && deliveryFee > 0) {
-                payoutStatus = 'missing_connected_account';
-                console.warn(`⚠️ [Split] Entregador ${targetCourierId} não possui stripeAccountId. Repasse manual necessário.`);
               } else {
                 // Executar Transferências
                 const netSubtotal = subtotalProducts; // O subtotal não inclui a taxa de entrega
                 const producerPayoutAmount = Math.floor(netSubtotal * 0.90 * 100); // 90% em centavos
-                const courierPayoutAmount = Math.floor((deliveryFee || 0) * 100);  // 100% em centavos
                 const platformFeeAmount = Math.floor(netSubtotal * 0.10 * 100);    // 10% retido
 
                 const transfersToExecute = [];
 
-                // Repasse do Produtor
+                // Repasse do Produtor (Imediato)
                 transfersToExecute.push(
                   stripe.transfers.create({
                     amount: producerPayoutAmount,
@@ -575,22 +568,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                   })
                 );
 
-                // Repasse do Entregador
-                if (courierStripeAccountId && courierPayoutAmount > 0) {
-                  transfersToExecute.push(
-                    stripe.transfers.create({
-                      amount: courierPayoutAmount,
-                      currency: 'brl',
-                      destination: courierStripeAccountId,
-                      transfer_group: orderId,
-                      metadata: { role: 'courier', orderId }
-                    }, {
-                      idempotencyKey: `payout_courier_${orderId}`
-                    })
-                  );
-                }
-
-                // Dispara os transfers assincronamente mas os aguarda
+                // Dispara o transfer do Produtor assincronamente mas aguarda
                 const transferResults = await Promise.all(transfersToExecute);
                 payoutStatus = 'paid';
 
@@ -599,12 +577,15 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                 updates.producerPayoutAmount = producerPayoutAmount / 100;
                 updates.producerTransferId = transferResults[0].id;
                 
-                if (courierStripeAccountId && courierPayoutAmount > 0) {
-                  updates.courierPayoutAmount = courierPayoutAmount / 100;
-                  updates.courierTransferId = transferResults[1].id;
+                // --- NOVA REGRA DO MARKETPLACE PARA ENTREGADORES ---
+                // O dinheiro da entrega fica RETIDO. O repasse só ocorre no onOrderDelivered.
+                if (deliveryFee > 0) {
+                  updates.deliveryFeeHeld = true;
+                  updates.courierPayoutStatus = 'pending_delivery';
+                  updates.courierPayoutAmount = deliveryFee;
                 }
 
-                console.log(`✅ [Split] Divisão efetuada! Plataforma: ${updates.platformFeeAmount} | Produtor: ${updates.producerPayoutAmount}`);
+                console.log(`✅ [Split] Produtor Pago! Plataforma: ${updates.platformFeeAmount} | Produtor: ${updates.producerPayoutAmount}. Taxa de entrega (${deliveryFee}) retida aguardando entrega.`);
               }
             } catch (splitError) {
               console.error(`❌ [Split] Erro crítico ao repassar fundos para o pedido ${orderId}:`, splitError);
@@ -829,6 +810,86 @@ exports.onOrderUpdateGrowth = functions.firestore
         status: 'pending',
         metadata: { orderId, referralCode: userData?.referralCode }
       });
+    }
+  });
+
+/**
+ * TRIGGER: Repasse ao Entregador (Split do Marketplace)
+ * Disparado apenas quando a entrega é concluída com sucesso.
+ */
+exports.onOrderDelivered = functions.firestore
+  .document('orders/{orderId}')
+  .onUpdate(async (change, context) => {
+    const newData = change.after.data();
+    const oldData = change.before.data();
+    const orderId = context.params.orderId;
+
+    // Apenas agir se o status mudou para 'delivered'
+    if (newData.status === 'delivered' && oldData.status !== 'delivered') {
+      
+      // 1. Validar se há fundos retidos para o entregador
+      if (!newData.deliveryFeeHeld || newData.courierPayoutStatus === 'paid') {
+        console.log(`ℹ️ [Split Entregador] Pedido ${orderId} entregue, mas sem taxa retida ou já pago. Ignorando repasse.`);
+        return;
+      }
+
+      const targetCourierId = newData.deliveryDriverId || newData.courierId;
+      const deliveryFee = newData.deliveryFee || newData.courierPayoutAmount;
+
+      if (!targetCourierId || !deliveryFee || deliveryFee <= 0) {
+        console.log(`ℹ️ [Split Entregador] Pedido ${orderId} sem identificador de entregador ou valor de taxa. Retenção será mantida na plataforma.`);
+        return;
+      }
+
+      console.log(`✅ [Split Entregador] Pedido ${orderId} entregue! Iniciando repasse de R$${deliveryFee} para o entregador ${targetCourierId}...`);
+
+      try {
+        const stripe = require('stripe')(getStripeSecret());
+        
+        // 2. Buscar a conta conectada do entregador
+        const courierDoc = await db.collection('users').doc(targetCourierId).get();
+        const courierStripeAccountId = courierDoc.data()?.stripeAccountId;
+
+        if (!courierStripeAccountId || !courierStripeAccountId.startsWith('acct_')) {
+          console.warn(`⚠️ [Split Entregador] Entregador ${targetCourierId} não possui stripeAccountId válido. O valor ficará retido.`);
+          await change.after.ref.update({
+            courierPayoutStatus: 'missing_connected_account',
+            courierPayoutError: 'Entregador não concluiu onboarding no Stripe Connect'
+          });
+          return;
+        }
+
+        // 3. Executar Transferência com Idempotência
+        const courierPayoutAmountInCents = Math.floor(deliveryFee * 100);
+        const idempotencyKey = `courier_delivery_payout_${orderId}`;
+
+        const transfer = await stripe.transfers.create({
+          amount: courierPayoutAmountInCents,
+          currency: 'brl',
+          destination: courierStripeAccountId,
+          transfer_group: orderId,
+          metadata: { role: 'courier', orderId }
+        }, {
+          idempotencyKey
+        });
+
+        // 4. Confirmar sucesso no Firestore
+        await change.after.ref.update({
+          courierPayoutStatus: 'paid',
+          courierTransferId: transfer.id,
+          courierPayoutProcessedAt: admin.firestore.FieldValue.serverTimestamp(),
+          deliveryFeeHeld: false
+        });
+
+        console.log(`🚀 [Split Entregador] Sucesso! Transferência ${transfer.id} enviada para ${targetCourierId}.`);
+
+      } catch (error) {
+        console.error(`❌ [Split Entregador] Erro crítico ao repassar taxa de entrega para o pedido ${orderId}:`, error);
+        await change.after.ref.update({
+          courierPayoutStatus: 'failed',
+          courierPayoutError: error.message
+        });
+      }
     }
   });
 
