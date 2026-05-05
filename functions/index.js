@@ -315,24 +315,102 @@ exports.getDecisionExplanation = functions.https.onCall(async (data, context) =>
 // ======================================================
 
 /**
- * Cria um PaymentIntent com suporte a transfer_group para split futuro
+ * Cria ou recupera um Customer no Stripe
  */
-exports.createPaymentIntent = functions.https.onCall(async (data, context) => {
+exports.createStripeCustomer = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
+  
   const stripe = require('stripe')(functions.config().stripe.secret);
-  const { amount, currency = 'brl', orderId, customerId } = data;
+  const { email, name } = data;
+  const uid = context.auth.uid;
 
-  if (!amount || !orderId) {
-    throw new functions.https.HttpsError('invalid-argument', 'Amount e OrderId são obrigatórios.');
+  if (!email || !name) {
+    throw new functions.https.HttpsError('invalid-argument', 'Email e Nome são obrigatórios.');
   }
 
   try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency,
-      customer: customerId,
-      transfer_group: orderId, // Vincula o pagamento ao pedido para o split (Fase 2)
-      metadata: { orderId, userId: context.auth.uid }
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+    
+    if (userDoc.exists && userDoc.data().stripeCustomerId) {
+      return { customerId: userDoc.data().stripeCustomerId };
+    }
+
+    const customer = await stripe.customers.create({
+      email,
+      name,
+      metadata: { uid }
     });
+
+    await userRef.set({ stripeCustomerId: customer.id }, { merge: true });
+
+    return { customerId: customer.id };
+  } catch (error) {
+    console.error('❌ [Stripe] Erro ao criar Customer:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+/**
+ * Cria um SetupIntent para salvar cartão do cliente
+ */
+exports.createSetupIntent = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
+  
+  const stripe = require('stripe')(functions.config().stripe.secret);
+  const { customerId } = data;
+
+  if (!customerId) throw new functions.https.HttpsError('invalid-argument', 'CustomerId é obrigatório.');
+
+  try {
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+    });
+
+    return { clientSecret: setupIntent.client_secret };
+  } catch (error) {
+    console.error('❌ [Stripe] Erro ao criar SetupIntent:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+/**
+ * Cria um PaymentIntent com suporte a transfer_group para split futuro
+ */
+exports.createPaymentIntent = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
+
+  const stripe = require('stripe')(functions.config().stripe.secret);
+  const { amount, currency = 'brl', orderId, customerId } = data;
+
+  if (!amount || amount <= 0 || !orderId) {
+    throw new functions.https.HttpsError('invalid-argument', 'Amount (maior que 0) e OrderId são obrigatórios.');
+  }
+
+  if (currency.toLowerCase() !== 'brl') {
+    throw new functions.https.HttpsError('invalid-argument', 'Apenas a moeda BRL é suportada para transações.');
+  }
+
+  try {
+    const idempotencyKey = `pi_${orderId}`;
+
+    const paymentIntent = await stripe.paymentIntents.create(
+      {
+        amount: Math.round(amount), // Garante que seja inteiro em centavos
+        currency,
+        customer: customerId,
+        transfer_group: orderId, // Vincula o pagamento ao pedido para o split (Fase 2)
+        metadata: { 
+          orderId, 
+          userId: context.auth.uid,
+          app: 'acucaradas-encomendas' 
+        }
+      },
+      {
+        idempotencyKey
+      }
+    );
 
     return {
       clientSecret: paymentIntent.client_secret,
@@ -341,6 +419,135 @@ exports.createPaymentIntent = functions.https.onCall(async (data, context) => {
   } catch (error) {
     console.error('❌ [Stripe] Erro ao criar PaymentIntent:', error);
     throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+/**
+ * Stripe Webhook: Ouve eventos assíncronos de pagamento
+ * IMPORTANTE: É onRequest (HTTP puro), não onCall.
+ */
+exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
+  const stripe = require('stripe')(functions.config().stripe.secret);
+  const endpointSecret = functions.config().stripe.webhook_secret;
+
+  let event;
+
+  if (endpointSecret) {
+    const signature = req.headers['stripe-signature'];
+    try {
+      event = stripe.webhooks.constructEvent(req.rawBody, signature, endpointSecret);
+    } catch (err) {
+      console.error(`⚠️ [Stripe Webhook] Erro de assinatura: ${err.message}`);
+      await db.collection('stripe_webhook_errors').add({
+        error: err.message,
+        type: 'signature_validation',
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+  } else {
+    // Apenas para fallback local/dev sem secret
+    event = req.body;
+  }
+
+  try {
+    const eventId = event.id;
+    if (!eventId) {
+      return res.status(400).send('Event ID missing');
+    }
+
+    const eventRef = db.collection('stripe_events').doc(eventId);
+    const eventDoc = await eventRef.get();
+
+    // Deduplicação: ignora se já processou
+    if (eventDoc.exists) {
+      console.log(`ℹ️ [Stripe Webhook] Evento ${eventId} já processado. Ignorando.`);
+      return res.json({ received: true });
+    }
+
+    const paymentIntent = event.data.object;
+    const orderId = paymentIntent.metadata?.orderId;
+
+    if (!orderId) {
+      console.warn('⚠️ [Stripe Webhook] PaymentIntent sem orderId no metadata.');
+      await eventRef.set({
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'ignored',
+        reason: 'missing_orderId'
+      });
+      return res.json({ received: true });
+    }
+
+    const orderRef = db.collection('orders').doc(orderId);
+
+    // Executa a operação do webhook dentro de uma Transaction para garantir consistência
+    await db.runTransaction(async (transaction) => {
+      const orderDoc = await transaction.get(orderRef);
+      
+      if (!orderDoc.exists) {
+        console.warn(`⚠️ [Stripe Webhook] Pedido ${orderId} não encontrado no Firestore.`);
+        return; // Retorna silenciosamente da transação
+      }
+
+      const orderData = orderDoc.data();
+
+      switch (event.type) {
+        case 'payment_intent.succeeded':
+          // Evita sobrescrever se já foi processado
+          if (orderData.status === 'paid' && orderData.paymentStatus === 'completed') {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já estava pago. Ignorando.`);
+            break;
+          }
+
+          console.log(`✅ [Stripe Webhook] Pagamento confirmado para o pedido ${orderId}`);
+          transaction.update(orderRef, {
+            status: 'paid',
+            paymentStatus: 'completed',
+            paymentIntentId: paymentIntent.id,
+            paidAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          break;
+
+        case 'payment_intent.payment_failed':
+          // Evita sobrescrever se o pedido já avançou no fluxo ou já foi pago
+          if (orderData.status === 'paid' || orderData.status === 'delivering' || orderData.status === 'completed') {
+             console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já está num estado avançado (${orderData.status}). Ignorando falha tardia.`);
+             break;
+          }
+
+          console.error(`❌ [Stripe Webhook] Falha no pagamento do pedido ${orderId}`);
+          const lastError = paymentIntent.last_payment_error?.message || 'Erro desconhecido';
+          transaction.update(orderRef, {
+            status: 'payment_failed',
+            paymentStatus: 'failed',
+            paymentError: lastError,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          break;
+
+        default:
+          console.log(`Unhandled event type ${event.type}`);
+      }
+
+      // Marca o evento como processado dentro da mesma transação (Atomicidade Total)
+      transaction.set(eventRef, {
+        type: event.type,
+        orderId: orderId,
+        processedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error(`❌ [Stripe Webhook] Erro no processamento:`, error);
+    await db.collection('stripe_webhook_errors').add({
+      error: error.message,
+      stack: error.stack,
+      eventId: event?.id || 'unknown',
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+    res.status(500).send('Internal Server Error');
   }
 });
 
