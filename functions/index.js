@@ -3,9 +3,27 @@
  * Traduz logs técnicos em justificativas legíveis para humanos.
  */
 
-const functions = require('firebase-functions');
+const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
-admin.initializeApp();
+const stripeSecret = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_local_testing_only';
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+function getStripeSecret() {
+  try {
+    return functions.config().stripe.secret;
+  } catch (e) {
+    return stripeSecret;
+  }
+}
+
+function getWebhookSecret() {
+  try {
+    return functions.config().stripe.webhook_secret;
+  } catch (e) {
+    return null;
+  }
+}
 
 const db = admin.firestore();
 
@@ -320,7 +338,7 @@ exports.getDecisionExplanation = functions.https.onCall(async (data, context) =>
 exports.createStripeCustomer = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
   
-  const stripe = require('stripe')(functions.config().stripe.secret);
+  const stripe = require('stripe')(getStripeSecret());
   const { email, name } = data;
   const uid = context.auth.uid;
 
@@ -357,7 +375,7 @@ exports.createStripeCustomer = functions.https.onCall(async (data, context) => {
 exports.createSetupIntent = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
   
-  const stripe = require('stripe')(functions.config().stripe.secret);
+  const stripe = require('stripe')(getStripeSecret());
   const { customerId } = data;
 
   if (!customerId) throw new functions.https.HttpsError('invalid-argument', 'CustomerId é obrigatório.');
@@ -381,7 +399,7 @@ exports.createSetupIntent = functions.https.onCall(async (data, context) => {
 exports.createPaymentIntent = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
 
-  const stripe = require('stripe')(functions.config().stripe.secret);
+  const stripe = require('stripe')(getStripeSecret());
   const { amount, currency = 'brl', orderId, customerId } = data;
 
   if (!amount || amount <= 0 || !orderId) {
@@ -427,8 +445,8 @@ exports.createPaymentIntent = functions.https.onCall(async (data, context) => {
  * IMPORTANTE: É onRequest (HTTP puro), não onCall.
  */
 exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
-  const stripe = require('stripe')(functions.config().stripe.secret);
-  const endpointSecret = functions.config().stripe.webhook_secret;
+  const stripe = require('stripe')(getStripeSecret());
+  const endpointSecret = getWebhookSecret();
 
   let event;
 
@@ -558,7 +576,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
 exports.executePaymentSplit = functions.https.onCall(async (data, context) => {
   await validateAdmin(context.auth.uid); // Apenas o sistema/admin dispara o split final
 
-  const stripe = require('stripe')(functions.config().stripe.secret);
+  const stripe = require('stripe')(getStripeSecret());
   const { orderId, amountTotal, deliveryFee, producerAccountId, courierAccountId } = data;
 
   if (!orderId || !amountTotal || !producerAccountId) {
@@ -797,7 +815,7 @@ exports.scheduledGrowthAutomation = functions.pubsub.schedule('every 4 hours').o
  * Cria uma conta conectada (Stripe Connect) para o produtor ou entregador
  */
 exports.createConnectedAccount = functions.https.onCall(async (data, context) => {
-  const stripe = require('stripe')(functions.config().stripe.secret);
+  const stripe = require('stripe')(getStripeSecret());
   const { email, role } = data;
   const uid = context.auth.uid;
 
@@ -831,7 +849,7 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
  * Gera o link de onboarding para o Stripe Connect
  */
 exports.createStripeOnboardingLink = functions.https.onCall(async (data, context) => {
-  const stripe = require('stripe')(functions.config().stripe.secret);
+  const stripe = require('stripe')(getStripeSecret());
   const { accountId, refreshUrl, returnUrl } = data;
 
   if (!accountId) throw new functions.https.HttpsError('invalid-argument', 'AccountId é obrigatório.');

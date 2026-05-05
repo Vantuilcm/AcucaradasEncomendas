@@ -9,6 +9,8 @@ import AppNavigator from './navigation/AppNavigator';
 import { CartProvider } from './contexts/CartContext';
 import { LocationProvider } from './contexts/LocationContext';
 import { ErrorBoundary } from './core/monitoring/ErrorBoundary';
+import { StripeProvider } from '@stripe/stripe-react-native';
+import { STRIPE_PUBLISHABLE_KEY } from './config/stripe';
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Estabilizada
@@ -31,17 +33,22 @@ function ThemedApp() {
 }
 
 export default function App() {
+  // Garantir que publishableKey não seja undefined/vazio para não quebrar o provider
+  const stripeKey = STRIPE_PUBLISHABLE_KEY || 'pk_test_dummy';
+
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <LocationProvider>
-            <CartProvider>
-              <ThemedApp />
-            </CartProvider>
-          </LocationProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <StripeProvider publishableKey={stripeKey}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <LocationProvider>
+              <CartProvider>
+                <ThemedApp />
+              </CartProvider>
+            </LocationProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </StripeProvider>
   );
 }

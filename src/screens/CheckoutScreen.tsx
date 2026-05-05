@@ -26,6 +26,14 @@ import { StoreService } from '../services/StoreService';
 import { NotificationService } from '../services/NotificationService';
 import { SalesAutomationService } from '../services/SalesAutomationService';
 import { loggingService } from '../services/LoggingService';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getApp, getDb } from '../config/firebase';
+import { useStripe } from '@stripe/stripe-react-native';
+
+import { ENV } from '../config/env';
+
+// Usa variável de ambiente explícita em vez de apenas __DEV__
+const ENABLE_STRIPE = ENV.EXPO_PUBLIC_ENABLE_STRIPE_PAYMENTS === 'true';
 
 type CheckoutScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Checkout'>;
 type CheckoutScreenRouteProp = RouteProp<RootStackParamList, 'Checkout'>;
@@ -39,6 +47,7 @@ export default function CheckoutScreen() {
   const orderService = OrderService.getInstance();
   const paymentService = PaymentService.getInstance();
   const storeService = new StoreService();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const [address, setAddress] = useState({
     street: '',
@@ -57,6 +66,7 @@ export default function CheckoutScreen() {
   const [expirationDate, setExpirationDate] = useState('');
   const [cvv, setCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [waitingWebhook, setWaitingWebhook] = useState(false);
 
   // Obter dados do agendamento da navegação
   const scheduledDelivery = route.params?.scheduledDelivery;
@@ -268,18 +278,106 @@ export default function CheckoutScreen() {
       try {
         // 3. Processar Pagamento
         if (paymentMethod === 'creditCard') {
-          const [expMonth, expYear] = expirationDate.split('/');
-          const cardDetails = {
-            number: cardNumber.replace(/\s/g, ''),
-            expMonth: Number(expMonth),
-            expYear: Number(`20${expYear}`),
-            cvc: cvv,
-            holderName: cardholderName,
-          };
+          if (ENABLE_STRIPE) {
+            console.log('🚀 [Fase 2.2] ENABLE_STRIPE ativado, chamando backend (createPaymentIntent)...');
+            try {
+              getApp(); // Garante que o Firebase está inicializado
+              const functions = getFunctions();
+              const createPaymentIntent = httpsCallable(functions, 'createPaymentIntent');
+              
+              const response = await createPaymentIntent({
+                amount: Math.round(cartTotal * 100), // Enviar em centavos
+                currency: 'brl',
+                orderId: newOrder.id,
+              });
 
-          const paymentResult = await paymentService.processCreditCardPayment(newOrder.id, cardDetails);
-          if (!paymentResult) {
-            throw new Error('Pagamento recusado');
+              const data = response.data as { clientSecret: string; ephemeralKey?: string; customer?: string };
+              console.log('✅ [Fase 2.2] Resposta do backend:', data);
+              console.log('🔑 [Fase 2.2] ClientSecret recebido:', data.clientSecret);
+
+              // 3. Configurar e inicializar o PaymentSheet
+              const { error: initError } = await initPaymentSheet({
+                merchantDisplayName: 'Açucaradas Encomendas',
+                customerId: data.customer,
+                customerEphemeralKeySecret: data.ephemeralKey,
+                paymentIntentClientSecret: data.clientSecret,
+                allowsDelayedPaymentMethods: true,
+                defaultBillingDetails: {
+                  name: user?.displayName || cardholderName || 'Cliente',
+                }
+              });
+
+              if (initError) {
+                console.error('❌ [Fase 2.2] Erro no initPaymentSheet:', initError);
+                throw new Error(initError.message || 'Erro ao inicializar pagamento');
+              }
+
+              // 4. Apresentar a gaveta de pagamento
+              const { error: presentError } = await presentPaymentSheet();
+
+              if (presentError) {
+                console.error('❌ [Fase 2.2] Erro no presentPaymentSheet:', presentError);
+                throw new Error(presentError.message || 'Pagamento cancelado ou falhou');
+              }
+
+              console.log('✅ [Fase 2.2] Pagamento via PaymentSheet aprovado! Aguardando webhook...');
+              setWaitingWebhook(true);
+
+              // 5. Aguardar webhook atualizar o status no Firestore
+              const isPaid = await new Promise<boolean>((resolve) => {
+                const { doc, onSnapshot } = require('firebase/firestore');
+                
+                const timeoutId = setTimeout(() => {
+                  unsubscribe();
+                  resolve(false); // Timeout após 15s, segue fluxo mas com alerta de demora
+                }, 15000);
+
+                const unsubscribe = onSnapshot(doc(getDb(), 'orders', newOrder.id), (snapshot: any) => {
+                  const currentOrderData = snapshot.data();
+                  if (currentOrderData?.status === 'paid' || currentOrderData?.paymentStatus === 'completed') {
+                    clearTimeout(timeoutId);
+                    unsubscribe();
+                    resolve(true);
+                  } else if (currentOrderData?.status === 'payment_failed') {
+                    clearTimeout(timeoutId);
+                    unsubscribe();
+                    throw new Error(currentOrderData?.paymentError || 'Pagamento falhou no servidor');
+                  }
+                });
+              });
+
+              if (!isPaid) {
+                console.warn('⚠️ Webhook demorou para responder. O pagamento pode estar em processamento.');
+                // Lança um erro específico para não confirmar o sucesso e não limpar o carrinho ainda
+                throw new Error('TIMEOUT_PENDING');
+              }
+              setWaitingWebhook(false);
+              
+              // Recupera o pedido atualizado do banco para avançar
+              const updatedOrderFromDb = await orderService.getOrderById(newOrder.id);
+              if (updatedOrderFromDb) {
+                orderForSuccess = updatedOrderFromDb;
+              }
+            } catch (stripeErr: any) {
+              setWaitingWebhook(false);
+              console.error('❌ [Fase 2.2] Erro no fluxo Stripe:', stripeErr);
+              throw stripeErr;
+            }
+          } else {
+            // Fluxo antigo de fallback
+            const [expMonth, expYear] = expirationDate.split('/');
+            const cardDetails = {
+              number: cardNumber.replace(/\s/g, ''),
+              expMonth: Number(expMonth),
+              expYear: Number(`20${expYear}`),
+              cvc: cvv,
+              holderName: cardholderName,
+            };
+
+            const paymentResult = await paymentService.processCreditCardPayment(newOrder.id, cardDetails);
+            if (!paymentResult) {
+              throw new Error('Pagamento recusado');
+            }
           }
 
           const updatedOrder = await orderService.getOrderById(newOrder.id);
@@ -313,6 +411,19 @@ export default function CheckoutScreen() {
 
         navigation.navigate('OrderCompleted', { order: orderForSuccess });
       } catch (paymentError: any) {
+        setWaitingWebhook(false);
+
+        // Se foi apenas um timeout do webhook, não cancelamos o pedido nem limpamos o carrinho.
+        // O webhook continuará processando no backend.
+        if (paymentError.message === 'TIMEOUT_PENDING') {
+          Alert.alert(
+            'Pagamento em Processamento',
+            'Seu pagamento está sendo processado pelo banco. Verifique o status do pedido em "Meus Pedidos" em alguns instantes.'
+          );
+          navigation.navigate('MainTabs', { screen: 'Orders' } as any);
+          return;
+        }
+
         // 5. Rollback: Cancelar pedido se o pagamento falhar
         console.error('Falha no pagamento:', paymentError);
         
@@ -371,6 +482,7 @@ export default function CheckoutScreen() {
       Alert.alert('Erro', error.message || 'Não foi possível finalizar o pedido. Tente novamente.');
     } finally {
       setIsProcessing(false);
+      setWaitingWebhook(false);
     }
   };
 
@@ -680,11 +792,11 @@ export default function CheckoutScreen() {
         contentStyle={styles.finishButtonContent}
         labelStyle={styles.finishButtonLabel}
         onPress={handlePlaceOrder}
-        loading={isProcessing}
-        disabled={isProcessing}
-        icon={isProcessing ? undefined : 'check'}
+        loading={isProcessing || waitingWebhook}
+        disabled={isProcessing || waitingWebhook}
+        icon={(isProcessing || waitingWebhook) ? undefined : 'check'}
       >
-        {isProcessing ? 'Processando...' : 'Finalizar Pedido'}
+        {waitingWebhook ? 'Aguardando confirmação...' : isProcessing ? 'Processando...' : 'Finalizar Pedido'}
       </Button>
 
       <View style={styles.bottomSpace} />
