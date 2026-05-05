@@ -279,31 +279,62 @@ export default function CheckoutScreen() {
         // 3. Processar Pagamento
         if (paymentMethod === 'creditCard') {
           if (ENABLE_STRIPE) {
-            console.log('🚀 [Fase 2.2] ENABLE_STRIPE ativado, chamando backend (createPaymentIntent)...');
+            console.log('🚀 [Fase 2.2] ENABLE_STRIPE ativado, preparando chamada ao backend (createPaymentIntent)...');
             try {
+              // --- VALIDAÇÕES CRÍTICAS ---
+              const amountInCents = Math.round(cartTotal * 100);
+              const finalOrderId = newOrder.id;
+              
+              if (!finalOrderId) throw new Error("ID do pedido (orderId) está indefinido ou nulo");
+              if (!amountInCents || amountInCents <= 0) throw new Error("Valor do pedido (amount) inválido");
+              
+              const safeUser = user || {};
+              const userIdForLog = (safeUser as any)?.uid || (safeUser as any)?.id || 'anonimo';
+              const userNameForLog = (safeUser as any)?.displayName || cardholderName || 'Cliente';
+
+              console.log('📦 [Fase 2.2] Payload de entrada para createPaymentIntent:', {
+                amount: amountInCents,
+                orderId: finalOrderId,
+                userId: userIdForLog,
+                userName: userNameForLog
+              });
+
               getApp(); // Garante que o Firebase está inicializado
               const functions = getFunctions();
               const createPaymentIntent = httpsCallable(functions, 'createPaymentIntent');
               
               const response = await createPaymentIntent({
-                amount: Math.round(cartTotal * 100), // Enviar em centavos
+                amount: amountInCents,
                 currency: 'brl',
-                orderId: newOrder.id,
+                orderId: finalOrderId,
               });
 
-              const data = response.data as { clientSecret: string; ephemeralKey?: string; customer?: string };
-              console.log('✅ [Fase 2.2] Resposta do backend:', data);
-              console.log('🔑 [Fase 2.2] ClientSecret recebido:', data.clientSecret);
+              // Garantir que a resposta não é undefined
+              if (!response || !response.data) {
+                throw new Error("Resposta do backend (createPaymentIntent) veio vazia ou indefinida");
+              }
 
+              const data = response.data as { clientSecret: string; ephemeralKey?: string; customer?: string };
+              console.log('✅ [Fase 2.2] Resposta do backend (PaymentIntent):', {
+                hasClientSecret: !!data.clientSecret,
+                hasEphemeralKey: !!data.ephemeralKey,
+                customerId: data.customer || 'undefined'
+              });
+
+              if (!data.clientSecret) {
+                throw new Error("clientSecret não retornado pelo backend");
+              }
+
+              console.log('⚙️ [Fase 2.2] Inicializando PaymentSheet...');
               // 3. Configurar e inicializar o PaymentSheet
               const { error: initError } = await initPaymentSheet({
                 merchantDisplayName: 'Açucaradas Encomendas',
-                customerId: data.customer,
-                customerEphemeralKeySecret: data.ephemeralKey,
+                customerId: data.customer || undefined,
+                customerEphemeralKeySecret: data.ephemeralKey || undefined,
                 paymentIntentClientSecret: data.clientSecret,
                 allowsDelayedPaymentMethods: true,
                 defaultBillingDetails: {
-                  name: user?.displayName || cardholderName || 'Cliente',
+                  name: userNameForLog,
                 }
               });
 
