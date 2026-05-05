@@ -326,17 +326,31 @@ export default function CheckoutScreen() {
               }
 
               console.log('⚙️ [Fase 2.2] Inicializando PaymentSheet...');
-              // 3. Configurar e inicializar o PaymentSheet
-              const { error: initError } = await initPaymentSheet({
+              
+              // --- MONTAGEM DINÂMICA (ANTI-CRASH) ---
+              // O SDK do Stripe no React Native sofre crash ("Cannot convert undefined value to object")
+              // se enviarmos propriedades com valor undefined. Devemos anexar apenas o que existe.
+              const initParams: any = {
                 merchantDisplayName: 'Açucaradas Encomendas',
-                customerId: data.customer || undefined,
-                customerEphemeralKeySecret: data.ephemeralKey || undefined,
                 paymentIntentClientSecret: data.clientSecret,
                 allowsDelayedPaymentMethods: true,
                 defaultBillingDetails: {
-                  name: userNameForLog,
+                  name: userNameForLog || 'Cliente',
                 }
-              });
+              };
+
+              if (data.customer) {
+                initParams.customerId = data.customer;
+              }
+
+              if (data.ephemeralKey) {
+                initParams.customerEphemeralKeySecret = data.ephemeralKey;
+              }
+
+              console.log('🧩 [Fase 2.2] Parâmetros do initPaymentSheet (chaves limpas):', Object.keys(initParams));
+
+              // 3. Configurar e inicializar o PaymentSheet
+              const { error: initError } = await initPaymentSheet(initParams);
 
               if (initError) {
                 console.error('❌ [Fase 2.2] Erro no initPaymentSheet:', initError);
