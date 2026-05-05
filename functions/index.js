@@ -517,14 +517,110 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
             break;
           }
 
-          console.log(`✅ [Stripe Webhook] Pagamento confirmado para o pedido ${orderId}`);
-          transaction.update(orderRef, {
+          console.log(`✅ [Stripe Webhook] Pagamento confirmado para o pedido ${orderId}. Iniciando Split de Pagamento...`);
+          
+          let payoutStatus = 'pending';
+          const updates = {
             status: 'paid',
             paymentStatus: 'completed',
             paymentIntentId: paymentIntent.id,
             paidAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
+          };
+
+          // 1. Extração de Valores e Identificadores do Pedido
+          const { producerId, deliveryDriverId, courierId, subtotalProducts, deliveryFee, totalAmount } = orderData;
+          const targetCourierId = deliveryDriverId || courierId; // Aceita ambas as nomenclaturas
+
+          // 2. Validações para executar o Split (Apenas se houver valores válidos)
+          if (producerId && subtotalProducts > 0) {
+            try {
+              // Buscar Conta Conectada do Produtor
+              const producerDoc = await transaction.get(db.collection('users').doc(producerId));
+              const producerStripeAccountId = producerDoc.data()?.stripeAccountId;
+
+              // Buscar Conta Conectada do Entregador (Se houver entregador definido na hora da compra)
+              let courierStripeAccountId = null;
+              if (targetCourierId) {
+                const courierDoc = await transaction.get(db.collection('users').doc(targetCourierId));
+                courierStripeAccountId = courierDoc.data()?.stripeAccountId;
+              }
+
+              // Validação de Integridade do Connect
+              if (!producerStripeAccountId) {
+                payoutStatus = 'missing_connected_account';
+                console.warn(`⚠️ [Split] Produtor ${producerId} não possui stripeAccountId. Repasse manual necessário.`);
+              } else if (targetCourierId && !courierStripeAccountId && deliveryFee > 0) {
+                payoutStatus = 'missing_connected_account';
+                console.warn(`⚠️ [Split] Entregador ${targetCourierId} não possui stripeAccountId. Repasse manual necessário.`);
+              } else {
+                // Executar Transferências
+                const netSubtotal = subtotalProducts; // O subtotal não inclui a taxa de entrega
+                const producerPayoutAmount = Math.floor(netSubtotal * 0.90 * 100); // 90% em centavos
+                const courierPayoutAmount = Math.floor((deliveryFee || 0) * 100);  // 100% em centavos
+                const platformFeeAmount = Math.floor(netSubtotal * 0.10 * 100);    // 10% retido
+
+                const transfersToExecute = [];
+
+                // Repasse do Produtor
+                transfersToExecute.push(
+                  stripe.transfers.create({
+                    amount: producerPayoutAmount,
+                    currency: 'brl',
+                    destination: producerStripeAccountId,
+                    transfer_group: orderId,
+                    metadata: { role: 'producer', orderId }
+                  }, {
+                    idempotencyKey: `payout_producer_${orderId}`
+                  })
+                );
+
+                // Repasse do Entregador
+                if (courierStripeAccountId && courierPayoutAmount > 0) {
+                  transfersToExecute.push(
+                    stripe.transfers.create({
+                      amount: courierPayoutAmount,
+                      currency: 'brl',
+                      destination: courierStripeAccountId,
+                      transfer_group: orderId,
+                      metadata: { role: 'courier', orderId }
+                    }, {
+                      idempotencyKey: `payout_courier_${orderId}`
+                    })
+                  );
+                }
+
+                // Dispara os transfers assincronamente mas os aguarda
+                const transferResults = await Promise.all(transfersToExecute);
+                payoutStatus = 'paid';
+
+                // Registrar rastreabilidade na order
+                updates.platformFeeAmount = platformFeeAmount / 100;
+                updates.producerPayoutAmount = producerPayoutAmount / 100;
+                updates.producerTransferId = transferResults[0].id;
+                
+                if (courierStripeAccountId && courierPayoutAmount > 0) {
+                  updates.courierPayoutAmount = courierPayoutAmount / 100;
+                  updates.courierTransferId = transferResults[1].id;
+                }
+
+                console.log(`✅ [Split] Divisão efetuada! Plataforma: ${updates.platformFeeAmount} | Produtor: ${updates.producerPayoutAmount}`);
+              }
+            } catch (splitError) {
+              console.error(`❌ [Split] Erro crítico ao repassar fundos para o pedido ${orderId}:`, splitError);
+              payoutStatus = 'failed';
+              updates.payoutError = splitError.message;
+            }
+          } else {
+             // Caso seja um pedido legado sem os campos novos
+             payoutStatus = 'pending';
+             console.info(`ℹ️ [Split] Pedido legado ${orderId} sem estrutura de split (subtotalProducts/producerId). Repasse manual.`);
+          }
+
+          updates.payoutStatus = payoutStatus;
+          updates.payoutProcessedAt = admin.firestore.FieldValue.serverTimestamp();
+
+          transaction.update(orderRef, updates);
           break;
 
         case 'payment_intent.payment_failed':

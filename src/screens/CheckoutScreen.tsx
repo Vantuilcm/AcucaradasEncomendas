@@ -245,9 +245,14 @@ export default function CheckoutScreen() {
       }
 
       // 2. Criar pedido (Status Inicial: pending)
+      const subtotalProducts = cart.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+      const deliveryFee = 10;
+      
       const newOrder = await orderService.createOrder({
         userId,
         items: orderItems,
+        subtotalProducts: subtotalProducts, // CAMPO NOVO PARA O MARKETPLACE
+        deliveryFee: deliveryFee,           // CAMPO NOVO PARA O MARKETPLACE
         totalAmount: cartTotal,
         status: 'pending',
         paymentMethod: {
@@ -265,12 +270,12 @@ export default function CheckoutScreen() {
           zipCode: address.zipCode,
           reference: address.reference || undefined,
         },
-        deliveryFee: 10,
         scheduledDelivery,
         isScheduledOrder: !!scheduledDelivery,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         producerId: cart.items[0]?.producerId || '',
+        // deliveryDriverId será preenchido posteriormente pelo sistema de logística
       } as any);
 
       let orderForSuccess = newOrder;
