@@ -76,13 +76,12 @@ export default function ScheduleDeliveryScreen() {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [preparationTimeType, setPreparationTimeType] = useState<
-    'normal' | 'extended' | 'custom'
-  >('normal');
-  const [customPreparationHours, setCustomPreparationHours] = useState('2');
   const [deliveryType, setDeliveryType] = useState<'scheduled' | 'custom'>('scheduled');
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
+
+  // Tempo de preparo padrão (poderá vir do produto/loja no futuro)
+  const PREPARATION_HOURS = 2;
 
   // Dados para o componente de calendário
   const today = new Date();
@@ -153,8 +152,8 @@ export default function ScheduleDeliveryScreen() {
       const currentHour = today.getHours();
       return timeSlots.filter(slot => {
         const slotHour = parseInt(slot.value.split(':')[0]);
-        // Adicionar 2 horas de buffer para preparação mínima
-        return slotHour > currentHour + 2;
+        // Adicionar o buffer de preparação mínima
+        return slotHour >= currentHour + PREPARATION_HOURS;
       });
     }
     return timeSlots;
@@ -186,20 +185,31 @@ export default function ScheduleDeliveryScreen() {
       return;
     }
 
-    const preparationHours =
-      preparationTimeType === 'normal'
-        ? 2
-        : preparationTimeType === 'extended'
-          ? 4
-          : parseInt(customPreparationHours);
+    if (selectedDate === minDate && deliveryType === 'custom') {
+      const currentHour = today.getHours();
+      const currentMinute = today.getMinutes();
+      const selectedHour = selectedTime.getHours();
+      const selectedMinute = selectedTime.getMinutes();
+      
+      const currentTimeInMinutes = currentHour * 60 + currentMinute;
+      const selectedTimeInMinutes = selectedHour * 60 + selectedMinute;
+      const minTimeInMinutes = currentTimeInMinutes + (PREPARATION_HOURS * 60);
+
+      if (selectedTimeInMinutes < minTimeInMinutes) {
+        Alert.alert(
+          'Horário inválido', 
+          `O tempo mínimo de preparo é de ${PREPARATION_HOURS} horas. Por favor, escolha um horário posterior.`
+        );
+        return;
+      }
+    }
 
     const scheduledDelivery: DeliverySchedule = {
       type: deliveryType,
       date: selectedDate,
       timeSlot: selectedTimeSlot,
       customTime: selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      preparationTimeType,
-      preparationHours,
+      preparationHours: PREPARATION_HOURS,
       specialInstructions,
     };
 
@@ -336,59 +346,15 @@ export default function ScheduleDeliveryScreen() {
       <Card style={styles.preparationCard}>
         <Card.Content>
           <Text style={styles.sectionTitle}>Tempo de Preparo</Text>
-          <Text style={styles.sectionDescription}>
-            Informe quanto tempo precisamos para preparar sua encomenda
-          </Text>
-
-          <RadioButton.Group
-            onValueChange={value =>
-              setPreparationTimeType(value as 'normal' | 'extended' | 'custom')
-            }
-            value={preparationTimeType}
-          >
-            <View style={styles.radioOption}>
-              <RadioButton.Android value="normal" color="#FF69B4" />
-              <View style={styles.radioLabel}>
-                <Text style={styles.radioTitle}>Preparo Normal</Text>
-                <Text style={styles.radioDescription}>2-3 horas de preparo (padrão)</Text>
-              </View>
+          <View style={styles.infoContainer}>
+            <Ionicons name="time-outline" size={24} color="#FF69B4" style={styles.infoIcon} />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoTitle}>Preparo Padrão</Text>
+              <Text style={styles.infoDescription}>
+                Tempo estimado: {PREPARATION_HOURS} horas. Os horários disponíveis já consideram este tempo.
+              </Text>
             </View>
-
-            <View style={styles.radioOption}>
-              <RadioButton.Android value="extended" color="#FF69B4" />
-              <View style={styles.radioLabel}>
-                <Text style={styles.radioTitle}>Preparo Estendido</Text>
-                <Text style={styles.radioDescription}>4-5 horas para produtos mais elaborados</Text>
-              </View>
-            </View>
-
-            <View style={styles.radioOption}>
-              <RadioButton.Android value="custom" color="#FF69B4" />
-              <View style={styles.radioLabel}>
-                <Text style={styles.radioTitle}>Preparo Personalizado</Text>
-                <Text style={styles.radioDescription}>Especifique o tempo necessário</Text>
-              </View>
-            </View>
-          </RadioButton.Group>
-
-          {preparationTimeType === 'custom' && (
-            <View style={styles.customHoursContainer}>
-              <TextInput
-                style={styles.customHoursInput}
-                keyboardType="numeric"
-                value={customPreparationHours}
-                onChangeText={text => {
-                  // Aceitar apenas números entre 1 e 24
-                  const hours = parseInt(text.replace(/[^0-9]/g, ''));
-                  if (!isNaN(hours) && hours >= 1 && hours <= 24) {
-                    setCustomPreparationHours(hours.toString());
-                  }
-                }}
-                maxLength={2}
-              />
-              <Text style={styles.customHoursLabel}>horas</Text>
-            </View>
-          )}
+          </View>
         </Card.Content>
       </Card>
 
@@ -578,40 +544,29 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  radioOption: {
+  infoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  radioLabel: {
-    marginLeft: 8,
-  },
-  radioTitle: {
-    fontSize: 16,
-    color: '#333',
-  },
-  radioDescription: {
-    fontSize: 12,
-    color: '#888',
-  },
-  customHoursContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    marginLeft: 40,
-  },
-  customHoursInput: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#FFF0F5',
+    padding: 12,
     borderRadius: 8,
-    padding: 8,
-    width: 80,
-    textAlign: 'center',
-    fontSize: 16,
+    marginTop: 8,
   },
-  customHoursLabel: {
-    marginLeft: 8,
+  infoIcon: {
+    marginRight: 12,
+  },
+  infoTextContainer: {
+    flex: 1,
+  },
+  infoTitle: {
     fontSize: 16,
+    fontWeight: 'bold',
     color: '#333',
+    marginBottom: 4,
+  },
+  infoDescription: {
+    fontSize: 14,
+    color: '#666',
   },
   instructionsInput: {
     backgroundColor: '#F0F0F0',

@@ -23,7 +23,6 @@ export interface DeliverySchedule {
   date: string;
   timeSlot?: string; // Formato: "09:00 - 11:00"
   customTime?: string; // Formato: "14:30"
-  preparationTimeType: 'normal' | 'extended' | 'custom';
   preparationHours: number;
   specialInstructions?: string;
 }

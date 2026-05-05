@@ -227,19 +227,6 @@ export function ScheduledOrdersScreen() {
   const generateDailyReportHTML = () => {
     const formattedDate = formatDate(selectedDate);
 
-    // Agrupando por tipo de preparação
-    const normalPrep = filteredOrders.filter(
-      o => o.scheduledDelivery?.preparationTimeType === 'normal'
-    );
-
-    const extendedPrep = filteredOrders.filter(
-      o => o.scheduledDelivery?.preparationTimeType === 'extended'
-    );
-
-    const customPrep = filteredOrders.filter(
-      o => o.scheduledDelivery?.preparationTimeType === 'custom'
-    );
-
     // Gerar tabelas para cada tipo
     const generateOrdersTable = (orders: Order[]) => {
       return orders
@@ -355,9 +342,6 @@ export function ScheduledOrdersScreen() {
           <div class="section">
             <h2>Resumo de Produção</h2>
             <div class="summary">Total de Pedidos: ${filteredOrders.length}</div>
-            <div class="summary">Preparo Normal: ${normalPrep.length} pedidos</div>
-            <div class="summary">Preparo Estendido: ${extendedPrep.length} pedidos</div>
-            <div class="summary">Preparo Personalizado: ${customPrep.length} pedidos</div>
           </div>
           
           <div class="section">
@@ -376,7 +360,7 @@ export function ScheduledOrdersScreen() {
           </div>
           
           <div class="section">
-            <h2>Pedidos com Preparo Normal (2-3 horas)</h2>
+            <h2>Todos os Pedidos Agendados</h2>
             <table>
               <thead>
                 <tr>
@@ -388,43 +372,7 @@ export function ScheduledOrdersScreen() {
                 </tr>
               </thead>
               <tbody>
-                ${generateOrdersTable(normalPrep)}
-              </tbody>
-            </table>
-          </div>
-          
-          <div class="section">
-            <h2>Pedidos com Preparo Estendido (4-5 horas)</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Pedido</th>
-                  <th>Horário</th>
-                  <th>Itens</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${generateOrdersTable(extendedPrep)}
-              </tbody>
-            </table>
-          </div>
-          
-          <div class="section">
-            <h2>Pedidos com Preparo Personalizado</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Pedido</th>
-                  <th>Horário</th>
-                  <th>Itens</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${generateOrdersTable(customPrep)}
+                ${generateOrdersTable(filteredOrders)}
               </tbody>
             </table>
           </div>
@@ -607,12 +555,7 @@ export function ScheduledOrdersScreen() {
                       <View style={styles.prepTime}>
                         <Ionicons name="hourglass-outline" size={18} color="#FF69B4" />
                         <Text style={styles.prepTimeText}>
-                          Preparo:{' '}
-                          {order.scheduledDelivery?.preparationTimeType === 'normal'
-                            ? 'Normal (2-3h)'
-                            : order.scheduledDelivery?.preparationTimeType === 'extended'
-                              ? 'Estendido (4-5h)'
-                              : `Personalizado (${order.scheduledDelivery?.preparationHours || 0}h)`}
+                          Preparo: {order.scheduledDelivery?.preparationHours || 2}h
                         </Text>
                       </View>
 
