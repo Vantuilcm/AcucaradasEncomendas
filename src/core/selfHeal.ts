@@ -102,26 +102,8 @@ export async function handleSelfHeal(type: SelfHealErrorType, error: any): Promi
  */
 async function healFirebase(): Promise<boolean> {
   try {
-    const { getApps, initializeApp, deleteApp } = getFirebaseApp();
-    const apps = getApps();
-    for (const app of apps) {
-      try {
-        await deleteApp(app);
-      } catch (e) {
-        logError('FIREBASE_RECOVERY', 'Erro ao deletar app', e);
-      }
-    }
-    
-    const firebaseConfig = {
-      apiKey: ENV.EXPO_PUBLIC_FIREBASE_API_KEY,
-      authDomain: ENV.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: ENV.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: ENV.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: ENV.EXPO_PUBLIC_FIREBASE_APP_ID,
-    };
-    
-    initializeApp(firebaseConfig);
+    const { getApp } = require('../config/firebase');
+    getApp(); // getApp já gerencia o Singleton de forma segura
     return true;
   } catch (e) {
     return false;

@@ -76,8 +76,8 @@ class BuildNumberEnforcer {
     const historyLatest = this.getHistoryLatest();
 
     // Lógica: Maior de todos + 1 (Fonte de verdade absoluta)
-    // Adicionado floor de 1218 para garantir que o proximo seja 1219 para validacao da correcao SVG
-    const baseline = Math.max(currentLocal, appleLatest, historyLatest, 1218);
+    // Adicionado floor de 1221 para garantir que o proximo seja 1222 para validacao da correcao do firebase
+    const baseline = Math.max(currentLocal, appleLatest, historyLatest, 1221);
     const finalBN = baseline + 1;
 
     console.log(`📊 [Metrics] Local: ${currentLocal} | Apple: ${appleLatest} | History: ${historyLatest}`);
