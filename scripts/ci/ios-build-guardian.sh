@@ -241,19 +241,44 @@ echo "🚀 [ETAPA 7] Iniciando Build iOS LOCAL (Build ${EXPECTED_BN})..."
 export EXPO_DEBUG=1
 mkdir -p build-logs
 
-# Usar EXPO_DEBUG=1 para mais detalhes e --credentials-file para evitar prompts
-if ! eas build --platform ios --local --non-interactive --profile production_v13 > build-logs/local-build.log 2>&1; then
-    echo "❌ [ETAPA 8] Build falhou. Analisando logs..."
-    echo "--- ÚLTIMAS 100 LINHAS DO LOG DE BUILD ---"
-    tail -n 100 build-logs/local-build.log || cat build-logs/local-build.log
-    echo "------------------------------------------"
-    if grep -q "xcodebuild failed" build-logs/local-build.log; then
-        echo "🔄 Tentando correção automática e retry..."
-        rm -rf ios/build
-        eas build --platform ios --local --non-interactive --profile production_v13
-    else
-        exit 1
+run_eas_build_with_retry() {
+  local max_attempts=3
+  local attempt=1
+
+  echo "🔍 Testando DNS Expo..."
+  nslookup api.expo.dev || true
+
+  echo "🔍 Testando HTTPS Expo..."
+  curl -I https://api.expo.dev || true
+
+  until [ $attempt -gt $max_attempts ]; do
+    echo "🚀 Tentativa $attempt/$max_attempts: eas build iOS local"
+
+    if eas build --platform ios --local --non-interactive --profile production_v13 > build-logs/local-build.log 2>&1; then
+      echo "✅ EAS build concluído com sucesso"
+      return 0
     fi
+
+    echo "⚠️ EAS build falhou na tentativa $attempt"
+    echo "--- ÚLTIMAS 50 LINHAS DO LOG DE BUILD ---"
+    tail -n 50 build-logs/local-build.log || true
+    echo "------------------------------------------"
+
+    if [ $attempt -lt $max_attempts ]; then
+      echo "⏳ Aguardando $((attempt * 30)) segundos antes de tentar novamente..."
+      sleep $((attempt * 30))
+    fi
+
+    attempt=$((attempt + 1))
+  done
+
+  echo "❌ EAS build falhou após $max_attempts tentativas"
+  return 1
+}
+
+if ! run_eas_build_with_retry; then
+    echo "❌ [ETAPA 8] Build falhou permanentemente."
+    exit 1
 fi
 
 # 🧩 ETAPA 9 — VALIDAÇÃO FINAL
