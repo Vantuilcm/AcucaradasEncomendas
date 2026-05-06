@@ -94,6 +94,24 @@ jobs:
       - name: 🏗️ Checkout Repository
         uses: actions/checkout@v4
 
+      - name: 🔍 Diagnose macOS/Xcode
+        run: |
+          echo "=== System Info ==="
+          sw_vers
+          echo "=== Available Xcode Versions ==="
+          ls /Applications | grep Xcode || true
+          echo "=== Current Xcode Selection ==="
+          xcode-select -p
+          echo "=== Current Xcode Version ==="
+          xcodebuild -version
+          echo "=== Available SDKs ==="
+          xcodebuild -showsdks
+
+      - name: 🛠️ Setup Stable Xcode (16.1+)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.1'
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -102,9 +120,13 @@ jobs:
 
       - name: 🛠️ Hardening macOS Runner Environment
         run: |
-          # 1. Fix Xcode path
-          sudo xcode-select -s /Applications/Xcode.app
+          # 1. Fix Xcode path is already handled by setup-xcode action
           
+          echo "=== Final Xcode Selection ==="
+          xcode-select -p
+          xcodebuild -version
+          xcodebuild -showsdks
+
           # 2. Fix Ruby/CocoaPods environment (LibYAML issue)
           # Silencing brew warnings
           brew install libyaml || brew link --overwrite libyaml
