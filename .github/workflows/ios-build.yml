@@ -29,7 +29,7 @@ on:
 jobs:
   ios-hybrid-pipeline:
     name: Hybrid Pipeline
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 60
     
     env:
@@ -115,8 +115,9 @@ jobs:
           # 4. Global EAS CLI (Ensuring fresh version)
           npm install -g eas-cli@latest
           
-          # 5. Fastlane (Optional but good for iOS)
-          gem install fastlane -NV
+          # 5. Fastlane and CocoaPods
+          brew install cocoapods || true
+          gem install fastlane cocoapods -NV || true
           
           # 6. Set CI environment variables
           echo "CI=true" >> $GITHUB_ENV

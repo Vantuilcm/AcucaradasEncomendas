@@ -11,13 +11,19 @@ on:
 jobs:
   validate-and-build:
     name: RellBuild Validation & Build
-    runs-on: macos-latest
+    runs-on: macos-15
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+
+      - name: Force Correct Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+          xcodebuild -showsdks
 
       - name: ⚙️ Setup Node.js (LTS)
         uses: actions/setup-node@v4

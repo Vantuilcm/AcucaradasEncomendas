@@ -13,7 +13,7 @@ concurrency:
 jobs:
   ios-local-rescue:
     name: iOS Local Build
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 120
 
     env:
@@ -48,22 +48,22 @@ jobs:
       - name: List Installed Xcode Versions
         run: ls /Applications | grep Xcode || true
 
-      - name: Auto Select Latest Xcode
+      - name: Force Correct Xcode
         run: |
-          LATEST=$(ls -1d /Applications/Xcode*.app | sort -V | tail -n 1)
-          echo "Using $LATEST"
-          sudo xcode-select -s "$LATEST"
-
-      - name: Show Xcode Version
-        run: xcodebuild -version
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+          xcodebuild -showsdks
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Install EAS CLI
-        run: npm install -g eas-cli@latest
+      - name: Install Latest Build Tools
+        run: |
+          npm install -g eas-cli@latest
+          brew install fastlane cocoapods || true
+          gem install fastlane cocoapods || true
 
       - name: Install Dependencies
         run: npm install --no-audit --no-fund

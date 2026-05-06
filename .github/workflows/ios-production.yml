@@ -20,7 +20,7 @@ on:
 jobs:
   ios-local-pipeline:
     name: 🍎 iOS Local Build & Submit
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 100
     
     env:
@@ -51,14 +51,23 @@ jobs:
       - name: 📦 Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Force Correct Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+          xcodebuild -showsdks
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: 🛠️ Install Global EAS CLI
-        run: npm install -g eas-cli@latest
+      - name: 🛠️ Install Global EAS CLI & Tools
+        run: |
+          npm install -g eas-cli@latest
+          brew install fastlane cocoapods || true
+          gem install fastlane cocoapods || true
 
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
