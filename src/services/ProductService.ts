@@ -3,6 +3,16 @@ const f = dbFunctions;
 import { Product, ProductFilter, ProductStats } from '../types/Product';
 import { loggingService } from './LoggingService';
 
+/**
+ * Função utilitária para remover propriedades undefined de um objeto
+ * Firestore rejeita valores undefined
+ */
+const cleanUndefinedFields = (obj: any) => {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, value]) => value !== undefined)
+  );
+};
+
 export class ProductService {
   private static instance: ProductService;
   private readonly collectionName = 'products';
@@ -67,8 +77,9 @@ export class ProductService {
         tagsEspeciais: dados.tagsEspeciais || [],
       };
 
-      // Salvar no Firestore
-      await f.setDoc(docRef, novoProduto as any);
+      // Salvar no Firestore com sanitização de undefined
+      const payloadSanitizado = cleanUndefinedFields(novoProduto);
+      await f.setDoc(docRef, payloadSanitizado as any);
       loggingService.info('Produto criado com sucesso', { id: novoProduto.id });
 
       return novoProduto;
@@ -173,7 +184,9 @@ export class ProductService {
         ...dados,
         dataAtualizacao: new Date(),
       };
-      await f.updateDoc(docRef, updateData as any);
+      
+      const payloadSanitizado = cleanUndefinedFields(updateData);
+      await f.updateDoc(docRef, payloadSanitizado as any);
       loggingService.info('Produto atualizado com sucesso', { id });
       
       return await this.consultarProduto(id);
