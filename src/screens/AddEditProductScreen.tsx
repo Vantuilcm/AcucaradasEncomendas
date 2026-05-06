@@ -374,11 +374,13 @@ export function AddEditProductScreen() {
             <Text style={styles.sectionTitle}>Detalhes Específicos</Text>
             
             {listingType === 'product' && (
-              <View style={styles.dynamicRow}>
-                <TextInput label="Estoque" value={productData.stock} onChangeText={t => setProductData({ ...productData, stock: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
-                <View style={styles.spacer} />
-                <TextInput label="Peso (g)" value={dynamicFields.peso} onChangeText={t => setDynamicFields({ ...dynamicFields, peso: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
-                <TextInput label="Validade" value={dynamicFields.validade} onChangeText={t => setDynamicFields({ ...dynamicFields, validade: t })} placeholder="Ex: 5 dias" style={[styles.input, {marginTop: 8}]} mode="outlined" />
+              <View>
+                <View style={styles.dynamicRow}>
+                  <TextInput label="Estoque" value={productData.stock} onChangeText={t => setProductData({ ...productData, stock: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
+                  <View style={styles.spacer} />
+                  <TextInput label="Peso (g)" value={dynamicFields.peso} onChangeText={t => setDynamicFields({ ...dynamicFields, peso: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
+                </View>
+                <TextInput label="Validade" value={dynamicFields.validade} onChangeText={t => setDynamicFields({ ...dynamicFields, validade: t })} placeholder="Ex: 5 dias" style={styles.input} mode="outlined" />
               </View>
             )}
 
@@ -412,10 +414,12 @@ export function AddEditProductScreen() {
 
             <Divider style={styles.divider} />
 
-            <Text style={styles.label}>Disponibilidade Imediata</Text>
-            <View style={styles.availabilityContainer}>
-              <Chip mode={productData.available ? 'flat' : 'outlined'} selected={productData.available} onPress={() => setProductData({ ...productData, available: true })} style={[styles.chip, productData.available && styles.availableChip]}>Sim</Chip>
-              <Chip mode={!productData.available ? 'flat' : 'outlined'} selected={!productData.available} onPress={() => setProductData({ ...productData, available: false })} style={[styles.chip, !productData.available && styles.unavailableChip]}>Não</Chip>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Disponibilidade Imediata</Text>
+              <View style={styles.availabilityContainer}>
+                <Chip mode={productData.available ? 'flat' : 'outlined'} selected={productData.available} onPress={() => setProductData({ ...productData, available: true })} style={[styles.chip, productData.available && styles.availableChip]}>Sim</Chip>
+                <Chip mode={!productData.available ? 'flat' : 'outlined'} selected={!productData.available} onPress={() => setProductData({ ...productData, available: false })} style={[styles.chip, !productData.available && styles.unavailableChip]}>Não</Chip>
+              </View>
             </View>
 
             <Text style={styles.label}>Imagem *</Text>
@@ -475,12 +479,13 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   chip: { marginBottom: 8 },
   
-  dynamicRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
-  flex1: { flex: 1, minWidth: '45%' },
+  dynamicRow: { flexDirection: 'row', alignItems: 'center' },
+  flex1: { flex: 1 },
   spacer: { width: 12 },
-  toggleChip: { flex: 1, minWidth: '45%', justifyContent: 'center', height: 48 },
+  toggleChip: { flex: 1, justifyContent: 'center', height: 48, marginBottom: 12 },
 
-  availabilityContainer: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  section: { marginTop: 8, marginBottom: 16 },
+  availabilityContainer: { flexDirection: 'row', gap: 12, marginBottom: 8 },
   availableChip: { backgroundColor: theme.colors.success },
   unavailableChip: { backgroundColor: theme.colors.error },
   
