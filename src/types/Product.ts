@@ -1,6 +1,7 @@
 export interface Product {
   id: string;
   producerId?: string; // Adicionado para multi-produtor
+  listingType?: 'product' | 'service' | 'rental' | 'space';
   nome: string;
   descricao: string;
   preco: number;
@@ -23,11 +24,27 @@ export interface Product {
   temEstoque?: boolean;
   alergenos?: string[];
   tagsEspeciais?: string[]; // Ex: "sem glúten", "vegano", etc.
+  dietaryTags?: string[]; // Nova prop para Confeitaria Brasileira
+  eventTags?: string[]; // Nova prop para Eventos
   detalhes?: Record<string, string | number>; // Informações adicionais como peso, dimensões, etc.
   tags?: ProductTag[];
   nutricional?: NutricionalInfo;
   cityId?: string;
   region?: string;
+  
+  // Campos dinâmicos (Marketplace expandido)
+  // Produto
+  validade?: string;
+  peso?: number;
+  // Serviço
+  duracao?: number;
+  deslocamento?: boolean;
+  // Aluguel
+  diaria?: number;
+  caucao?: number;
+  // Espaço
+  capacidade?: number;
+  estacionamento?: boolean;
 }
 
 export interface ProductVariation {
