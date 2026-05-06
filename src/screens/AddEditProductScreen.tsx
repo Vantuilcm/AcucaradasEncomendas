@@ -97,6 +97,15 @@ export function AddEditProductScreen() {
       return;
     }
 
+    if (isEditing && !product?.id) {
+      throw new Error('Produto sem ID para edição');
+    }
+
+    console.log('Saving product:', { 
+      productId: product?.id, 
+      isEditing 
+    });
+
     try {
       setLoading(true);
       const payload: Partial<Product> = {

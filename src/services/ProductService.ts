@@ -40,8 +40,10 @@ export class ProductService {
         throw new Error('Pelo menos uma imagem é obrigatória');
       }
 
-      // Criar referência para novo documento
-      const docRef = f.doc(this.collectionName);
+      // Criar referência para novo documento com auto-id seguro no Firestore v9
+      const { doc, collection } = require('firebase/firestore');
+      const { getDb } = require('../config/firebase');
+      const docRef = doc(collection(getDb(), this.collectionName));
 
       // Preparar dados do produto
       const novoProduto: Product = {
