@@ -96,6 +96,20 @@ jobs:
         run: |
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
           node scripts/ci/force-build-number.js --run
+          BUILD_NUMBER=$(jq -r '.buildNumber' version-state.json)
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "CURRENT_BN=$BUILD_NUMBER" >> $GITHUB_ENV
+
+      - name: 🔍 DIAGNÓSTICO: Validar Build Number Propagado
+        run: |
+          echo "=== VALIDANDO BUILD NUMBER NO PIPELINE ==="
+          echo "1. app.json buildNumber:"
+          grep '"buildNumber"' app.json || true
+          echo "2. expo config buildNumber:"
+          npx expo config --type public | grep -i buildNumber || true
+          echo "3. Info.plist (se existir na raiz ou gerado no prebuild):"
+          find . -name "Info.plist" -exec grep -A1 "CFBundleVersion" {} \; || true
+          echo "=========================================="
 
       - name: Generate public_config.json
         run: |
