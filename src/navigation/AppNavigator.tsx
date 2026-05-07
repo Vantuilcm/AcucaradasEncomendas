@@ -186,7 +186,7 @@ const MainTabs = () => {
         <Tab.Screen name="Cart" component={CartScreen} options={{ title: 'Carrinho' }} />
       )}
 
-      <Tab.Screen name="Profile" component={ProfileComponent} options={{ title: 'Perfil' }} />
+      <Tab.Screen name="Profile" component={ProfileComponent} options={{ title: 'Conta' }} />
     </Tab.Navigator>
   );
 };

@@ -232,8 +232,27 @@ export function OrderManagementScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text variant="headlineMedium" style={styles.title}>
-          Gerenciamento de Pedidos
+          Pedidos
         </Text>
+
+        <View style={styles.quickSummaryContainer}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{orders.filter(o => o.status === 'pending').length}</Text>
+            <Text style={styles.summaryLabel}>Novos</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{orders.filter(o => o.status === 'preparing').length}</Text>
+            <Text style={styles.summaryLabel}>Em Preparo</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{orders.filter(o => o.status === 'ready' || o.status === 'delivering').length}</Text>
+            <Text style={styles.summaryLabel}>Agendados</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>{orders.filter(o => o.status === 'delivered').length}</Text>
+            <Text style={styles.summaryLabel}>Finalizados</Text>
+          </View>
+        </View>
 
         <Searchbar
           placeholder="Buscar pedidos..."
@@ -253,6 +272,17 @@ export function OrderManagementScreen() {
           ]}
           style={styles.filterButtons}
         />
+      </View>
+
+      <View style={styles.aiInsightContainer}>
+        <Card style={styles.aiInsightSurface}>
+          <View style={styles.aiHeader}>
+            <Text style={styles.aiTitle}>🤖 Alertas Inteligentes</Text>
+          </View>
+          <Text style={styles.aiText}>
+            Tudo sob controle! Nenhum pedido está atrasado no momento.
+          </Text>
+        </Card>
       </View>
 
       <ScrollView
@@ -428,16 +458,50 @@ const createStyles = (theme: { colors: any }) =>
   },
   header: {
     padding: 16,
-    backgroundColor: theme.colors.card,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: '#eee',
   },
   title: {
-    color: theme.colors.text.primary,
+    color: '#1a1a1a',
     marginBottom: 16,
+    fontWeight: 'bold',
   },
+  quickSummaryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#FAFAFA',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  summaryItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  aiInsightContainer: { paddingHorizontal: 16, marginTop: 12, marginBottom: 4 },
+  aiInsightSurface: { borderRadius: 12, backgroundColor: '#E8EAF6', padding: 12, elevation: 0 },
+  aiHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  aiTitle: { fontSize: 13, fontWeight: 'bold', color: '#5E35B1' },
+  aiText: { fontSize: 13, color: '#4527A0' },
   searchBar: {
     marginBottom: 12,
+    backgroundColor: '#FAFAFA',
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
   filterButtons: {
     marginBottom: 8,

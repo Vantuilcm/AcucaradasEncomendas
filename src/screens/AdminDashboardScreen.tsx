@@ -21,7 +21,7 @@ import { ReleaseService, ReleaseState } from '../services/ReleaseService';
 import { DeliveryDriver } from '../types/DeliveryDriver';
 // MISSÃO ZERO TELA BRANCA: Reativando Mapa com proteção, Gráfico nativo customizado em uso
 import MapView, { Marker } from 'react-native-maps';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Dimensions } from 'react-native';
 import { Order, OrderStatus } from '../types/Order';
 import { formatCurrency } from '../utils/formatters';
@@ -242,153 +242,24 @@ export function AdminDashboardScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {/* 🛡️ Release Guardian Status (Global Scale) */}
-        {releaseState && releaseState!.releases[releaseState!.activeReleaseId] && (() => {
-          const active = releaseState!.releases[releaseState!.activeReleaseId];
-          const isCritical = active.status === 'CRITICAL';
-          return (
-            <Surface style={[
-              styles.releaseGuardianSection, 
-              isCritical && { borderColor: theme.colors.error, borderWeight: 2 } as any
-            ]}>
-              <View style={styles.sectionHeader}>
-                <Ionicons 
-                  name={active.status === 'STABLE' ? 'shield-checkmark' : 'alert-circle'} 
-                  size={22} 
-                  color={active.status === 'STABLE' ? '#4CAF50' : (isCritical ? theme.colors.error : '#FF9800')} 
-                />
-                <View style={{ marginLeft: 8 }}>
-                  <Text variant="titleMedium" style={styles.sectionTitle}>Release Guardian v2</Text>
-                  <Text variant="labelSmall" style={{ color: theme.colors.text.secondary }}>
-                    v{active.version} (Build: {active.buildNumber})
-                  </Text>
-                </View>
-                <Badge 
-                  style={{ 
-                    backgroundColor: active.status === 'STABLE' ? '#4CAF50' : (isCritical ? theme.colors.error : '#FF9800'),
-                    marginLeft: 'auto'
-                  }}
-                >
-                  {active.status}
-                </Badge>
-              </View>
-              
-              <View style={{ marginTop: 8 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <View style={styles.canaryInfo}>
-                    <Ionicons name="git-branch-outline" size={14} color={theme.colors.primary} />
-                    <Text variant="labelSmall" style={{ marginLeft: 4 }}>Rollout: {Math.round(active.rollout * 100)}%</Text>
-                  </View>
-                  <Text variant="labelSmall" style={{ color: theme.colors.text.secondary }}>
-                    Canal: {active.channel}
-                  </Text>
-                </View>
+        <Surface style={styles.premiumHeader} elevation={2}>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Olá, {user?.nome || user?.name || 'Produtor'}! 👋</Text>
+            <Text style={styles.headerSubtitle}>Aqui está o resumo da sua confeitaria hoje.</Text>
+          </View>
+        </Surface>
 
-                {/* Progress Bar para Rollout */}
-                <View style={{ height: 4, backgroundColor: '#E0E0E0', borderRadius: 2, marginBottom: 12 }}>
-                  <View style={{ 
-                    height: '100%', 
-                    width: `${active.rollout * 100}%`, 
-                    backgroundColor: active.status === 'STABLE' ? '#4CAF50' : '#FF9800',
-                    borderRadius: 2 
-                  }} />
-                </View>
-                {active.rollbackTriggered && (
-                  <View style={styles.rollbackBanner}>
-                    <Ionicons name="refresh-circle" size={18} color="#FFFFFF" />
-                    <Text style={styles.rollbackText}>
-                      ROLLBACK ATIVO {'->'} {releaseState?.lastStableReleaseId}
-                    </Text>
-                  </View>
-                )}
-
-                {(active.anomalies?.length ?? 0) > 0 && (
-                  <View style={styles.anomalyBox}>
-                    {active.anomalies?.map((a, i) => (
-                      <Text
-                        key={i}
-                        variant="bodySmall"
-                        style={{ color: '#D32F2F' }}
-                      >
-                        • {a}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-
-                {active.health! && (
-                  <View style={styles.healthGrid}>
-                    <View style={styles.healthItem}>
-                      <Text variant="labelSmall">Crash Rate</Text>
-                      <Text variant="bodySmall" style={{ fontWeight: 'bold', color: active.health!.crashRate > 0.02 ? theme.colors.error : theme.colors.success }}>
-                        {(active.health!.crashRate * 100).toFixed(2)}%
-                      </Text>
-                    </View>
-                    <View style={styles.healthItem}>
-                      <Text variant="labelSmall">Payment Success</Text>
-                      <Text variant="bodySmall" style={{ fontWeight: 'bold', color: active.health!.paymentFailureRate > 0.05 ? theme.colors.error : theme.colors.success }}>
-                        {(100 - active.health!.paymentFailureRate * 100).toFixed(1)}%
-                      </Text>
-                    </View>
-                    <View style={styles.healthItem}>
-                      <Text variant="labelSmall">Status Decisão</Text>
-                      <Text variant="bodySmall" style={{ 
-                        fontWeight: 'bold', 
-                        color: active.status === 'STABLE' ? theme.colors.success : theme.colors.error 
-                      }}>
-                        {active.status === 'STABLE' ? 'ESTÁVEL' : 'RISCO'}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-            </Surface>
-          );
-        })()}
-
-        {/* 🌍 Marketplace Expansion Intelligence */}
-        {cityMetrics.length > 0 && (
-          <Surface style={styles.marketplaceSection}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="globe-outline" size={22} color="#009688" />
-              <Text variant="titleMedium" style={[styles.sectionTitle, { marginLeft: 8 }]}>
-                Marketplace Expansion
-              </Text>
+        <View style={styles.aiInsightContainer}>
+          <Surface style={styles.aiInsightSurface} elevation={2}>
+            <View style={styles.aiHeader}>
+              <MaterialCommunityIcons name="robot-outline" size={20} color="#9C27B0" />
+              <Text style={styles.aiTitle}>Insights Açucaradas</Text>
             </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {cityMetrics.map(city => (
-                <View key={city.cityId} style={styles.cityCard}>
-                  <Text variant="titleSmall">{city.cityName}</Text>
-                  <View style={styles.cityMetricRow}>
-                    <Text variant="labelSmall">Produtores: </Text>
-                    <Text variant="bodySmall" style={{ fontWeight: 'bold' }}>{city.activeProducers}</Text>
-                  </View>
-                  <View style={styles.cityMetricRow}>
-                    <Text variant="labelSmall">Usuários: </Text>
-                    <Text variant="bodySmall">{city.activeUsers}</Text>
-                  </View>
-                  <View style={styles.cityMetricRow}>
-                    <Text variant="labelSmall">Receita: </Text>
-                    <Text variant="bodySmall" style={{ color: '#2E7D32' }}>{formatCurrency(city.revenue)}</Text>
-                  </View>
-                  
-                  {city.opportunityLevel === 'EXPANSION_OPPORTUNITY' && (
-                    <Badge style={{ backgroundColor: '#009688', marginTop: 8, width: '100%' }}>OPORTUNIDADE</Badge>
-                  )}
-                  {city.activeProducers === 0 && city.activeUsers > 0 && (
-                    <TouchableOpacity 
-                      style={styles.activateButton}
-                      onPress={() => marketplaceService.activateCity(city.cityId)}
-                    >
-                      <Text style={styles.activateButtonText}>Ativar Cidade</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              ))}
-            </ScrollView>
+            <Text style={styles.aiText}>
+              Seu <Text style={styles.aiHighlight}>Brownie</Text> vende mais às sextas-feiras. Que tal preparar uma fornada extra amanhã?
+            </Text>
           </Surface>
-        )}
+        </View>
 
         <View style={styles.statsRow}>
           <Card style={styles.statsCard}>
@@ -405,10 +276,10 @@ export function AdminDashboardScreen() {
           <Card style={styles.statsCard}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.statsTitle}>
-                Vendas Semana
+                Pedidos Pendentes
               </Text>
-              <Text variant="headlineSmall" style={[styles.statsValue, { color: theme.colors.primary }]}>
-                {formatCurrency(stats.weeklySales)}
+              <Text variant="headlineSmall" style={[styles.statsValue, { color: '#E91E63' }]}>
+                {stats.pendingOrders}
               </Text>
             </Card.Content>
           </Card>
@@ -418,10 +289,10 @@ export function AdminDashboardScreen() {
           <Card style={styles.statsCard}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.statsTitle}>
-                Vendas Mês
+                Em Preparo
               </Text>
-              <Text variant="headlineSmall" style={[styles.statsValue, { color: theme.colors.primary }]}>
-                {formatCurrency(stats.monthlySales)}
+              <Text variant="headlineSmall" style={[styles.statsValue, { color: '#FF9800' }]}>
+                {stats.activeOrders}
               </Text>
             </Card.Content>
           </Card>
@@ -429,10 +300,10 @@ export function AdminDashboardScreen() {
           <Card style={styles.statsCard}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.statsTitle}>
-                Pedidos Pendentes
+                Próximos Pedidos
               </Text>
-              <Text variant="headlineSmall" style={[styles.statsValue, { color: theme.colors.warning }]}>
-                {stats.pendingOrders}
+              <Text variant="headlineSmall" style={[styles.statsValue, { color: '#2196F3' }]}>
+                {stats.scheduledOrders}
               </Text>
             </Card.Content>
           </Card>
@@ -629,318 +500,106 @@ export function AdminDashboardScreen() {
 const createStyles = (theme: { colors: any }) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    padding: 16,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  liveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFEBEE',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#F44336',
-    marginRight: 6,
-  },
-  liveText: {
-    color: '#F44336',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  metricsBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 12,
-    backgroundColor: theme.colors.surface,
-    marginBottom: 8,
-    elevation: 1,
-  },
-  metricItem: {
-    alignItems: 'center',
-  },
-  metricValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.text.primary,
-  },
-  metricLabel: {
-    fontSize: 10,
-    color: theme.colors.text.secondary,
-    marginTop: 2,
-  },
-  alertsSection: {
-    margin: 16,
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#FFF3E0',
-    borderWidth: 1,
-    borderColor: '#FFE0B2',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  alertItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  alertDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 8,
-  },
-  alertText: {
-    fontSize: 12,
-    color: '#E65100',
-  },
-  liveSection: {
-    margin: 16,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surface,
-    elevation: 2,
-  },
-  growthSection: {
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surface,
-    elevation: 2,
-  },
-  growthMetricsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  growthMetricBox: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  funnelContainer: {
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  funnelStep: {
-    padding: 8,
-    marginVertical: 2,
-    borderRadius: 4,
-    alignItems: 'center',
-  },
-  rankText: {
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-    fontSize: 14,
-    width: 30,
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  referralRevenueBox: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-  },
-  autonomousSection: {
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#FFFDE7',
-    borderWidth: 1,
-    borderColor: '#FFF9C4',
-    elevation: 2,
-  },
-  actionLogItem: {
-    backgroundColor: '#FFFFFF',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FFD600',
-  },
-  releaseGuardianSection: {
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#F1F8E9',
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#DCEDC8',
-  },
-  rollbackBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.error,
-    padding: 8,
-    borderRadius: 6,
-    marginTop: 8,
-  },
-  rollbackText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 12,
-    marginLeft: 8,
-  },
-  healthGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-    backgroundColor: '#FFFFFF',
-    padding: 10,
-    borderRadius: 8,
-  },
-  healthItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  canaryInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E3F2FD',
-    padding: 4,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  anomalyBox: {
-    backgroundColor: '#FFEBEE',
-    padding: 8,
-    borderRadius: 6,
-    marginTop: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#D32F2F',
-  },
-  marketplaceSection: {
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surface,
-    elevation: 2,
-  },
-  cityCard: {
-    width: 160,
-    padding: 12,
-    marginRight: 12,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  cityMetricRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  activateButton: {
-    marginTop: 12,
-    backgroundColor: '#009688',
-    padding: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  activateButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: theme.colors.text.secondary,
-    paddingVertical: 20,
-  },
-  intelligenceSection: {
-    margin: 16,
-    marginTop: 0,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surface,
-    elevation: 2,
-  },
-  insightCard: {
-    width: 140,
-    padding: 10,
-    marginRight: 12,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  recommendationContainer: {
-    marginTop: 8,
-  },
-  recommendationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FCE4EC',
-    padding: 8,
-    borderRadius: 8,
-    marginBottom: 4,
-  },
-  title: {
-    color: theme.colors.text.primary,
+    backgroundColor: '#FAFAFA',
   },
   scrollView: {
     flex: 1,
   },
+  premiumHeader: {
+    padding: 24,
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    marginBottom: 16,
+  },
+  headerContent: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  headerSubtitle: {
+    color: '#666',
+    fontSize: 15,
+    marginTop: 4,
+  },
+  aiInsightContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  aiInsightSurface: {
+    borderRadius: 16,
+    backgroundColor: '#F3E5F5',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E1BEE7',
+  },
+  aiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  aiTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#9C27B0',
+    marginLeft: 8,
+  },
+  aiText: {
+    fontSize: 14,
+    color: '#4A148C',
+    lineHeight: 20,
+  },
+  aiHighlight: {
+    fontWeight: 'bold',
+  },
   statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginTop: 16,
+    paddingHorizontal: 12,
+    marginBottom: 8,
   },
   statsCard: {
-    width: '48%',
-    borderRadius: 12,
+    flex: 1,
+    marginHorizontal: 4,
+    borderRadius: 16,
+    backgroundColor: '#fff',
     elevation: 2,
-    backgroundColor: theme.colors.card,
   },
   statsTitle: {
-    color: theme.colors.text.secondary,
+    fontSize: 14,
+    color: '#666',
     marginBottom: 8,
   },
   statsValue: {
-    color: theme.colors.text.primary,
     fontWeight: 'bold',
   },
   chartSection: {
     margin: 16,
     padding: 16,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    backgroundColor: '#fff',
     elevation: 2,
+  },
+  sectionTitle: {
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: '#333',
   },
   mapSection: {
     margin: 16,
     padding: 16,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    backgroundColor: '#fff',
     elevation: 2,
+    marginBottom: 40,
   },
   mapContainer: {
-    height: 300,
-    marginTop: 16,
+    height: 200,
     borderRadius: 12,
     overflow: 'hidden',
+    marginTop: 8,
   },
   map: {
     flex: 1,
@@ -951,10 +610,6 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
     borderRadius: 12,
     backgroundColor: theme.colors.surface,
     elevation: 2,
-  },
-  sectionTitle: {
-    color: theme.colors.text.primary,
-    marginBottom: 8,
   },
   divider: {
     marginVertical: 8,
