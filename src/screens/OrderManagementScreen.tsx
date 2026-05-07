@@ -192,8 +192,59 @@ export function OrderManagementScreen() {
     );
   }
 
+  // Lógica de Alertas Inteligentes (Fase 2)
+  const getSmartAlert = () => {
+    if (!orders || orders.length === 0) {
+      return {
+        type: 'success',
+        title: '🤖 Assistente Açucaradas',
+        text: 'Nenhum pedido no momento. Divulgue sua loja!',
+        color: '#5E35B1',
+        bgColor: '#E8EAF6'
+      };
+    }
+
+    const now = new Date();
+    const delayedOrders = orders.filter(o => {
+      if (o.status !== 'pending' && o.status !== 'preparing' && o.status !== 'ready') return false;
+      if (!o.updatedAt) return false;
+      const updated = new Date(o.updatedAt);
+      const diffMinutes = Math.floor((now.getTime() - updated.getTime()) / (1000 * 60));
+      return diffMinutes > 30;
+    });
+
+    if (delayedOrders.length > 0) {
+      return {
+        type: 'danger',
+        title: '⚠️ Atenção aos Atrasos',
+        text: `Você tem ${delayedOrders.length} pedido(s) sem atualização há mais de 30 minutos. Verifique a cozinha!`,
+        color: '#D32F2F',
+        bgColor: '#FFEBEE'
+      };
+    }
+
+    const pendingOrders = orders.filter(o => o.status === 'pending');
+    if (pendingOrders.length > 0) {
+      return {
+        type: 'warning',
+        title: '🔔 Novos Pedidos',
+        text: `Você tem ${pendingOrders.length} pedido(s) pendente(s) aguardando confirmação.`,
+        color: '#F57C00',
+        bgColor: '#FFF3E0'
+      };
+    }
+
+    return {
+      type: 'success',
+      title: '🤖 Alertas Inteligentes',
+      text: 'Tudo sob controle! Nenhum pedido está atrasado no momento.',
+      color: '#5E35B1',
+      bgColor: '#E8EAF6'
+    };
+  };
+
+  const smartAlert = getSmartAlert();
   const handleAdvanceStatus = async (orderId: string, currentStatus: OrderStatus) => {
-    // Lógica especial para entregador assumir pedido
     if (isEntregador && currentStatus === 'ready' && user) {
       try {
         const userId = (user as any).id || (user as any).uid;
@@ -275,12 +326,12 @@ export function OrderManagementScreen() {
       </View>
 
       <View style={styles.aiInsightContainer}>
-        <Card style={styles.aiInsightSurface}>
+        <Card style={[styles.aiInsightSurface, { backgroundColor: smartAlert.bgColor }]}>
           <View style={styles.aiHeader}>
-            <Text style={styles.aiTitle}>🤖 Alertas Inteligentes</Text>
+            <Text style={[styles.aiTitle, { color: smartAlert.color }]}>{smartAlert.title}</Text>
           </View>
-          <Text style={styles.aiText}>
-            Tudo sob controle! Nenhum pedido está atrasado no momento.
+          <Text style={[styles.aiText, { color: smartAlert.color }]}>
+            {smartAlert.text}
           </Text>
         </Card>
       </View>

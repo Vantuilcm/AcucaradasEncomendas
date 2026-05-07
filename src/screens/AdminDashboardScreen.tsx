@@ -165,41 +165,96 @@ export function AdminDashboardScreen() {
     failedPayments: 0,
     stockAlerts: 0,
     scheduledOrders: 0,
+    chartData: [] as number[],
+    chartLabels: [] as string[]
   });
 
-  // Função para carregar inteligência de dados - DESATIVADA PARA DIAGNÓSTICO
+  // Função para carregar inteligência de dados
   const loadIntelligence = React.useCallback(async () => {
-    /* 
     try {
-      // ... logic
+      // 1. Carregar estatísticas reais de pedidos
+      const orders = await orderService.getOrders();
+      if (!orders || orders.length === 0) {
+        setStats(prev => ({
+          ...prev,
+          dailySales: 0,
+          pendingOrders: 0,
+          activeOrders: 0,
+          scheduledOrders: 0,
+          chartData: [0, 0, 0, 0, 0, 0, 0],
+          chartLabels: ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+        }));
+      } else {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+      let dailySales = 0;
+      let pendingOrders = 0;
+      let activeOrders = 0;
+      let scheduledOrders = 0;
+
+      // Calcular dados dos últimos 7 dias para o gráfico
+      const last7Days = Array(7).fill(0);
+      const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+      const currentDay = new Date().getDay();
+      const chartLabels: string[] = [];
+      for (let i = 6; i >= 0; i--) {
+        let d = currentDay - i;
+        if (d < 0) d += 7;
+        chartLabels.push(dayNames[d]);
+      }
+
+      orders.forEach((order: Order) => {
+        const orderDate = new Date(order.createdAt);
+        
+        // Vendas hoje
+        if (orderDate >= today && (order.status === 'delivered' || order.status === 'delivering' || order.status === 'ready' || order.status === 'preparing' || order.status === 'confirmed')) {
+          dailySales += order.totalAmount || 0;
+        }
+
+        // Gráfico de Tendência (Últimos 7 dias)
+        const diffTime = Math.abs(today.getTime() - new Date(orderDate.setHours(0,0,0,0)).getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays < 7 && order.status !== 'cancelled') {
+          // index 6 is today, 5 is yesterday...
+          const index = 6 - diffDays;
+          if (index >= 0 && index < 7) {
+            last7Days[index] += order.totalAmount || 0;
+          }
+        }
+
+        // Status
+        if (order.status === 'pending') pendingOrders++;
+        if (order.status === 'preparing') activeOrders++;
+        if (order.status === 'confirmed') scheduledOrders++; // Consider confirmed as scheduled for now
+      });
+
+        setStats(prev => ({
+          ...prev,
+          dailySales,
+          pendingOrders,
+          activeOrders,
+          scheduledOrders,
+          chartData: last7Days,
+          chartLabels
+        }));
+      }
+
+      // 2. Insights Reais do DemandForecastService
+      const insights = await demandService.generateDemandInsights();
+      if (insights && insights.length > 0) {
+        setDemandInsights(insights);
+      }
+
     } catch (error) {
       console.error('Erro ao carregar inteligência:', error);
     }
-    */
     setLoading(false);
-  }, []);
+  }, [orderService, demandService]);
 
   useEffect(() => {
-    // MISSÃO ZERO TELA BRANCA: Bypassing heavy initializations
-    /*
-    watchdogService.checkStuckOrders();
-    automationService.runAutomations();
-    autonomousOrchestrator.runOrchestrationCycle();
-    */
-    
-    setLoading(false);
-    
-    // Configurar Watchdog e Automação para rodar periodicamente - DESATIVADO
-    /*
-    const watchdogInterval = setInterval(() => {
-      // ...
-    }, 5 * 60 * 1000);
-    */
-
-    return () => {
-      // clearInterval(watchdogInterval);
-    };
-  }, []);
+    loadIntelligence();
+  }, [loadIntelligence]);
 
   const loadDashboardData = async () => {
     setRefreshing(true);
@@ -255,9 +310,15 @@ export function AdminDashboardScreen() {
               <MaterialCommunityIcons name="robot-outline" size={20} color="#9C27B0" />
               <Text style={styles.aiTitle}>Insights Açucaradas</Text>
             </View>
-            <Text style={styles.aiText}>
-              Seu <Text style={styles.aiHighlight}>Brownie</Text> vende mais às sextas-feiras. Que tal preparar uma fornada extra amanhã?
-            </Text>
+            {demandInsights.length > 0 ? (
+              <Text style={styles.aiText}>
+                Seu produto <Text style={styles.aiHighlight}>{demandInsights[0].productName}</Text> está com tendência de alta. Mantenha o estoque preparado!
+              </Text>
+            ) : (
+              <Text style={styles.aiText}>
+                O assistente está analisando suas vendas para gerar insights reais em breve.
+              </Text>
+            )}
           </Surface>
         </View>
 
@@ -315,16 +376,8 @@ export function AdminDashboardScreen() {
           </Text>
           <SafeBarChart
             theme={theme}
-            labels={["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]}
-            data={[
-              stats.dailySales > 0 ? stats.dailySales : Math.random() * 100,
-              Math.random() * 100,
-              Math.random() * 100,
-              Math.random() * 100,
-              Math.random() * 100,
-              Math.random() * 100,
-              Math.random() * 100
-            ]}
+            labels={stats.chartLabels && stats.chartLabels.length > 0 ? stats.chartLabels : ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]}
+            data={stats.chartData && stats.chartData.length > 0 ? stats.chartData : [0, 0, 0, 0, 0, 0, 0]}
           />
         </Surface>
 

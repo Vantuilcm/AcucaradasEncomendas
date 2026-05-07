@@ -1,13 +1,14 @@
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useCart } from '../contexts/CartContext';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, Divider } from 'react-native-paper';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Button, Card, Divider, Surface } from 'react-native-paper';
 import { useAppTheme } from '../components/ThemeProvider';
 import { EnhancedImage, PlaceholderType } from '../components/EnhancedImage';
+import { RecommendationService, ProductRecommendation } from '../services/RecommendationService';
 
 type CartScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -16,6 +17,25 @@ export default function CartScreen() {
   const styles = React.useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<CartScreenNavigationProp>();
   const { cart, removeItem, updateQuantity, cartTotal } = useCart() as any;
+  const [recommendations, setRecommendations] = useState<ProductRecommendation[]>([]);
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (cart.items.length > 0) {
+        try {
+          const recService = RecommendationService.getInstance();
+          const recs = await recService.generateMarketBasketAnalysis();
+          // Pega apenas as primeiras 2 para não poluir
+          if (recs && recs.length > 0) {
+            setRecommendations(recs.slice(0, 2));
+          }
+        } catch (error) {
+          console.log('Erro ao carregar recomendações', error);
+        }
+      }
+    };
+    fetchRecommendations();
+  }, [cart.items.length]);
 
   const renderItem = ({ item }: any) => (
     <Card style={styles.cartItem} key={item.id}>
@@ -121,6 +141,29 @@ export default function CartScreen() {
               </Text>
             </Card.Content>
           </Card>
+
+          {recommendations.length > 0 && (
+            <Surface style={styles.recommendationSurface} elevation={1}>
+              <View style={styles.recommendationHeader}>
+                <MaterialCommunityIcons name="star-shooting" size={20} color="#E91E63" />
+                <Text style={styles.recommendationTitle}>Clientes também compraram</Text>
+              </View>
+              {recommendations.map((rec, idx) => (
+                <View key={idx} style={styles.recommendationItem}>
+                  <Text style={styles.recommendationText}>
+                    Quem comprou <Text style={{fontWeight: 'bold'}}>{rec.productName}</Text> também levou <Text style={{fontWeight: 'bold'}}>{rec.recommendedProductName}</Text>
+                  </Text>
+                  <Button 
+                    mode="text" 
+                    textColor="#E91E63"
+                    onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
+                  >
+                    Ver
+                  </Button>
+                </View>
+              ))}
+            </Surface>
+          )}
         </>
       ) : (
         <View style={styles.emptyCart}>
@@ -285,5 +328,36 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
     color: theme.colors.text.secondary,
     fontSize: 13,
     fontStyle: 'italic',
+  },
+  recommendationSurface: {
+    marginTop: 16,
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#FCE4EC',
+  },
+  recommendationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  recommendationTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#C2185B',
+    marginLeft: 8,
+  },
+  recommendationItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+    backgroundColor: '#fff',
+    padding: 8,
+    borderRadius: 8,
+  },
+  recommendationText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#880E4F',
   },
 });

@@ -362,6 +362,25 @@ export class OrderService {
   }
 
   /**
+   * Obtém todos os pedidos uma única vez
+   */
+  async getOrders(): Promise<Order[]> {
+    try {
+      const ordersRef = f.collection(this.collectionName);
+      const q = f.query(ordersRef, f.orderBy('createdAt', 'desc'));
+      const querySnapshot = await f.getDocs(q);
+      
+      return querySnapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      })) as Order[];
+    } catch (error) {
+      loggingService.error('Erro ao buscar todos os pedidos', { error });
+      throw error;
+    }
+  }
+
+  /**
    * Obtém estatísticas gerais de pedidos
    * @returns Estatísticas de pedidos
    */
