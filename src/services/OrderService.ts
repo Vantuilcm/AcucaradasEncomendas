@@ -266,6 +266,69 @@ export class OrderService {
   }
 
   /**
+   * Aceita uma corrida de forma ATÔMICA usando runTransaction
+   * Impede que dois entregadores aceitem o mesmo pedido simultaneamente.
+   * @param orderId ID do pedido
+   * @param driverData Dados do entregador
+   * @returns O pedido atualizado se a transação for bem sucedida
+   */
+  async acceptOrderAtomic(orderId: string, driverData: any): Promise<Order> {
+    try {
+      const orderRef = f.doc(this.collectionName, orderId);
+
+      const result = await f.runTransaction(async (transaction: any) => {
+        const orderDoc = await transaction.get(orderRef);
+
+        if (!orderDoc.exists()) {
+          throw new Error('Pedido não encontrado.');
+        }
+
+        const data = orderDoc.data();
+
+        // VALIDAÇÃO DE CONCORRÊNCIA (AQUI É ONDE O SEGUNDO ENTREGADOR É BARRADO)
+        if (data.deliveryDriver && data.deliveryDriver.id) {
+          throw new Error('ORDER_ALREADY_ACCEPTED');
+        }
+
+        // Se o status não for mais 'ready' (pode ter sido cancelado, etc)
+        if (data.status !== 'ready') {
+          throw new Error('ORDER_NOT_AVAILABLE');
+        }
+
+        const updatedAt = new Date().toISOString();
+        const updatePayload = {
+          deliveryDriver: driverData,
+          updatedAt
+        };
+
+        transaction.update(orderRef, updatePayload);
+
+        return {
+          id: orderId,
+          ...data,
+          ...updatePayload
+        } as Order;
+      });
+
+      loggingService.info('[DELIVERY_TRANSACTION] Aceite atômico com sucesso', { orderId, driverId: driverData.id });
+      return result;
+
+    } catch (error: any) {
+      if (error.message === 'ORDER_ALREADY_ACCEPTED') {
+        loggingService.warn('[DELIVERY_TRANSACTION] Conflito evitado: Pedido já aceito por outro', { orderId });
+        throw new Error('Esta entrega acabou de ser aceita por outro entregador 🛵');
+      }
+      if (error.message === 'ORDER_NOT_AVAILABLE') {
+        loggingService.warn('[DELIVERY_TRANSACTION] Pedido não está mais disponível', { orderId });
+        throw new Error('Esta entrega não está mais disponível para retirada.');
+      }
+      
+      loggingService.error('[DELIVERY_TRANSACTION] Falha na transação de aceite', { error, orderId });
+      throw error;
+    }
+  }
+
+  /**
    * Atualiza dados de um pedido
    * @param orderId ID do pedido
    * @param orderData Novos dados

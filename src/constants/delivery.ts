@@ -3,7 +3,7 @@
  */
 
 // Valor por quilômetro (em reais)
-export const DELIVERY_PRICE_PER_KM = 1.5;
+export const DELIVERY_PRICE_PER_KM = 2.0;
 
 // Taxa base de entrega (em reais) - adicionada ao valor por km
 export const BASE_DELIVERY_FEE = 5.0;
@@ -12,7 +12,7 @@ export const BASE_DELIVERY_FEE = 5.0;
 export const MIN_DELIVERY_DISTANCE = 1.0;
 
 // Distância máxima para entrega (em km)
-export const MAX_DELIVERY_DISTANCE = 25.0;
+export const MAX_DELIVERY_DISTANCE = 15.0;
 
 // Constantes para cálculo de tempo estimado
 export const AVERAGE_SPEED_KM_PER_HOUR = 20;

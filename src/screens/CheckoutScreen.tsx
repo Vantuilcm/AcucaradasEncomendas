@@ -23,6 +23,7 @@ import { PaymentService } from '../services/PaymentService';
 import { ProductService } from '../services/ProductService';
 import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 import { StoreService } from '../services/StoreService';
+import { DeliveryPricingService, PricingResult } from '../services/DeliveryPricingService';
 import { NotificationService } from '../services/NotificationService';
 import { SalesAutomationService } from '../services/SalesAutomationService';
 import { loggingService } from '../services/LoggingService';
@@ -67,6 +68,11 @@ export default function CheckoutScreen() {
   const [cvv, setCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [waitingWebhook, setWaitingWebhook] = useState(false);
+  const [deliveryPricing, setDeliveryPricing] = useState<PricingResult>({
+    distanceKm: 0,
+    deliveryFee: 5.0, // Base default
+    withinRange: true,
+  });
 
   // Obter dados do agendamento da navegação
   const scheduledDelivery = route.params?.scheduledDelivery;
@@ -129,6 +135,19 @@ export default function CheckoutScreen() {
     }
   };
 
+  // Efeito para calcular a taxa de entrega quando o CEP mudar
+  useEffect(() => {
+    const calculatePricing = async () => {
+      if (address.zipCode && address.zipCode.replace(/\D/g, '').length === 8) {
+        // Em produção, isso usaria o CEP real da loja como originZip.
+        // Como é um mock/safe mode, passamos CEPs para ativar o fallback provisório.
+        const pricing = await DeliveryPricingService.calculatePricingByZipCode('00000000', address.zipCode);
+        setDeliveryPricing(pricing);
+      }
+    };
+    calculatePricing();
+  }, [address.zipCode]);
+
   const handleZipCodeChange = (text: string) => {
     // Remove caracteres não numéricos
     const numericValue = text.replace(/[^0-9]/g, '');
@@ -144,6 +163,11 @@ export default function CheckoutScreen() {
 
   const handlePlaceOrder = async () => {
     // Validações
+    if (!deliveryPricing.withinRange) {
+      Alert.alert('Fora de Área', 'No momento entregamos em até 15km da confeitaria 💝');
+      return;
+    }
+
     if (!validationService.validateAddress(address)) {
       Alert.alert('Erro', 'Por favor, verifique os campos de endereço e tente novamente');
       return;
@@ -246,7 +270,7 @@ export default function CheckoutScreen() {
 
       // 2. Criar pedido (Status Inicial: pending)
       const subtotalProducts = cart.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-      const deliveryFee = 10;
+      const deliveryFee = deliveryPricing.deliveryFee;
       
       const newOrder = await orderService.createOrder({
         userId,
@@ -650,7 +674,7 @@ export default function CheckoutScreen() {
 
           <PaymentSummary
             subtotal={cart.items.reduce((acc, item) => acc + item.price * item.quantity, 0)}
-            deliveryFee={10.0}
+            deliveryFee={deliveryPricing.deliveryFee}
             paymentMethod={paymentMethod === 'pix' ? 'pix' : 'credit_card'}
           />
         </Card.Content>

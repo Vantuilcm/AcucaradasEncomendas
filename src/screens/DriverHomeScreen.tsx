@@ -113,18 +113,18 @@ export function DriverHomeScreen() {
     }
 
     try {
-      await orderService.updateOrder(order.id, {
-        deliveryDriver: {
-          id: driver.id,
-          name: driver.name,
-          phone: driver.phone,
-          vehicle: driver.vehicle.model,
-          plate: driver.vehicle.plate
-        }
+      // Usa o novo método atômico para blindar corrida fantasma/concorrência
+      await orderService.acceptOrderAtomic(order.id, {
+        id: driver.id,
+        name: driver.name,
+        phone: driver.phone,
+        vehicle: driver.vehicle.model,
+        plate: driver.vehicle.plate
       });
+      
       Alert.alert('Sucesso', 'Entrega aceita! Vá até a loja para retirar.');
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível aceitar esta entrega.');
+    } catch (error: any) {
+      Alert.alert('Ops', error.message || 'Não foi possível aceitar esta entrega.');
     }
   };
 
@@ -256,7 +256,7 @@ export function DriverHomeScreen() {
                 <Card.Content>
                   <View style={styles.orderHeader}>
                     <Text variant="titleMedium">Entrega #{order.id.substring(0, 6)}</Text>
-                    <Text style={styles.orderValue}>{formatCurrency(15.00)}</Text> 
+                    <Text style={styles.orderValue}>{formatCurrency(order.deliveryFee || 5.00)}</Text> 
                   </View>
                   
                   <Paragraph numberOfLines={1}>
@@ -289,7 +289,7 @@ export function DriverHomeScreen() {
                 title={`Pedido #${order.id.substring(0, 6)}`}
                 description={`Entregue em: ${new Date(order.updatedAt || 0).toLocaleDateString()}`}
                 left={props => <List.Icon {...props} icon="check-circle" color={theme.colors.success} />}
-                right={() => <Text style={{ alignSelf: 'center', fontWeight: 'bold' }}>{formatCurrency(15.00)}</Text>}
+                right={() => <Text style={{ alignSelf: 'center', fontWeight: 'bold' }}>{formatCurrency(order.deliveryFee || 5.00)}</Text>}
                 style={styles.historyItem}
               />
             ))}
