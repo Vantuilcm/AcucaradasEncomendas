@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
-import { Text, Button, TextInput, Card, Chip, HelperText, Divider, SegmentedButtons } from 'react-native-paper';
+import { Text, Button, TextInput, Card, Chip, HelperText, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { usePermissions } from '../hooks/usePermissions';
@@ -284,17 +284,56 @@ export function AddEditProductScreen() {
           <Card.Content>
             
             <Text style={styles.label}>Tipo de Anúncio</Text>
-            <SegmentedButtons
-              value={listingType}
-              onValueChange={(val) => setListingType(val as any)}
-              buttons={[
-                { value: 'product', label: '🧁 Doces' },
-                { value: 'service', label: '🎂 Sob Encomenda' },
-                { value: 'rental', label: '🎉 Kits & Festa' },
-                { value: 'space', label: '🍹 Bebidas' },
-              ]}
-              style={styles.segmented}
-            />
+            
+            <View style={styles.gridContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.gridItem,
+                  listingType === 'product' && styles.gridItemSelected
+                ]}
+                onPress={() => setListingType('product')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.gridIcon}>🧁</Text>
+                <Text style={[styles.gridText, listingType === 'product' && styles.gridTextSelected]}>Doces</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.gridItem,
+                  listingType === 'service' && styles.gridItemSelected
+                ]}
+                onPress={() => setListingType('service')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.gridIcon}>🎂</Text>
+                <Text style={[styles.gridText, listingType === 'service' && styles.gridTextSelected]}>Sob Encomenda</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.gridItem,
+                  listingType === 'rental' && styles.gridItemSelected
+                ]}
+                onPress={() => setListingType('rental')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.gridIcon}>🎉</Text>
+                <Text style={[styles.gridText, listingType === 'rental' && styles.gridTextSelected]}>Kits & Festa</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.gridItem,
+                  listingType === 'space' && styles.gridItemSelected
+                ]}
+                onPress={() => setListingType('space')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.gridIcon}>🍹</Text>
+                <Text style={[styles.gridText, listingType === 'space' && styles.gridTextSelected]}>Bebidas</Text>
+              </TouchableOpacity>
+            </View>
 
             <Divider style={styles.divider} />
 
@@ -503,6 +542,33 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
   formCard: { margin: 16, borderRadius: 16, elevation: 3, backgroundColor: theme.colors.card },
   input: { marginBottom: 12, backgroundColor: theme.colors.surface },
   
+  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 16, gap: 12 },
+  gridItem: { 
+    width: '48%', 
+    backgroundColor: '#fff', 
+    padding: 16, 
+    borderRadius: 16, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border || '#E0E0E0',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  gridItemSelected: {
+    backgroundColor: theme.colors.primaryContainer || '#FCE4EC',
+    borderColor: theme.colors.primary,
+    borderWidth: 2,
+    elevation: 3,
+    shadowOpacity: 0.1,
+  },
+  gridIcon: { fontSize: 28, marginBottom: 8 },
+  gridText: { fontSize: 14, color: theme.colors.text.secondary, textAlign: 'center', fontWeight: '500' },
+  gridTextSelected: { color: theme.colors.primary, fontWeight: 'bold' },
+
   segmented: { marginBottom: 16 },
   divider: { marginVertical: 16 },
   
