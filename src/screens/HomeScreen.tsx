@@ -25,6 +25,13 @@ const CATEGORIES = [
   { id: '5', name: 'Bebidas', icon: 'cup-water' },
 ];
 
+const EMOTIONAL_BANNERS = [
+  "Feito artesanalmente hoje ✨",
+  "Os queridinhos da semana 🍓",
+  "Doces para presentear quem você ama 💝",
+  "O sabor da verdadeira confeitaria 🧁"
+];
+
 export function HomeScreen() {
   const navigation = useNavigation<MainTabNavigationProp<'Home'>>();
   const { user } = useAuth();
@@ -35,8 +42,21 @@ export function HomeScreen() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [productLoading, setProductLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentBanner, setCurrentBanner] = useState(EMOTIONAL_BANNERS[0]);
   const { theme, isDark, toggleTheme: _toggleTheme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+
+  // Rotacionar banner emocional
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBanner(prev => {
+        const currentIndex = EMOTIONAL_BANNERS.indexOf(prev);
+        const nextIndex = (currentIndex + 1) % EMOTIONAL_BANNERS.length;
+        return EMOTIONAL_BANNERS[nextIndex];
+      });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Redirecionamento automático por Role (Build 1117)
   useEffect(() => {
@@ -99,9 +119,12 @@ export function HomeScreen() {
             <Text style={styles.ratingText}>{item.rating || '5.0'}</Text>
           </View>
         </View>
-        <Text variant="bodySmall" style={styles.storeDetailsText}>
-          {item.isOpen ? '🟢 Aberto' : '🔴 Fechado'} • {item.distance ? `${item.distance.toFixed(1)}km` : 'Perto de você'}
-        </Text>
+        <View style={styles.storeDetailsRow}>
+          <View style={[styles.statusDot, { backgroundColor: item.isOpen ? '#4CAF50' : '#E53935' }]} />
+          <Text variant="bodySmall" style={styles.storeDetailsText}>
+            {item.isOpen ? 'Aberto agora' : 'Fechado no momento'} • {item.distance ? `${item.distance.toFixed(1)}km` : 'Perto de você'}
+          </Text>
+        </View>
       </Card.Content>
     </Card>
   );
@@ -110,17 +133,7 @@ export function HomeScreen() {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{ marginTop: 15, color: theme.colors.text.secondary }}>Açucaradas Encomendas</Text>
-        <Text style={{ marginTop: 5, fontSize: 12, color: '#999' }}>Sincronizando produtos...</Text>
-        
-        {/* Botão de segurança se o carregamento demorar mais de 10s */}
-        <Button 
-          mode="text" 
-          onPress={() => setProductLoading(false)} 
-          style={{ marginTop: 30 }}
-        >
-          Pular carregamento
-        </Button>
+        <Text style={{ marginTop: 15, color: theme.colors.text.secondary, fontWeight: '500' }}>Preparando a vitrine...</Text>
       </SafeAreaView>
     );
   }
@@ -131,7 +144,7 @@ export function HomeScreen() {
 
       <View style={styles.searchContainer}>
         <Searchbar
-          placeholder="O que você quer comer hoje?"
+          placeholder="Qual doce vai adoçar seu dia?"
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={styles.searchBar}
@@ -142,6 +155,7 @@ export function HomeScreen() {
 
       <ScrollView
         style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -151,6 +165,11 @@ export function HomeScreen() {
           />
         }
       >
+        {/* Banner Emocional */}
+        <View style={[styles.emotionalBanner, { backgroundColor: theme.colors.surfaceVariant || '#FCE4EC' }]}>
+          <Text style={[styles.emotionalBannerText, { color: theme.colors.primary }]}>{currentBanner}</Text>
+        </View>
+
         <View style={styles.locationSection}>
           <StoreLocationButton />
         </View>
@@ -172,7 +191,7 @@ export function HomeScreen() {
         {nearbyStores.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>Lojas Próximas</Text>
+              <Text variant="titleMedium" style={styles.sectionTitle}>Confeitarias perto de você</Text>
               <Button mode="text" compact onPress={() => (navigation as any).navigate('StoreList')}>Ver todas</Button>
             </View>
             <FlatList
@@ -186,9 +205,21 @@ export function HomeScreen() {
           </View>
         )}
 
+        {/* Seção Emocional: Perfeito para Agora */}
+        <View style={styles.section}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>Perfeito para Agora 💝</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.momentsList}>
+            {['Café da tarde', 'Festa infantil', 'Presente', 'Pós almoço'].map((moment, index) => (
+              <TouchableOpacity key={index} style={[styles.momentChip, { backgroundColor: theme.colors.surfaceVariant || '#F5F5F5' }]}>
+                <Text style={styles.momentText}>{moment}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         <View style={styles.featuredSection}>
           <Text variant="titleMedium" style={styles.sectionTitle}>
-            Destaques da Semana
+            Em Alta Hoje 🔥
           </Text>
 
           <View style={styles.productsGrid}>
@@ -268,6 +299,19 @@ const createStyles = (theme: ThemeType) =>
     elevation: 2,
     borderRadius: 12,
     backgroundColor: '#f1f3f5',
+  },
+  emotionalBanner: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emotionalBannerText: {
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   locationSection: {
     paddingHorizontal: 20,
@@ -350,9 +394,32 @@ const createStyles = (theme: ThemeType) =>
     color: '#FFB800',
     marginLeft: 2,
   },
+  storeDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
   storeDetailsText: {
     color: '#666',
-    marginTop: 4,
+  },
+  momentsList: {
+    paddingHorizontal: 15,
+  },
+  momentChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginHorizontal: 5,
+  },
+  momentText: {
+    fontWeight: '500',
+    color: '#444',
   },
   featuredSection: {
     paddingVertical: 15,

@@ -148,12 +148,20 @@ export function StoreDetailsScreen() {
                   <MaterialCommunityIcons name="clock-fast" size={14} color="#43A047" />
                   <Text style={styles.badgeText}> 40-50 min</Text>
                 </View>
-                <View style={styles.badge}>
-                  <MaterialCommunityIcons name="shield-check" size={14} color="#1E88E5" />
-                  <Text style={styles.badgeText}> Artesanal</Text>
+                <View style={[styles.badge, { backgroundColor: '#FCE4EC' }]}>
+                  <MaterialCommunityIcons name="heart-outline" size={14} color="#E91E63" />
+                  <Text style={[styles.badgeText, { color: '#E91E63' }]}> Feito com amor</Text>
                 </View>
               </View>
             </View>
+          </View>
+
+          {/* Mensagem Emocional da Loja */}
+          <View style={styles.storeEmotionalMessage}>
+            <MaterialCommunityIcons name="format-quote-open" size={24} color="#E0E0E0" />
+            <Text style={styles.emotionalText}>
+              "Cada doce é preparado artesanalmente e sob encomenda, garantindo frescor e muito sabor para o seu dia."
+            </Text>
           </View>
         </View>
 
@@ -288,4 +296,20 @@ const styles = StyleSheet.create({
   
   emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 60, paddingHorizontal: 40 },
   emptyText: { textAlign: 'center', color: '#666', marginTop: 16, fontSize: 16 },
+  storeEmotionalMessage: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E91E63',
+  },
+  emotionalText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: '#666',
+    marginTop: 4,
+    lineHeight: 20,
+  },
 });

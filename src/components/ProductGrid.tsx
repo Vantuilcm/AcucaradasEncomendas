@@ -122,6 +122,15 @@ export function ProductGrid({
     [addItem]
   );
 
+  const getEmotionalBadge = (tag: string) => {
+    const t = tag.toLowerCase();
+    if (t === 'mais_vendido') return '🔥 Mais Vendido';
+    if (t === 'destaque') return '⭐ Destaque';
+    if (t === 'novo') return '✨ Novidade';
+    if (t === 'artesanal') return '🛡️ Artesanal';
+    return tag.charAt(0).toUpperCase() + tag.slice(1);
+  };
+
   // Função para renderizar um item do produto
   const renderProductItem = useCallback(
     ({ item }: { item: Product }) => (
@@ -134,19 +143,30 @@ export function ProductGrid({
         }
         activeOpacity={0.7}
       >
-        {item.destacado && <Badge style={styles.featuredBadge}>Destaque</Badge>}
+        {item.destacado && (
+          <View style={styles.featuredBadge}>
+            <Text style={styles.featuredBadgeText}>⭐ Destaque</Text>
+          </View>
+        )}
 
-        <EnhancedImage
-          source={{
-            uri:
-              Array.isArray(item.imagens) && item.imagens.length > 0
-                ? item.imagens[0]
-                : 'https://via.placeholder.com/150',
-          }}
-          style={styles.productImage}
-          resizeMode="cover"
-          placeholderType={PlaceholderType.SKELETON}
-        />
+        <View style={styles.imageContainer}>
+          <EnhancedImage
+            source={{
+              uri:
+                Array.isArray(item.imagens) && item.imagens.length > 0
+                  ? item.imagens[0]
+                  : 'https://via.placeholder.com/150',
+            }}
+            style={styles.productImage}
+            resizeMode="cover"
+            placeholderType={PlaceholderType.SKELETON}
+          />
+          {showAddToCart && (
+            <TouchableOpacity style={styles.quickAddButton} onPress={() => handleAddToCart(item)}>
+              <Ionicons name="add" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={1}>
@@ -157,23 +177,16 @@ export function ProductGrid({
           {item.tagsEspeciais && item.tagsEspeciais.length > 0 && (
             <View style={styles.tagsContainer}>
               {item.tagsEspeciais.slice(0, 2).map((tag, index) => (
-                <Chip key={index} style={styles.tag} textStyle={styles.tagText} compact>
-                  {tag}
-                </Chip>
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>{getEmotionalBadge(tag)}</Text>
+                </View>
               ))}
             </View>
-          )}
-
-          {showAddToCart && (
-            <TouchableOpacity style={styles.addButton} onPress={() => handleAddToCart(item)}>
-              <Ionicons name="cart-outline" size={16} color="#fff" />
-              <Text style={styles.addButtonText}>Adicionar</Text>
-            </TouchableOpacity>
           )}
         </View>
       </TouchableOpacity>
     ),
-    [cardWidth, handleAddToCart, navigation, onProductPress, showAddToCart]
+    [cardWidth, handleAddToCart, navigation, onProductPress, showAddToCart, styles]
   );
 
   return (
@@ -285,12 +298,32 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
     height: 150,
     width: '100%',
   },
+  imageContainer: {
+    position: 'relative',
+  },
+  quickAddButton: {
+    position: 'absolute',
+    bottom: -10,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
   productInfo: {
     padding: 12,
+    paddingTop: 16,
   },
   productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '600',
     color: theme.colors.text.primary,
     marginBottom: 4,
   },
@@ -300,26 +333,20 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
     color: theme.colors.primary,
     marginBottom: 8,
   },
-  addButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 8,
-    borderRadius: 20,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
   featuredBadge: {
     position: 'absolute',
     top: 8,
-    right: 8,
+    left: 8,
     zIndex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#FFB300',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  featuredBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -329,10 +356,16 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
     marginRight: 4,
     marginBottom: 4,
     backgroundColor: theme.colors.surface,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.outline || '#E0E0E0',
   },
   tagText: {
     fontSize: 10,
-    color: theme.colors.primary,
+    color: theme.colors.text.secondary || '#666',
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
