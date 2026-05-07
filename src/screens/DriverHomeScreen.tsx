@@ -96,13 +96,21 @@ export function DriverHomeScreen() {
   }, [user, driver?.id, orderService]);
 
   const toggleOnline = async (value: boolean) => {
-    if (!driver) return;
+    console.log('[DRIVER_ONLINE_STATUS] Toque no toggle:', value);
+    if (!driver?.id) {
+      console.warn('[DRIVER_ONLINE_STATUS] Perfil de entregador não encontrado no estado local');
+      Alert.alert('Erro', 'Perfil de entregador não carregado. Puxe a tela para baixo para atualizar.');
+      return;
+    }
     try {
       setIsOnline(value);
+      console.log('[DRIVER_ONLINE_STATUS] Atualizando Firestore para o driver:', driver.id);
       await driverService.updateDriverAvailability(driver.id, value);
+      console.log('[DRIVER_ONLINE_STATUS] Atualizado com sucesso no Firestore');
     } catch (error) {
+      console.error('[DRIVER_ONLINE_STATUS] Erro no Firestore:', error);
       setIsOnline(!value);
-      Alert.alert('Erro', 'Não foi possível alterar seu status.');
+      Alert.alert('Erro', 'Não foi possível alterar seu status. Verifique sua conexão.');
     }
   };
 
@@ -171,7 +179,12 @@ export function DriverHomeScreen() {
                 {isOnline ? '🟢 Você está online\nPronto para receber entregas próximas' : '⚪ Você está offline\nAtive para começar a receber corridas'}
               </Text>
             </View>
-            <Switch value={isOnline} onValueChange={toggleOnline} color="#4CAF50" />
+            <Switch 
+              value={isOnline} 
+              onValueChange={toggleOnline} 
+              color="#4CAF50" 
+              disabled={loading || !driver}
+            />
           </View>
           
           <View style={styles.statsRow}>
