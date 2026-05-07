@@ -62,27 +62,39 @@ export function ProductGrid({
   // Calcular a largura dos cards com base no número de colunas
   const cardWidth = (width - (numColumns + 1) * 16) / numColumns;
 
-  // Extrair categorias únicas dos produtos
-  const categories = [...new Set(products.map(p => p.categoria))];
+  // Extrair categorias únicas dos produtos (normalizadas para evitar duplicidade visual)
+  const categories = React.useMemo(() => {
+    const rawCategories = products.map(p => p.categoria).filter(Boolean);
+    const normalized = new Set(
+      rawCategories.map(cat => {
+        const trimmed = String(cat).trim();
+        return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+      })
+    );
+    return Array.from(normalized);
+  }, [products]);
 
   // Filtrar produtos com base na categoria e busca
-  const filteredProducts = products.filter(product => {
-    let matchesCategory = true;
-    let matchesSearch = true;
+  const filteredProducts = React.useMemo(() => {
+    return products.filter(product => {
+      let matchesCategory = true;
+      let matchesSearch = true;
 
-    if (selectedCategory) {
-      matchesCategory = product.categoria === selectedCategory;
-    }
+      if (selectedCategory && selectedCategory !== 'todas') {
+        const productCat = String(product.categoria || '').trim().toLowerCase();
+        matchesCategory = productCat === selectedCategory.toLowerCase();
+      }
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      matchesSearch =
-        (typeof product.nome === 'string' && product.nome.toLowerCase().includes(query)) ||
-        (typeof product.descricao === 'string' && product.descricao.toLowerCase().includes(query));
-    }
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        matchesSearch =
+          (typeof product.nome === 'string' && product.nome.toLowerCase().includes(query)) ||
+          (typeof product.descricao === 'string' && product.descricao.toLowerCase().includes(query));
+      }
 
-    return matchesCategory && matchesSearch && product.disponivel;
-  });
+      return matchesCategory && matchesSearch && product.disponivel;
+    });
+  }, [products, selectedCategory, searchQuery]);
 
   // Notificar o componente pai sobre alteração nos filtros
   useEffect(() => {
@@ -209,17 +221,30 @@ export function ProductGrid({
           keyExtractor={item => item}
           showsHorizontalScrollIndicator={false}
           style={styles.categoriesContainer}
+          contentContainerStyle={{ paddingRight: 16 }}
           renderItem={({ item }) => (
-            <Chip
-              mode={
-                selectedCategory === (item === 'todas' ? undefined : item) ? 'flat' : 'outlined'
-              }
-              selected={selectedCategory === (item === 'todas' ? undefined : item)}
+            <TouchableOpacity
               onPress={() => setSelectedCategory(item === 'todas' ? undefined : item)}
-              style={styles.categoryChip}
+              style={[
+                styles.categoryChip,
+                selectedCategory === (item === 'todas' ? undefined : item) && {
+                  backgroundColor: theme.colors.primary,
+                  borderColor: theme.colors.primary,
+                },
+              ]}
             >
-              {item === 'todas' ? 'Todas' : item}
-            </Chip>
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  selectedCategory === (item === 'todas' ? undefined : item) && {
+                    color: '#fff',
+                    fontWeight: 'bold',
+                  },
+                ]}
+              >
+                {item === 'todas' ? 'Todas' : item}
+              </Text>
+            </TouchableOpacity>
           )}
         />
       )}
@@ -276,23 +301,39 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
     backgroundColor: theme.colors.surface,
   },
   categoriesContainer: {
-    marginBottom: 12,
-    paddingHorizontal: 8,
+    marginBottom: 16,
+    paddingHorizontal: 16,
   },
   categoryChip: {
-    marginHorizontal: 4,
-    marginBottom: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#fff',
+    marginRight: 8,
+    height: 36,
+    justifyContent: 'center',
+  },
+  categoryChipText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   },
   productList: {
-    paddingHorizontal: 8,
-    paddingBottom: 16,
+    paddingHorizontal: 12,
+    paddingBottom: 24,
   },
   productCard: {
-    margin: 8,
-    borderRadius: 12,
+    margin: 6,
+    borderRadius: 16,
     backgroundColor: theme.colors.card,
     overflow: 'hidden',
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   productImage: {
     height: 150,
@@ -338,13 +379,15 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
     top: 8,
     left: 8,
     zIndex: 1,
-    backgroundColor: '#FFB300',
+    backgroundColor: '#FFF7E6',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F3D7A6',
   },
   featuredBadgeText: {
-    color: '#fff',
+    color: '#A05A00',
     fontSize: 10,
     fontWeight: 'bold',
   },
