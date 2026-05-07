@@ -14,12 +14,11 @@ import { useAppTheme } from '../components/ThemeProvider';
 // --- CONFIGURAÇÕES DE DADOS (MARKETPLACE EXPANDIDO) ---
 const SUGGESTIONS = [
   { title: 'Brigadeiro Gourmet', category: 'Brigadeiros', listingType: 'product' },
+  { title: 'Bento Cake', category: 'Bolos', listingType: 'product' },
   { title: 'Bala de Coco', category: 'Bala de Coco', listingType: 'product' },
-  { title: 'Bento Cake', category: 'Bento Cakes', listingType: 'product' },
+  { title: 'Kit Festa', category: 'Kit Festa', listingType: 'rental' },
   { title: 'Brownie', category: 'Brownies', listingType: 'product' },
-  { title: 'Copo da Felicidade', category: 'Sobremesas', listingType: 'product' },
-  { title: 'Cone Trufado', category: 'Sobremesas', listingType: 'product' },
-  { title: 'Banoffee', category: 'Banoffee', listingType: 'product' },
+  { title: 'Cone Trufado', category: 'Cone Trufado', listingType: 'product' },
 ];
 
 const DIETARY_TAGS = [
@@ -32,16 +31,10 @@ const EVENT_TAGS = [
 ];
 
 const CATEGORY_GROUPS = {
-  'Doces': ['Bala de Coco', 'Brigadeiros', 'Docinhos de Festa', 'Beijinhos', 'Cajuzinhos', 'Casadinhos'],
-  'Gourmet': ['Brownies', 'Cookies', 'Donuts', 'Macarons'],
-  'Bolos': ['Bento Cakes', 'Naked Cakes', 'Bolo no Pote', 'Bolos'], // Mantém 'Bolos'
-  'Sobremesas': ['Pudins', 'Banoffee', 'Cheesecakes', 'Palha Italiana', 'Sobremesas', 'Tortas'],
-  'Eventos': ['Kit Festa', 'Lembrancinhas', 'Mesa de Festa'],
-  'Decoração': ['Balões', 'Painéis', 'Flores', 'Arcos'],
-  'Aluguel': ['Mesas', 'Cadeiras', 'Louças', 'Boleiras', 'Rechauds', 'Kit Provençal'],
-  'Espaços': ['Salão de Festa', 'Espaço Kids', 'Chácara', 'Área Gourmet'],
-  'Serviços': ['DJ', 'Fotógrafo', 'Recreador', 'Garçom', 'Cerimonialista'],
-  'Outros': ['Cupcakes', 'Salgados', 'Bebidas'] // Categorias antigas para compatibilidade
+  '🧁 Doces': ['Brigadeiros', 'Bala de Coco', 'Bolos', 'Tortas', 'Brownies', 'Cookies', 'Cupcakes', 'Doces Finos', 'Pudins', 'Cone Trufado'],
+  '🍹 Bebidas': ['Milk-shakes', 'Smoothies', 'Cafés Especiais', 'Chocolate Quente', 'Sucos Naturais', 'Drinks sem álcool', 'Kombucha', 'Chás Gelados'],
+  '🎉 Kits & Festa': ['Kit Festa', 'Festa na Caixa', 'Caixa Presente', 'Kit Romântico', 'Kit Infantil', 'Café da Manhã', 'Kit Mesversário'],
+  '🎂 Sob Encomenda': ['Bolo Temático', 'Casamento', 'Chá Revelação', 'Corporativo', 'Datas Especiais']
 };
 
 interface RouteParams {
@@ -80,6 +73,14 @@ export function AddEditProductScreen() {
     caucao: '',
     capacidade: '',
     estacionamento: false,
+    // Novos campos puramente visuais solicitados
+    itensInclusos: '',
+    tema: '',
+    antecedencia: '',
+    personalizacao: '',
+    referencia: '',
+    observacoes: '',
+    tamanho: '',
   });
 
   const [dietaryTags, setDietaryTags] = useState<string[]>([]);
@@ -118,6 +119,13 @@ export function AddEditProductScreen() {
         caucao: product.caucao?.toString() || '',
         capacidade: product.capacidade?.toString() || '',
         estacionamento: product.estacionamento || false,
+        itensInclusos: (product.detalhes?.itensInclusos as string) || '',
+        tema: (product.detalhes?.tema as string) || '',
+        antecedencia: (product.detalhes?.antecedencia as string) || '',
+        personalizacao: (product.detalhes?.personalizacao as string) || '',
+        referencia: (product.detalhes?.referencia as string) || '',
+        observacoes: (product.detalhes?.observacoes as string) || '',
+        tamanho: (product.detalhes?.tamanho as string) || '',
       });
 
       if (product.imagens && product.imagens.length > 0) {
@@ -185,6 +193,15 @@ export function AddEditProductScreen() {
         listingType,
         dietaryTags: dietaryTags.length > 0 ? dietaryTags : undefined,
         eventTags: eventTags.length > 0 ? eventTags : undefined,
+        detalhes: {
+          itensInclusos: dynamicFields.itensInclusos || '',
+          tema: dynamicFields.tema || '',
+          antecedencia: dynamicFields.antecedencia || '',
+          personalizacao: dynamicFields.personalizacao || '',
+          referencia: dynamicFields.referencia || '',
+          observacoes: dynamicFields.observacoes || '',
+          tamanho: dynamicFields.tamanho || '',
+        }
       };
 
       // Campos dinâmicos (convertidos adequadamente)
@@ -271,10 +288,10 @@ export function AddEditProductScreen() {
               value={listingType}
               onValueChange={(val) => setListingType(val as any)}
               buttons={[
-                { value: 'product', label: 'Produto' },
-                { value: 'service', label: 'Serviço' },
-                { value: 'rental', label: 'Aluguel' },
-                { value: 'space', label: 'Espaço' },
+                { value: 'product', label: '🧁 Doces' },
+                { value: 'service', label: '🎂 Sob Encomenda' },
+                { value: 'rental', label: '🎉 Kits & Festa' },
+                { value: 'space', label: '🍹 Bebidas' },
               ]}
               style={styles.segmented}
             />
@@ -291,7 +308,8 @@ export function AddEditProductScreen() {
             />
 
             <TextInput
-              label="Descrição"
+              label="Conte o diferencial do seu produto"
+              placeholder="Ex: Feito artesanalmente com ingredientes selecionados."
               value={productData.description}
               onChangeText={text => setProductData({ ...productData, description: text })}
               multiline
@@ -376,39 +394,46 @@ export function AddEditProductScreen() {
             {listingType === 'product' && (
               <View>
                 <View style={styles.dynamicRow}>
-                  <TextInput label="Estoque" value={productData.stock} onChangeText={t => setProductData({ ...productData, stock: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
-                  <View style={styles.spacer} />
                   <TextInput label="Peso (g)" value={dynamicFields.peso} onChangeText={t => setDynamicFields({ ...dynamicFields, peso: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
+                  <View style={styles.spacer} />
+                  <TextInput label="Serve quantas pessoas" value={dynamicFields.capacidade} onChangeText={t => setDynamicFields({ ...dynamicFields, capacidade: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
                 </View>
                 <TextInput label="Validade" value={dynamicFields.validade} onChangeText={t => setDynamicFields({ ...dynamicFields, validade: t })} placeholder="Ex: 5 dias" style={styles.input} mode="outlined" />
               </View>
             )}
 
-            {listingType === 'service' && (
+            {listingType === 'space' && (
               <View style={styles.dynamicRow}>
-                <TextInput label="Duração (horas)" value={dynamicFields.duracao} onChangeText={t => setDynamicFields({ ...dynamicFields, duracao: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
+                <TextInput label="Volume (ml)" value={dynamicFields.duracao} onChangeText={t => setDynamicFields({ ...dynamicFields, duracao: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
                 <View style={styles.spacer} />
-                <Chip mode={dynamicFields.deslocamento ? 'flat' : 'outlined'} onPress={() => setDynamicFields({ ...dynamicFields, deslocamento: !dynamicFields.deslocamento })} style={styles.toggleChip}>
-                  Deslocamento Incluso? {dynamicFields.deslocamento ? 'Sim' : 'Não'}
+                <TextInput label="Tamanho" value={dynamicFields.tamanho} onChangeText={t => setDynamicFields({ ...dynamicFields, tamanho: t })} placeholder="Ex: 500ml" style={[styles.input, styles.flex1]} mode="outlined" />
+                <View style={styles.spacer} />
+                <Chip mode={dynamicFields.estacionamento ? 'flat' : 'outlined'} onPress={() => setDynamicFields({ ...dynamicFields, estacionamento: !dynamicFields.estacionamento })} style={styles.toggleChip}>
+                  Gelado? {dynamicFields.estacionamento ? 'Sim' : 'Não'}
                 </Chip>
               </View>
             )}
 
             {listingType === 'rental' && (
-              <View style={styles.dynamicRow}>
-                <TextInput label="Diária (R$)" value={dynamicFields.diaria} onChangeText={t => setDynamicFields({ ...dynamicFields, diaria: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
-                <View style={styles.spacer} />
-                <TextInput label="Caução (R$)" value={dynamicFields.caucao} onChangeText={t => setDynamicFields({ ...dynamicFields, caucao: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
+              <View>
+                <TextInput label="Itens Inclusos" value={dynamicFields.itensInclusos} onChangeText={t => setDynamicFields({ ...dynamicFields, itensInclusos: t })} placeholder="Ex: 1 bolo, 50 docinhos" style={styles.input} mode="outlined" />
+                <View style={styles.dynamicRow}>
+                  <TextInput label="Tema" value={dynamicFields.tema} onChangeText={t => setDynamicFields({ ...dynamicFields, tema: t })} style={[styles.input, styles.flex1]} mode="outlined" />
+                  <View style={styles.spacer} />
+                  <TextInput label="Quantidade de Pessoas" value={dynamicFields.capacidade} onChangeText={t => setDynamicFields({ ...dynamicFields, capacidade: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
+                </View>
+                <Chip mode={dynamicFields.deslocamento ? 'flat' : 'outlined'} onPress={() => setDynamicFields({ ...dynamicFields, deslocamento: !dynamicFields.deslocamento })} style={styles.toggleChip}>
+                  Embalagem Especial? {dynamicFields.deslocamento ? 'Sim' : 'Não'}
+                </Chip>
               </View>
             )}
 
-            {listingType === 'space' && (
-              <View style={styles.dynamicRow}>
-                <TextInput label="Capacidade (pessoas)" value={dynamicFields.capacidade} onChangeText={t => setDynamicFields({ ...dynamicFields, capacidade: t })} keyboardType="numeric" style={[styles.input, styles.flex1]} mode="outlined" />
-                <View style={styles.spacer} />
-                <Chip mode={dynamicFields.estacionamento ? 'flat' : 'outlined'} onPress={() => setDynamicFields({ ...dynamicFields, estacionamento: !dynamicFields.estacionamento })} style={styles.toggleChip}>
-                  Estacionamento? {dynamicFields.estacionamento ? 'Sim' : 'Não'}
-                </Chip>
+            {listingType === 'service' && (
+              <View>
+                <TextInput label="Antecedência Mínima" value={dynamicFields.antecedencia} onChangeText={t => setDynamicFields({ ...dynamicFields, antecedencia: t })} placeholder="Ex: 3 dias" style={styles.input} mode="outlined" />
+                <TextInput label="Personalização" value={dynamicFields.personalizacao} onChangeText={t => setDynamicFields({ ...dynamicFields, personalizacao: t })} placeholder="O que pode ser alterado?" style={styles.input} mode="outlined" />
+                <TextInput label="Referência Visual (Link/Observação)" value={dynamicFields.referencia} onChangeText={t => setDynamicFields({ ...dynamicFields, referencia: t })} placeholder="Link de inspiração" style={styles.input} mode="outlined" />
+                <TextInput label="Observações" value={dynamicFields.observacoes} onChangeText={t => setDynamicFields({ ...dynamicFields, observacoes: t })} placeholder="Outros detalhes" style={styles.input} mode="outlined" />
               </View>
             )}
 
@@ -420,6 +445,17 @@ export function AddEditProductScreen() {
                 <Chip mode={productData.available ? 'flat' : 'outlined'} selected={productData.available} onPress={() => setProductData({ ...productData, available: true })} style={[styles.chip, productData.available && styles.availableChip]}>Sim</Chip>
                 <Chip mode={!productData.available ? 'flat' : 'outlined'} selected={!productData.available} onPress={() => setProductData({ ...productData, available: false })} style={[styles.chip, !productData.available && styles.unavailableChip]}>Não</Chip>
               </View>
+            </View>
+
+            <Divider style={styles.divider} />
+
+            <View style={styles.tipsContainer}>
+              <Text style={styles.tipsTitle}>📸 Dicas para vender mais</Text>
+              <Text style={styles.tipText}>• Use fundo claro</Text>
+              <Text style={styles.tipText}>• Mostre o recheio</Text>
+              <Text style={styles.tipText}>• Tire foto perto da janela</Text>
+              <Text style={styles.tipText}>• Evite prints</Text>
+              <Text style={styles.tipText}>• Mostre a embalagem</Text>
             </View>
 
             <Text style={styles.label}>Imagem *</Text>
@@ -489,6 +525,10 @@ const createStyles = (theme: { colors: any }) => StyleSheet.create({
   availableChip: { backgroundColor: theme.colors.success },
   unavailableChip: { backgroundColor: theme.colors.error },
   
+  tipsContainer: { backgroundColor: theme.colors.surfaceVariant, padding: 16, borderRadius: 12, marginBottom: 16 },
+  tipsTitle: { fontSize: 16, fontWeight: 'bold', color: theme.colors.text.primary, marginBottom: 8 },
+  tipText: { fontSize: 14, color: theme.colors.text.secondary, marginBottom: 4 },
+
   imageContainer: { alignItems: 'center', marginVertical: 8, padding: 16, backgroundColor: theme.colors.background, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, borderStyle: 'dashed' },
   productImage: { width: '100%', height: 200, borderRadius: 8, marginBottom: 16 },
   imagePlaceholder: { width: '100%', height: 150, borderRadius: 8, backgroundColor: theme.colors.surface, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
