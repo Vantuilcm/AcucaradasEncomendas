@@ -38,23 +38,37 @@ export const ContaBancariaScreen = () => {
 
   // Listener para atualizações em tempo real (caso webhook atualize)
   useEffect(() => {
-    if (!user) return;
+    if (!user) return undefined;
     const uid = (user as any).uid || (user as any).id;
+    if (!uid) return undefined;
+    
     const userRef = f.doc('users', uid);
     
-    const unsubscribe = f.onSnapshot(userRef, (docSnap: any) => {
-      if (docSnap.exists()) {
-        setAccountData(docSnap.data());
-      }
-      setLoading(false);
-    });
+    try {
+      console.log('[BANK_FIRESTORE_READ_START] uid:', uid);
+      const unsubscribe = f.onSnapshot(userRef, (docSnap: any) => {
+        console.log('[BANK_FIRESTORE_READ_OK]');
+        if (docSnap.exists()) {
+          setAccountData(docSnap.data());
+        }
+        setLoading(false);
+      }, (error: any) => {
+        console.error('[BANK_FRONTEND_ERROR] onSnapshot:', error?.code, error?.message);
+        setLoading(false);
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (e) {
+      console.error('[BANK_FRONTEND_ERROR] listener:', e);
+      setLoading(false);
+      return undefined;
+    }
   }, [user]);
 
   const handleStartOnboarding = async () => {
     if (processing) return;
     setProcessing(true);
+    console.log('[BANK_SCREEN_START]');
 
     try {
       const uid = (user as any).uid || (user as any).id;
@@ -75,6 +89,7 @@ export const ContaBancariaScreen = () => {
         if (!data || !data.accountId) {
           throw new Error('Falha ao criar conta conectada no Stripe.');
         }
+        console.log('[BANK_FUNCTION_SUCCESS] createAccount', !!data?.accountId);
         currentAccountId = data.accountId;
         console.log('[STRIPE_ONBOARDING] Conta criada com sucesso.');
       }
@@ -90,6 +105,8 @@ export const ContaBancariaScreen = () => {
       });
 
       const linkData = linkResponse.data as any;
+      console.log('[BANK_FUNCTION_SUCCESS] createLink', !!linkData?.url);
+      
       if (!linkData || !linkData.url) {
         throw new Error('Não foi possível gerar o link de cadastro.');
       }
