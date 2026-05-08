@@ -1,0 +1,315 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, Linking } from 'react-native';
+import { Surface, Text, Button, Divider, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getApp } from '../config/firebase';
+import { f } from '../config/firebase';
+import { useNavigation } from '@react-navigation/native';
+
+export const ContaBancariaScreen = () => {
+  const { user } = useAuth();
+  const theme = useTheme();
+  const navigation = useNavigation();
+
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [accountData, setAccountData] = useState<any>(null);
+
+  const functions = getFunctions();
+
+  // Função segura para buscar dados
+  const loadAccountData = useCallback(async () => {
+    if (!user) return;
+    try {
+      const userRef = f.doc('users', (user as any).uid || (user as any).id);
+      const userSnap = await f.getDoc(userRef);
+      if (userSnap.exists()) {
+        setAccountData(userSnap.data());
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Listener para atualizações em tempo real (caso webhook atualize)
+  useEffect(() => {
+    if (!user) return;
+    const uid = (user as any).uid || (user as any).id;
+    const userRef = f.doc('users', uid);
+    
+    const unsubscribe = f.onSnapshot(userRef, (docSnap: any) => {
+      if (docSnap.exists()) {
+        setAccountData(docSnap.data());
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleStartOnboarding = async () => {
+    if (processing) return;
+    setProcessing(true);
+
+    try {
+      const uid = (user as any).uid || (user as any).id;
+      const role = accountData?.role || accountData?.activeRole || 'producer';
+      let currentAccountId = accountData?.stripeAccountId;
+
+      // 1. Criar conta conectada se não existir
+      if (!currentAccountId) {
+        const createAccountFn = httpsCallable(functions, 'createConnectedAccount');
+        const response = await createAccountFn({ 
+          email: user?.email || '', 
+          role: role 
+        });
+        
+        // Verifica retorno (safe mode)
+        const data = response.data as any;
+        if (!data || !data.accountId) {
+          throw new Error('Falha ao criar conta conectada no Stripe.');
+        }
+        currentAccountId = data.accountId;
+      }
+
+      // 2. Gerar link de onboarding
+      const createLinkFn = httpsCallable(functions, 'createStripeOnboardingLink');
+      const linkResponse = await createLinkFn({
+        accountId: currentAccountId,
+        // Usar URLs de fallback genéricas, pois o app é mobile.
+        refreshUrl: 'https://acucaradas.com/reauth',
+        returnUrl: 'https://acucaradas.com/success',
+      });
+
+      const linkData = linkResponse.data as any;
+      if (!linkData || !linkData.url) {
+        throw new Error('Não foi possível gerar o link de cadastro.');
+      }
+
+      // 3. Abrir link
+      const canOpen = await Linking.canOpenURL(linkData.url);
+      if (canOpen) {
+        await Linking.openURL(linkData.url);
+      } else {
+        throw new Error('Não foi possível abrir o navegador.');
+      }
+
+    } catch (error: any) {
+      console.error('Erro no onboarding Stripe:', error);
+      Alert.alert('Ops! 😅', error.message || 'Ocorreu um erro ao tentar configurar sua conta. Tente novamente.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleSyncStatus = async () => {
+    if (processing) return;
+    if (!accountData?.stripeAccountId) return;
+    
+    setProcessing(true);
+    try {
+      const syncFn = httpsCallable(functions, 'syncStripeAccountStatus');
+      await syncFn({ accountId: accountData.stripeAccountId });
+      // Firestore listener atualizará o UI automaticamente
+      Alert.alert('Tudo certo!', 'Status atualizado com sucesso.');
+    } catch (error: any) {
+      console.error('Erro ao sincronizar status:', error);
+      Alert.alert('Erro na sincronização', 'Não foi possível verificar o status no momento.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const renderStatusCard = () => {
+    if (loading) {
+      return <ActivityIndicator size="large" color="#9C27B0" style={{ margin: 40 }} />;
+    }
+
+    const accountId = accountData?.stripeAccountId;
+    const payoutsEnabled = accountData?.payoutsEnabled;
+    const detailsSubmitted = accountData?.detailsSubmitted;
+
+    let statusTitle = "Você ainda não configurou sua conta para receber.";
+    let statusIcon = "bank-remove";
+    let statusColor = "#757575";
+    let statusDesc = "Conecte sua conta bancária de forma segura para receber os pagamentos de suas vendas.";
+    let buttonLabel = "Cadastrar conta bancária";
+
+    if (accountId) {
+      if (payoutsEnabled && detailsSubmitted) {
+        statusTitle = "Conta aprovada para receber pagamentos.";
+        statusIcon = "check-decagram";
+        statusColor = "#4CAF50";
+        statusDesc = "Sua conta bancária está verificada. Seus repasses ocorrerão automaticamente.";
+        buttonLabel = "Atualizar status";
+      } else if (detailsSubmitted && !payoutsEnabled) {
+        statusTitle = "O Stripe está analisando seus dados.";
+        statusIcon = "clock-outline";
+        statusColor = "#FF9800";
+        statusDesc = "Isso pode levar algumas horas. Avisaremos quando sua conta estiver aprovada.";
+        buttonLabel = "Atualizar status";
+      } else if (!detailsSubmitted) {
+        statusTitle = "Continue seu cadastro para liberar seus recebimentos.";
+        statusIcon = "alert-circle-outline";
+        statusColor = "#F44336";
+        statusDesc = "Faltam informações obrigatórias. Por favor, conclua seu cadastro no ambiente seguro.";
+        buttonLabel = "Continuar cadastro";
+      }
+    }
+
+    const isApproved = payoutsEnabled && detailsSubmitted;
+
+    return (
+      <Surface style={styles.statusCard} elevation={2}>
+        <View style={[styles.iconContainer, { backgroundColor: `${statusColor}15` }]}>
+          <MaterialCommunityIcons name={statusIcon as any} size={40} color={statusColor} />
+        </View>
+        
+        <Text style={[styles.statusTitle, { color: statusColor }]}>{statusTitle}</Text>
+        <Text style={styles.statusDesc}>{statusDesc}</Text>
+
+        <Divider style={styles.divider} />
+
+        <View style={styles.infoRow}>
+          <MaterialCommunityIcons name="shield-check" size={16} color="#4CAF50" />
+          <Text style={styles.infoText}>Ambiente 100% seguro via Stripe</Text>
+        </View>
+
+        <Button
+          mode="contained"
+          onPress={isApproved ? handleSyncStatus : handleStartOnboarding}
+          loading={processing}
+          disabled={processing}
+          style={[styles.actionButton, { backgroundColor: isApproved ? '#2196F3' : '#9C27B0' }]}
+          icon={isApproved ? "refresh" : "bank"}
+        >
+          {buttonLabel}
+        </Button>
+
+        {accountId && !isApproved && (
+          <Button
+            mode="text"
+            onPress={handleSyncStatus}
+            disabled={processing}
+            style={styles.syncButton}
+            textColor="#666"
+          >
+            Já preenchi, atualizar status
+          </Button>
+        )}
+      </Surface>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.pageTitle}>Recebimentos</Text>
+          <Text style={styles.pageSubtitle}>Gerencie sua conta bancária</Text>
+        </View>
+
+        {renderStatusCard()}
+
+        <View style={styles.securityBox}>
+          <Text style={styles.securityTitle}>Por que usamos o Stripe?</Text>
+          <Text style={styles.securityText}>
+            Para garantir a segurança dos seus dados, a Açucaradas Encomendas não armazena seu número de conta, agência ou documentos. Todo o processo é feito no ambiente criptografado da Stripe, líder mundial em pagamentos.
+          </Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  content: { padding: 16, paddingBottom: 40 },
+  header: { marginBottom: 24, marginTop: 8 },
+  pageTitle: { fontSize: 28, fontWeight: 'bold', color: '#1A1A1A' },
+  pageSubtitle: { fontSize: 16, color: '#666', marginTop: 4 },
+  
+  statusCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  statusTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  statusDesc: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  divider: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 20,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#2E7D32',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  actionButton: {
+    width: '100%',
+    borderRadius: 12,
+    paddingVertical: 4,
+  },
+  syncButton: {
+    marginTop: 12,
+    width: '100%',
+  },
+  securityBox: {
+    backgroundColor: '#F5F5F5',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  securityTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  securityText: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 20,
+  }
+});

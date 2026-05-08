@@ -20,10 +20,13 @@ export const ProdutorProfileScreen = () => {
   };
 
   const handleMenuPress = (route: string, label: string) => {
-    if (!route) {
-      Alert.alert('Em breve', `A funcionalidade "${label}" estará disponível nas próximas atualizações.`);
+    // TODO FASE 2: Habilitar rotas reais quando as telas forem implementadas
+    if (!route || route === 'Reports' || route === 'NotificationSettings') {
+      Alert.alert('Em breve 💝', `A funcionalidade "${label}" estará disponível em breve.`);
       return;
     }
+    
+    // Rota ContaBancaria liberada
     try {
       // Validação preventiva de permissão no frontend
       const role = (user?.role || user?.activeRole || '').toLowerCase();
@@ -93,7 +96,7 @@ export const ProdutorProfileScreen = () => {
         <View style={styles.menuContainer}>
           <Text style={styles.sectionTitle}>💰 Financeiro</Text>
           <MenuItem title="Carteira e Ganhos" subtitle="Saldo, repasses e histórico" icon="wallet" route="Reports" color="#4CAF50" />
-          <MenuItem title="Conta Bancária" subtitle="Stripe Connect e Pix" icon="bank" route="" color="#2196F3" />
+          <MenuItem title="Conta Bancária" subtitle="Stripe Connect e Repasses" icon="bank" route="ContaBancaria" color="#2196F3" />
 
           <Text style={styles.sectionTitle}>📄 Identidade</Text>
           <MenuItem title="Documentação" subtitle="CPF/CNPJ e Verificação" icon="file-document-outline" route="" color="#FF9800" />

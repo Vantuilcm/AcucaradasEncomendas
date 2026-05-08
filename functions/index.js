@@ -1026,6 +1026,35 @@ exports.createStripeOnboardingLink = functions.https.onCall(async (data, context
   }
 });
 
+exports.syncStripeAccountStatus = functions.https.onCall(async (data, context) => {
+  const stripe = require('stripe')(getStripeSecret());
+  const uid = context.auth.uid;
+  const { accountId } = data;
+
+  if (!uid) throw new functions.https.HttpsError('unauthenticated', 'Precisa estar logado.');
+  if (!accountId) throw new functions.https.HttpsError('invalid-argument', 'AccountId é obrigatório.');
+
+  try {
+    const account = await stripe.accounts.retrieve(accountId);
+    
+    const updates = {
+      chargesEnabled: account.charges_enabled,
+      payoutsEnabled: account.payouts_enabled,
+      detailsSubmitted: account.details_submitted,
+      stripeRequirementsDue: account.requirements?.currently_due || [],
+      stripeLastSyncAt: new Date().toISOString(),
+      stripeOnboardingStatus: account.details_submitted ? (account.payouts_enabled ? 'approved' : 'pending') : 'started'
+    };
+
+    await db.collection('users').doc(uid).update(updates);
+
+    return updates;
+  } catch (error) {
+    console.error('❌ [Stripe] Erro ao sincronizar conta:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
 // ======================================================
 // 🛡️ GERENCIAMENTO DE ROLES
 // ======================================================

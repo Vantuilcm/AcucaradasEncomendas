@@ -58,6 +58,7 @@ import type { DeliverySchedule, Order } from '../types/Order';
 
 import { StoreDetailsScreen } from '../screens/StoreDetailsScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { ContaBancariaScreen } from '../screens/ContaBancariaScreen';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -112,6 +113,7 @@ export type RootStackParamList = {
   DriverDocuments: undefined;
   DriverEarnings: undefined;
   DriverHistory: undefined;
+  ContaBancaria: undefined;
   Login: undefined;
   Register: { role?: string };
   ForgotPassword: undefined;
@@ -505,6 +507,7 @@ const AppNavigator = () => {
                 <Stack.Screen name="DriverDocuments" component={PlaceholderScreen} options={{ title: 'Documentos' }} />
                 <Stack.Screen name="DriverEarnings" component={PlaceholderScreen} options={{ title: 'Ganhos' }} />
                 <Stack.Screen name="DriverHistory" component={PlaceholderScreen} options={{ title: 'Corridas' }} />
+                <Stack.Screen name="ContaBancaria" component={ContaBancariaScreen} options={{ title: 'Recebimentos' }} />
               </>
             )}
           </>

@@ -784,6 +784,7 @@ export default function CheckoutScreen() {
               </Text>
             </TouchableOpacity>
 
+            {/* TODO FASE 2: Restaurar PIX após implementar exibição de QR Code seguro
             <TouchableOpacity
               style={[
                 styles.paymentOption,
@@ -805,6 +806,7 @@ export default function CheckoutScreen() {
                 PIX
               </Text>
             </TouchableOpacity>
+            */}
 
           </View>
 

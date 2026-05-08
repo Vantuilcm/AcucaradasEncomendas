@@ -17,7 +17,12 @@ export const EntregadorProfileScreen = () => {
   };
 
   const navigateTo = (route: string) => {
-    RootNavigation.navigate(route);
+    // TODO FASE 2: Habilitar rotas reais quando as telas forem implementadas
+    Alert.alert(
+      'Em breve 💝',
+      'Esta funcionalidade estará disponível em breve.'
+    );
+    // RootNavigation.navigate(route);
   };
 
   return (
@@ -46,10 +51,10 @@ export const EntregadorProfileScreen = () => {
           </View>
           <View style={styles.menuCard}>
             <List.Item
-              title="Dados Bancários (Pix)"
+              title="Dados Bancários (Stripe)"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="bank" color="#555" />}
-              onPress={() => navigateTo('DriverPix')}
+              onPress={() => RootNavigation.navigate('ContaBancaria')}
               style={styles.menuItem}
             />
           </View>
