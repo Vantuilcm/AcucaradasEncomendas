@@ -54,7 +54,10 @@ export const EntregadorProfileScreen = () => {
               title="Dados Bancários (Stripe)"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="bank" color="#555" />}
-              onPress={() => RootNavigation.navigate('ContaBancaria')}
+              onPress={() => {
+                console.log('Navegando para ContaBancaria via Entregador');
+                RootNavigation.navigate('ContaBancaria');
+              }}
               style={styles.menuItem}
             />
           </View>

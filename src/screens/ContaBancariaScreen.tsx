@@ -63,6 +63,7 @@ export const ContaBancariaScreen = () => {
 
       // 1. Criar conta conectada se não existir
       if (!currentAccountId) {
+        console.log('[STRIPE_ONBOARDING] Chamando createConnectedAccount para UID:', uid);
         const createAccountFn = httpsCallable(functions, 'createConnectedAccount');
         const response = await createAccountFn({ 
           email: user?.email || '', 
@@ -75,9 +76,11 @@ export const ContaBancariaScreen = () => {
           throw new Error('Falha ao criar conta conectada no Stripe.');
         }
         currentAccountId = data.accountId;
+        console.log('[STRIPE_ONBOARDING] Conta criada com sucesso.');
       }
 
       // 2. Gerar link de onboarding
+      console.log('[STRIPE_ONBOARDING] Chamando createStripeOnboardingLink...');
       const createLinkFn = httpsCallable(functions, 'createStripeOnboardingLink');
       const linkResponse = await createLinkFn({
         accountId: currentAccountId,
@@ -92,6 +95,7 @@ export const ContaBancariaScreen = () => {
       }
 
       // 3. Abrir link
+      console.log('[STRIPE_ONBOARDING] Abrindo link seguro do Stripe...');
       const canOpen = await Linking.canOpenURL(linkData.url);
       if (canOpen) {
         await Linking.openURL(linkData.url);
@@ -100,7 +104,7 @@ export const ContaBancariaScreen = () => {
       }
 
     } catch (error: any) {
-      console.error('Erro no onboarding Stripe:', error);
+      console.error('[STRIPE_ONBOARDING] Erro no fluxo:', error);
       Alert.alert('Ops! 😅', error.message || 'Ocorreu um erro ao tentar configurar sua conta. Tente novamente.');
     } finally {
       setProcessing(false);
@@ -113,12 +117,14 @@ export const ContaBancariaScreen = () => {
     
     setProcessing(true);
     try {
+      console.log('[STRIPE_ONBOARDING] Sincronizando status...');
       const syncFn = httpsCallable(functions, 'syncStripeAccountStatus');
       await syncFn({ accountId: accountData.stripeAccountId });
       // Firestore listener atualizará o UI automaticamente
       Alert.alert('Tudo certo!', 'Status atualizado com sucesso.');
+      console.log('[STRIPE_ONBOARDING] Status sincronizado com sucesso.');
     } catch (error: any) {
-      console.error('Erro ao sincronizar status:', error);
+      console.error('[STRIPE_ONBOARDING] Erro ao sincronizar status:', error);
       Alert.alert('Erro na sincronização', 'Não foi possível verificar o status no momento.');
     } finally {
       setProcessing(false);
