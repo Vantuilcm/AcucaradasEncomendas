@@ -5,16 +5,36 @@
 
 const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
-const stripeSecret = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_key_not_exposed';
+
 if (!admin.apps.length) {
   admin.initializeApp();
 }
+
 function getStripeSecret() {
+  let secretKey = null;
+
   try {
-    return functions.config().stripe.secret;
+    // 1. Tenta pegar da configuração do Firebase Functions (padrão mais seguro)
+    secretKey = functions.config().stripe?.secret;
   } catch (e) {
-    return stripeSecret;
+    // Ignora erro se functions.config() falhar
   }
+
+  // 2. Se não encontrou, tenta variáveis de ambiente Node.js
+  if (!secretKey) {
+    secretKey = process.env.STRIPE_SECRET_KEY;
+  }
+
+  // 3. Validação rígida de segurança
+  if (!secretKey) {
+    console.error('🚨 [STRIPE_ENV] ERRO CRÍTICO: STRIPE_SECRET_KEY não configurada no ambiente.');
+    throw new functions.https.HttpsError(
+      'internal',
+      'Configuração financeira ausente. Contate o administrador.'
+    );
+  }
+
+  return secretKey;
 }
 
 function getWebhookSecret() {
