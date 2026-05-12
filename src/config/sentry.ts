@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
+import { Alert } from 'react-native';
 import { ConfigService } from '../services/ConfigService';
 
 // Configurações via variáveis de ambiente (EXPO_PUBLIC_)
@@ -55,15 +56,47 @@ export const initSentry = () => {
     console.log('[SENTRY_INIT_OK]');
 
     try {
-      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1277');
+      Alert.alert('SENTRY_INIT_OK');
+    } catch (e) {
+      console.error('[ALERT_ERROR]', e);
+    }
+
+    try {
+      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1278');
       console.log('[SENTRY_TEST_SENT]');
+
+      try {
+        Alert.alert('SENTRY_TEST_SENT');
+      } catch (e) {
+        console.error('[ALERT_ERROR]', e);
+      }
     } catch (error) {
       console.error('[SENTRY_TEST_FAILED]', error);
+
+      try {
+        const errorMsg = (error as any)?.message || String(error);
+        Alert.alert(
+          'SENTRY_TEST_FAILED',
+          errorMsg
+        );
+      } catch (e) {
+        console.error('[ALERT_ERROR]', e);
+      }
     }
 
     console.log('✅ Sentry iniciado com sucesso em modo PRODUÇÃO');
   } catch (error) {
     console.error('❌ Falha ao iniciar Sentry:', error);
+
+    try {
+      const errorMsg = (error as any)?.message || String(error);
+      Alert.alert(
+        'SENTRY_INIT_FAILED',
+        errorMsg
+      );
+    } catch (e) {
+      console.error('[ALERT_ERROR]', e);
+    }
   }
 };
 

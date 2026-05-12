@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
@@ -36,10 +36,16 @@ function ThemedApp() {
 
 export default function App() {
   useEffect(() => {
+    try {
+      Alert.alert('APP_STARTUP_RUNNING');
+    } catch (e) {
+      console.error('[ALERT_ERROR]', e);
+    }
+
     initSentry();
 
     try {
-      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1277');
+      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1278');
       console.log('[SENTRY_TEST_SENT]');
     } catch (error) {
       console.error('[SENTRY_TEST_FAILED]', error);
