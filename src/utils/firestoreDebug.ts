@@ -1,4 +1,6 @@
 import { Alert } from 'react-native';
+import Constants from 'expo-constants';
+import { captureMessage } from '../config/sentry';
 
 export const showFirestoreDebug = (
   path: string,
@@ -11,6 +13,19 @@ export const showFirestoreDebug = (
   console.error('[FIRESTORE_DEBUG]', { context, path, code, message });
 
   if (code === 'permission-denied' || String(message).includes('PERMISSION_DENIED')) {
+    try {
+      captureMessage('[FS_DENIED]', 'error', {
+        operation: 'firestore-debug',
+        path,
+        context,
+        code,
+        message,
+        build: Constants.expoConfig?.ios?.buildNumber || Constants.expoConfig?.android?.versionCode,
+      });
+    } catch (sentryError) {
+      console.warn('[SENTRY_FS_DENIED_FAILED]', sentryError);
+    }
+
     Alert.alert(
       `${context} - Firestore`,
       `PATH: ${path}\nCODE: ${code}\nMSG: ${message}`

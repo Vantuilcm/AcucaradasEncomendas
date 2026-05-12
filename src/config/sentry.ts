@@ -64,11 +64,22 @@ export const captureException = (error: any, context?: Record<string, any>) => {
   }
 };
 
-export const captureMessage = (message: string, level: Sentry.SeverityLevel = 'info') => {
+export const captureMessage = (
+  message: string,
+  level: Sentry.SeverityLevel = 'info',
+  context?: Record<string, any>
+) => {
   if (isSentryEnabled()) {
-    Sentry.captureMessage(message, level);
+    if (context) {
+      Sentry.withScope(scope => {
+        scope.setExtras(context);
+        Sentry.captureMessage(message, level);
+      });
+    } else {
+      Sentry.captureMessage(message, level);
+    }
   } else {
-    console.log(`[Sentry Disabled] [${level}] ${message}`);
+    console.log(`[Sentry Disabled] [${level}] ${message}`, context || '');
   }
 };
 

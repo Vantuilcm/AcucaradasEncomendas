@@ -4,6 +4,7 @@
 
 import { ENV } from './env';
 import Constants from 'expo-constants';
+import { captureMessage } from './sentry';
 
 // 🛡️ [RECOVERY-LOG] Verificar se os dados vieram do Constants.expoConfig.extra (Fallback físico)
 const extra = Constants.expoConfig?.extra || {};
@@ -181,6 +182,23 @@ export const logFirestoreDenied = ({
     message: error?.message,
     timestamp: new Date().toISOString(),
   });
+
+  try {
+    captureMessage(
+      '[FS_DENIED]',
+      'error',
+      {
+        operation,
+        path,
+        screen: screen || 'unknown',
+        code: error?.code,
+        message: error?.message,
+        build: Constants.expoConfig?.ios?.buildNumber || Constants.expoConfig?.android?.versionCode,
+      }
+    );
+  } catch (sentryError) {
+    console.warn('[SENTRY_FS_DENIED_FAILED]', sentryError);
+  }
 };
 
 const wrapFirestoreCall = (operation: string, fn: any) => {
