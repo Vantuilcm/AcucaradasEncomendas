@@ -4,6 +4,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { f, getDb } from '../config/firebase';
 import { UserUtils } from '../utils/UserUtils';
+
+// Helper temporário para debug Firestore
+const showFirestoreDebug = (path: string, error: any) => {
+  console.error('[FIRESTORE_PERMISSION_ERROR]', {
+    path,
+    code: error?.code,
+    message: error?.message,
+  });
+
+  if (error?.code === 'permission-denied' || String(error?.message || '').includes('PERMISSION_DENIED')) {
+    Alert.alert(
+      'Firestore Debug',
+      `PATH: ${path}\nCODE: ${error?.code || 'unknown'}\nMSG: ${error?.message || 'sem mensagem'}`
+    );
+  }
+};
+
 import { User } from '../models/User';
 import usePermissions from '../hooks/usePermissions';
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -82,6 +99,7 @@ const UserManagementScreen: React.FC = () => {
         }
       } catch (error) {
         console.error('Erro ao carregar usuários:', error);
+        showFirestoreDebug('users', error);
         Alert.alert('Erro', 'Não foi possível carregar a lista de usuários.');
       } finally {
         setLoading(false);

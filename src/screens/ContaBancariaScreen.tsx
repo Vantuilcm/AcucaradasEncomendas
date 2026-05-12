@@ -9,6 +9,22 @@ import { getApp } from '../config/firebase';
 import { f } from '../config/firebase';
 import { useNavigation } from '@react-navigation/native';
 
+// Helper temporário para debug Firestore
+const showFirestoreDebug = (path: string, error: any) => {
+  console.error('[FIRESTORE_PERMISSION_ERROR]', {
+    path,
+    code: error?.code,
+    message: error?.message,
+  });
+
+  if (error?.code === 'permission-denied' || String(error?.message || '').includes('PERMISSION_DENIED')) {
+    Alert.alert(
+      'Firestore Debug',
+      `PATH: ${path}\nCODE: ${error?.code || 'unknown'}\nMSG: ${error?.message || 'sem mensagem'}`
+    );
+  }
+};
+
 export const ContaBancariaScreen = () => {
   const { user } = useAuth();
   const theme = useTheme();
@@ -24,13 +40,16 @@ export const ContaBancariaScreen = () => {
   const loadAccountData = useCallback(async () => {
     if (!user) return;
     try {
-      const userRef = f.doc('users', (user as any).uid || (user as any).id);
+      const uid = (user as any).uid || (user as any).id;
+      const path = `users/${uid}`;
+      const userRef = f.doc('users', uid);
       const userSnap = await f.getDoc(userRef);
       if (userSnap.exists()) {
         setAccountData(userSnap.data());
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
+      showFirestoreDebug(`users/${(user as any).uid || (user as any).id}`, error);
     } finally {
       setLoading(false);
     }
@@ -54,6 +73,7 @@ export const ContaBancariaScreen = () => {
         setLoading(false);
       }, (error: any) => {
         console.error('[BANK_FRONTEND_ERROR] onSnapshot:', error?.code, error?.message);
+        showFirestoreDebug(`users/${uid}`, error);
         setLoading(false);
       });
 

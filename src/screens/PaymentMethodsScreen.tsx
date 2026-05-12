@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { f } from '../config/firebase';
 import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+
+// Helper temporário para debug Firestore
+const showFirestoreDebug = (path: string, error: any) => {
+  console.error('[FIRESTORE_PERMISSION_ERROR]', {
+    path,
+    code: error?.code,
+    message: error?.message,
+  });
+
+  if (error?.code === 'permission-denied' || String(error?.message || '').includes('PERMISSION_DENIED')) {
+    Alert.alert(
+      'Firestore Debug',
+      `PATH: ${path}\nCODE: ${error?.code || 'unknown'}\nMSG: ${error?.message || 'sem mensagem'}`
+    );
+  }
+};
+
 import {
   Card, Text, Button, IconButton, Portal, Modal, SegmentedButtons, TextInput, useTheme, } from 'react-native-paper';
 import { PaymentService } from '../services/PaymentService';
@@ -80,9 +97,10 @@ export const PaymentMethodsScreen: React.FC = () => {
     holderName: string;
     brand: string;
   }) => {
+    let userId: string | undefined;
     try {
       setLoading(true);
-      const userId = user?.id || (user as any)?.uid;
+      userId = user?.id || (user as any)?.uid;
       const userEmail = user?.email;
       if (!userId || !userEmail) {
         Alert.alert('Erro', 'Usuário não autenticado.');
@@ -91,6 +109,7 @@ export const PaymentMethodsScreen: React.FC = () => {
 
       const stripeService = StripeService.getInstance();
       // ETAPA 3 — PADRONIZAÇÃO OWNERID NO PAYMENT (BUILD 1164)
+      const path = `users/${userId}`;
       const userRef = f.doc('users', userId);
       const userDoc = await f.getDoc(userRef);
       const userData = userDoc.exists() ? (userDoc.data() as any) : null;
@@ -140,6 +159,7 @@ export const PaymentMethodsScreen: React.FC = () => {
       Alert.alert('Sucesso', 'Cartão adicionado com sucesso!');
     } catch (error) {
       console.error('Erro ao adicionar cartão:', error);
+      showFirestoreDebug(`users/${userId}`, error);
       Alert.alert('Erro', 'Não foi possível adicionar o cartão.');
     } finally {
       setLoading(false);
