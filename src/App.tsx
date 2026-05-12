@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Sentry from '@sentry/react-native';
 import { ThemeProvider } from './components/ThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
 
@@ -33,6 +34,15 @@ function ThemedApp() {
 }
 
 export default function App() {
+  useEffect(() => {
+    try {
+      Sentry.captureMessage('TESTE_SENTRY_BUILD_1276');
+      console.log('[SENTRY_TEST_SENT]');
+    } catch (error) {
+      console.error('[SENTRY_TEST_FAILED]', error);
+    }
+  }, []);
+
   // Garantir que publishableKey não seja undefined/vazio para não quebrar o provider
   const stripeKey = STRIPE_PUBLISHABLE_KEY || 'pk_test_dummy';
 
