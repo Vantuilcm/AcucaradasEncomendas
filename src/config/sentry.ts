@@ -29,6 +29,8 @@ export const initSentry = () => {
   const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
   const isProduction = process.env.NODE_ENV === 'production' || !__DEV__;
 
+  console.log('[SENTRY_DSN_EXISTS]', !!dsn);
+
   if (!dsn) {
     console.warn('⚠️ Sentry DSN não configurado. Monitoramento automático desativado.');
     return;
@@ -48,8 +50,17 @@ export const initSentry = () => {
       tracesSampleRate: 1.0,
       enableAutoSessionTracking: true,
     });
-    
+
     isSentryInitialized = true;
+    console.log('[SENTRY_INIT_OK]');
+
+    try {
+      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1277');
+      console.log('[SENTRY_TEST_SENT]');
+    } catch (error) {
+      console.error('[SENTRY_TEST_FAILED]', error);
+    }
+
     console.log('✅ Sentry iniciado com sucesso em modo PRODUÇÃO');
   } catch (error) {
     console.error('❌ Falha ao iniciar Sentry:', error);

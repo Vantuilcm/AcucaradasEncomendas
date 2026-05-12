@@ -80,6 +80,10 @@ export default ({ config }) => {
     return true;
   });
 
+  if (sentryEnabled && !finalPlugins.some(p => (typeof p === 'string' ? p : p[0]) === '@sentry/react-native/expo')) {
+    finalPlugins.push('@sentry/react-native/expo');
+  }
+
   const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
   const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
   const facebookAppId = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;

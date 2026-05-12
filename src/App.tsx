@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
+import { initSentry } from './config/sentry';
 import { ThemeProvider } from './components/ThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
 
@@ -35,8 +36,10 @@ function ThemedApp() {
 
 export default function App() {
   useEffect(() => {
+    initSentry();
+
     try {
-      Sentry.captureMessage('TESTE_SENTRY_BUILD_1276');
+      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1277');
       console.log('[SENTRY_TEST_SENT]');
     } catch (error) {
       console.error('[SENTRY_TEST_FAILED]', error);
