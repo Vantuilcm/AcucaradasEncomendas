@@ -117,25 +117,133 @@ const firebaseAuthFunctions: any = {
 };
 export { firebaseAuthFunctions as authFunctions };
 
+const ENABLE_FIRESTORE_DEBUG = true;
+
+const getFirestorePath = (refOrQuery: any): string => {
+  if (!refOrQuery) return 'unknown';
+  if (typeof refOrQuery === 'string') return refOrQuery;
+  if (refOrQuery?.path) return refOrQuery.path;
+  if (refOrQuery?.query?.path) return refOrQuery.query.path;
+  if (refOrQuery?.parent?.path) return refOrQuery.parent.path;
+  if (refOrQuery?.id && refOrQuery?.firestore) return `${refOrQuery.firestore?.app?.name || 'default'}/${refOrQuery.id}`;
+  return refOrQuery.constructor?.name || 'unknown';
+};
+
+const getFirestorePathFromArgs = (args: any[]): string => {
+  if (!args || args.length === 0) return 'unknown';
+  if (typeof args[0] === 'string') {
+    return args.filter((segment: any) => typeof segment === 'string').join('/');
+  }
+  if (args.length > 1 && typeof args[1] === 'string') {
+    return [args[1], ...args.slice(2).filter((segment: any) => typeof segment === 'string')].join('/');
+  }
+  return getFirestorePath(args[0]);
+};
+
+export const logFirestoreOperation = ({
+  operation,
+  path,
+  screen,
+  uid,
+}: {
+  operation: string;
+  path: string;
+  screen?: string;
+  uid?: string;
+}) => {
+  if (!ENABLE_FIRESTORE_DEBUG) return;
+  console.log('[FS_CALL]', {
+    operation,
+    path,
+    screen: screen || 'unknown',
+    uid: uid || 'unknown',
+    timestamp: new Date().toISOString(),
+  });
+};
+
+export const logFirestoreDenied = ({
+  operation,
+  path,
+  screen,
+  error,
+}: {
+  operation: string;
+  path: string;
+  screen?: string;
+  error: any;
+}) => {
+  if (!ENABLE_FIRESTORE_DEBUG) return;
+  console.error('[FS_DENIED]', {
+    operation,
+    path,
+    screen: screen || 'unknown',
+    code: error?.code,
+    message: error?.message,
+    timestamp: new Date().toISOString(),
+  });
+};
+
+const wrapFirestoreCall = (operation: string, fn: any) => {
+  return async (...args: any[]) => {
+    const path = getFirestorePathFromArgs(args);
+    logFirestoreOperation({ operation, path });
+    try {
+      return await fn(...args);
+    } catch (error) {
+      logFirestoreDenied({ operation, path, error });
+      throw error;
+    }
+  };
+};
+
 // 🛠️ Funções de Banco de Dados (Auto-Injected)
 export const dbFunctions: any = {
-  get collection() { return (path: string) => require('firebase/firestore').collection(getDb(), path); },
-  get doc() { return (path: string, ...rest: string[]) => require('firebase/firestore').doc(getDb(), path, ...rest); },
-  get getDocs() { return (q: any) => require('firebase/firestore').getDocs(q); },
-  get getDoc() { return (ref: any) => require('firebase/firestore').getDoc(ref); },
-  get setDoc() { return (ref: any, ...args: any[]) => require('firebase/firestore').setDoc(ref, ...args); },
-  get addDoc() { return (ref: any, ...args: any[]) => require('firebase/firestore').addDoc(ref, ...args); },
-  get updateDoc() { return (ref: any, ...args: any[]) => require('firebase/firestore').updateDoc(ref, ...args); },
-  get deleteDoc() { return (ref: any) => require('firebase/firestore').deleteDoc(ref); },
+  get collection() {
+    return (...args: any[]) => {
+      if (typeof args[0] === 'string') {
+        return require('firebase/firestore').collection(getDb(), ...args);
+      }
+      return require('firebase/firestore').collection(...args);
+    };
+  },
+  get doc() {
+    return (...args: any[]) => {
+      if (typeof args[0] === 'string') {
+        return require('firebase/firestore').doc(getDb(), ...args);
+      }
+      return require('firebase/firestore').doc(...args);
+    };
+  },
+  get getDocs() { return wrapFirestoreCall('getDocs', (q: any) => require('firebase/firestore').getDocs(q)); },
+  get getDoc() { return wrapFirestoreCall('getDoc', (ref: any) => require('firebase/firestore').getDoc(ref)); },
+  get setDoc() { return wrapFirestoreCall('setDoc', (ref: any, ...args: any[]) => require('firebase/firestore').setDoc(ref, ...args)); },
+  get addDoc() { return wrapFirestoreCall('addDoc', (ref: any, ...args: any[]) => require('firebase/firestore').addDoc(ref, ...args)); },
+  get updateDoc() { return wrapFirestoreCall('updateDoc', (ref: any, ...args: any[]) => require('firebase/firestore').updateDoc(ref, ...args)); },
+  get deleteDoc() { return wrapFirestoreCall('deleteDoc', (ref: any) => require('firebase/firestore').deleteDoc(ref)); },
   get query() { return (...args: any[]) => require('firebase/firestore').query(...args); },
   get where() { return (...args: any[]) => require('firebase/firestore').where(...args); },
   get orderBy() { return (...args: any[]) => require('firebase/firestore').orderBy(...args); },
   get limit() { return (...args: any[]) => require('firebase/firestore').limit(...args); },
   get startAfter() { return (...args: any[]) => require('firebase/firestore').startAfter(...args); },
-  get onSnapshot() { return (...args: any[]) => require('firebase/firestore').onSnapshot(...args); },
+  get onSnapshot() {
+    return (refOrQuery: any, next: any, error?: any, complete?: any) => {
+      const path = getFirestorePath(refOrQuery);
+      logFirestoreOperation({ operation: 'onSnapshot', path });
+      return require('firebase/firestore').onSnapshot(
+        refOrQuery,
+        next,
+        (err: any) => {
+          logFirestoreDenied({ operation: 'onSnapshot', path, error: err });
+          if (error) error(err);
+        },
+        complete
+      );
+    };
+  },
   get writeBatch() { return () => require('firebase/firestore').writeBatch(getDb()); },
   get runTransaction() { return (callback: any) => require('firebase/firestore').runTransaction(getDb(), callback); },
   get serverTimestamp() { return require('firebase/firestore').serverTimestamp; },
+  get increment() { return require('firebase/firestore').increment; },
 };
 
 // Mapeamento curto para compatibilidade

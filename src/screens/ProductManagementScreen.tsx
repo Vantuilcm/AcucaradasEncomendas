@@ -19,6 +19,7 @@ import { useAppTheme } from '../components/ThemeProvider';
 
 import { ProductService } from '../services/ProductService';
 import { Product } from '../types/Product';
+import { showFirestoreDebug } from '../utils/firestoreDebug';
 
 export function ProductManagementScreen() {
   const { theme } = useAppTheme();
@@ -60,7 +61,8 @@ export function ProductManagementScreen() {
       setCategories(uniqueCategories);
 
       setLoading(false);
-    } catch (err) {
+    } catch (err: any) {
+      showFirestoreDebug('products', err, 'ProductManagementScreen.loadProducts');
       setError(err instanceof Error ? err.message : 'Erro ao carregar produtos');
       setLoading(false);
     }

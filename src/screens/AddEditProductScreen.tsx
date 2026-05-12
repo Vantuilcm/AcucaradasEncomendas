@@ -8,6 +8,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import * as ImagePicker from 'expo-image-picker';
 import { ProductService } from '../services/ProductService';
 import { Product } from '../types/Product';
+import { showFirestoreDebug } from '../utils/firestoreDebug';
 
 import { useAppTheme } from '../components/ThemeProvider';
 
@@ -229,6 +230,7 @@ export function AddEditProductScreen() {
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (err: any) {
+      showFirestoreDebug('products', err, 'AddEditProductScreen.handleSaveProduct');
       Alert.alert('Erro', err.message || 'Não foi possível salvar.');
     } finally {
       setLoading(false);

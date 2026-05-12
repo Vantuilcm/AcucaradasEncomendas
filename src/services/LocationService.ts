@@ -36,8 +36,7 @@ export class LocationService {
     if (this.firebaseInstance) return this.firebaseInstance;
     try {
       const firebase = await import('../config/firebase');
-      const firestore = await import('firebase/firestore');
-      this.firebaseInstance = { ...firebase, f: firestore };
+      this.firebaseInstance = firebase;
       return this.firebaseInstance;
     } catch (e) {
       loggingService.error('Erro ao carregar Firebase dinamicamente no LocationService', { e });
@@ -130,8 +129,8 @@ export class LocationService {
     onlyOpen: boolean = false
   ): Promise<Store[]> {
     try {
-      const { db, f } = await this.getFirebase();
-      const storesRef = f.collection(db, this.storesCollection);
+      const { f } = await this.getFirebase();
+      const storesRef = f.collection(this.storesCollection);
       const querySnapshot = await f.getDocs(storesRef);
       
       const stores: Store[] = [];
@@ -198,8 +197,8 @@ export class LocationService {
    */
   public async saveUserLocation(userId: string, coordinates: GeoCoordinates): Promise<void> {
     try {
-      const { db, f } = await this.getFirebase();
-      const userRef = f.doc(db, this.usersCollection, userId);
+      const { f } = await this.getFirebase();
+      const userRef = f.doc(this.usersCollection, userId);
       await f.updateDoc(userRef, {
         lastLocation: coordinates,
         lastLocationUpdate: f.serverTimestamp(),

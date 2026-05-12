@@ -28,7 +28,8 @@ import { NotificationService } from '../services/NotificationService';
 import { SalesAutomationService } from '../services/SalesAutomationService';
 import { loggingService } from '../services/LoggingService';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getApp, getDb } from '../config/firebase';
+import { f, getApp, getDb } from '../config/firebase';
+import { showFirestoreDebug } from '../utils/firestoreDebug';
 import { useStripe } from '@stripe/stripe-react-native';
 
 import { ENV } from '../config/env';
@@ -398,26 +399,44 @@ export default function CheckoutScreen() {
               setWaitingWebhook(true);
 
               // 5. Aguardar webhook atualizar o status no Firestore
-              const isPaid = await new Promise<boolean>((resolve) => {
-                const { doc, onSnapshot } = require('firebase/firestore');
-                
+              const isPaid = await new Promise<boolean>((resolve, reject) => {
+                const orderRef = f.doc('orders', newOrder.id);
+                const path = `orders/${newOrder.id}`;
+                console.log('[CHECKOUT_FIRESTORE_OPERATION] onSnapshot', path);
+                let unsubscribe = () => {};
+
                 const timeoutId = setTimeout(() => {
                   unsubscribe();
                   resolve(false); // Timeout após 15s, segue fluxo mas com alerta de demora
                 }, 15000);
 
-                const unsubscribe = onSnapshot(doc(getDb(), 'orders', newOrder.id), (snapshot: any) => {
-                  const currentOrderData = snapshot.data();
-                  if (currentOrderData?.status === 'paid' || currentOrderData?.paymentStatus === 'completed') {
+                unsubscribe = f.onSnapshot(
+                  orderRef,
+                  (snapshot: any) => {
+                    const currentOrderData = snapshot.data();
+                    if (currentOrderData?.status === 'paid' || currentOrderData?.paymentStatus === 'completed') {
+                      clearTimeout(timeoutId);
+                      unsubscribe();
+                      resolve(true);
+                    } else if (currentOrderData?.status === 'payment_failed') {
+                      clearTimeout(timeoutId);
+                      unsubscribe();
+                      reject(new Error(currentOrderData?.paymentError || 'Pagamento falhou no servidor'));
+                    }
+                  },
+                  (error: any) => {
+                    console.error('[CHECKOUT_FIRESTORE_DENIED]', {
+                      operation: 'onSnapshot',
+                      path,
+                      code: error?.code,
+                      message: error?.message,
+                    });
+                    showFirestoreDebug(path, error, 'CheckoutScreen onSnapshot');
                     clearTimeout(timeoutId);
                     unsubscribe();
-                    resolve(true);
-                  } else if (currentOrderData?.status === 'payment_failed') {
-                    clearTimeout(timeoutId);
-                    unsubscribe();
-                    throw new Error(currentOrderData?.paymentError || 'Pagamento falhou no servidor');
+                    reject(error);
                   }
-                });
+                );
               });
 
               if (!isPaid) {

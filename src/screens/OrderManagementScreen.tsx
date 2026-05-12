@@ -52,12 +52,27 @@ export function OrderManagementScreen() {
   const orderService = useMemo(() => OrderService.getInstance(), []);
 
   useEffect(() => {
-    const unsubscribe = orderService.subscribeToAllOrders((realtimeOrders) => {
-      setOrders(realtimeOrders);
-      setLoading(false);
-    });
+    let active = true;
 
-    return () => unsubscribe();
+    const loadOrdersOnce = async () => {
+      try {
+        const realtimeOrders = await orderService.getOrders();
+        if (active) {
+          setOrders(realtimeOrders);
+        }
+      } catch (error) {
+        console.error('[ORDER_MANAGEMENT_DEBUG] Falha ao carregar pedidos via getOrders:', error);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadOrdersOnce();
+    return () => {
+      active = false;
+    };
   }, [orderService]);
 
   useEffect(() => {

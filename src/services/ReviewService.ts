@@ -23,12 +23,10 @@ export class ReviewService {
       let q = f.query(reviewsRef, f.orderBy('createdAt', 'desc'), f.limit(this.pageSize));
 
       if (lastReview) {
-        // @ts-ignore
-        const { startAfter } = require('firebase/firestore');
         q = f.query(
           reviewsRef,
           f.orderBy('createdAt', 'desc'),
-          startAfter(new Date(lastReview.createdAt)),
+          f.startAfter(new Date(lastReview.createdAt)),
           f.limit(this.pageSize)
         );
       }
@@ -202,10 +200,8 @@ export class ReviewService {
   async likeReview(reviewId: string): Promise<void> {
     try {
       const reviewRef = f.doc(this.collection, reviewId);
-      // @ts-ignore
-      const { increment } = require('firebase/firestore');
       await f.updateDoc(reviewRef, {
-        likes: increment(1),
+        likes: f.increment(1),
       });
 
       loggingService.info('Avaliação curtida com sucesso', { reviewId });

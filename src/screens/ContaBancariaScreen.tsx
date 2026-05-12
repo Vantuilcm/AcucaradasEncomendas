@@ -42,6 +42,7 @@ export const ContaBancariaScreen = () => {
     try {
       const uid = (user as any).uid || (user as any).id;
       const path = `users/${uid}`;
+      console.log('[BANK_FIRESTORE_OPERATION] getDoc', path);
       const userRef = f.doc('users', uid);
       const userSnap = await f.getDoc(userRef);
       if (userSnap.exists()) {
@@ -55,35 +56,9 @@ export const ContaBancariaScreen = () => {
     }
   }, [user]);
 
-  // Listener para atualizações em tempo real (caso webhook atualize)
   useEffect(() => {
-    if (!user) return undefined;
-    const uid = (user as any).uid || (user as any).id;
-    if (!uid) return undefined;
-    
-    const userRef = f.doc('users', uid);
-    
-    try {
-      console.log('[BANK_FIRESTORE_READ_START] uid:', uid);
-      const unsubscribe = f.onSnapshot(userRef, (docSnap: any) => {
-        console.log('[BANK_FIRESTORE_READ_OK]');
-        if (docSnap.exists()) {
-          setAccountData(docSnap.data());
-        }
-        setLoading(false);
-      }, (error: any) => {
-        console.error('[BANK_FRONTEND_ERROR] onSnapshot:', error?.code, error?.message);
-        showFirestoreDebug(`users/${uid}`, error);
-        setLoading(false);
-      });
-
-      return () => unsubscribe();
-    } catch (e) {
-      console.error('[BANK_FRONTEND_ERROR] listener:', e);
-      setLoading(false);
-      return undefined;
-    }
-  }, [user]);
+    loadAccountData();
+  }, [loadAccountData]);
 
   const handleStartOnboarding = async () => {
     if (processing) return;

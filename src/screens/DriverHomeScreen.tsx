@@ -62,37 +62,47 @@ export function DriverHomeScreen() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
-    
-    // Inscrever para todos os pedidos e filtrar localmente para garantir tempo real
-    const unsubscribe = orderService.subscribeToAllOrders((allOrders) => {
-      // const userId = (user as any).id || (user as any).uid;
-      
-      // Pedidos disponíveis para retirada (ninguém assumiu ainda)
-      const available = allOrders.filter(o => o.status === 'ready' && !o.deliveryDriver);
-      
-      // Pedidos que eu assumi e não foram finalizados
-      const active = allOrders.filter(o => 
-        o.deliveryDriver?.id === driver?.id && 
-        ['ready', 'delivering'].includes(o.status)
-      );
+    let active = true;
 
-      // Histórico simples: últimos 5 pedidos entregues por mim
-      const completed = allOrders
-        .filter(o => o.deliveryDriver?.id === driver?.id && o.status === 'delivered')
-        .sort((a, b) => {
-          const tA = (a.updatedAt as any) instanceof Date ? (a.updatedAt as any).getTime() : (a.updatedAt || 0);
-          const tB = (b.updatedAt as any) instanceof Date ? (b.updatedAt as any).getTime() : (b.updatedAt || 0);
-          return (tB as number) - (tA as number);
-        })
-        .slice(0, 5);
+    const loadOrdersOnce = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const allOrders = await orderService.getOrders();
 
-      setAvailableOrders(available);
-      setActiveOrders(active);
-      setCompletedOrders(completed);
-    });
+        if (!active) return;
 
-    return () => unsubscribe();
+        const available = allOrders.filter(o => o.status === 'ready' && !o.deliveryDriver);
+        const activeOrders = allOrders.filter(o => 
+          o.deliveryDriver?.id === driver?.id && 
+          ['ready', 'delivering'].includes(o.status)
+        );
+
+        const completed = allOrders
+          .filter(o => o.deliveryDriver?.id === driver?.id && o.status === 'delivered')
+          .sort((a, b) => {
+            const tA = (a.updatedAt as any) instanceof Date ? (a.updatedAt as any).getTime() : (a.updatedAt || 0);
+            const tB = (b.updatedAt as any) instanceof Date ? (b.updatedAt as any).getTime() : (b.updatedAt || 0);
+            return (tB as number) - (tA as number);
+          })
+          .slice(0, 5);
+
+        setAvailableOrders(available);
+        setActiveOrders(activeOrders);
+        setCompletedOrders(completed);
+      } catch (error) {
+        console.error('[DRIVER_HOME_DEBUG] Falha ao carregar pedidos via getOrders:', error);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadOrdersOnce();
+    return () => {
+      active = false;
+    };
   }, [user, driver?.id, orderService]);
 
   const toggleOnline = async (value: boolean) => {

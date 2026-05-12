@@ -51,9 +51,7 @@ export class ProductService {
       }
 
       // Criar referência para novo documento com auto-id seguro no Firestore v9
-      const { doc, collection } = require('firebase/firestore');
-      const { getDb } = require('../config/firebase');
-      const docRef = doc(collection(getDb(), this.collectionName));
+      const docRef = f.doc(f.collection(this.collectionName));
 
       // Preparar dados do produto
       const novoProduto: Product = {
