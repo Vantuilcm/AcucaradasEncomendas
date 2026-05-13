@@ -4,7 +4,7 @@
 
 import { ENV } from './env';
 import Constants from 'expo-constants';
-import { captureMessage } from './sentry';
+import * as Sentry from '@sentry/react-native';
 
 // 🛡️ [RECOVERY-LOG] Verificar se os dados vieram do Constants.expoConfig.extra (Fallback físico)
 const extra = Constants.expoConfig?.extra || {};
@@ -184,20 +184,29 @@ export const logFirestoreDenied = ({
   });
 
   try {
-    captureMessage(
-      '[FS_DENIED]',
-      'error',
-      {
+    Sentry.captureMessage('[FS_DENIED]', {
+      level: 'error',
+
+      extra: {
         operation,
         path,
         screen: screen || 'unknown',
+        context: screen || 'unknown',
+
         code: error?.code,
         message: error?.message,
-        build: Constants.expoConfig?.ios?.buildNumber || Constants.expoConfig?.android?.versionCode,
-      }
-    );
+
+        stack: error?.stack || 'NO_STACK',
+
+        build:
+          Constants?.expoConfig?.ios?.buildNumber ||
+          Constants?.expoConfig?.android?.versionCode,
+      },
+    });
+
+    console.log('[FS_DENIED_SENT_TO_SENTRY]');
   } catch (sentryError) {
-    console.warn('[SENTRY_FS_DENIED_FAILED]', sentryError);
+    console.error('[FS_DENIED_SENTRY_FAILED]', sentryError);
   }
 };
 
