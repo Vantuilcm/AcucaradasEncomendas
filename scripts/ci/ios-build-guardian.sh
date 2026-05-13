@@ -219,15 +219,40 @@ fi
 echo "📦 Instalando Pods..."
 if [ -d "ios" ]; then
     cd ios
-    # Pod install pode falhar se não houver repo local atualizado
-    echo "Running pod install..."
-    pod install > pod_install.log 2>&1 || {
-        echo "⚠️ Pod install falhou, tentando repo update..."
-        pod repo update >> pod_install.log 2>&1
-        pod install >> pod_install.log 2>&1 || {
-            echo "❌ [FATAL] Pod install falhou definitivamente!"
-            cat pod_install.log
-            exit 1
+
+    echo "🧹 Limpando cache CocoaPods..."
+    rm -rf ~/Library/Caches/CocoaPods
+    rm -rf Pods
+    rm -rf Podfile.lock
+    pod cache clean --all || true
+
+    echo "🔄 Atualizando CocoaPods Specs..."
+    pod repo update >> pod_install.log 2>&1 || true
+
+    if ! grep -q "^source 'https://cdn.cocoapods.org/'" Podfile 2>/dev/null; then
+        echo "🔧 Adicionando fontes fallback no Podfile..."
+        cat <<'EOF' > Podfile.tmp
+source 'https://cdn.cocoapods.org/'
+source 'https://github.com/CocoaPods/Specs.git'
+EOF
+        cat Podfile >> Podfile.tmp
+        mv Podfile.tmp Podfile
+        echo "✅ /ios/Podfile atualizado com fontes fallback."
+    fi
+
+    echo "📦 Instalando Pods com retry resiliente..."
+    pod install --repo-update > pod_install.log 2>&1 || {
+        echo "⚠️ Primeiro pod install falhou, tentando novamente após pod repo update..."
+        pod repo update >> pod_install.log 2>&1 || true
+        sleep 15
+        pod install --repo-update >> pod_install.log 2>&1 || {
+            echo "⚠️ Segundo pod install falhou, tentando última vez após aguardar..."
+            sleep 30
+            pod install --repo-update >> pod_install.log 2>&1 || {
+                echo "❌ [FATAL] Pod install falhou definitivamente!"
+                cat pod_install.log
+                exit 1
+            }
         }
     }
     cd ..
