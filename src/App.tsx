@@ -45,7 +45,7 @@ export default function App() {
     initSentry();
 
     try {
-      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1278');
+      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1279');
       console.log('[SENTRY_TEST_SENT]');
     } catch (error) {
       console.error('[SENTRY_TEST_FAILED]', error);

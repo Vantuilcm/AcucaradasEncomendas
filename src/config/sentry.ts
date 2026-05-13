@@ -22,81 +22,37 @@ const isSentryEnabled = () => {
 let isSentryInitialized = false;
 
 export const initSentry = () => {
-  if (isSentryInitialized) {
-    console.log('🟡 Sentry já inicializado');
-    return;
-  }
-
-  const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
-  const isProduction = process.env.NODE_ENV === 'production' || !__DEV__;
-
-  console.log('[SENTRY_DSN_EXISTS]', !!dsn);
-
-  if (!dsn) {
-    console.warn('⚠️ Sentry DSN não configurado. Monitoramento automático desativado.');
-    return;
-  }
-
-  if (!isProduction) {
-    console.log('🟡 Sentry ignorado (ambiente não produção)');
-    return;
-  }
-
   try {
+    Alert.alert('BEFORE_SENTRY_INIT');
+    console.log('[BEFORE_SENTRY_INIT]');
+
+    const dsnExists = !!process.env.EXPO_PUBLIC_SENTRY_DSN;
+    Alert.alert('SENTRY_DSN_EXISTS', String(dsnExists));
+    console.log('[SENTRY_DSN_EXISTS]', dsnExists);
+
     Sentry.init({
-      dsn,
-      debug: false,
-      environment: 'production',
-      release: Constants.expoConfig?.version || '1.0.0',
+      dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
       tracesSampleRate: 1.0,
       enableAutoSessionTracking: true,
+      debug: true,
     });
 
-    isSentryInitialized = true;
-    console.log('[SENTRY_INIT_OK]');
+    Alert.alert('AFTER_SENTRY_INIT');
+    console.log('[AFTER_SENTRY_INIT]');
 
     try {
-      Alert.alert('SENTRY_INIT_OK');
-    } catch (e) {
-      console.error('[ALERT_ERROR]', e);
-    }
-
-    try {
-      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1278');
+      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1279');
+      Alert.alert('SENTRY_TEST_SENT');
       console.log('[SENTRY_TEST_SENT]');
-
-      try {
-        Alert.alert('SENTRY_TEST_SENT');
-      } catch (e) {
-        console.error('[ALERT_ERROR]', e);
-      }
-    } catch (error) {
-      console.error('[SENTRY_TEST_FAILED]', error);
-
-      try {
-        const errorMsg = (error as any)?.message || String(error);
-        Alert.alert(
-          'SENTRY_TEST_FAILED',
-          errorMsg
-        );
-      } catch (e) {
-        console.error('[ALERT_ERROR]', e);
-      }
+    } catch (captureError) {
+      console.error('[SENTRY_CAPTURE_FAILED]', captureError);
+      const errorMsg = (captureError as any)?.message || String(captureError);
+      Alert.alert('SENTRY_CAPTURE_FAILED', errorMsg);
     }
-
-    console.log('✅ Sentry iniciado com sucesso em modo PRODUÇÃO');
   } catch (error) {
-    console.error('❌ Falha ao iniciar Sentry:', error);
-
-    try {
-      const errorMsg = (error as any)?.message || String(error);
-      Alert.alert(
-        'SENTRY_INIT_FAILED',
-        errorMsg
-      );
-    } catch (e) {
-      console.error('[ALERT_ERROR]', e);
-    }
+    console.error('[SENTRY_INIT_FAILED]', error);
+    const errorMsg = (error as any)?.message || String(error);
+    Alert.alert('SENTRY_INIT_FAILED', errorMsg);
   }
 };
 
