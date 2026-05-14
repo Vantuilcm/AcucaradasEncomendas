@@ -3,6 +3,7 @@
 // Substituídos Proxies por Lazy Getters para maior compatibilidade e estabilidade.
 
 import { ENV } from './env';
+import { Alert } from 'react-native';
 import Constants from 'expo-constants';
 import * as Sentry from '@sentry/react-native';
 
@@ -141,6 +142,18 @@ const getFirestorePathFromArgs = (args: any[]): string => {
   return getFirestorePath(args[0]);
 };
 
+const showFirestoreDebugAlert = (title: string, payload: any) => {
+  if (!ENABLE_FIRESTORE_DEBUG) return;
+  try {
+    const message = JSON.stringify(payload, null, 2);
+    const maxMessageLength = 900;
+    const truncatedMessage = message.length > maxMessageLength ? `${message.slice(0, maxMessageLength)}\n...` : message;
+    Alert.alert(title, truncatedMessage, [{ text: 'OK' }], { cancelable: true });
+  } catch (alertError) {
+    console.error('[FS_ALERT_FAILED]', { title, alertError });
+  }
+};
+
 export const logFirestoreOperation = ({
   operation,
   path,
@@ -207,6 +220,15 @@ export const logFirestoreDenied = ({
     console.log('[FS_DENIED_SENT_TO_SENTRY]');
   } catch (sentryError) {
     console.error('[FS_DENIED_SENTRY_FAILED]', sentryError);
+  }
+
+  if (error?.code === 'permission-denied') {
+    showFirestoreDebugAlert('FS_DENIED', {
+      operation,
+      path,
+      code: (error as any)?.code,
+      message: (error as any)?.message,
+    });
   }
 };
 
@@ -287,25 +309,35 @@ export const dbFunctions: any = {
       const filters = args.slice(1);
       const collectionPath = getFirestorePath(collectionRef);
       
+      const parsedFilters = filters.map((filter: any, index: number) => {
+        if (filter?._field && filter?._op && filter?._value !== undefined) {
+          // where() filter
+          return `where(${filter._field._fieldPath}, ${filter._op}, ${JSON.stringify(filter._value)})`;
+        } else if (filter?._field && filter?._direction) {
+          // orderBy() filter
+          return `orderBy(${filter._field._fieldPath}, ${filter._direction})`;
+        } else if (typeof filter === 'number') {
+          // limit() filter
+          return `limit(${filter})`;
+        } else {
+          // Unknown filter type
+          return `unknown_filter_${index}`;
+        }
+      });
+
       console.log('[FS_QUERY]', {
         collection: collectionPath,
-        filters: filters.map((filter: any, index: number) => {
-          if (filter?._field && filter?._op && filter?._value !== undefined) {
-            // where() filter
-            return `where(${filter._field._fieldPath}, ${filter._op}, ${JSON.stringify(filter._value)})`;
-          } else if (filter?._field && filter?._direction) {
-            // orderBy() filter
-            return `orderBy(${filter._field._fieldPath}, ${filter._direction})`;
-          } else if (typeof filter === 'number') {
-            // limit() filter
-            return `limit(${filter})`;
-          } else {
-            // Unknown filter type
-            return `unknown_filter_${index}`;
-          }
-        }),
+        filters: parsedFilters,
         timestamp: new Date().toISOString(),
       });
+
+      const criticalCollections = ['orders', 'users', 'stores'];
+      if (criticalCollections.some((name) => collectionPath.includes(name))) {
+        showFirestoreDebugAlert('FS_QUERY', {
+          collection: collectionPath,
+          filters: parsedFilters,
+        });
+      }
       
       return require('firebase/firestore').query(...args);
     };
@@ -333,6 +365,14 @@ export const dbFunctions: any = {
             message: err?.message,
             timestamp: new Date().toISOString(),
           });
+
+          if (err?.code === 'permission-denied') {
+            showFirestoreDebugAlert('FS_LISTENER_DENIED', {
+              path,
+              code: err?.code,
+              message: err?.message,
+            });
+          }
           
           // Call showFirestoreDebug for listener queries
           if (typeof window !== 'undefined' && (window as any).showFirestoreDebug) {
