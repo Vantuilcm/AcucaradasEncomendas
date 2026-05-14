@@ -241,13 +241,75 @@ export const dbFunctions: any = {
       return require('firebase/firestore').doc(...args);
     };
   },
-  get getDocs() { return wrapFirestoreCall('getDocs', (q: any) => require('firebase/firestore').getDocs(q)); },
+  get getDocs() { 
+    return wrapFirestoreCall('getDocs', async (q: any) => {
+      const path = getFirestorePath(q);
+      console.log('[FS_GETDOCS_START]', {
+        path,
+        operation: 'getDocs',
+        timestamp: new Date().toISOString(),
+      });
+      
+      try {
+        const result = await require('firebase/firestore').getDocs(q);
+        console.log('[FS_GETDOCS_SUCCESS]', {
+          path,
+          docsCount: result.size,
+          timestamp: new Date().toISOString(),
+        });
+        return result;
+      } catch (error) {
+        console.error('[FS_GETDOCS_DENIED]', {
+          path,
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          timestamp: new Date().toISOString(),
+        });
+        
+        // Call showFirestoreDebug for getDocs queries
+        if (typeof window !== 'undefined' && (window as any).showFirestoreDebug) {
+          (window as any).showFirestoreDebug(path, error, 'GETDOCS_QUERY');
+        }
+        
+        throw error;
+      }
+    });
+  },
   get getDoc() { return wrapFirestoreCall('getDoc', (ref: any) => require('firebase/firestore').getDoc(ref)); },
   get setDoc() { return wrapFirestoreCall('setDoc', (ref: any, ...args: any[]) => require('firebase/firestore').setDoc(ref, ...args)); },
   get addDoc() { return wrapFirestoreCall('addDoc', (ref: any, ...args: any[]) => require('firebase/firestore').addDoc(ref, ...args)); },
   get updateDoc() { return wrapFirestoreCall('updateDoc', (ref: any, ...args: any[]) => require('firebase/firestore').updateDoc(ref, ...args)); },
   get deleteDoc() { return wrapFirestoreCall('deleteDoc', (ref: any) => require('firebase/firestore').deleteDoc(ref)); },
-  get query() { return (...args: any[]) => require('firebase/firestore').query(...args); },
+  get query() { 
+    return (...args: any[]) => {
+      // 🔍 [FS_QUERY] Log query construction with filters
+      const collectionRef = args[0];
+      const filters = args.slice(1);
+      const collectionPath = getFirestorePath(collectionRef);
+      
+      console.log('[FS_QUERY]', {
+        collection: collectionPath,
+        filters: filters.map((filter: any, index: number) => {
+          if (filter?._field && filter?._op && filter?._value !== undefined) {
+            // where() filter
+            return `where(${filter._field._fieldPath}, ${filter._op}, ${JSON.stringify(filter._value)})`;
+          } else if (filter?._field && filter?._direction) {
+            // orderBy() filter
+            return `orderBy(${filter._field._fieldPath}, ${filter._direction})`;
+          } else if (typeof filter === 'number') {
+            // limit() filter
+            return `limit(${filter})`;
+          } else {
+            // Unknown filter type
+            return `unknown_filter_${index}`;
+          }
+        }),
+        timestamp: new Date().toISOString(),
+      });
+      
+      return require('firebase/firestore').query(...args);
+    };
+  },
   get where() { return (...args: any[]) => require('firebase/firestore').where(...args); },
   get orderBy() { return (...args: any[]) => require('firebase/firestore').orderBy(...args); },
   get limit() { return (...args: any[]) => require('firebase/firestore').limit(...args); },
@@ -255,12 +317,28 @@ export const dbFunctions: any = {
   get onSnapshot() {
     return (refOrQuery: any, next: any, error?: any, complete?: any) => {
       const path = getFirestorePath(refOrQuery);
-      logFirestoreOperation({ operation: 'onSnapshot', path });
+      console.log('[FS_LISTENER_START]', {
+        path,
+        operation: 'onSnapshot',
+        timestamp: new Date().toISOString(),
+      });
+      
       return require('firebase/firestore').onSnapshot(
         refOrQuery,
         next,
         (err: any) => {
-          logFirestoreDenied({ operation: 'onSnapshot', path, error: err });
+          console.error('[FS_LISTENER_DENIED]', {
+            path,
+            code: err?.code,
+            message: err?.message,
+            timestamp: new Date().toISOString(),
+          });
+          
+          // Call showFirestoreDebug for listener queries
+          if (typeof window !== 'undefined' && (window as any).showFirestoreDebug) {
+            (window as any).showFirestoreDebug(path, err, 'LISTENER_QUERY');
+          }
+          
           if (error) error(err);
         },
         complete
