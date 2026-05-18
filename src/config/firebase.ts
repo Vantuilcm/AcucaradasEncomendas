@@ -142,6 +142,81 @@ const getFirestorePathFromArgs = (args: any[]): string => {
   return getFirestorePath(args[0]);
 };
 
+const VALID_FIRESTORE_WHERE_OPERATORS = new Set([
+  '==',
+  '!=',
+  '<',
+  '<=',
+  '>',
+  '>=',
+  'array-contains',
+  'in',
+  'not-in',
+  'array-contains-any',
+]);
+
+const VALID_FIRESTORE_ORDER_DIRECTIONS = new Set(['asc', 'desc']);
+
+const isValidFirestoreFieldPath = (fieldPath: any): boolean => {
+  if (fieldPath === undefined || fieldPath === null) return false;
+  if (typeof fieldPath === 'string') return fieldPath.trim().length > 0;
+  if (Array.isArray(fieldPath)) {
+    return fieldPath.length > 0 && fieldPath.every((segment) => typeof segment === 'string' && segment.trim().length > 0);
+  }
+  return typeof fieldPath === 'object';
+};
+
+const isValidFirestoreWhereOperator = (opStr: any): boolean => {
+  return typeof opStr === 'string' && VALID_FIRESTORE_WHERE_OPERATORS.has(opStr);
+};
+
+const isValidFirestoreWhereValue = (opStr: any, value: any): boolean => {
+  if (value === undefined) return false;
+  if (opStr === 'in' || opStr === 'not-in' || opStr === 'array-contains-any') {
+    return Array.isArray(value) && value.length > 0;
+  }
+  return true;
+};
+
+const isValidFirestoreOrderDirection = (direction: any): boolean => {
+  return direction === undefined || VALID_FIRESTORE_ORDER_DIRECTIONS.has(direction);
+};
+
+const isValidFirestorePathSegments = (args: any[]): boolean => {
+  if (!args || args.length === 0) return false;
+  if (args[0] && args[0].firestore) {
+    args = args.slice(1);
+  }
+  return args.length > 0 && args.every((segment) => typeof segment === 'string' && segment.trim().length > 0);
+};
+
+const describeFirestoreQueryConstraint = (filter: any, index: number) => {
+  if (filter === null || filter === undefined) return `removed_constraint_${index}`;
+  if (typeof filter === 'number') return `limit(${filter})`;
+  if (filter?._field && filter?._op && Object.prototype.hasOwnProperty.call(filter, '_value')) {
+    return `where(${filter._field._fieldPath || 'unknown'}, ${filter._op}, ${JSON.stringify(filter._value)})`;
+  }
+  if (filter?._field && filter?._direction) {
+    return `orderBy(${filter._field._fieldPath || 'unknown'}, ${filter._direction})`;
+  }
+  if (filter?.constructor?.name) {
+    return filter.constructor.name;
+  }
+  return `query_constraint_${index}`;
+};
+
+const sanitizeFirestoreQueryFilters = (filters: any[]) => {
+  const validFilters = filters.filter((filter) => filter !== null && filter !== undefined);
+  if (validFilters.length !== filters.length) {
+    console.warn('[FS_SAFE_QUERY_FILTER_REMOVED]', {
+      originalCount: filters.length,
+      removedCount: filters.length - validFilters.length,
+      filters,
+    });
+  }
+  return validFilters;
+};
+
 const showFirestoreDebugAlert = (title: string, payload: any) => {
   if (!ENABLE_FIRESTORE_DEBUG) return;
   try {
@@ -249,6 +324,10 @@ const wrapFirestoreCall = (operation: string, fn: any) => {
 export const dbFunctions: any = {
   get collection() {
     return (...args: any[]) => {
+      if (!isValidFirestorePathSegments(args)) {
+        console.warn('[FS_SAFE_COLLECTION_SKIP] Invalid collection path', { args });
+        return null;
+      }
       if (typeof args[0] === 'string') {
         return require('firebase/firestore').collection(getDb(), ...args);
       }
@@ -257,6 +336,10 @@ export const dbFunctions: any = {
   },
   get doc() {
     return (...args: any[]) => {
+      if (!isValidFirestorePathSegments(args)) {
+        console.warn('[FS_SAFE_DOC_SKIP] Invalid doc path', { args });
+        return null;
+      }
       if (typeof args[0] === 'string') {
         return require('firebase/firestore').doc(getDb(), ...args);
       }
@@ -265,6 +348,11 @@ export const dbFunctions: any = {
   },
   get getDocs() { 
     return wrapFirestoreCall('getDocs', async (q: any) => {
+      if (!q) {
+        console.warn('[FS_SAFE_GETDOCS_SKIP] Missing query reference');
+        return { docs: [], empty: true, size: 0 };
+      }
+
       const path = getFirestorePath(q);
       console.log('[FS_GETDOCS_START]', {
         path,
@@ -297,57 +385,84 @@ export const dbFunctions: any = {
       }
     });
   },
-  get getDoc() { return wrapFirestoreCall('getDoc', (ref: any) => require('firebase/firestore').getDoc(ref)); },
+  get getDoc() {
+    return wrapFirestoreCall('getDoc', async (ref: any) => {
+      if (!ref) {
+        console.warn('[FS_SAFE_GETDOC_SKIP] Invalid document reference', { ref });
+        return {
+          exists: () => false,
+          data: () => null,
+          id: '',
+        } as any;
+      }
+      return require('firebase/firestore').getDoc(ref);
+    });
+  },
   get setDoc() { return wrapFirestoreCall('setDoc', (ref: any, ...args: any[]) => require('firebase/firestore').setDoc(ref, ...args)); },
   get addDoc() { return wrapFirestoreCall('addDoc', (ref: any, ...args: any[]) => require('firebase/firestore').addDoc(ref, ...args)); },
   get updateDoc() { return wrapFirestoreCall('updateDoc', (ref: any, ...args: any[]) => require('firebase/firestore').updateDoc(ref, ...args)); },
   get deleteDoc() { return wrapFirestoreCall('deleteDoc', (ref: any) => require('firebase/firestore').deleteDoc(ref)); },
   get query() { 
     return (...args: any[]) => {
-      // 🔍 [FS_QUERY] Log query construction with filters
       const collectionRef = args[0];
-      const filters = args.slice(1);
+      if (!collectionRef) {
+        console.warn('[FS_SAFE_QUERY_SKIP] Missing collection / query reference', { args });
+        return null;
+      }
+
+      const filters = sanitizeFirestoreQueryFilters(args.slice(1));
       const collectionPath = getFirestorePath(collectionRef);
-      
-      const parsedFilters = filters.map((filter: any, index: number) => {
-        if (filter?._field && filter?._op && filter?._value !== undefined) {
-          // where() filter
-          return `where(${filter._field._fieldPath}, ${filter._op}, ${JSON.stringify(filter._value)})`;
-        } else if (filter?._field && filter?._direction) {
-          // orderBy() filter
-          return `orderBy(${filter._field._fieldPath}, ${filter._direction})`;
-        } else if (typeof filter === 'number') {
-          // limit() filter
-          return `limit(${filter})`;
-        } else {
-          // Unknown filter type
-          return `unknown_filter_${index}`;
-        }
-      });
+      const parsedFilters = filters.map((filter: any, index: number) => describeFirestoreQueryConstraint(filter, index));
 
-      console.log('[FS_QUERY]', {
-        collection: collectionPath,
-        filters: parsedFilters,
-        timestamp: new Date().toISOString(),
-      });
-
-      const criticalCollections = ['orders', 'users', 'stores'];
+      const criticalCollections = ['orders', 'users', 'stores', 'payments', 'products', 'reviews'];
       if (criticalCollections.some((name) => collectionPath.includes(name))) {
+        console.log('[FS_QUERY]', {
+          collection: collectionPath,
+          filters: parsedFilters,
+          timestamp: new Date().toISOString(),
+        });
         showFirestoreDebugAlert('FS_QUERY', {
           collection: collectionPath,
           filters: parsedFilters,
         });
       }
       
-      return require('firebase/firestore').query(...args);
+      return require('firebase/firestore').query(collectionRef, ...filters);
     };
   },
-  get where() { return (...args: any[]) => require('firebase/firestore').where(...args); },
-  get orderBy() { return (...args: any[]) => require('firebase/firestore').orderBy(...args); },
+  get where() { 
+    return (...args: any[]) => {
+      const [fieldPath, opStr, value] = args;
+      if (!isValidFirestoreFieldPath(fieldPath) || !isValidFirestoreWhereOperator(opStr) || !isValidFirestoreWhereValue(opStr, value)) {
+        console.warn('[FS_SAFE_QUERY_SKIP] Invalid where() arguments', { fieldPath, opStr, value });
+        return null;
+      }
+      return require('firebase/firestore').where(...args);
+    };
+  },
+  get orderBy() { 
+    return (...args: any[]) => {
+      const [fieldPath, direction] = args;
+      if (!isValidFirestoreFieldPath(fieldPath)) {
+        console.warn('[FS_SAFE_ORDER_FIELD] Invalid orderBy() fieldPath', { fieldPath, direction });
+        return null;
+      }
+      if (!isValidFirestoreOrderDirection(direction)) {
+        console.warn('[FS_SAFE_ORDER_FIELD] Invalid orderBy() direction', { fieldPath, direction });
+        return null;
+      }
+      return require('firebase/firestore').orderBy(...args);
+    };
+  },
   get limit() { return (...args: any[]) => require('firebase/firestore').limit(...args); },
   get startAfter() { return (...args: any[]) => require('firebase/firestore').startAfter(...args); },
   get onSnapshot() {
     return (refOrQuery: any, next: any, error?: any, complete?: any) => {
+      if (!refOrQuery) {
+        console.warn('[FS_SAFE_QUERY_SKIP] Invalid onSnapshot refOrQuery', { refOrQuery });
+        return () => {};
+      }
+
       const path = getFirestorePath(refOrQuery);
       console.log('[FS_LISTENER_START]', {
         path,

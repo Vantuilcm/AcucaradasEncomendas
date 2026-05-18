@@ -273,6 +273,10 @@ export class StripeService {
     deliveryPersonTransferId: string;
   }> {
     try {
+      if (!orderId || !producerId || !deliveryPersonId) {
+        throw new Error('Dados de pagamento incompletos: orderId, producerId e deliveryPersonId são obrigatórios');
+      }
+
       const paymentIntent = await this.createPaymentIntent(orderId, amount);
       // ETAPA 3 — PADRONIZAÇÃO OWNERID NO STRIPE (BUILD 1164)
       const producerDoc = await f.getDoc(f.doc('producers', producerId));

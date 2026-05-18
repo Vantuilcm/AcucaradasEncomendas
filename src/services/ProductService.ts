@@ -149,7 +149,7 @@ export class ProductService {
         if (filtro.tags && filtro.tags.length > 0) {
           q = f.query(q, f.where('tagsEspeciais', 'array-contains-any', filtro.tags));
         }
-        if (filtro.ordenarPor) {
+        if (filtro.ordenarPor && typeof filtro.ordenarPor === 'string' && filtro.ordenarPor.trim()) {
           q = f.query(q, f.orderBy(filtro.ordenarPor, filtro.ordem || 'asc'));
         }
         if (filtro.limite) {

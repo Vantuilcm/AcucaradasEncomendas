@@ -23,6 +23,14 @@ export class OrderService {
     return OrderService.instance;
   }
 
+  private assertValidId(id: string, name: string): boolean {
+    const isValid = typeof id === 'string' && id.trim().length > 0;
+    if (!isValid) {
+      loggingService.warn('OrderService recebeu ID inválido', { name, value: id });
+    }
+    return isValid;
+  }
+
   /**
    * Busca os pedidos de um usuário com paginação e filtros
    * @param userId ID do usuário
@@ -32,6 +40,10 @@ export class OrderService {
    */
   async getUserOrders(userId: string, _filters?: OrderFilters, lastOrder?: Order): Promise<Order[]> {
     try {
+      if (!this.assertValidId(userId, 'userId')) {
+        return [];
+      }
+
       const ordersRef = f.collection(this.collectionName);
       let q = f.query(
         ordersRef,
@@ -62,6 +74,11 @@ export class OrderService {
    * @returns Função para cancelar o monitoramento
    */
   public subscribeToUserOrders(userId: string, callback: (orders: Order[]) => void): () => void {
+    if (!this.assertValidId(userId, 'userId')) {
+      loggingService.warn('subscribeToUserOrders evitou listener inválido', { userId });
+      return () => {};
+    }
+
     const ordersRef = f.collection(this.collectionName);
     const q = f.query(
       ordersRef,
@@ -93,6 +110,10 @@ export class OrderService {
     lastOrder?: Order
   ): Promise<Order[]> {
     try {
+      if (!this.assertValidId(driverId, 'driverId')) {
+        return [];
+      }
+
       const ordersRef = f.collection(this.collectionName);
       let q = f.query(
         ordersRef,
@@ -123,6 +144,10 @@ export class OrderService {
    */
   async getOrderById(orderId: string): Promise<Order | null> {
     try {
+      if (!this.assertValidId(orderId, 'orderId')) {
+        return null;
+      }
+
       const orderRef = f.doc(this.collectionName, orderId);
       const orderDoc = await f.getDoc(orderRef);
 
@@ -192,6 +217,20 @@ export class OrderService {
    */
   async getOrderSummary(userId: string): Promise<OrderSummary> {
     try {
+      if (!this.assertValidId(userId, 'userId')) {
+        return {
+          total: 0,
+          pending: 0,
+          confirmed: 0,
+          preparing: 0,
+          ready: 0,
+          delivering: 0,
+          delivered: 0,
+          cancelled: 0,
+          scheduledOrders: 0,
+        };
+      }
+
       const ordersRef = f.collection(this.collectionName);
       const q = f.query(ordersRef, f.where('userId', '==', userId), f.orderBy('createdAt', 'desc'));
       const querySnapshot = await f.getDocs(q);
@@ -223,6 +262,9 @@ export class OrderService {
    */
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
     try {
+      if (!this.assertValidId(orderId, 'orderId')) {
+        throw new Error('ID de pedido inválido');
+      }
       const orderRef = f.doc(this.collectionName, orderId);
       const orderDoc = await f.getDoc(orderRef);
 
@@ -274,6 +316,9 @@ export class OrderService {
    */
   async acceptOrderAtomic(orderId: string, driverData: any): Promise<Order> {
     try {
+      if (!this.assertValidId(orderId, 'orderId')) {
+        throw new Error('ID de pedido inválido');
+      }
       const orderRef = f.doc(this.collectionName, orderId);
 
       const result = await f.runTransaction(async (transaction: any) => {
@@ -336,6 +381,9 @@ export class OrderService {
    */
   async updateOrder(orderId: string, orderData: Partial<Order>): Promise<Order> {
     try {
+      if (!this.assertValidId(orderId, 'orderId')) {
+        throw new Error('ID de pedido inválido');
+      }
       const orderRef = f.doc(this.collectionName, orderId);
       const orderDoc = await f.getDoc(orderRef);
 
@@ -366,6 +414,9 @@ export class OrderService {
    */
   async cancelOrder(orderId: string, reason?: string): Promise<Order> {
     try {
+      if (!this.assertValidId(orderId, 'orderId')) {
+        throw new Error('ID de pedido inválido');
+      }
       const orderRef = f.doc(this.collectionName, orderId);
       const orderDoc = await f.getDoc(orderRef);
 

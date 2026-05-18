@@ -41,6 +41,11 @@ export const ContaBancariaScreen = () => {
     if (!user) return;
     try {
       const uid = (user as any).uid || (user as any).id;
+      if (!uid) {
+        console.warn('[BANK_FIRESTORE_OPERATION] UID inválido no loadAccountData', { user });
+        setLoading(false);
+        return;
+      }
       const path = `users/${uid}`;
       console.log('[BANK_FIRESTORE_OPERATION] getDoc', path);
       const userRef = f.doc('users', uid);
@@ -67,6 +72,9 @@ export const ContaBancariaScreen = () => {
 
     try {
       const uid = (user as any).uid || (user as any).id;
+      if (!uid) {
+        throw new Error('UID inválido. Por favor faça logout e login novamente.');
+      }
       const role = accountData?.role || accountData?.activeRole || 'producer';
       let currentAccountId = accountData?.stripeAccountId;
 
