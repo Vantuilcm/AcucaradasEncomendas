@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
-import { Alert } from 'react-native';
 import { ConfigService } from '../services/ConfigService';
 
 // Configurações via variáveis de ambiente (EXPO_PUBLIC_)
@@ -23,11 +22,9 @@ let isSentryInitialized = false;
 
 export const initSentry = () => {
   try {
-    Alert.alert('BEFORE_SENTRY_INIT');
     console.log('[BEFORE_SENTRY_INIT]');
 
     const dsnExists = !!process.env.EXPO_PUBLIC_SENTRY_DSN;
-    Alert.alert('SENTRY_DSN_EXISTS', String(dsnExists));
     console.log('[SENTRY_DSN_EXISTS]', dsnExists);
 
     Sentry.init({
@@ -37,22 +34,20 @@ export const initSentry = () => {
       debug: true,
     });
 
-    Alert.alert('AFTER_SENTRY_INIT');
     console.log('[AFTER_SENTRY_INIT]');
 
     try {
       Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1279');
-      Alert.alert('SENTRY_TEST_SENT');
       console.log('[SENTRY_TEST_SENT]');
     } catch (captureError) {
       console.error('[SENTRY_CAPTURE_FAILED]', captureError);
       const errorMsg = (captureError as any)?.message || String(captureError);
-      Alert.alert('SENTRY_CAPTURE_FAILED', errorMsg);
+      console.error('[SENTRY_CAPTURE_FAILED]', errorMsg);
     }
   } catch (error) {
     console.error('[SENTRY_INIT_FAILED]', error);
     const errorMsg = (error as any)?.message || String(error);
-    Alert.alert('SENTRY_INIT_FAILED', errorMsg);
+    console.error('[SENTRY_INIT_FAILED]', errorMsg);
   }
 };
 

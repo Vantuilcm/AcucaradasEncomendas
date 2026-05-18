@@ -152,7 +152,7 @@ export class ProductService {
         if (filtro.ordenarPor && typeof filtro.ordenarPor === 'string' && filtro.ordenarPor.trim()) {
           q = f.query(q, f.orderBy(filtro.ordenarPor, filtro.ordem || 'asc'));
         }
-        if (filtro.limite) {
+        if (typeof filtro.limite === 'number' && filtro.limite > 0) {
           q = f.query(q, f.limit(filtro.limite));
         }
       }

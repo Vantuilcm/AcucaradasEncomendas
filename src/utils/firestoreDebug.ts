@@ -1,4 +1,3 @@
-import { Alert } from 'react-native';
 import Constants from 'expo-constants';
 import { captureMessage } from '../config/sentry';
 
@@ -26,9 +25,10 @@ export const showFirestoreDebug = (
       console.warn('[SENTRY_FS_DENIED_FAILED]', sentryError);
     }
 
-    Alert.alert(
-      `${context} - Firestore`,
-      `PATH: ${path}\nCODE: ${code}\nMSG: ${message}`
-    );
+    console.log(`${context} - Firestore`, {
+      path,
+      code,
+      message,
+    });
   }
 };

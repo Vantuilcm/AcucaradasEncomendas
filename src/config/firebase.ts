@@ -220,10 +220,7 @@ const sanitizeFirestoreQueryFilters = (filters: any[]) => {
 const showFirestoreDebugAlert = (title: string, payload: any) => {
   if (!ENABLE_FIRESTORE_DEBUG) return;
   try {
-    const message = JSON.stringify(payload, null, 2);
-    const maxMessageLength = 900;
-    const truncatedMessage = message.length > maxMessageLength ? `${message.slice(0, maxMessageLength)}\n...` : message;
-    Alert.alert(title, truncatedMessage, [{ text: 'OK' }], { cancelable: true });
+    console.log(`[${title}]`, payload);
   } catch (alertError) {
     console.error('[FS_ALERT_FAILED]', { title, alertError });
   }
@@ -411,8 +408,9 @@ export const dbFunctions: any = {
       }
 
       const filters = sanitizeFirestoreQueryFilters(args.slice(1));
+      const safeFilters = filters.filter(Boolean);
       const collectionPath = getFirestorePath(collectionRef);
-      const parsedFilters = filters.map((filter: any, index: number) => describeFirestoreQueryConstraint(filter, index));
+      const parsedFilters = safeFilters.map((filter: any, index: number) => describeFirestoreQueryConstraint(filter, index));
 
       const criticalCollections = ['orders', 'users', 'stores', 'payments', 'products', 'reviews'];
       if (criticalCollections.some((name) => collectionPath.includes(name))) {
@@ -427,7 +425,7 @@ export const dbFunctions: any = {
         });
       }
       
-      return require('firebase/firestore').query(collectionRef, ...filters);
+      return require('firebase/firestore').query(collectionRef, ...safeFilters);
     };
   },
   get where() { 
@@ -454,7 +452,16 @@ export const dbFunctions: any = {
       return require('firebase/firestore').orderBy(...args);
     };
   },
-  get limit() { return (...args: any[]) => require('firebase/firestore').limit(...args); },
+  get limit() {
+    return (...args: any[]) => {
+      const [count] = args;
+      if (typeof count !== 'number' || count <= 0) {
+        console.warn('[FS_SAFE_LIMIT_SKIP] Invalid limit value', { count });
+        return null;
+      }
+      return require('firebase/firestore').limit(...args);
+    };
+  },
   get startAfter() { return (...args: any[]) => require('firebase/firestore').startAfter(...args); },
   get onSnapshot() {
     return (refOrQuery: any, next: any, error?: any, complete?: any) => {

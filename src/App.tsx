@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, Alert } from 'react-native';
+import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
@@ -37,7 +37,7 @@ function ThemedApp() {
 export default function App() {
   useEffect(() => {
     try {
-      Alert.alert('APP_STARTUP_RUNNING');
+      console.log('[APP_STARTUP_RUNNING]');
     } catch (e) {
       console.error('[ALERT_ERROR]', e);
     }
