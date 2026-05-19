@@ -1000,9 +1000,18 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
   if (!role) throw new functions.https.HttpsError('invalid-argument', 'Role é obrigatória.');
 
   try {
+    console.log('[STRIPE_ONBOARDING_START]', { uid, email, role, build: '1294' });
+
     // PASSO 1: Validar que o documento users/{uid} existe
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
+    
+    console.log('[STRIPE_USER_DOC_FOUND]', {
+      uid,
+      exists: userDoc.exists(),
+      hasData: userDoc.exists() ? Object.keys(userDoc.data()).length : 0,
+      build: '1294'
+    });
     
     if (!userDoc.exists()) {
       console.warn('[FS_GUARD] createConnectedAccount: Document users/{uid} does not exist', { uid, email, role });
@@ -1015,9 +1024,8 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
         stripeAccountId: null,
         stripeOnboardingComplete: false
       }, { merge: true });
+      console.log('[STRIPE_USER_DOC_CREATED_FALLBACK]', { uid, build: '1294' });
     }
-
-    console.log('[STRIPE_ONBOARDING_START]', { uid, email, build: '1293' });
 
     // PASSO 2: Criar conta no Stripe
     const account = await stripe.accounts.create({
@@ -1035,7 +1043,8 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
       stripeAccountId: account?.id,
       charges_enabled: account?.charges_enabled,
       payouts_enabled: account?.payouts_enabled,
-      build: '1293'
+      details_submitted: account?.details_submitted,
+      build: '1294'
     });
 
     // PASSO 3: Atualizar documento com accountId (agora com fallback)
@@ -1045,13 +1054,24 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
         stripeOnboardingComplete: false,
         stripeCreatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      console.log('[STRIPE_ACCOUNT_SAVED]', {
+      console.log('[STRIPE_FIRESTORE_UPDATED]', {
         uid,
         stripeAccountId: account.id,
         path: `users/${uid}`,
-        build: '1293'
+        operation: 'update',
+        success: true,
+        build: '1294'
       });
     } catch (updateError) {
+      console.error('[STRIPE_FIRESTORE_UPDATE_ERROR]', {
+        uid,
+        stripeAccountId: account.id,
+        path: `users/${uid}`,
+        operation: 'update',
+        error: updateError.message,
+        code: updateError.code,
+        build: '1294'
+      });
       if (updateError.code === 'permission-denied') {
         console.error('[FS_PERMISSION_DENIED] createConnectedAccount.update', {
           uid,
@@ -1059,14 +1079,7 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
           operation: 'update',
           error: updateError.message,
           code: updateError.code,
-          build: '1293'
-        });
-        console.log('[STRIPE_ACCOUNT_SAVED]', {
-          uid,
-          stripeAccountId: account.id,
-          path: `users/${uid}`,
-          build: '1293',
-          note: 'fallback_save_failed'
+          build: '1294'
         });
         // Fallback: Retornar accountId mesmo que update falhe (o Stripe já criou a conta)
         console.warn('[FALLBACK] createConnectedAccount: Retornando accountId apesar de erro de permissão');
@@ -1079,10 +1092,12 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
   } catch (error) {
     console.error('[STRIPE_ONBOARDING_ERROR]', {
       uid,
+      email,
+      role,
       message: error?.message,
       code: error?.code,
       stack: error?.stack,
-      build: '1293'
+      build: '1294'
     });
     
     try {
@@ -1093,7 +1108,7 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
             uid,
             email,
             role,
-            build: '1293'
+            build: '1294'
           }
         });
       }
@@ -1138,9 +1153,17 @@ exports.syncStripeAccountStatus = functions.https.onCall(async (data, context) =
   if (!accountId) throw new functions.https.HttpsError('invalid-argument', 'AccountId é obrigatório.');
 
   try {
+    console.log('[STRIPE_SYNC_START]', { uid, accountId, build: '1294' });
+    
     // PASSO 1: Validar que o documento users/{uid} existe
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
+    
+    console.log('[STRIPE_USER_DOC_FOUND]', {
+      uid,
+      exists: userDoc.exists(),
+      build: '1294'
+    });
     
     if (!userDoc.exists()) {
       console.warn('[FS_GUARD] syncStripeAccountStatus: Document users/{uid} does not exist', { uid, accountId });
@@ -1151,6 +1174,14 @@ exports.syncStripeAccountStatus = functions.https.onCall(async (data, context) =
     
     // PASSO 2: Buscar status no Stripe
     const account = await stripe.accounts.retrieve(accountId);
+    console.log('[STRIPE_ACCOUNT_RETRIEVED]', {
+      uid,
+      accountId,
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      details_submitted: account.details_submitted,
+      build: '1294'
+    });
     
     const updates = {
       chargesEnabled: account.charges_enabled,
@@ -1164,7 +1195,22 @@ exports.syncStripeAccountStatus = functions.https.onCall(async (data, context) =
     // PASSO 3: Atualizar documento com segurança
     try {
       await userRef.update(updates);
+      console.log('[STRIPE_FIRESTORE_UPDATED]', {
+        uid,
+        path: `users/${uid}`,
+        operation: 'update',
+        success: true,
+        build: '1294'
+      });
     } catch (updateError) {
+      console.error('[STRIPE_FIRESTORE_UPDATE_ERROR]', {
+        uid,
+        path: `users/${uid}`,
+        operation: 'update',
+        error: updateError.message,
+        code: updateError.code,
+        build: '1294'
+      });
       if (updateError.code === 'permission-denied') {
         console.error('[FS_PERMISSION_DENIED] syncStripeAccountStatus.update', {
           uid,
@@ -1172,7 +1218,7 @@ exports.syncStripeAccountStatus = functions.https.onCall(async (data, context) =
           operation: 'update',
           error: updateError.message,
           code: updateError.code,
-          build: '1291'
+          build: '1294'
         });
         // Fallback: Retornar status mesmo que update falhe
         console.warn('[FALLBACK] syncStripeAccountStatus: Retornando updates apesar de erro de permissão');
@@ -1184,7 +1230,14 @@ exports.syncStripeAccountStatus = functions.https.onCall(async (data, context) =
 
     return { ...updates, synced: true };
   } catch (error) {
-    console.error('❌ [Stripe] Erro ao sincronizar conta:', error);
+    console.error('[STRIPE_SYNC_ERROR]', {
+      uid,
+      accountId,
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+      build: '1294'
+    });
     
     if (error.code === 'permission-denied') {
       console.error('[FS_PERMISSION_DENIED] syncStripeAccountStatus.main', {
@@ -1193,7 +1246,7 @@ exports.syncStripeAccountStatus = functions.https.onCall(async (data, context) =
         operation: 'syncStripeAccountStatus',
         message: error?.message,
         code: error?.code,
-        build: '1291'
+        build: '1294'
       });
     }
     
