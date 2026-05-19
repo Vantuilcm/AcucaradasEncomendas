@@ -181,6 +181,17 @@ export function AddEditProductScreen() {
     try {
       setLoading(true);
       
+      // Guard: validate authentication and producerId before create/update
+      const auth = await import('../config/firebase').then(m => m.auth);
+      const producerId = auth?.currentUser?.uid || (auth as any)?.currentUser?.id;
+      if (!producerId) {
+        console.error('[FS_GUARD] producerId not found from auth, aborting handleSaveProduct');
+        Alert.alert('Erro de Autenticação', 'Usuário não autenticado. Por favor, faça login novamente.');
+        setLoading(false);
+        return;
+      }
+      console.log('[PRODUCT_SAVE] Saving product with producerId', { producerId, isEditing });
+      
       // Preparar payload. Valores vazios não numéricos serão deixados como undefined para o ProductService limpar.
       const payload: Partial<Product> = {
         nome: productData.name,
@@ -220,7 +231,14 @@ export function AddEditProductScreen() {
         payload.estacionamento = dynamicFields.estacionamento;
       }
 
-      if (isEditing && product?.id) {
+      // Additional guard: validate productId on update
+      if (isEditing) {
+        if (!product?.id) {
+          console.error('[FS_GUARD] product.id is missing on edit, aborting update');
+          Alert.alert('Erro', 'ID do produto não encontrado.');
+          setLoading(false);
+          return;
+        }
         await productService.atualizarProduto(product.id, payload);
       } else {
         await productService.criarProduto(payload);
@@ -230,8 +248,19 @@ export function AddEditProductScreen() {
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (err: any) {
+      if (err?.code === 'permission-denied') {
+        console.error('[FS_PERMISSION_DENIED] AddEditProductScreen.handleSaveProduct', {
+          operation: isEditing ? 'updateDoc' : 'addDoc',
+          path: isEditing ? `products/${product?.id}` : 'products',
+          code: err?.code,
+          message: err?.message,
+        });
+      }
       showFirestoreDebug('products', err, 'AddEditProductScreen.handleSaveProduct');
-      Alert.alert('Erro', err.message || 'Não foi possível salvar.');
+      const fallbackMessage = err?.code === 'permission-denied' 
+        ? 'Você não tem permissão para salvar este produto. Verifique suas credenciais.'
+        : (err?.message || 'Não foi possível salvar.');
+      Alert.alert('Erro', fallbackMessage);
     } finally {
       setLoading(false);
     }

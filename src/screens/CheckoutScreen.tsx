@@ -399,14 +399,33 @@ export default function CheckoutScreen() {
               setWaitingWebhook(true);
 
               // 5. Aguardar webhook atualizar o status no Firestore
+              // Guard: validate order ID and current user UID before listener
+              if (!newOrder?.id) {
+                console.error('[FS_GUARD] newOrder.id is missing, aborting listener');
+                throw new Error('Pedido inválido: ID não encontrado');
+              }
+                const currentUid = user?.id || (user as any)?.uid;
+              if (!currentUid) {
+                console.error('[FS_GUARD] auth.currentUser.uid is missing, aborting listener');
+                throw new Error('Usuário não autenticado para escutar pedido');
+              }
+              if ((newOrder as any)?.buyerId && (newOrder as any).buyerId !== currentUid) {
+                console.error('[FS_GUARD] order.buyerId mismatch with current uid', {
+                  orderBuyerId: (newOrder as any)?.buyerId,
+                  currentUid,
+                });
+                throw new Error('Pedido não pertence ao usuário atual');
+              }
+
               const isPaid = await new Promise<boolean>((resolve, reject) => {
                 const orderRef = f.doc('orders', newOrder.id);
                 const path = `orders/${newOrder.id}`;
-                console.log('[CHECKOUT_FIRESTORE_OPERATION] onSnapshot', path);
+                console.log('[CHECKOUT_FIRESTORE_OPERATION] onSnapshot', { path, uid: currentUid });
                 let unsubscribe = () => {};
 
                 const timeoutId = setTimeout(() => {
                   unsubscribe();
+                  console.warn('[CHECKOUT_FIRESTORE_TIMEOUT] onSnapshot timeout after 15s, treating as pending');
                   resolve(false); // Timeout após 15s, segue fluxo mas com alerta de demora
                 }, 15000);
 
@@ -425,16 +444,31 @@ export default function CheckoutScreen() {
                     }
                   },
                   (error: any) => {
+                    if (error?.code === 'permission-denied') {
+                      console.error('[FS_PERMISSION_DENIED] CheckoutScreen.onSnapshot', {
+                        operation: 'onSnapshot',
+                        path,
+                        uid: currentUid,
+                        code: error?.code,
+                        message: error?.message,
+                      });
+                    }
                     console.error('[CHECKOUT_FIRESTORE_DENIED]', {
                       operation: 'onSnapshot',
                       path,
+                      uid: currentUid,
                       code: error?.code,
                       message: error?.message,
                     });
                     showFirestoreDebug(path, error, 'CheckoutScreen onSnapshot');
                     clearTimeout(timeoutId);
                     unsubscribe();
-                    reject(error);
+                    // Treat permission-denied as timeout for graceful fallback
+                    if (error?.code === 'permission-denied') {
+                      reject(new Error('TIMEOUT_PENDING'));
+                    } else {
+                      reject(error);
+                    }
                   }
                 );
               });

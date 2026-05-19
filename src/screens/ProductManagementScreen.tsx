@@ -48,12 +48,27 @@ export function ProductManagementScreen() {
 
   const loadProducts = async () => {
     try {
-      if (!user) return;
+      if (!user) {
+        console.log('[FS_GUARD] user not found, aborting loadProducts');
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(null);
 
+      const producerId = user.id || (user as any)?.uid;
+      if (!producerId) {
+        console.log('[FS_GUARD] producerId not derived from user, aborting loadProducts');
+        setProducts([]);
+        setCategories([]);
+        setLoading(false);
+        return;
+      }
+
       // Listar apenas produtos reais do produtor logado
-      const allProducts = await productService.listarProdutos({ producerId: user.id } as any);
+      console.log('[PRODUCTS_LOAD] Loading products for producerId', { producerId });
+      const allProducts = await productService.listarProdutos({ producerId } as any);
       setProducts(allProducts);
 
       // Extrair categorias únicas
@@ -62,8 +77,18 @@ export function ProductManagementScreen() {
 
       setLoading(false);
     } catch (err: any) {
+      const producerId = user?.id || (user as any)?.uid;
+      if (err?.code === 'permission-denied') {
+        console.error('[FS_PERMISSION_DENIED] ProductManagementScreen.loadProducts', {
+          producerId,
+          filter: 'products?where=producerId',
+          code: err?.code,
+          message: err?.message,
+        });
+      }
       showFirestoreDebug('products', err, 'ProductManagementScreen.loadProducts');
       setError(err instanceof Error ? err.message : 'Erro ao carregar produtos');
+      setProducts([]);
       setLoading(false);
     }
   };

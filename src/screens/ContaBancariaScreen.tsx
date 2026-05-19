@@ -43,6 +43,8 @@ export const ContaBancariaScreen = () => {
       const uid = (user as any).uid || (user as any).id;
       if (!uid) {
         console.warn('[BANK_FIRESTORE_OPERATION] UID inválido no loadAccountData', { user });
+        console.log('[FS_GUARD] uid não encontrado, abortando loadAccountData');
+        setAccountData(null);
         setLoading(false);
         return;
       }
@@ -50,12 +52,26 @@ export const ContaBancariaScreen = () => {
       console.log('[BANK_FIRESTORE_OPERATION] getDoc', path);
       const userRef = f.doc('users', uid);
       const userSnap = await f.getDoc(userRef);
-      if (userSnap.exists()) {
-        setAccountData(userSnap.data());
+      if (!userSnap.exists()) {
+        console.warn('[BANK_FIRESTORE_OPERATION] Documento users/{uid} não existe', { uid, path });
+        console.log('[FS_GUARD] users/{uid} missing, fallback to empty state');
+        setAccountData(null);
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      setAccountData(userSnap.data());
+    } catch (error: any) {
+      console.error('[BANK_FIRESTORE_ERROR] Erro ao carregar dados:', error);
+      if (error?.code === 'permission-denied') {
+        console.error('[FS_PERMISSION_DENIED] ContaBancariaScreen.loadAccountData', {
+          uid: (user as any)?.uid || (user as any)?.id,
+          path: `users/${(user as any)?.uid || (user as any)?.id}`,
+          code: error.code,
+          message: error.message,
+        });
+      }
       showFirestoreDebug(`users/${(user as any).uid || (user as any).id}`, error);
+      setAccountData(null);
     } finally {
       setLoading(false);
     }

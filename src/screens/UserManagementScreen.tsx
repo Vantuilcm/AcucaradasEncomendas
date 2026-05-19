@@ -49,6 +49,16 @@ const UserManagementScreen: React.FC = () => {
   const carregarUsuarios = useCallback(
     async (limpar = false) => {
       try {
+        // Guard: verify admin permission BEFORE any query
+        if (!isAdmin) {
+          console.error('[FS_GUARD] isAdmin is false, aborting carregarUsuarios');
+          console.log('[FS_PERMISSION_DENIED_GUARD] UserManagementScreen.carregarUsuarios - non-admin attempted access');
+          setUsuarios([]);
+          Alert.alert('Acesso Restrito', 'Apenas administradores podem acessar esta função.');
+          setLoading(false);
+          return;
+        }
+
         if (limpar) {
           setLoading(true);
           setUltimoUsuario(null);

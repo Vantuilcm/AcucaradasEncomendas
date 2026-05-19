@@ -61,19 +61,34 @@ export const PaymentMethodsScreen: React.FC = () => {
       setLoading(true);
       const userId = user?.id || (user as any)?.uid;
       if (!userId) {
+        console.log('[FS_GUARD] userId not found in user object, aborting loadPaymentMethods');
         setCards([]);
         setPixKeys([]);
+        setLoading(false);
         return;
       }
+      console.log('[PAYMENT_METHODS_LOAD] Starting with userId', { userId });
       const [userCards, userPixKeys] = await Promise.all([
         PaymentService.getInstance().getPaymentCards(userId),
         PaymentService.getInstance().getPixKeys(userId),
       ]);
       setCards(userCards);
       setPixKeys(userPixKeys);
-    } catch (error) {
-      console.error('Erro ao carregar métodos de pagamento:', error);
-      Alert.alert('Erro', 'Não foi possível carregar seus métodos de pagamento.');
+    } catch (error: any) {
+      console.error('[PAYMENT_METHODS_ERROR] Erro ao carregar métodos de pagamento:', error);
+      const userId = user?.id || (user as any)?.uid;
+      if (error?.code === 'permission-denied') {
+        console.error('[FS_PERMISSION_DENIED] PaymentMethodsScreen.loadPaymentMethods', {
+          userId,
+          path: `paymentMethods or users/${userId}/paymentMethods`,
+          code: error?.code,
+          message: error?.message,
+        });
+      }
+      // Fallback: show empty state instead of crash
+      setCards([]);
+      setPixKeys([]);
+      Alert.alert('Aviso', 'Não foi possível carregar seus métodos de pagamento. Tente novamente.');
     } finally {
       setLoading(false);
     }
