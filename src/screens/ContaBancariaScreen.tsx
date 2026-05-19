@@ -91,6 +91,18 @@ export const ContaBancariaScreen = () => {
       if (!uid) {
         throw new Error('UID inválido. Por favor faça logout e login novamente.');
       }
+
+      // VALIDAÇÃO CRÍTICA: Verificar que documento user existe ANTES de continuar
+      if (!accountData) {
+        console.warn('[FS_GUARD] handleStartOnboarding: accountData é null/undefined', { uid });
+        Alert.alert(
+          'Configuração necessária',
+          'Sua conta ainda não foi completamente configurada. Tente fazer logout e login novamente para sincronizar seus dados.'
+        );
+        setProcessing(false);
+        return;
+      }
+
       const role = accountData?.role || accountData?.activeRole || 'producer';
       let currentAccountId = accountData?.stripeAccountId;
 
@@ -98,19 +110,40 @@ export const ContaBancariaScreen = () => {
       if (!currentAccountId) {
         console.log('[STRIPE_ONBOARDING] Chamando createConnectedAccount para UID:', uid);
         const createAccountFn = httpsCallable(functions, 'createConnectedAccount');
-        const response = await createAccountFn({ 
-          email: user?.email || '', 
-          role: role 
-        });
         
-        // Verifica retorno (safe mode)
-        const data = response.data as any;
-        if (!data || !data.accountId) {
-          throw new Error('Falha ao criar conta conectada no Stripe.');
+        try {
+          const response = await createAccountFn({ 
+            email: user?.email || '', 
+            role: role 
+          });
+          
+          // Verifica retorno (safe mode)
+          const data = response.data as any;
+          if (!data || !data.accountId) {
+            throw new Error('Falha ao criar conta conectada no Stripe.');
+          }
+          console.log('[BANK_FUNCTION_SUCCESS] createAccount', !!data?.accountId);
+          currentAccountId = data.accountId;
+          console.log('[STRIPE_ONBOARDING] Conta criada com sucesso.');
+        } catch (createError: any) {
+          console.error('[FS_PERMISSION_DENIED]', {
+            screen: 'ContaBancariaScreen',
+            uid,
+            path: `users/${uid}`,
+            operation: 'createConnectedAccount',
+            message: createError?.message,
+            code: createError?.code,
+            build: '1292'
+          });
+          
+          // FALLBACK VISUAL
+          Alert.alert(
+            'Ocorreu um problema',
+            'Não foi possível conectar sua conta ao sistema de pagamentos. Por favor, tente novamente mais tarde.',
+            [{ text: 'Entendi', onPress: () => setProcessing(false) }]
+          );
+          return;
         }
-        console.log('[BANK_FUNCTION_SUCCESS] createAccount', !!data?.accountId);
-        currentAccountId = data.accountId;
-        console.log('[STRIPE_ONBOARDING] Conta criada com sucesso.');
       }
 
       // 2. Gerar link de onboarding
@@ -141,6 +174,15 @@ export const ContaBancariaScreen = () => {
 
     } catch (error: any) {
       console.error('[STRIPE_ONBOARDING] Erro no fluxo:', error);
+      console.error('[FS_PERMISSION_DENIED]', {
+        screen: 'ContaBancariaScreen',
+        uid: (user as any)?.uid || (user as any)?.id,
+        operation: 'handleStartOnboarding',
+        message: error?.message,
+        code: error?.code,
+        build: '1292'
+      });
+      
       Alert.alert('Ops! 😅', error.message || 'Ocorreu um erro ao tentar configurar sua conta. Tente novamente.');
     } finally {
       setProcessing(false);
