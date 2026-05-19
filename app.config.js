@@ -93,9 +93,6 @@ export default ({ config }) => {
     version: appVersion,
     name: appConfig.name,
     slug: appConfig.slug,
-    facebookAppId: facebookAppId,
-    facebookDisplayName: appConfig.name,
-    facebookScheme: facebookAppId ? `fb${facebookAppId}` : undefined,
     icon: appConfig.icon || config.icon || "./assets/app-icon.png",
     splash: appConfig.splash || config.splash || {
       image: "./assets/splash.png",
