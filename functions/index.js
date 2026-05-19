@@ -1008,12 +1008,12 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
     
     console.log('[STRIPE_USER_DOC_FOUND]', {
       uid,
-      exists: userDoc.exists(),
-      hasData: userDoc.exists() ? Object.keys(userDoc.data()).length : 0,
+      exists: userDoc.exists,
+      hasData: userDoc.exists ? Object.keys(userDoc.data()).length : 0,
       build: '1294'
     });
     
-    if (!userDoc.exists()) {
+    if (!userDoc.exists) {
       console.warn('[FS_GUARD] createConnectedAccount: Document users/{uid} does not exist', { uid, email, role });
       // Fallback: Criar documento com dados mínimos
       await userRef.set({
@@ -1161,11 +1161,11 @@ exports.syncStripeAccountStatus = functions.https.onCall(async (data, context) =
     
     console.log('[STRIPE_USER_DOC_FOUND]', {
       uid,
-      exists: userDoc.exists(),
+      exists: userDoc.exists,
       build: '1294'
     });
     
-    if (!userDoc.exists()) {
+    if (!userDoc.exists) {
       console.warn('[FS_GUARD] syncStripeAccountStatus: Document users/{uid} does not exist', { uid, accountId });
       // Fallback: Não sincronizar se documento não existe
       console.log('[FALLBACK] syncStripeAccountStatus: Documento não existe, retornando vazio');
