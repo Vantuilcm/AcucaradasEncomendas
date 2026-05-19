@@ -173,6 +173,11 @@ export const ContaBancariaScreen = () => {
       }
 
     } catch (error: any) {
+      console.error('[FRONTEND_STRIPE_ONBOARDING_ERROR]', {
+        uid: (user as any)?.uid || (user as any)?.id,
+        message: error?.message,
+        code: error?.code,
+      });
       console.error('[STRIPE_ONBOARDING] Erro no fluxo:', error);
       console.error('[FS_PERMISSION_DENIED]', {
         screen: 'ContaBancariaScreen',
@@ -180,7 +185,7 @@ export const ContaBancariaScreen = () => {
         operation: 'handleStartOnboarding',
         message: error?.message,
         code: error?.code,
-        build: '1292'
+        build: '1293'
       });
       
       Alert.alert('Ops! 😅', error.message || 'Ocorreu um erro ao tentar configurar sua conta. Tente novamente.');

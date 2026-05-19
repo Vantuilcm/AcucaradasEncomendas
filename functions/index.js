@@ -1010,12 +1010,15 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
       await userRef.set({
         uid,
         email,
+        role: 'producer',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         stripeAccountId: null,
         stripeOnboardingComplete: false
       }, { merge: true });
     }
-    
+
+    console.log('[STRIPE_ONBOARDING_START]', { uid, email, build: '1293' });
+
     // PASSO 2: Criar conta no Stripe
     const account = await stripe.accounts.create({
       type: 'express',
@@ -1027,12 +1030,26 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
       metadata: { uid, role }
     });
 
+    console.log('[STRIPE_ACCOUNT_CREATED]', {
+      uid,
+      stripeAccountId: account?.id,
+      charges_enabled: account?.charges_enabled,
+      payouts_enabled: account?.payouts_enabled,
+      build: '1293'
+    });
+
     // PASSO 3: Atualizar documento com accountId (agora com fallback)
     try {
       await userRef.update({
         stripeAccountId: account.id,
         stripeOnboardingComplete: false,
         stripeCreatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      console.log('[STRIPE_ACCOUNT_SAVED]', {
+        uid,
+        stripeAccountId: account.id,
+        path: `users/${uid}`,
+        build: '1293'
       });
     } catch (updateError) {
       if (updateError.code === 'permission-denied') {
@@ -1042,7 +1059,14 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
           operation: 'update',
           error: updateError.message,
           code: updateError.code,
-          build: '1291'
+          build: '1293'
+        });
+        console.log('[STRIPE_ACCOUNT_SAVED]', {
+          uid,
+          stripeAccountId: account.id,
+          path: `users/${uid}`,
+          build: '1293',
+          note: 'fallback_save_failed'
         });
         // Fallback: Retornar accountId mesmo que update falhe (o Stripe já criou a conta)
         console.warn('[FALLBACK] createConnectedAccount: Retornando accountId apesar de erro de permissão');
@@ -1053,17 +1077,28 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
 
     return { accountId: account.id };
   } catch (error) {
-    console.error('❌ [Stripe] Erro ao criar conta conectada:', error);
+    console.error('[STRIPE_ONBOARDING_ERROR]', {
+      uid,
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+      build: '1293'
+    });
     
-    if (error.code === 'permission-denied') {
-      console.error('[FS_PERMISSION_DENIED] createConnectedAccount.main', {
-        uid,
-        path: `users/${uid}`,
-        operation: 'createConnectedAccount',
-        message: error?.message,
-        code: error?.code,
-        build: '1291'
-      });
+    try {
+      const Sentry = require('@sentry/node');
+      if (Sentry && typeof Sentry.captureException === 'function') {
+        Sentry.captureException(error, {
+          extra: {
+            uid,
+            email,
+            role,
+            build: '1293'
+          }
+        });
+      }
+    } catch (sentryError) {
+      console.warn('[SENTRY_MISSING] @sentry/node não está disponível no backend.', { sentryError });
     }
     
     throw new functions.https.HttpsError('internal', error.message);
