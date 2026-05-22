@@ -10,7 +10,8 @@
       "distribution": "internal",
       "credentialsSource": "remote",
       "env": {
-        "APP_ENV": "development"
+        "APP_ENV": "development",
+        "EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST": "true"
       },
       "channel": "development",
       "ios": {
@@ -26,7 +27,8 @@
       "env": {
         "APP_ENV": "preview",
         "EXPO_PUBLIC_APP_ENV": "preview",
-        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045"
+        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045",
+        "EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST": "true"
       },
       "android": {
         "buildType": "apk"
