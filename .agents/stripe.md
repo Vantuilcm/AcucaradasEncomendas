@@ -2,6 +2,8 @@
 
 > **Domínio**: Stripe Connect, Express accounts, onboarding, payouts, webhooks, payment splits.
 
+> **🔒 FREEZE `stripe-connect-stable-v1` (2026-05-22)** — Stack congelada em produção. Ver `docs/STRIPE_CONNECT_FREEZE.md`. Não alterar Functions Stripe, `return_url`/`refresh_url`, rewrites Hosting, Safari flow nem onboarding sem novo tag e aprovação.
+
 ---
 
 ## Identidade
@@ -30,26 +32,24 @@ Guard:    EXPO_PUBLIC_ENABLE_STRIPE_PAYMENTS=false (pipeline)
 
 ---
 
-## Fluxo de Onboarding (Estado Atual)
+## Fluxo de Onboarding (Congelado — v1)
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ ContaBancariaScreen.handleStartOnboarding                     │
-├──────────────────────────────────────────────────────────────┤
-│ 1. loadAccountData() → GET users/{uid}     ← FALHA ATUAL    │
-│ 2. Se !accountData → Alert + abort         ← BLOQUEIO       │
-│ 3. createConnectedAccount (Function)                          │
-│ 4. createStripeOnboardingLink (Function)                      │
-│ 5. Linking.openURL(url)                                       │
-│ 6. syncStripeAccountStatus (Function)                         │
-└──────────────────────────────────────────────────────────────┘
+App (ContaBancariaScreen)
+  → createConnectedAccount (Function)
+  → createStripeOnboardingLink (Function)
+  → Linking.openURL → Safari externo
+  → Stripe Connect hosted onboarding
+  → https://acucaradasencomendas.com.br/stripe-success
+  → CTA "Abrir aplicativo" → acucaradas://stripe/onboarding-complete
+  → sync manual: botão "Já preenchi, atualizar status" → syncStripeAccountStatus
 ```
 
-### Estratégia de Isolamento (Aprovada pelo Architect)
-- **Remover gate** `if (!accountData)` ou torná-lo não-bloqueante
-- Chamar `createConnectedAccount` mesmo sem dados Firestore locais
-- Function retorna `accountId` — client usa diretamente
-- Sync Firestore acontece server-side (Admin SDK)
+**URLs fixas (Functions):**
+- `return_url`: `https://acucaradasencomendas.com.br/stripe-success`
+- `refresh_url`: `https://acucaradasencomendas.com.br/stripe-refresh`
+
+**Fora de escopo v1:** universal links, auto-redirect, `Linking.addEventListener`, auto-sync ao retorno.
 
 ---
 

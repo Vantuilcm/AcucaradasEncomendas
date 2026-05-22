@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, Linking, Platform } from 'react-native';
 import { Surface, Text, Button, Divider, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,6 +8,15 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from '../config/firebase';
 import { f } from '../config/firebase';
 import { useNavigation } from '@react-navigation/native';
+
+/** Logs temporários de trace Stripe/Safari — remover após diagnóstico */
+const logStripeTrace = (tag: string, payload: Record<string, unknown>) => {
+  try {
+    console.log(tag, JSON.stringify(payload));
+  } catch {
+    console.log(tag, payload);
+  }
+};
 
 // Helper temporário para debug Firestore
 const showFirestoreDebug = (path: string, error: any) => {
@@ -116,6 +125,17 @@ export const ContaBancariaScreen = () => {
             email: user?.email || '', 
             role: role 
           });
+
+          logStripeTrace('[STRIPE_ACCOUNT_RESPONSE]', {
+            hasData: !!response?.data,
+            dataKeys: response?.data && typeof response.data === 'object'
+              ? Object.keys(response.data as object)
+              : [],
+            rawDataType: typeof response?.data,
+            accountId: (response?.data as any)?.accountId,
+            altUrl: (response as any)?.url,
+            altDataUrl: (response as any)?.data?.url,
+          });
           
           // Verifica retorno (safe mode)
           const data = response.data as any;
@@ -124,7 +144,7 @@ export const ContaBancariaScreen = () => {
           }
           console.log('[BANK_FUNCTION_SUCCESS] createAccount', !!data?.accountId);
           currentAccountId = data.accountId;
-          console.log('[STRIPE_ONBOARDING] Conta criada com sucesso.');
+          console.log('[STRIPE_ONBOARDING] Conta criada com sucesso.', { currentAccountId });
         } catch (createError: any) {
           console.error('[FS_PERMISSION_DENIED]', {
             screen: 'ContaBancariaScreen',
@@ -147,7 +167,11 @@ export const ContaBancariaScreen = () => {
       }
 
       // 2. Gerar link de onboarding
-      console.log('[STRIPE_ONBOARDING] Chamando createStripeOnboardingLink...');
+      console.log('[STRIPE_ONBOARDING] Chamando createStripeOnboardingLink...', {
+        currentAccountId,
+        fromFirestore: !!accountData?.stripeAccountId,
+        platform: Platform.OS,
+      });
       const createLinkFn = httpsCallable(functions, 'createStripeOnboardingLink');
       const linkResponse = await createLinkFn({
         accountId: currentAccountId,
@@ -156,23 +180,82 @@ export const ContaBancariaScreen = () => {
         returnUrl: 'https://acucaradas.com/success',
       });
 
+      console.log('[STRIPE_LINK_RESPONSE]', JSON.stringify(linkResponse));
+      console.log('[STRIPE_LINK_DATA]', JSON.stringify(linkResponse?.data));
+      console.log('[STRIPE_LINK_URL]', (linkResponse as any)?.data?.url);
+      logStripeTrace('[STRIPE_LINK_SHAPE]', {
+        topLevelKeys: linkResponse ? Object.keys(linkResponse as object) : [],
+        dataKeys: linkResponse?.data && typeof linkResponse.data === 'object'
+          ? Object.keys(linkResponse.data as object)
+          : [],
+        dataUrl: (linkResponse?.data as any)?.url,
+        topLevelUrl: (linkResponse as any)?.url,
+        nestedDataUrl: (linkResponse as any)?.data?.url,
+      });
+
       const linkData = linkResponse.data as any;
       console.log('[BANK_FUNCTION_SUCCESS] createLink', !!linkData?.url);
       
       if (!linkData || !linkData.url) {
+        logStripeTrace('[STRIPE_LINK_MISSING_URL]', {
+          linkDataType: typeof linkData,
+          linkDataKeys: linkData && typeof linkData === 'object' ? Object.keys(linkData) : [],
+        });
         throw new Error('Não foi possível gerar o link de cadastro.');
       }
 
+      const onboardingUrl =
+        linkData?.url ??
+        (linkResponse as any)?.url ??
+        (linkResponse as any)?.data?.url;
+
       // 3. Abrir link
+      console.log('[STRIPE_OPEN_URL]', onboardingUrl);
+      console.log('[STRIPE_URL_TYPE]', typeof onboardingUrl);
+      logStripeTrace('[STRIPE_URL_CHECK]', {
+        isString: typeof onboardingUrl === 'string',
+        length: typeof onboardingUrl === 'string' ? onboardingUrl.length : 0,
+        startsWithHttps: typeof onboardingUrl === 'string' && onboardingUrl.startsWith('https://'),
+        startsWithConnectStripe:
+          typeof onboardingUrl === 'string' && onboardingUrl.includes('connect.stripe.com'),
+        looksLikeExpo: typeof onboardingUrl === 'string' && onboardingUrl.startsWith('exp://'),
+        looksLikeLocalhost:
+          typeof onboardingUrl === 'string' &&
+          (onboardingUrl.includes('localhost') || onboardingUrl.includes('127.0.0.1')),
+        platform: Platform.OS,
+      });
+
+      if (typeof onboardingUrl !== 'string' || !onboardingUrl.startsWith('https://')) {
+        console.warn('[STRIPE_URL_INVALID_SHAPE]', {
+          onboardingUrl,
+          type: typeof onboardingUrl,
+          expected: 'https://connect.stripe.com/...',
+        });
+      }
+
       console.log('[STRIPE_ONBOARDING] Abrindo link seguro do Stripe...');
-      const canOpen = await Linking.canOpenURL(linkData.url);
+      const canOpen = await Linking.canOpenURL(onboardingUrl);
+      console.log('[STRIPE_CAN_OPEN]', canOpen);
+
       if (canOpen) {
-        await Linking.openURL(linkData.url);
+        console.log('[STRIPE_OPENURL_CALL]', { url: onboardingUrl });
+        await Linking.openURL(onboardingUrl);
+        console.log('[STRIPE_OPENURL_DONE]', { ok: true });
       } else {
         throw new Error('Não foi possível abrir o navegador.');
       }
 
     } catch (error: any) {
+      console.error('[STRIPE_FRONTEND_ERROR]', error);
+      console.error('[STRIPE_FRONTEND_ERROR_DETAIL]', {
+        message: error?.message,
+        code: error?.code,
+        name: error?.name,
+        stack: error?.stack,
+        details: error?.details,
+        customData: error?.customData,
+        response: error?.response,
+      });
       console.error('[FRONTEND_STRIPE_ONBOARDING_ERROR]', {
         uid: (user as any)?.uid || (user as any)?.id,
         message: error?.message,
