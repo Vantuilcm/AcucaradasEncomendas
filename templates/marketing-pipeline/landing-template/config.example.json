@@ -1,0 +1,24 @@
+{
+  "campaign_slug": "exemplo-campanha-2026",
+  "canonical_url": "https://lp.acucaradasencomendas.com.br/exemplo-campanha-2026/",
+  "meta": {
+    "title": "Doces artesanais com entrega — Açucaradas",
+    "description": "Encomende doces de confeiteiros da sua região pelo app Açucaradas Encomendas. Peça pelo WhatsApp.",
+    "keywords": ["doces artesanais", "encomenda de bolos", "Açucaradas"]
+  },
+  "og": {
+    "title": "Açucaradas Encomendas — Doces na sua porta",
+    "description": "Marketplace de doces artesanais. Baixe o app ou fale no WhatsApp."
+  },
+  "content": {
+    "eyebrow": "Campanha exemplo",
+    "headline": "Doces artesanais na sua porta",
+    "subheadline": "Conectamos você aos melhores confeiteiros da região.",
+    "disclaimer": "Campanha ilustrativa — fundação do pipeline marketing."
+  },
+  "whatsapp": {
+    "e164": "5511999999999",
+    "default_message": "Olá! Vim pela campanha exemplo-campanha-2026."
+  },
+  "year": 2026
+}

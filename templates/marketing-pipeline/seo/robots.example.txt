@@ -1,0 +1,12 @@
+# robots.txt — exemplo para pasta lp/ no HostGator
+# Publicar em: public_html/lp/robots.txt (quando lp. estiver ativo)
+
+User-agent: *
+Allow: /
+
+# Ajustar URL do sitemap quando domínio lp. estiver configurado
+Sitemap: https://lp.acucaradasencomendas.com.br/sitemap.xml
+
+# Bloquear rascunhos (exemplo)
+Disallow: /lp/_draft/
+Disallow: /lp/teste-interno/

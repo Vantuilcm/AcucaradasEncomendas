@@ -1,0 +1,70 @@
+# EXEMPLO MOCK — não ativar no repo AcucaradasEncomendas (app principal).
+# Copiar para repo dedicado acucaradas-marketing-sites/.github/workflows/
+# quando FTP secrets estiverem configurados e deploy for aprovado.
+
+name: "[MOCK] Deploy Marketing Landing"
+
+on:
+  workflow_dispatch:
+    inputs:
+      campaign_slug:
+        description: 'Slug da campanha (pasta em public_html/lp/)'
+        required: true
+        default: 'exemplo-campanha'
+      dry_run:
+        description: 'Apenas validar, sem FTP'
+        type: boolean
+        default: true
+
+# Evita deploy acidental em push
+# on:
+#   push:
+#     branches: [main]
+#     paths: ['campaigns/**']
+
+env:
+  MOCK_FTP_SERVER: ftp.example.hostgator.com
+  MOCK_SERVER_DIR: /public_html/lp/${{ inputs.campaign_slug }}/
+
+jobs:
+  validate:
+    name: Validar template (mock)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar ficheiros obrigatórios
+        run: |
+          test -f templates/marketing-pipeline/landing-template/index.html || \
+            test -f landing-template/index.html || \
+            (echo "Landing template não encontrado" && exit 1)
+          echo "✅ Estrutura HTML presente (mock)"
+
+      - name: Placeholder SEO check
+        run: |
+          echo "MOCK: validar meta description, canonical, robots"
+          echo "campaign=${{ inputs.campaign_slug }}"
+          echo "dry_run=${{ inputs.dry_run }}"
+
+  deploy-mock:
+    name: Deploy FTPS (desativado)
+    needs: validate
+    runs-on: ubuntu-latest
+    if: ${{ inputs.dry_run == false }}
+    steps:
+      - name: Aviso
+        run: |
+          echo "::warning::Deploy real desativado neste exemplo."
+          echo "Configure secrets HG_FTP_* no repo marketing antes de usar SamKirkland/FTP-Deploy-Action."
+
+      # - name: Deploy via FTPS
+      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+      #   with:
+      #     server: ${{ secrets.HG_FTP_SERVER }}
+      #     username: ${{ secrets.HG_FTP_USER }}
+      #     password: ${{ secrets.HG_FTP_PASSWORD }}
+      #     protocol: ftps
+      #     port: 21
+      #     local-dir: ./dist/
+      #     server-dir: /public_html/lp/${{ inputs.campaign_slug }}/

@@ -1,0 +1,19 @@
+{
+  "$comment": "Configuração exemplo para script ou FTP-Deploy-Action",
+  "protocol": "ftps",
+  "port": 21,
+  "localDir": "../landing-template",
+  "serverDir": "/public_html/lp/{{CAMPAIGN_SLUG}}/",
+  "exclude": [
+    "**/.env",
+    "**/.env.*",
+    "**/config.example.json",
+    "**/*.md",
+    ".git/**"
+  ],
+  "campaign": {
+    "slug": "exemplo-campanha-2026",
+    "canonicalBase": "https://lp.acucaradasencomendas.com.br"
+  },
+  "dryRun": true
+}

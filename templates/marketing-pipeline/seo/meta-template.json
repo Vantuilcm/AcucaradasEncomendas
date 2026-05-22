@@ -1,0 +1,23 @@
+{
+  "$schema_comment": "Template meta tags — injetar em landing-template/index.html",
+  "title_pattern": "{headline} — Açucaradas Encomendas",
+  "description_max_length": 155,
+  "title_max_length": 60,
+  "required": ["title", "description", "canonical"],
+  "example": {
+    "title": "Doces artesanais em Curitiba — Açucaradas Encomendas",
+    "description": "Encomende bolos e doces de confeiteiros em Curitiba. Peça pelo app ou WhatsApp. Primeira encomenda com vantagens.",
+    "canonical": "https://lp.acucaradasencomendas.com.br/curitiba-doces/",
+    "keywords": ["doces artesanais Curitiba", "encomenda bolos", "Açucaradas Encomendas"],
+    "robots": "index, follow",
+    "language": "pt-BR"
+  },
+  "html_head_snippet": [
+    "<meta charset=\"utf-8\" />",
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />",
+    "<title>{{title}}</title>",
+    "<meta name=\"description\" content=\"{{description}}\" />",
+    "<meta name=\"robots\" content=\"{{robots}}\" />",
+    "<link rel=\"canonical\" href=\"{{canonical}}\" />"
+  ]
+}
