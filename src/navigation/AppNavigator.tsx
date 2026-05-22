@@ -348,6 +348,11 @@ const AppNavigator = () => {
                   component={HelpCenterScreen}
                   options={{ title: 'Central de Ajuda' }}
                 />
+                <Stack.Screen
+                  name="ContaBancaria"
+                  component={ContaBancariaScreen}
+                  options={{ title: 'Recebimentos' }}
+                />
               </>
             ) : (
               <>
