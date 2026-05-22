@@ -1,0 +1,138 @@
+# CPA Week 1 + Courier Week 1 — iOS preview operational validation (EAS cloud)
+# Profile: preview only — never production / production_v13
+name: iOS Preview Operational (CPA + Courier)
+
+concurrency:
+  group: ios-preview-operational
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_commit:
+        description: 'Commit baseline da app (CPA + Courier) — deve ser ancestral de HEAD'
+        required: true
+        default: '88064fe6dad4040cc0f491c0d4fbca316322afe0'
+      strict_commit_check:
+        description: 'Falhar se baseline_commit não for ancestral de HEAD'
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  preview-build:
+    name: EAS iOS Preview — Operational Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EAS_PROFILE: preview
+      BASELINE_COMMIT: ${{ github.event.inputs.baseline_commit }}
+      EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST: 'true'
+
+    steps:
+      - name: Checkout (feature/courier-bank-navigation-fix)
+        uses: actions/checkout@v4
+        with:
+          ref: feature/courier-bank-navigation-fix
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Pre-flight validation (commit, branch, flag, EAS)
+        run: |
+          set -euo pipefail
+          echo "=== BRANCH ==="
+          git branch --show-current
+          echo "=== COMMIT (git rev-parse HEAD) ==="
+          git rev-parse HEAD
+          echo "=== BASELINE (CPA + Courier app commit) ==="
+          echo "$BASELINE_COMMIT"
+          if [ "${{ github.event.inputs.strict_commit_check }}" = "true" ]; then
+            if ! git merge-base --is-ancestor "$BASELINE_COMMIT" HEAD; then
+              echo "❌ Baseline $BASELINE_COMMIT is NOT an ancestor of HEAD $(git rev-parse HEAD)"
+              exit 1
+            fi
+            echo "✅ Baseline $BASELINE_COMMIT is ancestor of HEAD (app code includes CPA + Courier)"
+          else
+            echo "⚠️ strict_commit_check disabled"
+          fi
+          echo "=== EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST ==="
+          echo "$EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST"
+          if [ "$EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST" != "true" ]; then
+            echo "❌ Persist flag must be true for this operational build"
+            exit 1
+          fi
+          echo "=== eas.json preview env (grep) ==="
+          grep -A6 '"preview"' eas.json | head -12 || true
+          if grep -q 'EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST' eas.json; then
+            grep 'EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST' eas.json || true
+          fi
+          echo "=== BLOCKED profiles check ==="
+          if [ "$EAS_PROFILE" = "production" ] || [ "$EAS_PROFILE" = "production_v13" ]; then
+            echo "❌ Forbidden profile: $EAS_PROFILE"
+            exit 1
+          fi
+          echo "✅ Profile: $EAS_PROFILE"
+          echo "=== eas whoami ==="
+          eas whoami
+          echo "=== eas build:list (limit 3) ==="
+          eas build:list --platform ios --limit 3 --non-interactive
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: EAS build — iOS preview (cloud, non-interactive)
+        id: eas_build
+        run: |
+          set -euo pipefail
+          eas build \
+            --platform ios \
+            --profile "$EAS_PROFILE" \
+            --non-interactive \
+            --wait \
+            2>&1 | tee eas-preview-build.log
+          echo "=== eas build:list (after build) ==="
+          eas build:list --platform ios --profile preview --limit 3 --non-interactive
+
+      - name: Capture build metadata
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "## iOS Preview Operational Build" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Branch | feature/courier-bank-navigation-fix |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| HEAD commit | \`$(git rev-parse HEAD)\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Baseline (88064fe) | \`$BASELINE_COMMIT\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Profile | preview |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Persist flag | $EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST |" >> "$GITHUB_STEP_SUMMARY"
+          BUILD_URL=$(grep -oE 'https://expo\.dev/[^[:space:]]+' eas-preview-build.log | tail -1 || true)
+          if [ -n "$BUILD_URL" ]; then
+            echo "| Build URL | [$BUILD_URL]($BUILD_URL) |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -40 eas-preview-build.log >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eas-preview-operational-log
+          path: eas-preview-build.log
+          retention-days: 14
+          if-no-files-found: warn
