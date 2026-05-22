@@ -9,12 +9,12 @@ concurrency:
 on:
   workflow_dispatch:
     inputs:
-      expected_commit:
-        description: 'Commit SHA esperado (curto ou completo)'
+      baseline_commit:
+        description: 'Commit baseline da app (CPA + Courier) — deve ser ancestral de HEAD'
         required: true
         default: '88064fe6dad4040cc0f491c0d4fbca316322afe0'
       strict_commit_check:
-        description: 'Falhar se HEAD != expected_commit'
+        description: 'Falhar se baseline_commit não for ancestral de HEAD'
         required: true
         default: true
         type: boolean
@@ -28,7 +28,7 @@ jobs:
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EAS_PROFILE: preview
-      EXPECTED_COMMIT: ${{ github.event.inputs.expected_commit }}
+      BASELINE_COMMIT: ${{ github.event.inputs.baseline_commit }}
       EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST: 'true'
 
     steps:
@@ -57,22 +57,14 @@ jobs:
           git branch --show-current
           echo "=== COMMIT (git rev-parse HEAD) ==="
           git rev-parse HEAD
-          HEAD_SHORT=$(git rev-parse --short HEAD)
-          echo "HEAD short: $HEAD_SHORT"
+          echo "=== BASELINE (CPA + Courier app commit) ==="
+          echo "$BASELINE_COMMIT"
           if [ "${{ github.event.inputs.strict_commit_check }}" = "true" ]; then
-            HEAD_FULL=$(git rev-parse HEAD)
-            MATCH=false
-            if [ "$HEAD_FULL" = "$EXPECTED_COMMIT" ] || [ "${HEAD_FULL#"$EXPECTED_COMMIT"}" != "$HEAD_FULL" ]; then
-              MATCH=true
-            fi
-            if [ "$HEAD_SHORT" = "${EXPECTED_COMMIT:0:7}" ] || [ "${EXPECTED_COMMIT:0:7}" = "$HEAD_SHORT" ]; then
-              MATCH=true
-            fi
-            if [ "$MATCH" != "true" ]; then
-              echo "❌ Commit mismatch. Expected: $EXPECTED_COMMIT Got: $HEAD_FULL"
+            if ! git merge-base --is-ancestor "$BASELINE_COMMIT" HEAD; then
+              echo "❌ Baseline $BASELINE_COMMIT is NOT an ancestor of HEAD $(git rev-parse HEAD)"
               exit 1
             fi
-            echo "✅ Commit matches expected ($EXPECTED_COMMIT)"
+            echo "✅ Baseline $BASELINE_COMMIT is ancestor of HEAD (app code includes CPA + Courier)"
           else
             echo "⚠️ strict_commit_check disabled"
           fi
@@ -123,7 +115,8 @@ jobs:
           echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Branch | feature/courier-bank-navigation-fix |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Commit | \`$(git rev-parse HEAD)\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| HEAD commit | \`$(git rev-parse HEAD)\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Baseline (88064fe) | \`$BASELINE_COMMIT\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Profile | preview |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Persist flag | $EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST |" >> "$GITHUB_STEP_SUMMARY"
           BUILD_URL=$(grep -oE 'https://expo\.dev/[^[:space:]]+' eas-preview-build.log | tail -1 || true)
