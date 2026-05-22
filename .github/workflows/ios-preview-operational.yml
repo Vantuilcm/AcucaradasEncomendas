@@ -50,6 +50,20 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
 
+      - name: Restore GoogleService-Info.plist (iOS Firebase)
+        run: |
+          set -euo pipefail
+          if [ -n "${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64 }}" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64 }}" | base64 --decode > GoogleService-Info.plist
+          elif [ -n "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" ]; then
+            printf "%s" "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" > GoogleService-Info.plist
+          fi
+          if [ ! -f "GoogleService-Info.plist" ]; then
+            echo "❌ GoogleService-Info.plist ausente. Configure GOOGLE_SERVICES_INFO_PLIST_BASE64 no GitHub Secrets."
+            exit 1
+          fi
+          echo "✅ GoogleService-Info.plist restaurado ($(wc -c < GoogleService-Info.plist) bytes)"
+
       - name: Pre-flight validation (commit, branch, flag, EAS)
         run: |
           set -euo pipefail
