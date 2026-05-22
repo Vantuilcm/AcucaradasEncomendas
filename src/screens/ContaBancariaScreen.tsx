@@ -8,6 +8,10 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from '../config/firebase';
 import { f } from '../config/firebase';
 import { useNavigation } from '@react-navigation/native';
+import { ENV } from '../config/env';
+
+const ENABLE_STRIPE_ACCOUNT_PERSIST =
+  ENV.EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST === 'true';
 
 /** Logs temporários de trace Stripe/Safari — remover após diagnóstico */
 const logStripeTrace = (tag: string, payload: Record<string, unknown>) => {
@@ -90,6 +94,37 @@ export const ContaBancariaScreen = () => {
     loadAccountData();
   }, [loadAccountData]);
 
+  const persistStripeAccountId = async (uid: string, accountId: string) => {
+    if (!ENABLE_STRIPE_ACCOUNT_PERSIST) return;
+    if (!accountId?.startsWith('acct_')) {
+      console.warn('[STRIPE_ACCOUNT_PERSIST_ERROR]', { uid, reason: 'invalid_account_id_shape' });
+      return;
+    }
+
+    const path = `users/${uid}`;
+    console.log('[STRIPE_ACCOUNT_PERSIST]', { uid, path, accountId });
+
+    try {
+      const userRef = f.doc('users', uid);
+      await f.updateDoc(userRef, { stripeAccountId: accountId });
+      console.log('[STRIPE_ACCOUNT_PERSIST_OK]', { uid, path, accountId });
+      setAccountData((prev: Record<string, unknown> | null) =>
+        prev ? { ...prev, stripeAccountId: accountId } : prev
+      );
+    } catch (error: any) {
+      console.error('[STRIPE_ACCOUNT_PERSIST_ERROR]', {
+        uid,
+        path,
+        accountId,
+        code: error?.code,
+        message: error?.message,
+      });
+      if (error?.code === 'permission-denied') {
+        showFirestoreDebug(path, error);
+      }
+    }
+  };
+
   const handleStartOnboarding = async () => {
     if (processing) return;
     setProcessing(true);
@@ -145,6 +180,7 @@ export const ContaBancariaScreen = () => {
           console.log('[BANK_FUNCTION_SUCCESS] createAccount', !!data?.accountId);
           currentAccountId = data.accountId;
           console.log('[STRIPE_ONBOARDING] Conta criada com sucesso.', { currentAccountId });
+          await persistStripeAccountId(uid, currentAccountId);
         } catch (createError: any) {
           console.error('[FS_PERMISSION_DENIED]', {
             screen: 'ContaBancariaScreen',

@@ -26,6 +26,8 @@ export type Env = {
   EXPO_PUBLIC_MONITORING_REMOTE_ENABLED?: string;
   EXPO_PUBLIC_FACEBOOK_APP_ID?: string;
   EXPO_PUBLIC_ENABLE_STRIPE_PAYMENTS?: string;
+  /** CPA Week 1 — persiste users/{uid}.stripeAccountId após createConnectedAccount (default off) */
+  EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST?: string;
 };
 
 function getEnv(): Env {
@@ -57,6 +59,7 @@ function getEnv(): Env {
     EXPO_PUBLIC_FACEBOOK_APP_ID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || extra.facebookAppId,
     EXPO_PUBLIC_MONITORING_REMOTE_ENABLED: process.env.EXPO_PUBLIC_MONITORING_REMOTE_ENABLED,
     EXPO_PUBLIC_ENABLE_STRIPE_PAYMENTS: process.env.EXPO_PUBLIC_ENABLE_STRIPE_PAYMENTS,
+    EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST: process.env.EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST,
   };
 
   // Variáveis OBRIGATÓRIAS que causam crash se faltarem
