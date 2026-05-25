@@ -21,9 +21,9 @@
       }
     },
     "preview": {
-      "extends": "production",
       "distribution": "internal",
       "developmentClient": false,
+      "credentialsSource": "remote",
       "channel": "preview",
       "autoIncrement": false,
       "env": {
