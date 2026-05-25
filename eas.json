@@ -21,9 +21,9 @@
       }
     },
     "preview": {
+      "extends": "production",
       "distribution": "internal",
       "developmentClient": false,
-      "credentialsSource": "remote",
       "channel": "preview",
       "autoIncrement": false,
       "env": {
@@ -36,7 +36,8 @@
         "buildType": "apk"
       },
       "ios": {
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "simulator": false
       }
     },
     "production": {
