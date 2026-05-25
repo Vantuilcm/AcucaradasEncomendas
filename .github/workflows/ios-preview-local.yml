@@ -1,0 +1,208 @@
+# CPA Week 1 + Courier — iOS preview LOCAL (GitHub Actions macOS, zero EAS cloud credits)
+# Profile: preview only — never production / production_v13
+name: iOS Preview Local (CPA + Courier)
+
+concurrency:
+  group: ios-preview-operational
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_commit:
+        description: 'Commit baseline da app (CPA + Courier) — deve ser ancestral de HEAD'
+        required: true
+        default: '88064fe6dad4040cc0f491c0d4fbca316322afe0'
+      strict_commit_check:
+        description: 'Falhar se baseline_commit não for ancestral de HEAD'
+        required: true
+        default: true
+        type: boolean
+      ref:
+        description: 'Branch ou ref para build (vazio = branch atual do dispatch)'
+        required: false
+        default: ''
+
+jobs:
+  preview-local-build:
+    name: iOS Preview Local — Operational Validation
+    runs-on: macos-15
+    timeout-minutes: 120
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      GOOGLE_SERVICES_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64 }}
+      GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+      EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+      EXPO_PUBLIC_PROJECT_ID: '6090106b-e327-4744-bce5-9ddb0d037045'
+      EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+      EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+      EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
+      EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+      APP_ENV: preview
+      EXPO_PUBLIC_APP_ENV: preview
+      EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST: 'true'
+      PROFILE: preview
+      EAS_PROFILE: preview
+      FORCE_BUILD_MODE: LOCAL
+      BASELINE_COMMIT: ${{ github.event.inputs.baseline_commit }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Diagnose macOS/Xcode
+        run: |
+          echo "=== System Info ==="
+          sw_vers
+          ls /Applications | grep Xcode || true
+          xcode-select -p
+          xcodebuild -version
+          xcodebuild -showsdks
+
+      - name: Setup Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.0'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install EAS CLI and build tools
+        run: |
+          npm install -g eas-cli@latest
+          brew install cocoapods || true
+          gem install cocoapods || true
+          echo "CI=true" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Validate environment (fail-fast)
+        run: node scripts/validate-env.js
+
+      - name: Restore GoogleService-Info.plist (iOS Firebase)
+        run: |
+          set -euo pipefail
+          if [ -n "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
+            echo "${GOOGLE_SERVICES_INFO_PLIST_BASE64}" | base64 --decode > GoogleService-Info.plist
+          elif [ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]; then
+            printf "%s" "${GOOGLE_SERVICE_INFO_PLIST}" > GoogleService-Info.plist
+          fi
+          if [ ! -f "GoogleService-Info.plist" ]; then
+            echo "❌ GoogleService-Info.plist ausente. Configure GOOGLE_SERVICES_INFO_PLIST_BASE64 no GitHub Secrets."
+            exit 1
+          fi
+          echo "✅ GoogleService-Info.plist restaurado ($(wc -c < GoogleService-Info.plist) bytes)"
+
+      - name: Pre-flight validation (commit, CPA, profile)
+        run: |
+          set -euo pipefail
+          echo "=== BRANCH ==="
+          git branch --show-current
+          echo "=== COMMIT (git rev-parse HEAD) ==="
+          git rev-parse HEAD
+          echo "=== BASELINE (CPA + Courier app commit) ==="
+          echo "$BASELINE_COMMIT"
+          if [ "${{ github.event.inputs.strict_commit_check }}" = "true" ]; then
+            if ! git merge-base --is-ancestor "$BASELINE_COMMIT" HEAD; then
+              echo "❌ Baseline $BASELINE_COMMIT is NOT an ancestor of HEAD $(git rev-parse HEAD)"
+              exit 1
+            fi
+            echo "✅ Baseline $BASELINE_COMMIT is ancestor of HEAD (app code includes CPA + Courier)"
+          else
+            echo "⚠️ strict_commit_check disabled"
+          fi
+          echo "=== EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST ==="
+          echo "$EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST"
+          if [ "$EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST" != "true" ]; then
+            echo "❌ Persist flag must be true for this operational build"
+            exit 1
+          fi
+          echo "=== eas.json preview env (grep) ==="
+          grep -A12 '"preview"' eas.json | head -16 || true
+          echo "=== BLOCKED profiles check ==="
+          if [ "$EAS_PROFILE" = "production" ] || [ "$EAS_PROFILE" = "production_v13" ]; then
+            echo "❌ Forbidden profile: $EAS_PROFILE"
+            exit 1
+          fi
+          echo "✅ Profile: $EAS_PROFILE (local build, no EAS cloud credits)"
+          echo "=== eas config preview (resolved) ==="
+          eas config --profile preview --platform ios 2>&1 | tail -20 || true
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Build Number Enforcer (Source of Truth)
+        run: |
+          node scripts/ci/force-build-number.js --run
+          BUILD_NUMBER=$(jq -r '.buildNumber' version-state.json)
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "CURRENT_BN=$BUILD_NUMBER" >> $GITHUB_ENV
+
+      - name: Generate public_config.json
+        run: npx expo config --type public --json > public_config.json
+
+      - name: iOS Build Guardian (local preview)
+        run: |
+          chmod +x ./scripts/ci/ios-build-guardian.sh
+          ./scripts/ci/ios-build-guardian.sh
+
+      - name: Stage preview IPA artifact
+        if: success()
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          LATEST_IPA=$(ls -t build-*.ipa 2>/dev/null | head -n 1 || ls -t *.ipa 2>/dev/null | head -n 1 || true)
+          if [ -z "$LATEST_IPA" ]; then
+            echo "❌ IPA não encontrada após build local"
+            exit 1
+          fi
+          cp "$LATEST_IPA" dist/preview-local.ipa
+          echo "PREVIEW_IPA=dist/preview-local.ipa" >> $GITHUB_ENV
+          ls -lh dist/preview-local.ipa
+
+      - name: Capture build metadata
+        if: always()
+        run: |
+          echo "## iOS Preview Local Build" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Mode | LOCAL (GitHub Actions macOS) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Profile | preview |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| HEAD commit | \`$(git rev-parse HEAD)\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Baseline | \`$BASELINE_COMMIT\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Persist flag | $EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| EAS cloud credits | 0 (eas build --local) |" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f dist/preview-local.ipa ]; then
+            echo "| IPA artifact | preview-local.ipa |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload preview IPA and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-preview-local-${{ github.run_number }}
+          path: |
+            dist/preview-local.ipa
+            build-logs/
+            build-*.ipa
+            *.ipa
+          retention-days: 14
+          if-no-files-found: warn
