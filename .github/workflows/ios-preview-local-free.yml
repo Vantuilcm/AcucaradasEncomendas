@@ -2,6 +2,9 @@ name: iOS Preview Local Free
 
 on:
   workflow_dispatch:
+  # Runs from PR head (feature branch) — workflow_dispatch only indexes after merge to default branch
+  pull_request:
+    branches: [main]
 
 concurrency:
   group: ios-preview-local-free
