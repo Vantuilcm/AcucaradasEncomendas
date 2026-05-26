@@ -2,8 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import * as Sentry from '@sentry/react-native';
-import { initSentry } from './config/sentry';
+import { initSentry, captureMessage } from './config/sentry';
 import { ThemeProvider } from './components/ThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
 
@@ -43,13 +42,7 @@ export default function App() {
     }
 
     initSentry();
-
-    try {
-      Sentry.captureMessage('SENTRY_RUNTIME_TEST_BUILD_1279');
-      console.log('[SENTRY_TEST_SENT]');
-    } catch (error) {
-      console.error('[SENTRY_TEST_FAILED]', error);
-    }
+    captureMessage('SENTRY_RUNTIME_TEST_BUILD_1279');
   }, []);
 
   // Garantir que publishableKey não seja undefined/vazio para não quebrar o provider

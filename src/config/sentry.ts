@@ -6,7 +6,12 @@ import { ConfigService } from '../services/ConfigService';
 const SENTRY_ENABLED_ENV = process.env.EXPO_PUBLIC_SENTRY_ENABLED === 'true';
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
+/** Preview/production gate — must be explicitly true to run Sentry at runtime */
+export const isSentryRuntimeEnabled = (): boolean =>
+  process.env.EXPO_PUBLIC_ENABLE_SENTRY === 'true';
+
 const isSentryEnabled = () => {
+  if (!isSentryRuntimeEnabled()) return false;
   if (!SENTRY_ENABLED_ENV || !SENTRY_DSN) return false;
   
   try {
@@ -21,6 +26,13 @@ const isSentryEnabled = () => {
 let isSentryInitialized = false;
 
 export const initSentry = () => {
+  if (!isSentryRuntimeEnabled()) {
+    console.log('[SENTRY] Skipped init — EXPO_PUBLIC_ENABLE_SENTRY is not true');
+    return;
+  }
+
+  if (isSentryInitialized) return;
+
   try {
     console.log('[BEFORE_SENTRY_INIT]');
 
@@ -34,6 +46,7 @@ export const initSentry = () => {
       debug: true,
     });
 
+    isSentryInitialized = true;
     console.log('[AFTER_SENTRY_INIT]');
 
     try {
