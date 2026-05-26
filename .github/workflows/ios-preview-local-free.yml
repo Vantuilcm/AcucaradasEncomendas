@@ -1,0 +1,73 @@
+name: iOS Preview Local Free
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-preview-local-free
+  cancel-in-progress: true
+
+jobs:
+  build-ios-preview:
+    name: Build iOS Preview (local / free runner)
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    env:
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      EXPO_APP_STORE_CONNECT_API_KEY: ${{ secrets.EXPO_APP_STORE_CONNECT_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Expo / EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: EAS whoami
+        run: eas whoami
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Build iOS preview locally
+        run: |
+          eas build \
+            --platform ios \
+            --profile preview \
+            --local \
+            --non-interactive \
+            --output ios-preview.ipa
+
+      - name: Locate IPA
+        run: |
+          echo "Searching for IPA..."
+          find . -name "*.ipa" -type f
+          ls -lh ios-preview.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-preview-f6bf230
+          path: ios-preview.ipa
+          if-no-files-found: error
