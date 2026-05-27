@@ -18,6 +18,8 @@ jobs:
 
     env:
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      EAS_PROFILE: preview
+      SKIP_SUBMIT: "true"
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
       EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
@@ -53,24 +55,23 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-      - name: Build iOS preview locally
+      - name: iOS Build Guardian (local preview)
         run: |
-          eas build \
-            --platform ios \
-            --profile preview \
-            --local \
-            --non-interactive \
-            --output ios-preview.ipa
+          chmod +x ./scripts/ci/ios-build-guardian.sh
+          ./scripts/ci/ios-build-guardian.sh
 
-      - name: Locate IPA
+      - name: Stage preview IPA
+        if: success()
         run: |
-          echo "Searching for IPA..."
-          find . -name "*.ipa" -type f
-          ls -lh ios-preview.ipa
+          set -euo pipefail
+          mkdir -p dist
+          LATEST_IPA=$(ls -t build-*.ipa 2>/dev/null | head -n 1 || ls -t *.ipa 2>/dev/null | head -n 1)
+          cp "$LATEST_IPA" dist/preview-local.ipa
+          ls -lh dist/preview-local.ipa
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-preview-f6bf230
-          path: ios-preview.ipa
+          path: dist/preview-local.ipa
           if-no-files-found: error

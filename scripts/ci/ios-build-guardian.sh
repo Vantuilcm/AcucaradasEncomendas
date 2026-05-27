@@ -11,6 +11,14 @@ set -xeo pipefail
 echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Missão de Build Local V2.2 (v9)..."
 echo "------------------------------------------------------------"
 
+# Profile dinâmico: produção permanece production_v13 (default); preview via EAS_PROFILE=preview
+EAS_PROFILE="${EAS_PROFILE:-${PROFILE:-production_v13}}"
+SKIP_SUBMIT="${SKIP_SUBMIT:-false}"
+if [ "$EAS_PROFILE" = "preview" ]; then
+  SKIP_SUBMIT="true"
+fi
+echo "📋 [GUARDIAN] EAS_PROFILE=${EAS_PROFILE} SKIP_SUBMIT=${SKIP_SUBMIT}"
+
 # 🧩 ETAPA 1 — VALIDAÇÃO DE AMBIENTE
 echo "🔍 [ETAPA 1] Validando ambiente e variáveis..."
 pwd
@@ -279,7 +287,7 @@ run_eas_build_with_retry() {
   until [ $attempt -gt $max_attempts ]; do
     echo "🚀 Tentativa $attempt/$max_attempts: eas build iOS local"
 
-    if eas build --platform ios --local --non-interactive --profile production_v13 > build-logs/local-build.log 2>&1; then
+    if eas build --platform ios --local --non-interactive --profile "$EAS_PROFILE" > build-logs/local-build.log 2>&1; then
       echo "✅ EAS build concluído com sucesso"
       return 0
     fi
@@ -329,6 +337,10 @@ if [ "$ACTUAL_BN" != "$EXPECTED_BN" ]; then
     echo "✅ IPA Validada com Sucesso (Build $EXPECTED_BN)!"
 ls -lh *.ipa || echo "Nenhum IPA no root"
 
-# 🧩 ETAPA 10 — SUBMISSÃO EXPLICITA
-echo "📤 [ETAPA 10] Enviando para TestFlight..."
-eas submit -p ios --path "$LATEST_IPA" --profile production_v13 --non-interactive
+# 🧩 ETAPA 10 — SUBMISSÃO EXPLICITA (produção apenas; preview nunca submete)
+if [ "$SKIP_SUBMIT" = "true" ]; then
+  echo "⏭️ SKIP_SUBMIT=true — submit ignorado (artifact IPA local apenas)"
+else
+  echo "📤 [ETAPA 10] Enviando para TestFlight..."
+  eas submit -p ios --path "$LATEST_IPA" --profile "$EAS_PROFILE" --non-interactive
+fi
