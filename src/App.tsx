@@ -12,6 +12,7 @@ import { LocationProvider } from './contexts/LocationContext';
 import { ErrorBoundary } from './core/monitoring/ErrorBoundary';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { STRIPE_PUBLISHABLE_KEY } from './config/stripe';
+import { useStripeDeepLink } from './hooks/useStripeDeepLink';
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Estabilizada
@@ -34,6 +35,8 @@ function ThemedApp() {
 }
 
 export default function App() {
+  useStripeDeepLink();
+
   useEffect(() => {
     try {
       console.log('[APP_STARTUP_RUNNING]');
