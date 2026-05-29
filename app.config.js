@@ -87,6 +87,7 @@ export default ({ config }) => {
   const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
   const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
   const facebookAppId = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+  const appScheme = appConfig.scheme || "acucaradas";
 
   return {
     ...config,
@@ -113,11 +114,12 @@ export default ({ config }) => {
           ...(config.ios?.infoPlist?.CFBundleURLTypes || []),
           {
             CFBundleURLSchemes: [
+              appScheme,
               facebookAppId ? `fb${facebookAppId}` : undefined,
-              googleIosClientId ? googleIosClientId.split('.').reverse().join('.') : undefined
-            ].filter(Boolean)
-          }
-        ]
+              googleIosClientId ? googleIosClientId.split('.').reverse().join('.') : undefined,
+            ].filter(Boolean),
+          },
+        ],
       }
     },
     android: {
