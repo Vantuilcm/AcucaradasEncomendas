@@ -20,13 +20,11 @@ export const ProdutorProfileScreen = () => {
   };
 
   const handleMenuPress = (route: string, label: string) => {
-    // TODO FASE 2: Habilitar rotas reais quando as telas forem implementadas
-    if (!route || route === 'Reports' || route === 'NotificationSettings') {
-      Alert.alert('Em breve 💝', `A funcionalidade "${label}" estará disponível em breve.`);
+    if (!route) {
+      Alert.alert('Indisponível', `A funcionalidade "${label}" não está configurada.`);
       return;
     }
-    
-    // Rota ContaBancaria liberada
+
     try {
       // Validação preventiva de permissão no frontend
       const role = (user?.role || user?.activeRole || '').toLowerCase();
@@ -95,15 +93,15 @@ export const ProdutorProfileScreen = () => {
 
         <View style={styles.menuContainer}>
           <Text style={styles.sectionTitle}>💰 Financeiro</Text>
-          <MenuItem title="Carteira e Ganhos" subtitle="Saldo, repasses e histórico" icon="wallet" route="Reports" color="#4CAF50" />
+          <MenuItem title="Carteira e Ganhos" subtitle="Saldo, repasses e histórico" icon="wallet" route="ProducerWallet" color="#4CAF50" />
           <MenuItem title="Conta Bancária" subtitle="Stripe Connect e Repasses" icon="bank" route="ContaBancaria" color="#2196F3" />
 
           <Text style={styles.sectionTitle}>📄 Identidade</Text>
-          <MenuItem title="Documentação" subtitle="CPF/CNPJ e Verificação" icon="file-document-outline" route="" color="#FF9800" />
+          <MenuItem title="Documentação" subtitle="CPF/CNPJ e Verificação" icon="file-document-outline" route="ProducerDocumentation" color="#FF9800" />
           
           <Text style={styles.sectionTitle}>⚙️ Ajustes</Text>
-          <MenuItem title="Preferências" subtitle="Notificações e WhatsApp" icon="bell-outline" route="NotificationSettings" color="#E91E63" />
-          <MenuItem title="Segurança" subtitle="Senha e Login" icon="shield-lock-outline" route="" color="#607D8B" />
+          <MenuItem title="Preferências" subtitle="Notificações e WhatsApp" icon="bell-outline" route="ProducerPreferences" color="#E91E63" />
+          <MenuItem title="Segurança" subtitle="Senha e Login" icon="shield-lock-outline" route="ProducerSecurity" color="#607D8B" />
         </View>
 
         <View style={styles.footer}>

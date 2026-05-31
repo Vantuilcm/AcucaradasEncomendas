@@ -59,6 +59,10 @@ import type { DeliverySchedule, Order } from '../types/Order';
 import { StoreDetailsScreen } from '../screens/StoreDetailsScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { ContaBancariaScreen } from '../screens/ContaBancariaScreen';
+import { ProducerWalletScreen } from '../screens/producer/ProducerWalletScreen';
+import { ProducerDocumentationScreen } from '../screens/producer/ProducerDocumentationScreen';
+import { ProducerPreferencesScreen } from '../screens/producer/ProducerPreferencesScreen';
+import { ProducerSecurityScreen } from '../screens/producer/ProducerSecurityScreen';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -114,6 +118,10 @@ export type RootStackParamList = {
   DriverEarnings: undefined;
   DriverHistory: undefined;
   ContaBancaria: undefined;
+  ProducerWallet: undefined;
+  ProducerDocumentation: undefined;
+  ProducerPreferences: undefined;
+  ProducerSecurity: undefined;
   Login: undefined;
   Register: { role?: string };
   ForgotPassword: undefined;
@@ -513,6 +521,10 @@ const AppNavigator = () => {
                 <Stack.Screen name="DriverEarnings" component={PlaceholderScreen} options={{ title: 'Ganhos' }} />
                 <Stack.Screen name="DriverHistory" component={PlaceholderScreen} options={{ title: 'Corridas' }} />
                 <Stack.Screen name="ContaBancaria" component={ContaBancariaScreen} options={{ title: 'Recebimentos' }} />
+                <Stack.Screen name="ProducerWallet" component={ProducerWalletScreen} options={{ title: 'Carteira e Ganhos' }} />
+                <Stack.Screen name="ProducerDocumentation" component={ProducerDocumentationScreen} options={{ title: 'Documentação' }} />
+                <Stack.Screen name="ProducerPreferences" component={ProducerPreferencesScreen} options={{ title: 'Preferências' }} />
+                <Stack.Screen name="ProducerSecurity" component={ProducerSecurityScreen} options={{ title: 'Segurança' }} />
               </>
             )}
           </>
