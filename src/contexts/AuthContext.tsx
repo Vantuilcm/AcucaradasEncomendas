@@ -34,6 +34,121 @@ interface AuthContextData {
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
+/** Diagnóstico login — corrida Auth → Firestore (somente logs, sem correção) */
+let authDiagSeq = 0;
+let usersUidReadCount = 0;
+
+const authDiagTimestamp = () => new Date().toISOString();
+
+const nextAuthDiagSeq = () => {
+  authDiagSeq += 1;
+  return authDiagSeq;
+};
+
+const logAuthDebug = (message: string, extra?: Record<string, unknown>) => {
+  console.log('[AUTH_DEBUG]', {
+    seq: nextAuthDiagSeq(),
+    timestamp: authDiagTimestamp(),
+    message,
+    usersUidReadCount,
+    ...extra,
+  });
+};
+
+const logAuthState = (context: string, hint?: { uid?: string; email?: string | null }) => {
+  const auth = getAuth();
+  const currentUser = auth?.currentUser;
+  const authStable =
+    !!currentUser?.uid &&
+    (!hint?.uid || currentUser.uid === hint.uid);
+
+  console.log('[AUTH_STATE]', {
+    seq: nextAuthDiagSeq(),
+    timestamp: authDiagTimestamp(),
+    context,
+    'currentUser.uid': currentUser?.uid ?? null,
+    'currentUser.email': currentUser?.email ?? null,
+    hintUid: hint?.uid ?? null,
+    hintEmail: hint?.email ?? null,
+    authStable,
+    usersUidReadCount,
+  });
+
+  return { currentUser, authStable };
+};
+
+const logFirestoreRead = (
+  context: string,
+  path: string,
+  uid: string,
+  email?: string | null
+) => {
+  usersUidReadCount += 1;
+  const readNumber = usersUidReadCount;
+
+  logAuthState(`${context} — imediatamente antes de getDoc`, { uid, email });
+
+  console.log('[FIRESTORE_READ]', {
+    seq: nextAuthDiagSeq(),
+    timestamp: authDiagTimestamp(),
+    context,
+    path,
+    uid,
+    email: email ?? null,
+    readNumber,
+    usersUidReadCount,
+  });
+
+  return readNumber;
+};
+
+const logFirestoreDenied = (
+  context: string,
+  path: string,
+  uid: string,
+  email: string | null | undefined,
+  error: unknown
+) => {
+  const err = error as { code?: string; message?: string };
+  logAuthState(`${context} — após getDoc negado`, { uid, email });
+
+  console.error('[FIRESTORE_DENIED]', {
+    seq: nextAuthDiagSeq(),
+    timestamp: authDiagTimestamp(),
+    context,
+    path,
+    uid,
+    email: email ?? null,
+    code: err?.code ?? 'unknown',
+    message: err?.message ?? String(error),
+    usersUidReadCount,
+  });
+};
+
+const fetchUsersProfileDoc = async (
+  context: string,
+  uid: string,
+  email?: string | null
+) => {
+  const path = `users/${uid}`;
+  logFirestoreRead(context, path, uid, email);
+  const userRef = dbFunctions.doc('users', uid);
+
+  try {
+    const userDoc = await dbFunctions.getDoc(userRef);
+    logAuthDebug('getDoc concluído', {
+      context,
+      path,
+      uid,
+      exists: userDoc.exists(),
+    });
+    return userDoc;
+  } catch (error) {
+    logFirestoreDenied(context, path, uid, email, error);
+    throw error;
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,13 +164,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Configurar o observador de estado do usuário usando a função lazy
         authFunctions.onAuthStateChanged(async (firebaseUser: any) => {
           try {
+            logAuthDebug('onAuthStateChanged disparado', {
+              hasUser: !!firebaseUser,
+              listenerUid: firebaseUser?.uid ?? null,
+              listenerEmail: firebaseUser?.email ?? null,
+            });
+
             if (firebaseUser) {
               console.log('👤 [AUTH] User detected:', firebaseUser.email);
               setProfileLoading(true);
-              
-              // Buscar perfil no Firestore
-              const userRef = dbFunctions.doc('users', firebaseUser.uid);
-              const userDoc = await dbFunctions.getDoc(userRef);
+
+              const userDoc = await fetchUsersProfileDoc(
+                'onAuthStateChanged',
+                firebaseUser.uid,
+                firebaseUser.email
+              );
 
               if (userDoc.exists()) {
                 const data = userDoc.data();
@@ -92,7 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser(null);
               setProfileLoading(false);
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error('❌ [AUTH] Error in onAuthStateChanged:', error);
             setProfileLoading(false);
           } finally {
@@ -122,8 +245,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Normalização rigorosa do e-mail
       const normalizedEmail = email.trim().toLowerCase();
+      logAuthDebug('Login iniciado', { email: normalizedEmail });
       console.log('🛡️ [DEBUG_LOGIN] INICIANDO PROCESSO PARA:', normalizedEmail);
-      
+
+      logAuthState('login — antes de signInWithEmailAndPassword');
+
       const signInFn = authFunctions.signInWithEmailAndPassword;
 
       if (typeof signInFn !== 'function') {
@@ -131,14 +257,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Passo 1: Autenticação Firebase
+      logAuthDebug('Chamando signInWithEmailAndPassword', { email: normalizedEmail });
       console.log('🛡️ [DEBUG_LOGIN] Chamando Firebase SDK...');
       const userCredential = await signInFn(normalizedEmail, password);
+
+      logAuthDebug('signInWithEmailAndPassword concluído', {
+        credentialUid: userCredential.user.uid,
+        credentialEmail: userCredential.user.email,
+      });
+      logAuthState('login — imediatamente após signIn', {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+      });
       console.log('✅ [DEBUG_LOGIN] SUCESSO SDK! UID:', userCredential.user.uid);
-      
+
       // Passo 2: Busca de Perfil Firestore
-      const userRef = dbFunctions.doc('users', userCredential.user.uid);
       console.log('🛡️ [DEBUG_LOGIN] Buscando perfil no Firestore...');
-      const userDoc = await dbFunctions.getDoc(userRef);
+      const userDoc = await fetchUsersProfileDoc(
+        'login',
+        userCredential.user.uid,
+        userCredential.user.email
+      );
       
       if (userDoc.exists()) {
         const data = userDoc.data();
@@ -164,6 +303,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error('❌ [DEBUG_LOGIN] ERRO:', error.code, error.message);
+      if (error?.code === 'permission-denied') {
+        logAuthState('login — catch permission-denied');
+      }
       let detailedMessage = error.message;
 
       switch (error.code) {
