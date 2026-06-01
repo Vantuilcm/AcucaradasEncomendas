@@ -154,17 +154,6 @@ const PROFILE_NOT_FOUND_ERROR = {
   message: 'Conta autenticada, mas perfil não encontrado no sistema.',
 };
 
-type PendingEmailLoginWaiter = {
-  uid?: string;
-  resolve: (user: any) => void;
-  reject: (error: unknown) => void;
-};
-
-/** Único getDoc(users/{uid}) no login e-mail: resolvido em onAuthStateChanged */
-let pendingEmailLoginWaiter: PendingEmailLoginWaiter | null = null;
-
-const EMAIL_LOGIN_PROFILE_TIMEOUT_MS = 20000;
-
 const buildUserFromFirestoreProfile = (
   firebaseUser: { uid: string; email?: string | null; displayName?: string | null },
   data: Record<string, any>
@@ -181,44 +170,6 @@ const buildUserFromFirestoreProfile = (
     active: data?.active ?? true,
   };
 };
-
-const beginEmailLoginProfileWait = () =>
-  new Promise<any>((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
-      if (!pendingEmailLoginWaiter) return;
-      logAuthDebug('Timeout aguardando perfil via onAuthStateChanged');
-      pendingEmailLoginWaiter.reject({
-        code: 'auth/profile-load-timeout',
-        message: 'Timeout ao carregar perfil após login.',
-      });
-      pendingEmailLoginWaiter = null;
-    }, EMAIL_LOGIN_PROFILE_TIMEOUT_MS);
-
-    pendingEmailLoginWaiter = {
-      uid: undefined,
-      resolve: (user) => {
-        clearTimeout(timeoutId);
-        pendingEmailLoginWaiter = null;
-        resolve(user);
-      },
-      reject: (error) => {
-        clearTimeout(timeoutId);
-        pendingEmailLoginWaiter = null;
-        reject(error);
-      },
-    };
-  });
-
-const cancelEmailLoginProfileWait = (error: unknown) => {
-  if (pendingEmailLoginWaiter) {
-    pendingEmailLoginWaiter.reject(error);
-    pendingEmailLoginWaiter = null;
-  }
-};
-
-const isPendingEmailLoginForUser = (uid: string) =>
-  !!pendingEmailLoginWaiter &&
-  (!pendingEmailLoginWaiter.uid || pendingEmailLoginWaiter.uid === uid);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any | null>(null);
@@ -245,31 +196,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log('👤 [AUTH] User detected:', firebaseUser.email);
               setProfileLoading(true);
 
-              const emailLoginPending = isPendingEmailLoginForUser(firebaseUser.uid);
-              if (emailLoginPending && pendingEmailLoginWaiter && !pendingEmailLoginWaiter.uid) {
-                pendingEmailLoginWaiter.uid = firebaseUser.uid;
-              }
-
               const userDoc = await fetchUsersProfileDoc(
                 'onAuthStateChanged',
                 firebaseUser.uid,
                 firebaseUser.email
               );
-
-              if (emailLoginPending && pendingEmailLoginWaiter) {
-                if (!userDoc.exists()) {
-                  logAuthDebug('Login e-mail: perfil inexistente (via onAuthStateChanged)');
-                  pendingEmailLoginWaiter.reject(PROFILE_NOT_FOUND_ERROR);
-                  return;
-                }
-
-                const data = userDoc.data();
-                const updatedUser = buildUserFromFirestoreProfile(firebaseUser, data);
-                console.log('✅ [DEBUG_LOGIN] Perfil encontrado via onAuthStateChanged:', updatedUser.role);
-                setUser(updatedUser);
-                pendingEmailLoginWaiter.resolve(updatedUser);
-                return;
-              }
 
               if (userDoc.exists()) {
                 const data = userDoc.data();
@@ -297,9 +228,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           } catch (error: any) {
             console.error('❌ [AUTH] Error in onAuthStateChanged:', error);
-            if (pendingEmailLoginWaiter) {
-              pendingEmailLoginWaiter.reject(error);
-            }
             setProfileLoading(false);
           } finally {
             setLoading(false);
@@ -339,35 +267,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Módulo de Autenticação do Firebase não carregado corretamente.');
       }
 
-      const profileLoadedViaListener = beginEmailLoginProfileWait();
-
-      // Passo 1: Autenticação Firebase (perfil só em onAuthStateChanged — sem getDoc em login)
       logAuthDebug('Chamando signInWithEmailAndPassword', { email: normalizedEmail });
       console.log('🛡️ [DEBUG_LOGIN] Chamando Firebase SDK...');
+      const userCredential = await signInFn(normalizedEmail, password);
 
-      try {
-        const userCredential = await signInFn(normalizedEmail, password);
+      logAuthDebug('signInWithEmailAndPassword concluído', {
+        credentialUid: userCredential.user.uid,
+        credentialEmail: userCredential.user.email,
+      });
+      logAuthState('login — imediatamente após signIn', {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+      });
+      console.log('✅ [DEBUG_LOGIN] SUCESSO SDK! UID:', userCredential.user.uid);
 
-        logAuthDebug('signInWithEmailAndPassword concluído', {
-          credentialUid: userCredential.user.uid,
-          credentialEmail: userCredential.user.email,
-        });
-        logAuthState('login — imediatamente após signIn', {
-          uid: userCredential.user.uid,
-          email: userCredential.user.email,
-        });
-        console.log('✅ [DEBUG_LOGIN] SUCESSO SDK! UID:', userCredential.user.uid);
+      logAuthDebug('Buscando perfil users/{uid} diretamente após signIn');
+      const userDoc = await fetchUsersProfileDoc(
+        'login',
+        userCredential.user.uid,
+        userCredential.user.email
+      );
 
-        if (pendingEmailLoginWaiter) {
-          pendingEmailLoginWaiter.uid = userCredential.user.uid;
-        }
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        const profileRole = (data.role || data.activeRole || 'comprador').toLowerCase();
+        console.log('✅ [DEBUG_LOGIN] Perfil encontrado:', profileRole);
 
-        logAuthDebug('Aguardando onAuthStateChanged carregar users/{uid} (única leitura Firestore)');
-        await profileLoadedViaListener;
-        logAuthDebug('Perfil carregado via onAuthStateChanged — login concluído');
-      } catch (signInOrProfileError) {
-        cancelEmailLoginProfileWait(signInOrProfileError);
-        throw signInOrProfileError;
+        const updatedUser = buildUserFromFirestoreProfile(userCredential.user, data);
+        setUser(updatedUser);
+        logAuthDebug('Login concluído — perfil carregado via getDoc em login');
+      } else {
+        console.warn('⚠️ [DEBUG_LOGIN] Perfil não existe no Firestore.');
+        throw PROFILE_NOT_FOUND_ERROR;
       }
     } catch (error: any) {
       console.error('❌ [DEBUG_LOGIN] ERRO:', error.code, error.message);
