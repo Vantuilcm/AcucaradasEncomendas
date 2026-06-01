@@ -48,6 +48,9 @@ jobs:
       EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
       EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
       EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+      EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
       APP_ENV: preview
       EXPO_PUBLIC_APP_ENV: preview
       EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST: 'true'
@@ -93,22 +96,29 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
-      - name: Validate environment (fail-fast)
-        run: node scripts/validate-env.js
-
-      - name: Restore GoogleService-Info.plist (iOS Firebase)
+      # RellBuild validate-env.js exige ficheiros no workspace ANTES da validação (run 26766367770 falhou por ordem invertida)
+      - name: Materialize Firebase config from secrets
         run: |
           set -euo pipefail
+          if [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+            echo "✅ google-services.json ($(wc -c < google-services.json | tr -d ' ') bytes)"
+          else
+            echo "❌ GOOGLE_SERVICES_JSON ausente nos secrets do workflow"
+            exit 1
+          fi
           if [ -n "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
             echo "${GOOGLE_SERVICES_INFO_PLIST_BASE64}" | base64 --decode > GoogleService-Info.plist
           elif [ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]; then
-            printf "%s" "${GOOGLE_SERVICE_INFO_PLIST}" > GoogleService-Info.plist
-          fi
-          if [ ! -f "GoogleService-Info.plist" ]; then
-            echo "❌ GoogleService-Info.plist ausente. Configure GOOGLE_SERVICES_INFO_PLIST_BASE64 no GitHub Secrets."
+            printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
+          else
+            echo "❌ GoogleService-Info.plist: configure GOOGLE_SERVICES_INFO_PLIST_BASE64 ou GOOGLE_SERVICE_INFO_PLIST"
             exit 1
           fi
-          echo "✅ GoogleService-Info.plist restaurado ($(wc -c < GoogleService-Info.plist) bytes)"
+          echo "✅ GoogleService-Info.plist ($(wc -c < GoogleService-Info.plist | tr -d ' ') bytes)"
+
+      - name: Validate environment (fail-fast)
+        run: node scripts/validate-env.js
 
       - name: Pre-flight validation (commit, CPA, profile)
         run: |
