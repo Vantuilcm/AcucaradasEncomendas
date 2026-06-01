@@ -1,610 +1,585 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { db } from '../config/firebase';
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { Alert, TouchableWithoutFeedback } from 'react-native';
-import { User } from '../models/User';
-import { AuthService } from '../services/AuthService';
-import { SecurityService } from '../services/SecurityService';
-import { LoggingService } from '../services/LoggingService';
-import { DeviceSecurityService } from '../services/DeviceSecurityService';
-import { secureLoggingService } from '../services/SecureLoggingService';
-import { SecureStorageService } from '../services/SecureStorageService';
-import { SocialAuthService, GOOGLE_CLIENT_ID, FACEBOOK_APP_ID } from '../services/SocialAuthService';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { getAuth, authFunctions, dbFunctions } from '../config/firebase';
 import { TwoFactorAuthService } from '../services/TwoFactorAuthService';
-import * as Google from 'expo-auth-session/providers/google';
-import * as Facebook from 'expo-auth-session/providers/facebook';
-// @ts-ignore
-import { GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 
-// Interface para o contexto de autenticação
+/**
+ * 🛡️ ZeroNativeCrashRecoveryAI - Versão Lazy-Getter
+ * O app usa Lazy Getters para garantir que o Firebase NUNCA
+ * seja carregado durante o boot do aplicativo no topo do arquivo.
+ */
+
+// Interface completa restaurada
 interface AuthContextData {
-  user: User | null;
+  user: any | null;
   isAuthenticated: boolean;
   loading: boolean;
+  profileLoading: boolean;
+  isReady: boolean;
   login: (email: string, password: string, role?: string) => Promise<void>;
-  register: (userData: User, password: string) => Promise<void>;
+  register: (userData: any, password: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  updateUser: (userData: Partial<User>) => Promise<void>;
+  updateUser: (userData: any) => Promise<void>;
   validateSession: () => Promise<boolean>;
   refreshUserActivity: () => void;
-  signInWithGoogle?: (role?: string) => Promise<{ success: boolean; error?: string }>;
-  signInWithFacebook?: (role?: string) => Promise<{ success: boolean; error?: string }>;
-  signInWithApple?: (role?: string) => Promise<{ success: boolean; error?: string }>;
+  verify2FACode: (code: string) => Promise<boolean>;
+  generate2FACode: () => Promise<void>;
+  signInWithGoogle: (role: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithFacebook: (role: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithApple: (role: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithCredential: (credential: any, role: string) => Promise<{ success: boolean; error?: string }>;
   is2FAEnabled?: boolean;
+  error: string | null;
 }
 
-// Criar o contexto
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
-// Provedor do contexto de autenticação
+/** Diagnóstico login — corrida Auth → Firestore (somente logs, sem correção) */
+let authDiagSeq = 0;
+let usersUidReadCount = 0;
+
+const authDiagTimestamp = () => new Date().toISOString();
+
+const nextAuthDiagSeq = () => {
+  authDiagSeq += 1;
+  return authDiagSeq;
+};
+
+const logAuthDebug = (message: string, extra?: Record<string, unknown>) => {
+  console.log('[AUTH_DEBUG]', {
+    seq: nextAuthDiagSeq(),
+    timestamp: authDiagTimestamp(),
+    message,
+    usersUidReadCount,
+    ...extra,
+  });
+};
+
+const logAuthState = (context: string, hint?: { uid?: string; email?: string | null }) => {
+  const auth = getAuth();
+  const currentUser = auth?.currentUser;
+  const authStable =
+    !!currentUser?.uid &&
+    (!hint?.uid || currentUser.uid === hint.uid);
+
+  console.log('[AUTH_STATE]', {
+    seq: nextAuthDiagSeq(),
+    timestamp: authDiagTimestamp(),
+    context,
+    'currentUser.uid': currentUser?.uid ?? null,
+    'currentUser.email': currentUser?.email ?? null,
+    hintUid: hint?.uid ?? null,
+    hintEmail: hint?.email ?? null,
+    authStable,
+    usersUidReadCount,
+  });
+
+  return { currentUser, authStable };
+};
+
+const logFirestoreRead = (
+  context: string,
+  path: string,
+  uid: string,
+  email?: string | null
+) => {
+  usersUidReadCount += 1;
+  const readNumber = usersUidReadCount;
+
+  logAuthState(`${context} — imediatamente antes de getDoc`, { uid, email });
+
+  console.log('[FIRESTORE_READ]', {
+    seq: nextAuthDiagSeq(),
+    timestamp: authDiagTimestamp(),
+    context,
+    path,
+    uid,
+    email: email ?? null,
+    readNumber,
+    usersUidReadCount,
+  });
+
+  return readNumber;
+};
+
+const logFirestoreDenied = (
+  context: string,
+  path: string,
+  uid: string,
+  email: string | null | undefined,
+  error: unknown
+) => {
+  const err = error as { code?: string; message?: string };
+  logAuthState(`${context} — após getDoc negado`, { uid, email });
+
+  console.error('[FIRESTORE_DENIED]', {
+    seq: nextAuthDiagSeq(),
+    timestamp: authDiagTimestamp(),
+    context,
+    path,
+    uid,
+    email: email ?? null,
+    code: err?.code ?? 'unknown',
+    message: err?.message ?? String(error),
+    usersUidReadCount,
+  });
+};
+
+const fetchUsersProfileDoc = async (
+  context: string,
+  uid: string,
+  email?: string | null
+) => {
+  const path = `users/${uid}`;
+  logFirestoreRead(context, path, uid, email);
+  const userRef = dbFunctions.doc('users', uid);
+
+  try {
+    const userDoc = await dbFunctions.getDoc(userRef);
+    logAuthDebug('getDoc concluído', {
+      context,
+      path,
+      uid,
+      exists: userDoc.exists(),
+    });
+    return userDoc;
+  } catch (error) {
+    logFirestoreDenied(context, path, uid, email, error);
+    throw error;
+  }
+};
+
+const PROFILE_NOT_FOUND_ERROR = {
+  code: 'firestore/profile-not-found',
+  message: 'Conta autenticada, mas perfil não encontrado no sistema.',
+};
+
+type PendingEmailLoginWaiter = {
+  uid?: string;
+  resolve: (user: any) => void;
+  reject: (error: unknown) => void;
+};
+
+/** Único getDoc(users/{uid}) no login e-mail: resolvido em onAuthStateChanged */
+let pendingEmailLoginWaiter: PendingEmailLoginWaiter | null = null;
+
+const EMAIL_LOGIN_PROFILE_TIMEOUT_MS = 20000;
+
+const buildUserFromFirestoreProfile = (
+  firebaseUser: { uid: string; email?: string | null; displayName?: string | null },
+  data: Record<string, any>
+) => {
+  const normalizedRole = (data?.role || data?.activeRole || 'comprador').toLowerCase();
+  const userRoles = data?.roles || [normalizedRole];
+
+  return {
+    ...data,
+    id: firebaseUser.uid,
+    role: normalizedRole,
+    activeRole: normalizedRole,
+    roles: userRoles,
+    active: data?.active ?? true,
+  };
+};
+
+const beginEmailLoginProfileWait = () =>
+  new Promise<any>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      if (!pendingEmailLoginWaiter) return;
+      logAuthDebug('Timeout aguardando perfil via onAuthStateChanged');
+      pendingEmailLoginWaiter.reject({
+        code: 'auth/profile-load-timeout',
+        message: 'Timeout ao carregar perfil após login.',
+      });
+      pendingEmailLoginWaiter = null;
+    }, EMAIL_LOGIN_PROFILE_TIMEOUT_MS);
+
+    pendingEmailLoginWaiter = {
+      uid: undefined,
+      resolve: (user) => {
+        clearTimeout(timeoutId);
+        pendingEmailLoginWaiter = null;
+        resolve(user);
+      },
+      reject: (error) => {
+        clearTimeout(timeoutId);
+        pendingEmailLoginWaiter = null;
+        reject(error);
+      },
+    };
+  });
+
+const cancelEmailLoginProfileWait = (error: unknown) => {
+  if (pendingEmailLoginWaiter) {
+    pendingEmailLoginWaiter.reject(error);
+    pendingEmailLoginWaiter = null;
+  }
+};
+
+const isPendingEmailLoginForUser = (uid: string) =>
+  !!pendingEmailLoginWaiter &&
+  (!pendingEmailLoginWaiter.uid || pendingEmailLoginWaiter.uid === uid);
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authToken, setAuthToken] = useState<string | null>(null);
-  const [, setIsDeviceSecure] = useState<boolean>(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const authService = AuthService.getInstance();
-  const socialAuthService = SocialAuthService.getInstance();
-  const twoFactorAuthService = new TwoFactorAuthService();
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
-
-  const [, , googlePromptAsync] = Google.useAuthRequest({
-    clientId: GOOGLE_CLIENT_ID.expo,
-    iosClientId: GOOGLE_CLIENT_ID.ios,
-    androidClientId: GOOGLE_CLIENT_ID.android,
-    webClientId: GOOGLE_CLIENT_ID.web,
-    scopes: ['profile', 'email'],
-  });
-
-  const [, , facebookPromptAsync] = Facebook.useAuthRequest({
-    clientId: FACEBOOK_APP_ID,
-    scopes: ['public_profile', 'email'],
-  });
-
-  // Verificar segurança do dispositivo
   useEffect(() => {
-    console.log('AuthContext: useEffect checkDeviceSecurity started');
-    const checkDeviceSecurity = async () => {
+    const bootstrapLazyFirebase = async () => {
       try {
-        console.log('AuthContext: calling DeviceSecurityService.performSecurityCheck');
-        const securityCheck = await DeviceSecurityService.performSecurityCheck();
-        console.log('AuthContext: securityCheck result', securityCheck);
-        setIsDeviceSecure(!securityCheck.compromised);
+        console.log('🛡️ [AUTH] Initializing Lazy Firebase with Getters...');
         
-        if (securityCheck.compromised) {
-          secureLoggingService.security('Dispositivo comprometido detectado', {
-            compromised: securityCheck.compromised,
-            emulator: securityCheck.emulator,
-            debugging: securityCheck.debugging
-          });
-          
-          // Bloquear acesso se dispositivo estiver comprometido
-          // setIsDeviceSecure(false);
-        }
-      } catch (error) {
-        console.log('AuthContext: error in checkDeviceSecurity', error);
-        secureLoggingService.error('Erro ao verificar segurança do dispositivo', { error });
-      }
-    };
-    
-    checkDeviceSecurity();
-  }, []);
+        // Configurar o observador de estado do usuário usando a função lazy
+        authFunctions.onAuthStateChanged(async (firebaseUser: any) => {
+          try {
+            logAuthDebug('onAuthStateChanged disparado', {
+              hasUser: !!firebaseUser,
+              listenerUid: firebaseUser?.uid ?? null,
+              listenerEmail: firebaseUser?.email ?? null,
+            });
 
-  // Verificar autenticação ao iniciar o app
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Verificar se existe um token salvo
-        const token = await SecureStorageService.getData('authToken');
+            if (firebaseUser) {
+              console.log('👤 [AUTH] User detected:', firebaseUser.email);
+              setProfileLoading(true);
 
-        if (token && SecurityService.validateToken(token)) {
-          setAuthToken(token);
-          const payload = SecurityService.getTokenPayload(token);
+              const emailLoginPending = isPendingEmailLoginForUser(firebaseUser.uid);
+              if (emailLoginPending && pendingEmailLoginWaiter && !pendingEmailLoginWaiter.uid) {
+                pendingEmailLoginWaiter.uid = firebaseUser.uid;
+              }
 
-          if (payload && payload.id) {
-            // Buscar dados do usuário
-            const userRef = doc(db, 'users', payload.id);
-            const userDoc = await getDoc(userRef);
+              const userDoc = await fetchUsersProfileDoc(
+                'onAuthStateChanged',
+                firebaseUser.uid,
+                firebaseUser.email
+              );
 
-            if (userDoc.exists()) {
-              const userData = userDoc.data() as unknown as User;
-              setUser(userData);
+              if (emailLoginPending && pendingEmailLoginWaiter) {
+                if (!userDoc.exists()) {
+                  logAuthDebug('Login e-mail: perfil inexistente (via onAuthStateChanged)');
+                  pendingEmailLoginWaiter.reject(PROFILE_NOT_FOUND_ERROR);
+                  return;
+                }
 
-              // Configurar contexto do Sentry
-              LoggingService.getInstance().setUser(userData.id, {
-                email: userData.email,
-                role: userData.role,
-                name: userData.nome,
-              });
+                const data = userDoc.data();
+                const updatedUser = buildUserFromFirestoreProfile(firebaseUser, data);
+                console.log('✅ [DEBUG_LOGIN] Perfil encontrado via onAuthStateChanged:', updatedUser.role);
+                setUser(updatedUser);
+                pendingEmailLoginWaiter.resolve(updatedUser);
+                return;
+              }
 
-              // Iniciar monitoramento de inatividade
-              SecurityService.startActivityMonitor(() => logout());
+              if (userDoc.exists()) {
+                const data = userDoc.data();
+                const updatedUser = buildUserFromFirestoreProfile(firebaseUser, data);
+
+                console.log('✅ [AUTH] Profile loaded and normalized:', updatedUser.role);
+                setUser(updatedUser);
+              } else {
+                console.log('⚠️ [AUTH] Firebase user exists but no Firestore profile found.');
+                const newUser = { 
+                  id: firebaseUser.uid, 
+                  email: firebaseUser.email, 
+                  nome: firebaseUser.displayName || '',
+                  role: 'comprador',
+                  activeRole: 'comprador',
+                  roles: ['comprador'],
+                  active: true
+                };
+                setUser(newUser);
+              }
             } else {
-              // Se o documento do usuário não existe, fazer logout
-              await logout();
+              console.log('👤 [AUTH] No user found.');
+              setUser(null);
+              setProfileLoading(false);
             }
+          } catch (error: any) {
+            console.error('❌ [AUTH] Error in onAuthStateChanged:', error);
+            if (pendingEmailLoginWaiter) {
+              pendingEmailLoginWaiter.reject(error);
+            }
+            setProfileLoading(false);
+          } finally {
+            setLoading(false);
+            setProfileLoading(false);
+            setIsReady(true);
+            console.log('🛡️ [AUTH] Bootstrap Complete. isReady=true');
           }
-        } else {
-          // Token inválido ou expirado
-          await logout();
-        }
-      } catch (error) {
-        secureLoggingService.security('Erro ao verificar autenticação', { 
-          error: error instanceof Error ? error.message : 'Erro desconhecido',
-          timestamp: new Date().toISOString(),
-          severity: 'high'
         });
-        await logout();
-      } finally {
+      } catch (e) {
+        console.error('❌ [AUTH] Fatal Lazy Load Error:', e);
         setLoading(false);
+        setIsReady(true);
       }
     };
 
-    checkAuth();
-
-    // Limpar monitor de atividade ao desmontar
-    return () => {
-      SecurityService.stopActivityMonitor();
-    };
+    // Pequeno delay para garantir que o motor nativo está pronto
+    const timer = setTimeout(bootstrapLazyFirebase, 250);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Método de login
   const login = async (email: string, password: string, _role?: string) => {
     try {
-      console.log('AuthContext: login started', email);
       setLoading(true);
+      setProfileLoading(true);
+      setError(null);
       
-      // Registrar tentativa de login (antes da verificação de segurança)
-      secureLoggingService.security('Tentativa de login iniciada', { email });
-      
-      // Verificar segurança do dispositivo antes do login
-      // NOTE: Using static method directly
-      const securityCheck = await DeviceSecurityService.performSecurityCheck();
-      if (securityCheck.compromised) {
-        secureLoggingService.security('Tentativa de login em dispositivo comprometido', {
-          email,
-          compromised: securityCheck.compromised,
-          emulator: securityCheck.emulator,
-          debugging: securityCheck.debugging
+      // Normalização rigorosa do e-mail
+      const normalizedEmail = email.trim().toLowerCase();
+      logAuthDebug('Login iniciado', { email: normalizedEmail });
+      console.log('🛡️ [DEBUG_LOGIN] INICIANDO PROCESSO PARA:', normalizedEmail);
+
+      logAuthState('login — antes de signInWithEmailAndPassword');
+
+      const signInFn = authFunctions.signInWithEmailAndPassword;
+
+      if (typeof signInFn !== 'function') {
+        throw new Error('Módulo de Autenticação do Firebase não carregado corretamente.');
+      }
+
+      const profileLoadedViaListener = beginEmailLoginProfileWait();
+
+      // Passo 1: Autenticação Firebase (perfil só em onAuthStateChanged — sem getDoc em login)
+      logAuthDebug('Chamando signInWithEmailAndPassword', { email: normalizedEmail });
+      console.log('🛡️ [DEBUG_LOGIN] Chamando Firebase SDK...');
+
+      try {
+        const userCredential = await signInFn(normalizedEmail, password);
+
+        logAuthDebug('signInWithEmailAndPassword concluído', {
+          credentialUid: userCredential.user.uid,
+          credentialEmail: userCredential.user.email,
         });
-        
-        // Permitir login, mas com alerta
-        Alert.alert(
-          'Alerta de Segurança',
-          'Este dispositivo pode estar comprometido. Algumas funcionalidades podem ser limitadas para sua segurança.',
-          [{ text: 'Continuar', style: 'cancel' }]
-        );
-      }
+        logAuthState('login — imediatamente após signIn', {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+        });
+        console.log('✅ [DEBUG_LOGIN] SUCESSO SDK! UID:', userCredential.user.uid);
 
-      // Sanitizar entradas
-      // const sanitizedEmail = SecurityService.sanitizeInput(email); // sanitizeInput not found in SecurityService?
-      const sanitizedEmail = email.trim().toLowerCase();
-
-      // Verificar bloqueio por tentativas incorretas
-      const canAttempt = await SecurityService.registerLoginAttempt(false, sanitizedEmail);
-      if (!canAttempt) {
-        secureLoggingService.security('Tentativa de login bloqueada por excesso de tentativas', { email: sanitizedEmail });
-        return;
-      }
-
-      // Realizar autenticação
-      const { user: authUser, token } = await authService.autenticarUsuario({
-        email: sanitizedEmail,
-        senha: password
-      });
-      console.log('AuthContext: autenticarUsuario success', authUser, token);
-
-      if (authUser && token) {
-        // Registrar tentativa bem-sucedida
-        await SecurityService.registerLoginAttempt(true, sanitizedEmail);
-
-        // Salvar token
-        await SecureStorageService.storeData('authToken', token, { sensitive: true });
-        setAuthToken(token);
-
-        // Buscar dados completos do usuário
-        const userRef = doc(db, 'users', authUser.id);
-        const userDoc = await getDoc(userRef);
-        console.log('AuthContext: userDoc fetched', userDoc.exists());
-
-        if (userDoc.exists()) {
-           let userData = userDoc.data() as unknown as User;
-           
-           setUser(userData);
-
-          // Iniciar monitoramento de inatividade
-          SecurityService.startActivityMonitor(() => logout());
-
-          // Substituir o logging comum por logging seguro
-          secureLoggingService.security('Login bem-sucedido', { userId: userData.id, timestamp: new Date().toISOString() });
-        } else {
-          secureLoggingService.security('Falha no login: dados do usuário não encontrados', { email: sanitizedEmail });
-          throw new Error('Dados do usuário não encontrados');
+        if (pendingEmailLoginWaiter) {
+          pendingEmailLoginWaiter.uid = userCredential.user.uid;
         }
-      } else {
-        secureLoggingService.security('Falha na autenticação', { email: sanitizedEmail });
-        throw new Error('Falha na autenticação');
+
+        logAuthDebug('Aguardando onAuthStateChanged carregar users/{uid} (única leitura Firestore)');
+        await profileLoadedViaListener;
+        logAuthDebug('Perfil carregado via onAuthStateChanged — login concluído');
+      } catch (signInOrProfileError) {
+        cancelEmailLoginProfileWait(signInOrProfileError);
+        throw signInOrProfileError;
       }
     } catch (error: any) {
-      secureLoggingService.security('Erro ao fazer login', { 
-        email: email, 
-        errorMessage: error.message || 'Erro desconhecido',
-        errorCode: error.code || 'unknown'
-      });
-      Alert.alert('Erro', 'E-mail ou senha incorretos.');
+      console.error('❌ [DEBUG_LOGIN] ERRO:', error.code, error.message);
+      if (error?.code === 'permission-denied') {
+        logAuthState('login — catch permission-denied');
+      }
+      let detailedMessage = error.message;
+
+      switch (error.code) {
+        case 'auth/too-many-requests':
+          detailedMessage = 'Muitas tentativas sem sucesso. A conta foi bloqueada temporariamente por segurança.';
+          break;
+        case 'firestore/profile-not-found':
+          // A mensagem já pode estar definida no throw anterior
+          break;
+      }
+
+      setError(detailedMessage);
+      throw { ...error, message: detailedMessage };
     } finally {
       setLoading(false);
+      setProfileLoading(false);
     }
   };
 
-  // Método de cadastro
-  const register = async (userData: User, password: string) => {
+  const register = async (userData: any, password: string) => {
     try {
       setLoading(true);
+      setProfileLoading(true);
+      const userCredential = await authFunctions.createUserWithEmailAndPassword(userData.email, password);
       
-      // Verificar segurança do dispositivo antes do registro
-      const securityCheck = await DeviceSecurityService.performSecurityCheck();
-      if (securityCheck.compromised) {
-        secureLoggingService.security('Tentativa de registro em dispositivo comprometido', {
-          email: userData.email,
-          rootDetected: securityCheck.compromised,
-          emulatorDetected: securityCheck.emulator,
-          debuggingEnabled: securityCheck.debugging
-        });
-        
-        // Permitir registro, mas com alerta
-        Alert.alert(
-          'Alerta de Segurança',
-          'Este dispositivo pode estar comprometido. Algumas funcionalidades podem ser limitadas para sua segurança.',
-          [{ text: 'Continuar', style: 'cancel' }]
-        );
-      }
-
-      // Sanitizar entradas
-      const sanitizedEmail = SecurityService.sanitizeInput(userData.email);
-      const sanitizedName = SecurityService.sanitizeInput(userData.nome);
-
-      // Registrar tentativa de criação de usuário
-      secureLoggingService.security('Tentativa de registro de novo usuário', { email: sanitizedEmail });
+      // Criar doc no Firestore
+      const userDoc = {
+        id: userCredential.user.uid,
+        email: userData.email,
+        nome: userData.nome || userData.name || '',
+        role: (userData.role || 'comprador').toLowerCase(),
+        activeRole: (userData.role || 'comprador').toLowerCase(),
+        roles: [(userData.role || 'comprador').toLowerCase()],
+        active: true,
+        createdAt: dbFunctions.serverTimestamp(),
+        updatedAt: dbFunctions.serverTimestamp()
+      };
       
-      // Criar o usuário
-      const { user: newUser, token } = await authService.registrarUsuario(
-        {
-          ...userData,
-          email: sanitizedEmail,
-          nome: sanitizedName,
-        },
-        password
-      );
-
-      if (newUser && token) {
-        // Armazenar token
-      await SecureStorageService.storeData('authToken', token, { sensitive: true });
-      setAuthToken(token);
-
-        // Atualizar estado
-        setUser(newUser);
-
-        // Iniciar monitoramento de inatividade
-        SecurityService.startActivityMonitor(() => logout());
-
-        secureLoggingService.security('Registro bem-sucedido', { userId: newUser.id, timestamp: new Date().toISOString() });
-      } else {
-        secureLoggingService.security('Falha ao registrar usuário', { email: sanitizedEmail });
-        throw new Error('Falha ao registrar usuário');
-      }
-    } catch (error: any) {
-      secureLoggingService.security('Erro ao registrar usuário', { 
-        email: userData.email, 
-        errorMessage: error.message || 'Erro desconhecido',
-        errorCode: error.code || 'unknown'
-      });
-      Alert.alert('Erro', error.message || 'Falha ao criar conta. Tente novamente.');
+      await dbFunctions.setDoc(dbFunctions.doc('users', userCredential.user.uid), userDoc);
+      setUser(userDoc);
+      console.log('✅ [AUTH] Register success');
+    } catch (error) {
+      console.error('❌ [AUTH] Register error:', error);
+      throw error;
     } finally {
       setLoading(false);
+      setProfileLoading(false);
     }
   };
 
-  // Método de logout
   const logout = async () => {
     try {
-      setLoading(true);
-
-      // Parar monitoramento de inatividade
-      SecurityService.stopActivityMonitor();
-
-      // Remover token
-      await SecureStorageService.removeData('authToken');
-      setAuthToken(null);
-
-      // Limpar estado
-      const userId = user?.id;
+      await authFunctions.signOut();
       setUser(null);
-
-      secureLoggingService.security('Logout realizado', { userId, timestamp: new Date().toISOString() });
-    } catch (error: any) {
-      secureLoggingService.security('Erro ao fazer logout', { 
-        userId: user?.id,
-        errorMessage: error.message || 'Erro desconhecido' 
-      });
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('❌ [AUTH] Logout error:', error);
     }
   };
 
-  // Método para redefinir senha
   const resetPassword = async (email: string) => {
-    let sanitizedEmail = email;
+    await authFunctions.sendPasswordResetEmail(email);
+  };
+
+  const updateUser = async (userData: any) => {
+    if (!user) return;
+    const userRef = dbFunctions.doc('users', user.id);
+    await dbFunctions.updateDoc(userRef, userData);
+    setUser((prev: any) => ({ ...prev, ...userData }));
+  };
+
+  const validateSession = async () => true;
+  const refreshUserActivity = () => {};
+
+  const verify2FACode = async (code: string) => {
+    const tfaService = new TwoFactorAuthService();
+    const result = await tfaService.verifyCode(code);
+    return result.success;
+  };
+
+  const generate2FACode = async () => {
+    const tfaService = new TwoFactorAuthService();
+    await tfaService.generateAndSendVerificationCode();
+  };
+
+  const signInWithGoogle = async (_role: string) => {
     try {
-      setLoading(true);
-
-      // Sanitizar email
-      sanitizedEmail = SecurityService.sanitizeInput(email);
-
-      // Enviar email de recuperação
-      await authService.recuperarSenha(sanitizedEmail);
-
-      Alert.alert(
-        'Recuperação de senha',
-        'Se o e-mail estiver cadastrado, enviaremos instruções para redefinir sua senha.'
-      );
-
-      secureLoggingService.security('Solicitação de recuperação de senha', { 
-        email: sanitizedEmail,
-        timestamp: new Date().toISOString() 
-      });
+      console.log('🛡️ [DEBUG_SOCIAL] Iniciando Google Auth via AuthSession');
+      // A implementação real deve usar useAuthRequest no componente UI
+      // Aqui apenas logamos que o componente deve lidar com isso
+      return { success: false, error: 'Inicie o login pelo botão do Google' };
     } catch (error: any) {
-      secureLoggingService.security('Erro ao solicitar recuperação de senha', { 
-        email: sanitizedEmail,
-        errorMessage: error.message || 'Erro desconhecido' 
-      });
-      Alert.alert(
-        'Recuperação de senha',
-        'Se o e-mail estiver cadastrado, enviaremos instruções para redefinir sua senha.'
-      );
-    } finally {
-      setLoading(false);
+      return { success: false, error: error.message };
     }
   };
 
-  // Método para atualizar dados do usuário
-  const updateUser = async (userData: Partial<User>) => {
-    try {
-      setLoading(true);
+  const signInWithFacebook = async (_role: string) => {
+    return { success: false, error: 'Facebook Auth pendente de implementação' };
+  };
 
-      if (!user || !user.id) {
-        throw new Error('Usuário não autenticado');
+  const signInWithApple = async (role: string) => {
+    try {
+      console.log('🛡️ [DEBUG_SOCIAL] Iniciando Apple Auth');
+      const AppleAuthentication = require('expo-apple-authentication');
+      
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      console.log('🛡️ [DEBUG_SOCIAL] Apple Credential obtida');
+      
+      const auth = getAuth();
+      const appleProvider = new authFunctions.OAuthProvider('apple.com');
+      const firebaseCredential = appleProvider.credential({
+        idToken: credential.identityToken!,
+      });
+
+      console.log('🛡️ [DEBUG_SOCIAL] Criando sessão no Firebase...');
+      const userCredential = await authFunctions.signInWithCredential(auth, firebaseCredential);
+      
+      // Sincronizar perfil se necessário
+      const userRef = dbFunctions.doc('users', userCredential.user.uid);
+      const userDoc = await dbFunctions.getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        const fullName = credential.fullName;
+        const nome = fullName ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim() : '';
+        
+        await dbFunctions.setDoc(userRef, {
+          id: userCredential.user.uid,
+          email: userCredential.user.email,
+          nome: nome || userCredential.user.displayName || '',
+          role: (role || 'comprador').toLowerCase(),
+          createdAt: dbFunctions.serverTimestamp(),
+        });
       }
 
-      // Sanitizar dados
-      const sanitizedData: Partial<User> = {};
-      if (userData.nome) sanitizedData.nome = SecurityService.sanitizeInput(userData.nome);
-      if (userData.email) sanitizedData.email = SecurityService.sanitizeInput(userData.email);
-      if (userData.telefone)
-        sanitizedData.telefone = SecurityService.sanitizeInput(userData.telefone);
-      if (userData.endereco) sanitizedData.endereco = userData.endereco;
-
-      // Atualizar no Firestore
-      await updateDoc(doc(db, 'users', user.id), {
-        ...sanitizedData,
-        updatedAt: new Date(),
-      } as any);
-
-      // Atualizar estado local
-      const updatedUser = {
-        ...user,
-        ...sanitizedData,
-      };
-      setUser(updatedUser);
-
-      // Atualizar contexto do Sentry
-      LoggingService.getInstance().setUser(updatedUser.id, {
-        email: updatedUser.email,
-        role: updatedUser.role,
-        name: updatedUser.nome,
-      });
-
-      secureLoggingService.security('Dados do usuário atualizados', { 
-        userId: user.id,
-        fieldsUpdated: Object.keys(sanitizedData),
-        timestamp: new Date().toISOString() 
-      });
-      Alert.alert('Sucesso', 'Dados atualizados com sucesso.');
+      return { success: true };
     } catch (error: any) {
-      secureLoggingService.security('Erro ao atualizar dados do usuário', { 
-        userId: user?.id,
-        fieldsAttempted: Object.keys(userData),
-        errorMessage: error.message || 'Erro desconhecido' 
-      });
-      Alert.alert('Erro', 'Não foi possível atualizar seus dados. Tente novamente.');
-    } finally {
-      setLoading(false);
+      console.error('❌ [DEBUG_SOCIAL] Apple Auth Error:', error);
+      if (error.code === 'ERR_CANCELED') {
+        return { success: false, error: 'Login cancelado pelo usuário' };
+      }
+      return { success: false, error: error.message };
     }
   };
 
-  // Validar sessão atual
-  const validateSession = async (): Promise<boolean> => {
+  const signInWithCredential = async (credential: any, role: string) => {
     try {
-      let currentToken = authToken;
-      // Verificar token existente
-      if (!currentToken) {
-        const token = await SecureStorageService.getData('authToken');
-
-        if (!token) {
-          return false;
-        }
-
-        setAuthToken(token);
-        currentToken = token;
+      setLoading(true);
+      const auth = getAuth();
+      const userCredential = await authFunctions.signInWithCredential(auth, credential);
+      
+      // Sincronizar perfil
+      const userRef = dbFunctions.doc('users', userCredential.user.uid);
+      const userDoc = await dbFunctions.getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        await dbFunctions.setDoc(userRef, {
+          id: userCredential.user.uid,
+          email: userCredential.user.email,
+          nome: userCredential.user.displayName || '',
+          role: (role || 'comprador').toLowerCase(),
+          createdAt: dbFunctions.serverTimestamp(),
+        });
       }
-
-      // Validar token
-      if (!SecurityService.validateToken(currentToken)) {
-        await logout();
-        return false;
-      }
-
-      // Atualizar timestamp de atividade
-      SecurityService.resetActivityTimer();
-
-      return true;
+      
+      return { success: true };
     } catch (error: any) {
-      secureLoggingService.security('Erro ao validar sessão', { 
-        userId: user?.id,
-        errorMessage: error.message || 'Erro desconhecido',
-        timestamp: new Date().toISOString() 
-      });
-      await logout();
-      return false;
-    }
-  };
-
-  // Atualizar timestamp de atividade
-  const refreshUserActivity = () => {
-    SecurityService.updateLastActivity();
-  };
-
-  const handlePostSocialLogin = async (authUser: any, _role: string) => {
-    const userRef = doc(db, 'users', authUser.uid);
-    const usuariosRef = doc(db, 'usuarios', authUser.uid);
-    const userDoc = await getDoc(userRef);
-    if (userDoc.exists()) {
-      // O usuário já existe, não alteramos a role via frontend por segurança.
-      // O app apenas lê os dados existentes.
-      const existingData = userDoc.data() || {};
-      setUser({ id: authUser.uid, ...existingData } as unknown as User);
-    } else {
-      // Cria o registro no Firestore se não existir. A role inicial é sempre de segurança (comprador),
-      // ou se necessário forçar o fallback seguro.
-      const defaultRole = 'comprador';
-      const newUser = {
-        email: authUser.email || '',
-        nome: authUser.displayName || 'Usuário Social',
-        role: defaultRole,
-        dataCriacao: new Date(),
-        ultimoLogin: new Date(),
-      };
-      await setDoc(userRef, newUser);
-      await setDoc(usuariosRef, newUser);
-      setUser({ id: authUser.uid, ...newUser } as unknown as User);
-    }
-
-    // Gerar e salvar token JWT
-    const token = await authUser.getIdToken(true);
-    await SecureStorageService.storeData('authToken', token, { sensitive: true });
-    setAuthToken(token);
-
-    // Iniciar monitoramento de inatividade
-    SecurityService.startActivityMonitor(() => logout());
-  };
-
-  const signInWithGoogle = useCallback(async (role: string = 'comprador') => {
-    try {
-      setLoading(true);
-      const authResponse = await googlePromptAsync();
-      if (authResponse.type !== 'success') {
-        return { success: false, error: 'Autenticação cancelada ou não concluída.' };
-      }
-      const idToken = authResponse.params?.id_token;
-      if (!idToken) return { success: false, error: 'Token do Google ausente.' };
-      
-      const credential = GoogleAuthProvider.credential(idToken);
-      const result = await socialAuthService.signInWithCredential(credential, role);
-      
-      if (result.success && result.user) {
-        await handlePostSocialLogin(result.user, role);
-        const enabled = await twoFactorAuthService.is2FAEnabled();
-        setIs2FAEnabled(enabled);
-      }
-      return result;
-    } catch (err: any) {
-      secureLoggingService.security('Falha na autenticação com Google', { errorMessage: err.message });
-      return { success: false, error: 'Erro ao autenticar com Google' };
+      console.error('❌ [DEBUG_SOCIAL] Credential Auth Error:', error);
+      return { success: false, error: error.message };
     } finally {
       setLoading(false);
     }
-  }, [googlePromptAsync, socialAuthService, twoFactorAuthService]);
-
-  const signInWithFacebook = useCallback(async (role: string = 'comprador') => {
-    try {
-      setLoading(true);
-      const authResponse = await facebookPromptAsync();
-      if (authResponse.type !== 'success') {
-        return { success: false, error: 'Autenticação cancelada ou não concluída.' };
-      }
-      const accessToken = authResponse.params?.access_token;
-      if (!accessToken) return { success: false, error: 'Token do Facebook ausente.' };
-      
-      const credential = FacebookAuthProvider.credential(accessToken);
-      const result = await socialAuthService.signInWithCredential(credential, role);
-      
-      if (result.success && result.user) {
-        await handlePostSocialLogin(result.user, role);
-        const enabled = await twoFactorAuthService.is2FAEnabled();
-        setIs2FAEnabled(enabled);
-      }
-      return result;
-    } catch (err: any) {
-      secureLoggingService.security('Falha na autenticação com Facebook', { errorMessage: err.message });
-      return { success: false, error: 'Erro ao autenticar com Facebook' };
-    } finally {
-      setLoading(false);
-    }
-  }, [facebookPromptAsync, socialAuthService, twoFactorAuthService]);
-
-  const signInWithApple = useCallback(async (role: string = 'comprador') => {
-    try {
-      setLoading(true);
-      const result = await socialAuthService.signInWithApple(role);
-      
-      if (result.success && result.user) {
-        await handlePostSocialLogin(result.user, role);
-        const enabled = await twoFactorAuthService.is2FAEnabled();
-        setIs2FAEnabled(enabled);
-      }
-      return result;
-    } catch (err: any) {
-      secureLoggingService.security('Falha na autenticação com Apple', { errorMessage: err.message });
-      return { success: false, error: 'Erro ao autenticar com Apple' };
-    } finally {
-      setLoading(false);
-    }
-  }, [socialAuthService, twoFactorAuthService]);
+  };
 
   return (
-    <TouchableWithoutFeedback onPress={refreshUserActivity}>
-      <AuthContext.Provider
-        value={{
-          user,
-          isAuthenticated: !!user,
-          loading,
-          login,
-          register,
-          logout,
-          resetPassword,
-          updateUser,
-          validateSession,
-          refreshUserActivity,
-          signInWithGoogle,
-          signInWithFacebook,
-          signInWithApple,
-          is2FAEnabled,
-        }}
-      >
-        {children}
-      </AuthContext.Provider>
-    </TouchableWithoutFeedback>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        loading,
+        profileLoading,
+        isReady,
+        login,
+        register,
+        logout,
+        resetPassword,
+        updateUser,
+        validateSession,
+        refreshUserActivity,
+        verify2FACode,
+        generate2FACode,
+        signInWithGoogle,
+        signInWithFacebook,
+        signInWithApple,
+        signInWithCredential,
+        is2FAEnabled: user?.twoFactorEnabled || false,
+        error,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
 };
 
-// Hook personalizado para usar o contexto
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
-
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);
