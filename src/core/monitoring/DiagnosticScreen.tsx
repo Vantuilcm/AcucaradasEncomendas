@@ -40,6 +40,15 @@ export const DiagnosticScreen: React.FC<{ onClose: () => void }> = ({ onClose })
     loadData();
   }, []);
 
+  // Atualiza LOGS automaticamente enquanto a aba estiver aberta (telemetria in-app)
+  useEffect(() => {
+    if (activeTab !== 'LOGS') return;
+    const interval = setInterval(() => {
+      getLocalLogs().then(setLogs);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
   const handleFlush = async () => {
     await transportManager.flushLogs();
     loadData();
@@ -58,7 +67,7 @@ export const DiagnosticScreen: React.FC<{ onClose: () => void }> = ({ onClose })
         </Text>
         <Text style={styles.timestamp}>{new Date(log.timestamp).toLocaleTimeString()}</Text>
       </View>
-      <Text style={styles.type}>{log.type}</Text>
+      <Text style={[styles.type, { color: getTypeColor(log.type) }]}>{log.type}</Text>
       <Text style={styles.message}>{log.message}</Text>
       {log.metadata && (
         <Text style={styles.metadata}>{JSON.stringify(log.metadata, null, 2)}</Text>
@@ -76,6 +85,11 @@ export const DiagnosticScreen: React.FC<{ onClose: () => void }> = ({ onClose })
       case 'MEDIUM': return '#FFA500';
       default: return '#1E90FF';
     }
+  };
+
+  const getTypeColor = (type: string) => {
+    if (type === 'FIRESTORE_AUDIT') return '#6A1B9A';
+    return '#333';
   };
 
   return (
@@ -105,8 +119,18 @@ export const DiagnosticScreen: React.FC<{ onClose: () => void }> = ({ onClose })
       >
         {activeTab === 'LOGS' && (
           <View>
-            <Text style={styles.sectionTitle}>Últimos Logs Locais ({logs.length})</Text>
-            {logs.map(renderLogItem)}
+            <Text style={styles.sectionTitle}>
+              Últimos Logs Locais ({logs.length})
+              {logs.some(l => l.type === 'FIRESTORE_AUDIT') ? ' · FIRESTORE_AUDIT ativo' : ''}
+            </Text>
+            {logs
+              .slice()
+              .sort((a, b) => {
+                if (a.type === 'FIRESTORE_AUDIT' && b.type !== 'FIRESTORE_AUDIT') return -1;
+                if (b.type === 'FIRESTORE_AUDIT' && a.type !== 'FIRESTORE_AUDIT') return 1;
+                return 0;
+              })
+              .map(renderLogItem)}
           </View>
         )}
 

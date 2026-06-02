@@ -6,6 +6,7 @@ import { ENV } from './env';
 import { Alert } from 'react-native';
 import Constants from 'expo-constants';
 import * as Sentry from '@sentry/react-native';
+import { emitFirestoreAudit } from '../core/monitoring/firestoreAuditTelemetry';
 
 // 🛡️ [RECOVERY-LOG] Verificar se os dados vieram do Constants.expoConfig.extra (Fallback físico)
 const extra = Constants.expoConfig?.extra || {};
@@ -392,7 +393,66 @@ export const dbFunctions: any = {
           id: '',
         } as any;
       }
-      return require('firebase/firestore').getDoc(ref);
+
+      const path = getFirestorePath(ref);
+      const collection = path.includes('/') ? path.split('/')[0] : path;
+      let uid = 'anonymous';
+      let email: string | null = null;
+      try {
+        const currentUser = getAuth()?.currentUser;
+        uid = currentUser?.uid ?? 'anonymous';
+        email = currentUser?.email ?? null;
+      } catch {
+        uid = 'auth-unavailable';
+      }
+      const timestamp = new Date().toISOString();
+
+      console.log('[READ_ATTEMPT]', { collection, path, uid, timestamp });
+
+      emitFirestoreAudit({
+        status: 'READ_START',
+        uid,
+        email,
+        path,
+      });
+
+      try {
+        const result = await require('firebase/firestore').getDoc(ref);
+        console.log('[READ_SUCCESS]', {
+          collection,
+          path,
+          uid,
+          exists: result.exists(),
+          timestamp: new Date().toISOString(),
+        });
+        emitFirestoreAudit({
+          status: 'READ_SUCCESS',
+          uid,
+          email,
+          path,
+          exists: result.exists(),
+        });
+        return result;
+      } catch (error) {
+        const err = error as { code?: string; message?: string };
+        console.error('[READ_DENIED]', {
+          collection,
+          path,
+          uid,
+          code: err?.code ?? 'unknown',
+          message: err?.message ?? String(error),
+          timestamp: new Date().toISOString(),
+        });
+        emitFirestoreAudit({
+          status: 'READ_DENIED',
+          uid,
+          email,
+          path,
+          code: err?.code ?? 'unknown',
+          errorMessage: err?.message ?? String(error),
+        });
+        throw error;
+      }
     });
   },
   get setDoc() { return wrapFirestoreCall('setDoc', (ref: any, ...args: any[]) => require('firebase/firestore').setDoc(ref, ...args)); },
