@@ -5,8 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getApp } from '../config/firebase';
-import { f } from '../config/firebase';
+import { getAuth, authFunctions, f } from '../config/firebase';
 import { useNavigation } from '@react-navigation/native';
 
 // Helper temporário para debug Firestore
@@ -38,22 +37,43 @@ export const ContaBancariaScreen = () => {
 
   // Função segura para buscar dados
   const loadAccountData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     try {
-      const uid = (user as any).uid || (user as any).id;
-      if (!uid) {
+      const contextUid = (user as any).uid || (user as any).id;
+      const authUid = getAuth().currentUser?.uid;
+      const authEmail = getAuth().currentUser?.email ?? null;
+
+      if (!contextUid) {
         console.warn('[BANK_FIRESTORE_OPERATION] UID inválido no loadAccountData', { user });
         console.log('[FS_GUARD] uid não encontrado, abortando loadAccountData');
         setAccountData(null);
         setLoading(false);
         return;
       }
-      const path = `users/${uid}`;
-      console.log('[BANK_FIRESTORE_OPERATION] getDoc', path);
-      const userRef = f.doc('users', uid);
+
+      if (!authUid) {
+        console.warn('[BANK_AUTH_GUARD] Auth ausente, leitura adiada', { contextUid, authEmail });
+        setAccountData(null);
+        setLoading(false);
+        return;
+      }
+
+      if (authUid !== contextUid) {
+        console.warn('[BANK_AUTH_GUARD] UID desalinhado', { contextUid, authUid });
+        setAccountData(null);
+        setLoading(false);
+        return;
+      }
+
+      const path = `users/${authUid}`;
+      console.log('[BANK_FIRESTORE_OPERATION] getDoc', path, { authUid, authEmail, contextUid });
+      const userRef = f.doc('users', authUid);
       const userSnap = await f.getDoc(userRef);
       if (!userSnap.exists()) {
-        console.warn('[BANK_FIRESTORE_OPERATION] Documento users/{uid} não existe', { uid, path });
+        console.warn('[BANK_FIRESTORE_OPERATION] Documento users/{uid} não existe', { uid: authUid, path });
         console.log('[FS_GUARD] users/{uid} missing, fallback to empty state');
         setAccountData(null);
         setLoading(false);
@@ -64,13 +84,13 @@ export const ContaBancariaScreen = () => {
       console.error('[BANK_FIRESTORE_ERROR] Erro ao carregar dados:', error);
       if (error?.code === 'permission-denied') {
         console.error('[FS_PERMISSION_DENIED] ContaBancariaScreen.loadAccountData', {
-          uid: (user as any)?.uid || (user as any)?.id,
-          path: `users/${(user as any)?.uid || (user as any)?.id}`,
+          uid: getAuth().currentUser?.uid,
+          path: `users/${getAuth().currentUser?.uid ?? 'unknown'}`,
           code: error.code,
           message: error.message,
         });
       }
-      showFirestoreDebug(`users/${(user as any).uid || (user as any).id}`, error);
+      showFirestoreDebug(`users/${getAuth().currentUser?.uid ?? 'unknown'}`, error);
       setAccountData(null);
     } finally {
       setLoading(false);
@@ -79,6 +99,13 @@ export const ContaBancariaScreen = () => {
 
   useEffect(() => {
     loadAccountData();
+  }, [loadAccountData]);
+
+  useEffect(() => {
+    const unsubscribe = authFunctions.onAuthStateChanged(() => {
+      loadAccountData();
+    });
+    return () => unsubscribe();
   }, [loadAccountData]);
 
   const handleStartOnboarding = async () => {
