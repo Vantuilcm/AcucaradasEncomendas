@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getAuth, authFunctions, dbFunctions } from '../config/firebase';
 import { TwoFactorAuthService } from '../services/TwoFactorAuthService';
+import { proofTraceGetDocUserProfile } from '../services/authTokenProofTelemetry';
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Lazy-Getter
@@ -54,8 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setProfileLoading(true);
               
               // Buscar perfil no Firestore
-              const userRef = dbFunctions.doc('users', firebaseUser.uid);
-              const userDoc = await dbFunctions.getDoc(userRef);
+              const userDoc = await proofTraceGetDocUserProfile(firebaseUser.uid, 'bootstrap');
 
               if (userDoc.exists()) {
                 const data = userDoc.data();
@@ -136,9 +136,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('✅ [DEBUG_LOGIN] SUCESSO SDK! UID:', userCredential.user.uid);
       
       // Passo 2: Busca de Perfil Firestore
-      const userRef = dbFunctions.doc('users', userCredential.user.uid);
       console.log('🛡️ [DEBUG_LOGIN] Buscando perfil no Firestore...');
-      const userDoc = await dbFunctions.getDoc(userRef);
+      const userDoc = await proofTraceGetDocUserProfile(userCredential.user.uid, 'login');
       
       if (userDoc.exists()) {
         const data = userDoc.data();
