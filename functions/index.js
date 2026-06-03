@@ -1082,8 +1082,8 @@ exports.createStripeOnboardingLink = functions.https.onCall(async (data, context
   try {
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: refreshUrl || 'https://acucaradas.com/reauth',
-      return_url: returnUrl || 'https://acucaradas.com/success',
+      refresh_url: refreshUrl || 'https://acucaradasencomendas.com.br/stripe-refresh',
+      return_url: returnUrl || 'https://acucaradasencomendas.com.br/stripe-success',
       type: 'account_onboarding',
     });
 

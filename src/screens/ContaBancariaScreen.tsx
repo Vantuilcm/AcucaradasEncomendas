@@ -179,8 +179,8 @@ export const ContaBancariaScreen = () => {
       const linkResponse = await createLinkFn({
         accountId: currentAccountId,
         // Usar URLs de fallback genéricas, pois o app é mobile.
-        refreshUrl: 'https://acucaradas.com/reauth',
-        returnUrl: 'https://acucaradas.com/success',
+        refreshUrl: 'https://acucaradasencomendas.com.br/stripe-refresh',
+        returnUrl: 'https://acucaradasencomendas.com.br/stripe-success',
       });
 
       const linkData = linkResponse.data as any;

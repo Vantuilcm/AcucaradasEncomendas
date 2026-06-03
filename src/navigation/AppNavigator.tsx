@@ -11,6 +11,7 @@ import usePermissions from '../hooks/usePermissions';
 import { UserUtils } from '../utils/UserUtils';
 import { secureLoggingService } from '../services/SecureLoggingService';
 import { navigationRef } from '../services/RootNavigation';
+import { stripeNavigationLinking } from './stripeDeepLinking';
 
 // Telas de autenticação
 import LoginScreen from '../screens/LoginScreen';
@@ -299,7 +300,7 @@ const AppNavigator = () => {
   }
 
   return (
-  <NavigationContainer theme={navigationTheme} ref={navigationRef}>
+  <NavigationContainer theme={navigationTheme} ref={navigationRef} linking={stripeNavigationLinking}>
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
