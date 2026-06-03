@@ -87,6 +87,12 @@ export default ({ config }) => {
   const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
   const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
   const facebookAppId = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+  const appScheme = appConfig.scheme || config.scheme || "acucaradas";
+  const urlSchemes = [
+    appScheme,
+    facebookAppId ? `fb${facebookAppId}` : undefined,
+    googleIosClientId ? googleIosClientId.split('.').reverse().join('.') : undefined,
+  ].filter(Boolean);
 
   return {
     ...config,
@@ -102,7 +108,7 @@ export default ({ config }) => {
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
-    scheme: appConfig.scheme || "acucaradas",
+    scheme: appScheme,
     owner: "acucaradaencomendas",
     ios: {
       ...config.ios,
@@ -115,12 +121,9 @@ export default ({ config }) => {
         CFBundleURLTypes: [
           ...(config.ios?.infoPlist?.CFBundleURLTypes || []),
           {
-            CFBundleURLSchemes: [
-              facebookAppId ? `fb${facebookAppId}` : undefined,
-              googleIosClientId ? googleIosClientId.split('.').reverse().join('.') : undefined
-            ].filter(Boolean)
-          }
-        ]
+            CFBundleURLSchemes: urlSchemes,
+          },
+        ],
       }
     },
     android: {
