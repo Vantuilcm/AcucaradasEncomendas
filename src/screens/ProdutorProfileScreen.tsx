@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Avatar, Title, Caption, Text, Button, Divider, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,10 +7,12 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as RootNavigation from '../services/RootNavigation';
 import { AppVersion } from '../utils/AppVersion';
+import { DocumentacaoScreen } from './DocumentacaoScreen';
 
 export const ProdutorProfileScreen = () => {
   const { user, logout } = useAuth();
   const navigation = useNavigation<any>();
+  const [showDocumentacao, setShowDocumentacao] = useState(false);
 
   const handleLogout = async () => {
     Alert.alert('Sair', 'Deseja realmente sair?', [
@@ -20,6 +22,11 @@ export const ProdutorProfileScreen = () => {
   };
 
   const handleMenuPress = (route: string, label: string) => {
+    if (route === 'Documentacao') {
+      setShowDocumentacao(true);
+      return;
+    }
+
     // TODO FASE 2: Habilitar rotas reais quando as telas forem implementadas
     if (!route || route === 'Reports' || route === 'NotificationSettings') {
       Alert.alert('Em breve 💝', `A funcionalidade "${label}" estará disponível em breve.`);
@@ -72,6 +79,10 @@ export const ProdutorProfileScreen = () => {
     </TouchableOpacity>
   );
 
+  if (showDocumentacao) {
+    return <DocumentacaoScreen onBack={() => setShowDocumentacao(false)} />;
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} bounces={false}>
@@ -99,7 +110,7 @@ export const ProdutorProfileScreen = () => {
           <MenuItem title="Conta Bancária" subtitle="Stripe Connect e Repasses" icon="bank" route="ContaBancaria" color="#2196F3" />
 
           <Text style={styles.sectionTitle}>📄 Identidade</Text>
-          <MenuItem title="Documentação" subtitle="CPF/CNPJ e Verificação" icon="file-document-outline" route="" color="#FF9800" />
+          <MenuItem title="Documentação" subtitle="CPF/CNPJ e Verificação" icon="file-document-outline" route="Documentacao" color="#FF9800" />
           
           <Text style={styles.sectionTitle}>⚙️ Ajustes</Text>
           <MenuItem title="Preferências" subtitle="Notificações e WhatsApp" icon="bell-outline" route="NotificationSettings" color="#E91E63" />
