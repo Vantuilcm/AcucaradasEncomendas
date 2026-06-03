@@ -1397,3 +1397,21 @@ exports.checkSalesAutomation = functions.pubsub.schedule('every 5 minutes').onRu
     return { success: false, error: error.message };
   }
 });
+
+// ======================================================
+// 🔬 DIAGNÓSTICO TEMPORÁRIO — request.auth proof (read-only)
+// ======================================================
+
+/**
+ * Callable de diagnóstico: expõe o que o backend Firebase vê em context.auth.
+ * Não altera dados. Remover após encerrar a investigação permission-denied.
+ */
+exports.debugAuthContext = functions.https.onCall(async (data, context) => {
+  return {
+    authExists: !!context.auth,
+    authUid: context.auth?.uid ?? null,
+    email: context.auth?.token?.email ?? null,
+    projectId: process.env.GCLOUD_PROJECT || 'acucaradas-encomendas',
+    timestamp: new Date().toISOString(),
+  };
+});

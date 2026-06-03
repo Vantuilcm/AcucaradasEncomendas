@@ -1,6 +1,7 @@
 import { jwtDecode } from 'jwt-decode';
 import { getAuth, dbFunctions } from '../config/firebase';
 import { logInfo, logError as logProofError } from '../core/monitoring/logger';
+import { proveAuthContextFromFunction } from './authContextProofTelemetry';
 
 export type AuthTokenProofSource = 'bootstrap' | 'login';
 
@@ -120,6 +121,13 @@ export async function proofTraceGetDocUserProfile(
 
   console.log('[AUTH_TOKEN_CLAIMS]', claimsPayload);
   await logInfo('AUTH_TOKEN_PROOF', '[AUTH_TOKEN_CLAIMS]', claimsPayload);
+
+  await proveAuthContextFromFunction(
+    source,
+    contextUid,
+    authCurrentUserUid,
+    tokenUid
+  );
 
   const path = `users/${contextUid}`;
   const requestProof = {

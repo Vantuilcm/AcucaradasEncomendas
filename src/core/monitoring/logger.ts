@@ -26,7 +26,8 @@ export type LogType =
   | 'INIT_ERROR'
   | 'FIREBASE_RECOVERY'
   | 'SELF_HEAL_ACTION'
-  | 'AUTH_TOKEN_PROOF';
+  | 'AUTH_TOKEN_PROOF'
+  | 'AUTH_CONTEXT_PROOF';
 
 export interface LogEntry {
   id: string;
