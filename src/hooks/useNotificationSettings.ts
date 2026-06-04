@@ -1,10 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { getAuth } from '../config/firebase';
 import { UserUtils } from '../utils/UserUtils';
 import { notificationSettingsServiceWithCache } from '../services/NotificationSettingsServiceWithCache';
 import { NotificationSettings } from '../types/NotificationSettings';
 import { loggingService } from '../services/LoggingService';
+
+/** TEMPORÁRIO — diagnóstico Sprint 02 Preferências (remover após confirmar causa raiz) */
+const notificationSettingsPath = (uid: string) => `notification_settings/${uid}`;
+
+function showPrefsLoadDebugAlert(details: {
+  userId?: string;
+  userDotId?: string;
+  userDotUid?: string;
+  authUid?: string | null;
+  path: string;
+  code?: string;
+  message?: string;
+  phase?: string;
+}) {
+  const body = [
+    `UID (UserUtils): ${details.userId ?? '(vazio)'}`,
+    `user.id: ${details.userDotId ?? '(vazio)'}`,
+    `user.uid: ${details.userDotUid ?? '(vazio)'}`,
+    `auth.uid: ${details.authUid ?? '(vazio)'}`,
+    '',
+    `PATH: ${details.path}`,
+    details.phase ? `FASE: ${details.phase}` : '',
+    `CODE: ${details.code ?? '(n/a)'}`,
+    `MESSAGE: ${details.message ?? '(n/a)'}`,
+  ]
+    .filter((line) => line !== '')
+    .join('\n');
+
+  console.warn('[PREFS_LOAD_DEBUG]', details);
+  Alert.alert('ALERT DEBUG — Preferências', body);
+}
 
 /**
  * Interface para o retorno do hook useNotificationSettings
@@ -45,7 +77,20 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
    */
   const loadSettings = useCallback(async () => {
     const userId = UserUtils.getUserId(user);
+    const authUid = getAuth().currentUser?.uid ?? null;
+    const path = userId ? notificationSettingsPath(userId) : 'notification_settings/(sem uid)';
+
     if (!userId) {
+      showPrefsLoadDebugAlert({
+        userId,
+        userDotId: (user as { id?: string })?.id,
+        userDotUid: (user as { uid?: string })?.uid,
+        authUid,
+        path,
+        code: 'NO_USER_ID',
+        message: 'UserUtils.getUserId(user) retornou vazio',
+        phase: 'antes do Firestore',
+      });
       setSettings(null);
       setIsLoading(false);
       return;
@@ -64,10 +109,27 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
 
       setSettings(userSettings);
     } catch (err) {
+      const firebaseErr = err as { code?: string; message?: string };
       const error =
         err instanceof Error ? err : new Error('Erro ao carregar configurações de notificação');
       setError(error);
-      loggingService.error('Erro ao carregar configurações de notificação', error);
+      loggingService.error('Erro ao carregar configurações de notificação', {
+        userId,
+        path,
+        code: firebaseErr?.code,
+        message: firebaseErr?.message,
+        error,
+      });
+      showPrefsLoadDebugAlert({
+        userId,
+        userDotId: (user as { id?: string })?.id,
+        userDotUid: (user as { uid?: string })?.uid,
+        authUid,
+        path,
+        code: firebaseErr?.code ?? (error as { code?: string }).code,
+        message: firebaseErr?.message ?? error.message,
+        phase: 'getUserSettings ou createDefaultSettings',
+      });
       Alert.alert('Erro', 'Não foi possível carregar suas configurações de notificação');
     } finally {
       setIsLoading(false);
