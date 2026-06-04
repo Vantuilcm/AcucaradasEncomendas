@@ -200,6 +200,20 @@ jobs:
           FORCE_BUILD_MODE: "LOCAL"
           DEBUG: "eas:*"
 
+      - name: Stage iOS IPA artifact
+        if: success()
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          LATEST_IPA=$(ls -t build-*.ipa 2>/dev/null | head -n 1 || ls -t *.ipa 2>/dev/null | head -n 1 || true)
+          if [ -z "$LATEST_IPA" ]; then
+            echo "❌ IPA não encontrada após build local (esperado build-*.ipa no root)"
+            exit 1
+          fi
+          cp "$LATEST_IPA" dist/app.ipa
+          echo "STAGED_IPA=dist/app.ipa (from $LATEST_IPA)" >> $GITHUB_ENV
+          ls -lh dist/app.ipa "$LATEST_IPA"
+
       - name: 📦 Upload iOS Artifact (.ipa)
         if: always()
         uses: actions/upload-artifact@v4
@@ -207,7 +221,9 @@ jobs:
           name: ios-build-ipa
           path: |
             dist/app.ipa
-            build-logs/ios-build-log.json
+            build-logs/
+            build-*.ipa
+            *.ipa
           if-no-files-found: warn
           retention-days: 7
 
