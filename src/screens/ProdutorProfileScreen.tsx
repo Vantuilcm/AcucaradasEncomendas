@@ -8,11 +8,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as RootNavigation from '../services/RootNavigation';
 import { AppVersion } from '../utils/AppVersion';
 import { DocumentacaoScreen } from './DocumentacaoScreen';
+import { NotificationSettingsScreen } from './NotificationSettingsScreen';
 
 export const ProdutorProfileScreen = () => {
   const { user, logout } = useAuth();
   const navigation = useNavigation<any>();
   const [showDocumentacao, setShowDocumentacao] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
   const handleLogout = async () => {
     Alert.alert('Sair', 'Deseja realmente sair?', [
@@ -27,8 +29,13 @@ export const ProdutorProfileScreen = () => {
       return;
     }
 
+    if (route === 'NotificationSettings') {
+      setShowNotificationSettings(true);
+      return;
+    }
+
     // TODO FASE 2: Habilitar rotas reais quando as telas forem implementadas
-    if (!route || route === 'Reports' || route === 'NotificationSettings') {
+    if (!route || route === 'Reports') {
       Alert.alert('Em breve 💝', `A funcionalidade "${label}" estará disponível em breve.`);
       return;
     }
@@ -81,6 +88,12 @@ export const ProdutorProfileScreen = () => {
 
   if (showDocumentacao) {
     return <DocumentacaoScreen onBack={() => setShowDocumentacao(false)} />;
+  }
+
+  if (showNotificationSettings) {
+    return (
+      <NotificationSettingsScreen onBack={() => setShowNotificationSettings(false)} />
+    );
   }
 
   return (

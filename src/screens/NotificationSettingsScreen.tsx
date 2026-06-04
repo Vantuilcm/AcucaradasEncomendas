@@ -1,13 +1,17 @@
 import React from 'react';
 import { StyleSheet, ScrollView } from 'react-native';
-import { Switch, List, Divider, useTheme } from 'react-native-paper';
+import { Switch, List, Divider, Button, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { NotificationSettings } from '../types/NotificationSettings';
 import { useNotificationSettings } from '../hooks/useNotificationSettings';
 
-export function NotificationSettingsScreen() {
+type NotificationSettingsScreenProps = {
+  onBack?: () => void;
+};
+
+export function NotificationSettingsScreen({ onBack }: NotificationSettingsScreenProps = {}) {
   const theme = useTheme();
   const {
     settings,
@@ -149,6 +153,17 @@ export function NotificationSettingsScreen() {
             )}
           />
         </List.Section>
+
+        {onBack && (
+          <Button
+            mode="contained"
+            onPress={onBack}
+            style={styles.backButton}
+            buttonColor="#9C27B0"
+          >
+            Voltar
+          </Button>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -161,5 +176,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  backButton: {
+    margin: 20,
+    marginTop: 8,
+    borderRadius: 12,
   },
 });
