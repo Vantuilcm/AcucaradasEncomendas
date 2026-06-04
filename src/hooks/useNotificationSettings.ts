@@ -10,6 +10,14 @@ import { loggingService } from '../services/LoggingService';
 /** TEMPORÁRIO — diagnóstico Sprint 02 Preferências (remover após confirmar causa raiz) */
 const notificationSettingsPath = (uid: string) => `notification_settings/${uid}`;
 
+function formatStackPreview(stack?: string, maxLines = 15): string {
+  if (!stack || !stack.trim()) return '(sem stack)';
+  return stack
+    .split('\n')
+    .slice(0, maxLines)
+    .join('\n');
+}
+
 function showPrefsLoadDebugAlert(details: {
   userId?: string;
   userDotId?: string;
@@ -19,7 +27,13 @@ function showPrefsLoadDebugAlert(details: {
   code?: string;
   message?: string;
   phase?: string;
+  /** TEMPORÁRIO — exceção real no catch de loadSettings */
+  errName?: string;
+  errMessage?: string;
+  errStack?: string;
 }) {
+  const stackPreview = formatStackPreview(details.errStack);
+
   const body = [
     `UID (UserUtils): ${details.userId ?? '(vazio)'}`,
     `user.id: ${details.userDotId ?? '(vazio)'}`,
@@ -30,11 +44,21 @@ function showPrefsLoadDebugAlert(details: {
     details.phase ? `FASE: ${details.phase}` : '',
     `CODE: ${details.code ?? '(n/a)'}`,
     `MESSAGE: ${details.message ?? '(n/a)'}`,
+    '',
+    `ERR.NAME: ${details.errName ?? '(n/a)'}`,
+    `ERR.MESSAGE: ${details.errMessage ?? '(n/a)'}`,
+    '',
+    'STACK (15 linhas):',
+    stackPreview,
   ]
     .filter((line) => line !== '')
     .join('\n');
 
-  console.warn('[PREFS_LOAD_DEBUG]', details);
+  console.warn('[PREFS_LOAD_DEBUG]', {
+    errName: details.errName,
+    errMessage: details.errMessage,
+    stackPreview,
+  });
   Alert.alert('ALERT DEBUG — Preferências', body);
 }
 
@@ -109,7 +133,21 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
 
       setSettings(userSettings);
     } catch (err) {
-      const firebaseErr = err as { code?: string; message?: string };
+      const firebaseErr = err as { code?: string; message?: string; name?: string; stack?: string };
+      const errName =
+        err instanceof Error ? err.name : firebaseErr?.name ?? typeof err;
+      const errMessage =
+        err instanceof Error ? err.message : String(err ?? '(erro desconhecido)');
+      const errStack =
+        err instanceof Error ? err.stack : firebaseErr?.stack ?? undefined;
+      const stackPreview = formatStackPreview(errStack);
+
+      console.warn('[PREFS_LOAD_DEBUG]', {
+        errName,
+        errMessage,
+        stackPreview,
+      });
+
       const error =
         err instanceof Error ? err : new Error('Erro ao carregar configurações de notificação');
       setError(error);
@@ -118,6 +156,8 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
         path,
         code: firebaseErr?.code,
         message: firebaseErr?.message,
+        errName,
+        errStack: stackPreview,
         error,
       });
       showPrefsLoadDebugAlert({
@@ -129,6 +169,9 @@ export function useNotificationSettings(): UseNotificationSettingsReturn {
         code: firebaseErr?.code ?? (error as { code?: string }).code,
         message: firebaseErr?.message ?? error.message,
         phase: 'getUserSettings ou createDefaultSettings',
+        errName,
+        errMessage,
+        errStack,
       });
       Alert.alert('Erro', 'Não foi possível carregar suas configurações de notificação');
     } finally {
