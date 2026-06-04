@@ -115,6 +115,52 @@ export class NotificationSettingsServiceWithCache {
         updatedAt: now,
       };
 
+      const settings = defaultSettings;
+      const collectUndefinedPaths = (obj: unknown, prefix = ''): string[] => {
+        if (obj === undefined) return prefix ? [prefix] : ['(root)'];
+        if (obj === null || typeof obj !== 'object') return [];
+        const paths: string[] = [];
+        for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+          const path = prefix ? `${prefix}.${key}` : key;
+          if (value === undefined) paths.push(path);
+          else if (value !== null && typeof value === 'object') {
+            paths.push(...collectUndefinedPaths(value, path));
+          }
+        }
+        return paths;
+      };
+      const expectedSetDocKeys = [
+        'userId',
+        'enabled',
+        'types',
+        'frequency',
+        'quietHours',
+        'createdAt',
+        'updatedAt',
+      ] as const;
+      const payloadKeys = Object.keys(settings || {});
+      const undefinedFields = collectUndefinedPaths(settings);
+      const missingFromPayload = expectedSetDocKeys.filter((k) => !payloadKeys.includes(k));
+      const extraInPayload = payloadKeys.filter(
+        (k) => !expectedSetDocKeys.includes(k as (typeof expectedSetDocKeys)[number])
+      );
+      console.log('[PREFS_CREATE_DEFAULT]', {
+        uid: userId,
+        settings,
+        typeofSettings: typeof settings,
+        isNull: settings === null,
+        isUndefined: settings === undefined,
+        keys: Object.keys(settings || {}),
+        settingsJson: JSON.stringify(settings),
+        undefinedFields,
+        expectedInterface: 'NotificationSettings (sem id no setDoc)',
+        expectedSetDocKeys: [...expectedSetDocKeys],
+        missingFromPayload,
+        extraInPayload,
+        nestedTypes: settings?.types,
+        nestedQuietHours: settings?.quietHours,
+      });
+
       const settingsRef = doc(db, this.collection, userId);
       await setDoc(settingsRef, defaultSettings);
 
