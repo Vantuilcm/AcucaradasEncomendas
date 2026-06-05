@@ -333,14 +333,44 @@ export const dbFunctions: any = {
   },
   get doc() {
     return (...args: any[]) => {
-      if (!isValidFirestorePathSegments(args)) {
+      const firestoreDoc = require('firebase/firestore').doc;
+      const isNonEmptyStringSegment = (segment: unknown): segment is string =>
+        typeof segment === 'string' && segment.trim().length > 0;
+
+      if (!args || args.length === 0) {
         console.warn('[FS_SAFE_DOC_SKIP] Invalid doc path', { args });
         return null;
       }
+
+      // doc('collection', 'id', ...)
       if (typeof args[0] === 'string') {
-        return require('firebase/firestore').doc(getDb(), ...args);
+        if (!args.every(isNonEmptyStringSegment)) {
+          console.warn('[FS_SAFE_DOC_SKIP] Invalid doc path', { args });
+          return null;
+        }
+        return firestoreDoc(getDb(), ...args);
       }
-      return require('firebase/firestore').doc(...args);
+
+      // doc(collectionRef) | doc(collectionRef, 'id', ...) | doc(documentRef, 'sub', ...)
+      if (args[0]?.type === 'collection' || args[0]?.type === 'document') {
+        const pathSegments = args.slice(1);
+        if (pathSegments.length === 0) {
+          return firestoreDoc(args[0]);
+        }
+        if (!pathSegments.every(isNonEmptyStringSegment)) {
+          console.warn('[FS_SAFE_DOC_SKIP] Invalid doc path', { args });
+          return null;
+        }
+        return firestoreDoc(...args);
+      }
+
+      // doc(db, 'collection', 'id', ...) | doc(getDb(), 'collection', 'id', ...)
+      const pathSegments = args.slice(1);
+      if (pathSegments.length === 0 || !pathSegments.every(isNonEmptyStringSegment)) {
+        console.warn('[FS_SAFE_DOC_SKIP] Invalid doc path', { args });
+        return null;
+      }
+      return firestoreDoc(getDb(), ...pathSegments);
     };
   },
   get getDocs() { 
