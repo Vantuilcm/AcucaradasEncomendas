@@ -1,4 +1,4 @@
-import { f, db } from '../config/firebase';
+import { f, db, getAuth } from '../config/firebase';
 const { doc, getDoc, setDoc, updateDoc } = f;
 import { NotificationSettings } from '../types/NotificationSettings';
 import { loggingService } from './LoggingService';
@@ -128,52 +128,89 @@ export class NotificationSettingsServiceWithCache {
         }
         return paths;
       };
-      const isPlainObject = (value: unknown): boolean => {
-        if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
-        const proto = Object.getPrototypeOf(value);
-        return proto === Object.prototype || proto === null;
+      const collectInvalidFields = (obj: unknown, prefix = ''): string[] => {
+        if (obj === undefined) return prefix ? [`${prefix}:undefined`] : ['(root):undefined'];
+        if (obj === null) return prefix ? [`${prefix}:null`] : [];
+        if (typeof obj === 'number' && Number.isNaN(obj)) {
+          return prefix ? [`${prefix}:NaN`] : ['(root):NaN'];
+        }
+        if (typeof obj === 'function') return prefix ? [`${prefix}:function`] : ['(root):function'];
+        if (typeof obj === 'symbol') return prefix ? [`${prefix}:symbol`] : ['(root):symbol'];
+        if (obj instanceof Date && Number.isNaN(obj.getTime())) {
+          return prefix ? [`${prefix}:invalidDate`] : ['(root):invalidDate'];
+        }
+        if (Array.isArray(obj)) {
+          return prefix ? [`${prefix}:unexpectedArray(${obj.length})`] : [`(root):unexpectedArray(${obj.length})`];
+        }
+        if (typeof obj !== 'object') return [];
+        const paths: string[] = [];
+        for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+          const path = prefix ? `${prefix}.${key}` : key;
+          paths.push(...collectInvalidFields(value, path));
+        }
+        return paths;
+      };
+      const safeKeys = (value: unknown): string[] => {
+        try {
+          return Object.keys((value ?? {}) as object);
+        } catch {
+          return ['(keys-unreadable)'];
+        }
       };
 
+      const authUid = getAuth()?.currentUser?.uid ?? null;
+      const expectedPath = `${this.collection}/${userId}`;
       const settingsRef = doc(db, this.collection, userId);
+      const settingsRefAny = settingsRef as {
+        path?: string;
+        id?: string;
+        parent?: { id?: string };
+        converter?: unknown;
+        constructor?: { name?: string };
+      } | null;
+
       const undefinedFields = collectUndefinedPaths(defaultSettings);
-      const nestedUndefinedFields = [
-        ...collectUndefinedPaths(defaultSettings.types, 'types'),
-        ...collectUndefinedPaths(defaultSettings.quietHours, 'quietHours'),
-      ];
+      const invalidFields = collectInvalidFields(defaultSettings).filter(
+        (entry) => !entry.endsWith(':null')
+      );
+
       let settingsJson = '(stringify-failed)';
       let jsonStringifyWorks = false;
       try {
-        settingsJson = JSON.stringify(defaultSettings);
+        settingsJson = JSON.stringify(defaultSettings, null, 2);
         jsonStringifyWorks = true;
       } catch (stringifyError) {
-        settingsJson = stringifyError instanceof Error ? stringifyError.message : String(stringifyError);
+        settingsJson =
+          stringifyError instanceof Error ? stringifyError.message : String(stringifyError);
       }
-
-      const settingsRefRecord =
-        settingsRef !== null && settingsRef !== undefined
-          ? (settingsRef as Record<string, unknown>)
-          : null;
 
       console.log('[PREFS_CREATE_DEFAULT]', {
         userId,
-        settingsRefPath: (settingsRef as { path?: string } | null)?.path ?? '(missing)',
+        authUid,
+        userUid: '(indisponível em createDefaultSettings — ver hook ALERT DEBUG)',
+        userUtilsUid: userId,
+        expectedPath,
+        typeofDb: typeof db,
+        dbConstructor: (db as { constructor?: { name?: string } })?.constructor?.name ?? '(none)',
+        dbIsNull: db === null,
+        dbIsUndefined: db === undefined,
+        dbKeys: safeKeys(db),
         typeofSettingsRef: typeof settingsRef,
-        settingsRefConstructor: settingsRef?.constructor?.name ?? '(none)',
-        settingsRefHasPath:
-          settingsRefRecord !== null ? Object.prototype.hasOwnProperty.call(settingsRefRecord, 'path') : false,
+        settingsRefConstructor: settingsRefAny?.constructor?.name ?? '(none)',
+        settingsRefPath: settingsRefAny?.path ?? '(missing)',
+        settingsRefId: settingsRefAny?.id ?? '(missing)',
+        settingsRefParentId: settingsRefAny?.parent?.id ?? '(missing)',
         settingsRefIsNull: settingsRef === null,
         settingsRefIsUndefined: settingsRef === undefined,
-        settingsKeys: Object.keys(defaultSettings || {}),
+        settingsRefKeys: safeKeys(settingsRef),
+        settingsRefConverter: settingsRefAny?.converter ?? null,
+        typeofSettingsRefConverter: typeof settingsRefAny?.converter,
         settingsJson,
-        typeofDefaultSettings: typeof defaultSettings,
-        isDefaultSettingsNull: defaultSettings === null,
-        isDefaultSettingsArray: Array.isArray(defaultSettings),
-        isDefaultSettingsPlainObject: isPlainObject(defaultSettings),
-        undefinedFields,
-        nestedUndefinedFields,
         jsonStringifyWorks,
-        collection: this.collection,
-        path: `${this.collection}/${userId}`,
+        undefinedFields,
+        invalidFields,
+        pathMatchesExpected:
+          settingsRefAny?.path === expectedPath ? true : settingsRefAny?.path ?? false,
       });
 
       await setDoc(settingsRef, defaultSettings);
