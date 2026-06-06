@@ -246,7 +246,7 @@ export default function CheckoutScreen() {
         quantity: item.quantity,
         unitPrice: item.price,
         totalPrice: item.price * item.quantity,
-        notes: item.notes,
+        notes: item.notes || '',
       }));
 
       const mappedPaymentMethod = paymentMethod === 'creditCard' ? 'credit_card' : 'pix';
@@ -288,12 +288,12 @@ export default function CheckoutScreen() {
           id: 'manual',
           street: address.street,
           number: address.number,
-          complement: address.complement || undefined,
+          complement: address.complement || '',
           neighborhood: address.neighborhood,
           city: address.city,
           state: address.state,
           zipCode: address.zipCode,
-          reference: address.reference || undefined,
+          reference: address.reference || '',
         },
         scheduledDelivery,
         isScheduledOrder: !!scheduledDelivery,
