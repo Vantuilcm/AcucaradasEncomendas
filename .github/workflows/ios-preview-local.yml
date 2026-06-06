@@ -54,6 +54,7 @@ jobs:
       APP_ENV: preview
       EXPO_PUBLIC_APP_ENV: preview
       EXPO_PUBLIC_ENABLE_STRIPE_ACCOUNT_PERSIST: 'true'
+      EXPO_PUBLIC_ENABLE_STRIPE_PAYMENTS: 'true'
       PROFILE: preview
       EAS_PROFILE: preview
       FORCE_BUILD_MODE: LOCAL
