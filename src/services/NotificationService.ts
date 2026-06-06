@@ -113,14 +113,14 @@ export class NotificationService {
     notification: Omit<Notification, 'id' | 'createdAt'>
   ): Promise<Notification> {
     try {
-      const notificationsRef = collection(db, this.collection);
-      const docRef = await setDoc(doc(notificationsRef), {
+      const newDocRef = f.doc(f.collection(this.collection));
+      await f.setDoc(newDocRef, {
         ...notification,
         createdAt: new Date().toISOString(),
       });
 
       const newNotification: Notification = {
-        id: (docRef as any).id,
+        id: newDocRef.id,
         ...notification,
         createdAt: new Date().toISOString(),
       };
@@ -134,7 +134,7 @@ export class NotificationService {
           notification.title,
           notification.message,
           {
-            notificationId: (docRef as any).id,
+            notificationId: newDocRef.id,
             type: notification.type,
             ...notification.data,
           }
@@ -142,7 +142,7 @@ export class NotificationService {
       }
 
       loggingService.info('Notificação criada com sucesso', {
-        notificationId: (docRef as any).id,
+        notificationId: newDocRef.id,
       });
       return newNotification;
     } catch (error) {
