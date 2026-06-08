@@ -12,6 +12,7 @@ import { CartProvider } from './contexts/CartContext';
 import { LocationProvider } from './contexts/LocationContext';
 import { ErrorBoundary } from './core/monitoring/ErrorBoundary';
 import { StripeProvider } from '@stripe/stripe-react-native';
+import { Provider as PaperProvider } from 'react-native-paper';
 import { STRIPE_PUBLISHABLE_KEY } from './config/stripe';
 
 /**
@@ -62,7 +63,9 @@ export default function App() {
           <AuthProvider>
             <LocationProvider>
               <CartProvider>
-                <ThemedApp />
+                <PaperProvider>
+                  <ThemedApp />
+                </PaperProvider>
               </CartProvider>
             </LocationProvider>
           </AuthProvider>
