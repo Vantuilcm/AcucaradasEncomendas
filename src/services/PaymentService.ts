@@ -661,7 +661,7 @@ export class PaymentService {
    */
   public async getPixKeys(userId: string): Promise<PixKey[]> {
     try {
-      const q = f.query(f.collection(this.db, this.pixKeysCollection), f.where('userId', '==', userId));
+      const q = f.query(f.collection(this.pixKeysCollection), f.where('userId', '==', userId));
       const snapshot = await f.getDocs(q);
       return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as PixKey));
     } catch (error: any) {
@@ -672,7 +672,7 @@ export class PaymentService {
 
   async addPixKey(pixKey: Omit<PixKey, 'id' | 'createdAt'>): Promise<PixKey> {
     try {
-      const pixKeysRef = f.collection(this.db, this.pixKeysCollection);
+      const pixKeysRef = f.collection(this.pixKeysCollection);
       const docRef = f.doc(pixKeysRef);
       await f.setDoc(
         docRef,
@@ -703,7 +703,7 @@ export class PaymentService {
 
   async removePixKey(pixKeyId: string): Promise<void> {
     try {
-      const pixKeyRef = f.doc(this.db, this.pixKeysCollection, pixKeyId);
+      const pixKeyRef = f.doc(this.pixKeysCollection, pixKeyId);
       await f.deleteDoc(pixKeyRef);
 
       loggingService.info('Chave PIX removida com sucesso', {
@@ -721,7 +721,7 @@ export class PaymentService {
 
   async setDefaultPixKey(userId: string, pixKeyId: string): Promise<void> {
     try {
-      const pixKeysRef = f.collection(this.db, this.pixKeysCollection);
+      const pixKeysRef = f.collection(this.pixKeysCollection);
       const q = f.query(pixKeysRef, f.where('userId', '==', userId));
       const querySnapshot = await f.getDocs(q);
 
