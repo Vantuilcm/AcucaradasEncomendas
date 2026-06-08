@@ -32,6 +32,7 @@ import CheckoutScreen from '../screens/CheckoutScreen';
 import OrderDetailScreen from '../screens/OrderDetailScreen';
 import { OrderDetailsScreen } from '../screens/OrderDetailsScreen';
 import { AddressScreen } from '../screens/AddressScreen';
+import { AddressFormScreen } from '../screens/AddressFormScreen';
 import { PaymentMethodsScreen } from '../screens/PaymentMethodsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import AdminPanelScreen from '../screens/AdminPanelScreen';
@@ -56,6 +57,7 @@ import { CreateReviewScreen } from '../screens/CreateReviewScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { PremiumTestScreen } from '../screens/PremiumTestScreen';
 import type { DeliverySchedule, Order } from '../types/Order';
+import type { Address } from '../types/Address';
 
 import { StoreDetailsScreen } from '../screens/StoreDetailsScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
@@ -86,6 +88,7 @@ export type RootStackParamList = {
   OrderDetail: undefined;
   OrderDetails: { orderId: string };
   Address: undefined;
+  AddressForm: { address?: Address } | undefined;
   PaymentMethods: undefined;
   EditProfile: undefined;
   StorePreview: undefined;
@@ -455,6 +458,11 @@ const AppNavigator = () => {
                   name="Address"
                   component={AddressScreen}
                   options={{ title: 'Endereços' }}
+                />
+                <Stack.Screen
+                  name="AddressForm"
+                  component={AddressFormScreen}
+                  options={{ title: 'Novo Endereço' }}
                 />
                 <Stack.Screen
                   name="PaymentMethods"
