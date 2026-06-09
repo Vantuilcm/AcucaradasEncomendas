@@ -272,13 +272,14 @@ export default function CheckoutScreen() {
       // 2. Criar pedido (Status Inicial: pending)
       const subtotalProducts = cart.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
       const deliveryFee = deliveryPricing.deliveryFee;
-      
+      const orderTotal = subtotalProducts + deliveryFee;
+
       const newOrder = await orderService.createOrder({
         userId,
         items: orderItems,
         subtotalProducts: subtotalProducts, // CAMPO NOVO PARA O MARKETPLACE
         deliveryFee: deliveryFee,           // CAMPO NOVO PARA O MARKETPLACE
-        totalAmount: cartTotal,
+        totalAmount: orderTotal,
         status: 'pending',
         paymentMethod: {
           type: mappedPaymentMethod,
@@ -312,7 +313,7 @@ export default function CheckoutScreen() {
             console.log('🚀 [Fase 2.2] ENABLE_STRIPE ativado, preparando chamada ao backend (createPaymentIntent)...');
             try {
               // --- VALIDAÇÕES CRÍTICAS ---
-              const amountInCents = Math.round(cartTotal * 100);
+              const amountInCents = Math.round(orderTotal * 100);
               const finalOrderId = newOrder.id;
               
               if (!finalOrderId) throw new Error("ID do pedido (orderId) está indefinido ou nulo");
@@ -533,7 +534,7 @@ export default function CheckoutScreen() {
         // Registrar sucesso para automação
         await SalesAutomationService.getInstance().logAutomationEvent(userId, 'PAYMENT_SUCCESS', {
           orderId: newOrder.id,
-          amount: cartTotal
+          amount: orderTotal
         });
 
         navigation.navigate('OrderCompleted', { order: orderForSuccess });
