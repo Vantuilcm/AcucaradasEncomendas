@@ -28,6 +28,64 @@ import { useStripe } from '@stripe/stripe-react-native';
 
 type PaymentMethodType = 'card' | 'pix';
 
+/** 10K-DEBUG — temporary SetupIntent shape probe (remove in 10K-FIX) */
+const debugSetupIntentResult = (setupIntent: any, retrieveError: any) => {
+  const pm = setupIntent?.paymentMethod;
+  const Card = pm?.Card;
+  const card = pm?.card;
+
+  const payload = {
+    setupIntentStatus: setupIntent?.status ?? null,
+    setupIntentId: setupIntent?.id ?? null,
+    setupIntentPaymentMethod: pm ?? null,
+    paymentMethodId: pm?.id ?? null,
+    paymentMethodType: pm?.type ?? pm?.paymentMethodType ?? null,
+    paymentMethodCard: Card ?? null,
+    paymentMethodcard: card ?? null,
+    paymentMethodKeys: Object.keys(pm || {}),
+    cardKeys: Object.keys(Card || {}),
+    lowercaseCardKeys: Object.keys(card || {}),
+    last4Variants: {
+      cardLast4: Card?.last4,
+      lowercaseCardLast4: card?.last4,
+      billingDetails: pm?.billingDetails ?? null,
+    },
+    brandVariants: {
+      cardBrand: Card?.brand,
+      lowercaseCardBrand: card?.brand,
+    },
+    expMonthVariants: {
+      cardExpMonth: Card?.expMonth,
+      lowercaseCardExpMonth: card?.expMonth,
+    },
+    expYearVariants: {
+      cardExpYear: Card?.expYear,
+      lowercaseCardExpYear: card?.expYear,
+    },
+    retrieveError: retrieveError ?? null,
+  };
+
+  console.log('[10K_DEBUG_SETUPINTENT]', JSON.stringify(payload, null, 2));
+
+  const summary = [
+    `status: ${setupIntent?.status ?? 'null'}`,
+    `id: ${setupIntent?.id ?? 'null'}`,
+    `pm.id: ${pm?.id ?? 'null'}`,
+    `pm.type: ${pm?.type ?? pm?.paymentMethodType ?? 'null'}`,
+    `keys(pm): ${Object.keys(pm || {}).join(', ') || '(empty)'}`,
+    `keys(Card): ${Object.keys(Card || {}).join(', ') || '(empty)'}`,
+    `keys(card): ${Object.keys(card || {}).join(', ') || '(empty)'}`,
+    `Card.last4: ${Card?.last4 ?? 'undefined'}`,
+    `card.last4: ${card?.last4 ?? 'undefined'}`,
+    `Card.brand: ${Card?.brand ?? 'undefined'}`,
+    `Card.expMonth: ${Card?.expMonth ?? 'undefined'}`,
+    `Card.expYear: ${Card?.expYear ?? 'undefined'}`,
+    retrieveError ? `retrieveError: ${retrieveError.message || JSON.stringify(retrieveError)}` : 'retrieveError: null',
+  ].join('\n');
+
+  Alert.alert('10K DEBUG SetupIntent', summary);
+};
+
 export const PaymentMethodsScreen: React.FC = () => {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -159,6 +217,7 @@ export const PaymentMethodsScreen: React.FC = () => {
       }
 
       const { setupIntent, error: retrieveError } = await retrieveSetupIntent(clientSecret);
+      debugSetupIntentResult(setupIntent, retrieveError);
       if (retrieveError) {
         throw new Error(retrieveError.message || 'Erro ao obter dados do cartão');
       }
