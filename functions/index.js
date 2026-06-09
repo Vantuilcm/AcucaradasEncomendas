@@ -11,18 +11,16 @@ if (!admin.apps.length) {
 }
 
 function getStripeSecret() {
-  let secretKey = null;
+  // 1. Secret Manager binding (firebase-functions v7 / runWith secrets)
+  let secretKey = process.env.STRIPE_SECRET_KEY || null;
 
-  try {
-    // 1. Tenta pegar da configuração do Firebase Functions (padrão mais seguro)
-    secretKey = functions.config().stripe?.secret;
-  } catch (e) {
-    // Ignora erro se functions.config() falhar
-  }
-
-  // 2. Se não encontrou, tenta variáveis de ambiente Node.js
+  // 2. Fallback legado — functions.config() removido em firebase-functions v7
   if (!secretKey) {
-    secretKey = process.env.STRIPE_SECRET_KEY;
+    try {
+      secretKey = functions.config().stripe?.secret;
+    } catch (e) {
+      // Ignora erro se functions.config() não estiver disponível
+    }
   }
 
   // 3. Validação rígida de segurança
@@ -355,7 +353,9 @@ exports.getDecisionExplanation = functions.https.onCall(async (data, context) =>
 /**
  * Cria ou recupera um Customer no Stripe
  */
-exports.createStripeCustomer = functions.https.onCall(async (data, context) => {
+exports.createStripeCustomer = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
   
   const stripe = require('stripe')(getStripeSecret());
@@ -387,12 +387,14 @@ exports.createStripeCustomer = functions.https.onCall(async (data, context) => {
     console.error('❌ [Stripe] Erro ao criar Customer:', error);
     throw new functions.https.HttpsError('internal', error.message);
   }
-});
+  });
 
 /**
  * Cria um SetupIntent para salvar cartão do cliente
  */
-exports.createSetupIntent = functions.https.onCall(async (data, context) => {
+exports.createSetupIntent = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
   
   const stripe = require('stripe')(getStripeSecret());
@@ -411,12 +413,15 @@ exports.createSetupIntent = functions.https.onCall(async (data, context) => {
     console.error('❌ [Stripe] Erro ao criar SetupIntent:', error);
     throw new functions.https.HttpsError('internal', error.message);
   }
-});
+  });
 
 /**
  * Cria um PaymentIntent com suporte a transfer_group para split futuro
+ * STRIPE_SECRET_KEY injetada via Secret Manager (mesmo padrão Connect/onboarding).
  */
-exports.createPaymentIntent = functions.https.onCall(async (data, context) => {
+exports.createPaymentIntent = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
 
   const stripe = require('stripe')(getStripeSecret());
@@ -458,7 +463,7 @@ exports.createPaymentIntent = functions.https.onCall(async (data, context) => {
     console.error('❌ [Stripe] Erro ao criar PaymentIntent:', error);
     throw new functions.https.HttpsError('internal', error.message);
   }
-});
+  });
 
 /**
  * Stripe Webhook: Ouve eventos assíncronos de pagamento

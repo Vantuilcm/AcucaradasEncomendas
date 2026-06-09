@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { f } from '../config/firebase';
 import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 
 // Helper temporário para debug Firestore
@@ -21,16 +20,18 @@ const showFirestoreDebug = (path: string, error: any) => {
 import {
   Card, Text, Button, IconButton, Portal, Modal, SegmentedButtons, TextInput, useTheme, } from 'react-native-paper';
 import { PaymentService } from '../services/PaymentService';
-import { StripeService } from '../services/StripeService';
 import { PaymentCard, PixKey } from '../types/Payment';
 import { useAuth } from '../contexts/AuthContext';
-import { PaymentCardForm } from '../components/PaymentCardForm';
+import { getApp } from '../config/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { useStripe } from '@stripe/stripe-react-native';
 
 type PaymentMethodType = 'card' | 'pix';
 
 export const PaymentMethodsScreen: React.FC = () => {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { initPaymentSheet, presentPaymentSheet, retrieveSetupIntent } = useStripe();
   const [cards, setCards] = useState<PaymentCard[]>([]);
   const [pixKeys, setPixKeys] = useState<PixKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,13 +106,7 @@ export const PaymentMethodsScreen: React.FC = () => {
     }
   }, []);
 
-  const handleAddCard = async (cardData: {
-    number: string;
-    expiryDate: string;
-    cvc: string;
-    holderName: string;
-    brand: string;
-  }) => {
+  const handleAddCard = async () => {
     let userId: string | undefined;
     try {
       setLoading(true);
@@ -122,50 +117,63 @@ export const PaymentMethodsScreen: React.FC = () => {
         return;
       }
 
-      const stripeService = StripeService.getInstance();
-      // ETAPA 3 — PADRONIZAÇÃO OWNERID NO PAYMENT (BUILD 1164)
-      const path = `users/${userId}`;
-      const userRef = f.doc('users', userId);
-      const userDoc = await f.getDoc(userRef);
-      const userData = userDoc.exists() ? (userDoc.data() as any) : null;
-      let customerId = userData?.stripeCustomerId as string | undefined;
+      const userName =
+        user?.name || user?.nome || user?.displayName || userEmail;
+
+      getApp();
+      const functions = getFunctions();
+      const createStripeCustomer = httpsCallable(functions, 'createStripeCustomer');
+      const createSetupIntent = httpsCallable(functions, 'createSetupIntent');
+
+      const customerResponse = await createStripeCustomer({
+        email: userEmail,
+        name: userName,
+      });
+      const customerData = customerResponse.data as { customerId?: string };
+      const customerId = customerData?.customerId;
       if (!customerId) {
-        customerId = await stripeService.createCustomer(
-          userEmail,
-          user?.name || userEmail
-        );
-        await f.updateDoc(userRef, { stripeCustomerId: customerId });
+        throw new Error('Customer ID não retornado pelo backend');
       }
 
-      const paymentMethodId = await stripeService.createPaymentMethod({
-        number: cardData.number.replace(/\s/g, ''),
-        expMonth: parseInt(cardData.expiryDate.split('/')[0]),
-        expYear: parseInt('20' + cardData.expiryDate.split('/')[1]),
-        cvc: cardData.cvc,
-        holderName: cardData.holderName,
-        email: userEmail,
-      });
+      const setupResponse = await createSetupIntent({ customerId });
+      const setupData = setupResponse.data as { clientSecret?: string };
+      const clientSecret = setupData?.clientSecret;
+      if (!clientSecret) {
+        throw new Error('clientSecret não retornado pelo backend');
+      }
 
-      // Adicionar método de pagamento ao cliente
-      await stripeService.addPaymentMethod(customerId, paymentMethodId, {
-        number: cardData.number,
-        expiryDate: cardData.expiryDate,
-        cvc: cardData.cvc,
-        holderName: cardData.holderName,
-        type: 'credit',
-        brand: cardData.brand,
-        isDefault: cards.length === 0,
+      const { error: initError } = await initPaymentSheet({
+        merchantDisplayName: 'Açucaradas Encomendas',
+        setupIntentClientSecret: clientSecret,
       });
+      if (initError) {
+        throw new Error(initError.message || 'Erro ao inicializar cadastro do cartão');
+      }
 
-      // Salvar cartão no Firestore
-      const [expiryMonth, expiryYear] = cardData.expiryDate.split('/');
-      const cardNumber = cardData.number.replace(/\s/g, '');
+      const { error: presentError } = await presentPaymentSheet();
+      if (presentError) {
+        if (presentError.code === 'Canceled') {
+          return;
+        }
+        throw new Error(presentError.message || 'Cadastro de cartão cancelado ou falhou');
+      }
+
+      const { setupIntent, error: retrieveError } = await retrieveSetupIntent(clientSecret);
+      if (retrieveError) {
+        throw new Error(retrieveError.message || 'Erro ao obter dados do cartão');
+      }
+
+      const cardDetails = setupIntent?.paymentMethod?.Card;
+      if (!cardDetails?.last4) {
+        throw new Error('Dados do cartão indisponíveis após confirmação');
+      }
+
       await PaymentService.getInstance().addPaymentCard({
-        userId: userId,
-        last4: cardNumber.slice(-4),
-        brand: cardData.brand || 'Card',
-        expiryMonth: parseInt(expiryMonth),
-        expiryYear: parseInt(`20${expiryYear}`),
+        userId,
+        last4: cardDetails.last4,
+        brand: cardDetails.brand || 'Card',
+        expiryMonth: cardDetails.expMonth || 1,
+        expiryYear: cardDetails.expYear || new Date().getFullYear(),
         isDefault: cards.length === 0,
       });
 
@@ -381,7 +389,24 @@ export const PaymentMethodsScreen: React.FC = () => {
           contentContainerStyle={styles.modal}
         >
           {selectedMethod === 'card' ? (
-            <PaymentCardForm onSubmit={handleAddCard} loading={loading} />
+            <View style={styles.pixForm}>
+              <Text variant="titleLarge" style={styles.modalTitle}>
+                Adicionar Cartão
+              </Text>
+              <Text variant="bodyMedium" style={styles.cardSheetHint}>
+                Seus dados são coletados com segurança pelo Stripe. Nenhum número de cartão
+                trafega pelo nosso servidor.
+              </Text>
+              <Button
+                mode="contained"
+                onPress={handleAddCard}
+                loading={loading}
+                disabled={loading}
+                style={styles.submitButton}
+              >
+                Continuar com Stripe
+              </Button>
+            </View>
           ) : (
             <View style={styles.pixForm}>
               <Text variant="titleLarge" style={styles.modalTitle}>
@@ -498,6 +523,11 @@ const createStyles = (colors: any) =>
   },
   submitButton: {
     marginTop: 8,
+  },
+  cardSheetHint: {
+    marginBottom: 16,
+    color: colors.onSurfaceVariant,
+    lineHeight: 20,
   },
   pixForm: {
     padding: 16,

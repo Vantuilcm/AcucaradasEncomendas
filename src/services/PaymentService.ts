@@ -278,7 +278,7 @@ export class PaymentService {
    */
   public async getPaymentCards(userId: string): Promise<PaymentCard[]> {
     try {
-      const q = f.query(f.collection(this.db, this.cardsCollection), f.where('userId', '==', userId));
+      const q = f.query(f.collection(this.cardsCollection), f.where('userId', '==', userId));
       const snapshot = await f.getDocs(q);
       return snapshot.docs.map((docSnapshot: any) => ({
         id: docSnapshot.id,
@@ -292,7 +292,7 @@ export class PaymentService {
 
   async addPaymentCard(card: Omit<PaymentCard, 'id' | 'createdAt'>): Promise<PaymentCard> {
     try {
-      const cardsRef = f.collection(this.db, this.cardsCollection);
+      const cardsRef = f.collection(this.cardsCollection);
       const docRef = f.doc(cardsRef);
       await f.setDoc(
         docRef,
@@ -323,7 +323,7 @@ export class PaymentService {
 
   async removePaymentCard(cardId: string): Promise<void> {
     try {
-      const cardRef = f.doc(this.db, this.cardsCollection, cardId);
+      const cardRef = f.doc(this.cardsCollection, cardId);
       await f.deleteDoc(cardRef);
 
       loggingService.info('Cartão de pagamento removido com sucesso', {
@@ -341,7 +341,7 @@ export class PaymentService {
 
   async setDefaultCard(userId: string, cardId: string): Promise<void> {
     try {
-      const cardsRef = f.collection(this.db, this.cardsCollection);
+      const cardsRef = f.collection(this.cardsCollection);
       const q = f.query(cardsRef, f.where('userId', '==', userId));
       const querySnapshot = await f.getDocs(q);
 
