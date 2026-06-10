@@ -437,28 +437,55 @@ exports.createPaymentIntent = functions
 
   try {
     const idempotencyKey = `pi_${orderId}`;
+    const uid = context.auth.uid;
+
+    let stripeCustomerId = customerId || null;
+    if (!stripeCustomerId) {
+      const userDoc = await db.collection('users').doc(uid).get();
+      if (userDoc.exists && userDoc.data().stripeCustomerId) {
+        stripeCustomerId = userDoc.data().stripeCustomerId;
+      }
+    }
+
+    const paymentIntentParams = {
+      amount: Math.round(amount), // Garante que seja inteiro em centavos
+      currency,
+      transfer_group: orderId, // Vincula o pagamento ao pedido para o split (Fase 2)
+      metadata: {
+        orderId,
+        userId: uid,
+        app: 'acucaradas-encomendas',
+      },
+    };
+
+    let ephemeralKeySecret = null;
+    if (stripeCustomerId) {
+      paymentIntentParams.customer = stripeCustomerId;
+      const ephemeralKey = await stripe.ephemeralKeys.create(
+        { customer: stripeCustomerId },
+        { apiVersion: '2024-06-20' }
+      );
+      ephemeralKeySecret = ephemeralKey.secret;
+    }
 
     const paymentIntent = await stripe.paymentIntents.create(
+      paymentIntentParams,
       {
-        amount: Math.round(amount), // Garante que seja inteiro em centavos
-        currency,
-        customer: customerId,
-        transfer_group: orderId, // Vincula o pagamento ao pedido para o split (Fase 2)
-        metadata: { 
-          orderId, 
-          userId: context.auth.uid,
-          app: 'acucaradas-encomendas' 
-        }
-      },
-      {
-        idempotencyKey
+        idempotencyKey,
       }
     );
 
-    return {
+    const response = {
       clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id
+      paymentIntentId: paymentIntent.id,
     };
+
+    if (stripeCustomerId && ephemeralKeySecret) {
+      response.customer = stripeCustomerId;
+      response.ephemeralKey = ephemeralKeySecret;
+    }
+
+    return response;
   } catch (error) {
     console.error('❌ [Stripe] Erro ao criar PaymentIntent:', error);
     throw new functions.https.HttpsError('internal', error.message);

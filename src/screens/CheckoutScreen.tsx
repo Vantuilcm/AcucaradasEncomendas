@@ -174,8 +174,8 @@ export default function CheckoutScreen() {
       return;
     }
 
-    if (paymentMethod === 'creditCard') {
-      // Validar cartão de crédito
+    if (paymentMethod === 'creditCard' && !ENABLE_STRIPE) {
+      // Validar cartão de crédito (fluxo legado sem PaymentSheet)
       if (!cardNumber || !cardholderName || !expirationDate || !cvv) {
         Alert.alert('Erro', 'Por favor, preencha todos os dados do cartão');
         return;
@@ -332,6 +332,16 @@ export default function CheckoutScreen() {
 
               getApp(); // Garante que o Firebase está inicializado
               const functions = getFunctions();
+
+              const userEmail = (safeUser as any)?.email;
+              if (userEmail) {
+                const createStripeCustomer = httpsCallable(functions, 'createStripeCustomer');
+                await createStripeCustomer({
+                  email: userEmail,
+                  name: userNameForLog,
+                });
+              }
+
               const createPaymentIntent = httpsCallable(functions, 'createPaymentIntent');
               
               const response = await createPaymentIntent({
