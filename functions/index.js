@@ -763,34 +763,73 @@ exports.executePaymentSplit = functions.https.onCall(async (data, context) => {
 // ======================================================
 
 /**
- * TRIGGER: Gerar Referral Code automaticamente para novos usuários
+ * Gera código de indicação (ex.: JOAO1A2) a partir do nome do perfil.
  */
-exports.onUserCreateGrowth = functions.auth.user().onCreate(async (user) => {
-  const name = user.displayName || 'DOCE';
-  const prefix = name.substring(0, 4).toUpperCase().replace(/\s/g, '');
+function generateReferralCodeFromName(name) {
+  const prefix = (name || 'DOCE').substring(0, 4).toUpperCase().replace(/\s/g, '') || 'DOCE';
   const suffix = Math.random().toString(36).substring(2, 5).toUpperCase();
-  const referralCode = `${prefix}${suffix}`;
+  return `${prefix}${suffix}`;
+}
 
-  const userRef = db.collection('users').doc(user.uid);
-
+/**
+ * Complementa users/{uid} apenas com campos de growth/referral (merge seguro).
+ */
+async function mergeGrowthReferralFields(uid, nameForCode) {
+  const referralCode = generateReferralCodeFromName(nameForCode);
   const update = {
     referralCode,
     referralCount: 0,
     totalReferralValue: 0,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  await userRef.set(update, { merge: true });
+  await db.collection('users').doc(uid).set(update, { merge: true });
 
-  // Opcional: manter compatibilidade com coleção legada se necessário
   try {
-    await db.collection('usuarios').doc(user.uid).set(update, { merge: true });
+    await db.collection('usuarios').doc(uid).set(update, { merge: true });
   } catch (e) {
     // Ignora erros na coleção legada
   }
 
-  console.log(`🍰 [Growth] Referral code ${referralCode} gerado para ${user.uid}`);
+  return referralCode;
+}
+
+/**
+ * AUTH onCreate — não grava mais users/{uid} (evita race com AuthContext.register).
+ * Referral é aplicado em onUserProfileCreateGrowth após o perfil completo existir.
+ */
+exports.onUserCreateGrowth = functions.auth.user().onCreate(async (user) => {
+  console.log(
+    `🍰 [Growth] Auth onCreate ${user.uid} — referral deferred to onUserProfileCreateGrowth`
+  );
 });
+
+/**
+ * TRIGGER: Gerar referral após users/{uid} ser criado pelo app (perfil completo).
+ * Só complementa growth — não altera role, email, nome nem outros campos do perfil.
+ */
+exports.onUserProfileCreateGrowth = functions.firestore
+  .document('users/{uid}')
+  .onCreate(async (snap, context) => {
+    const uid = context.params.uid;
+    const data = snap.data() || {};
+
+    if (data.referralCode) {
+      console.log(`🍰 [Growth] users/${uid} already has referralCode, skipping`);
+      return null;
+    }
+
+    const hasAppProfile = !!(data.email || data.role || data.nome || data.name);
+    if (!hasAppProfile) {
+      console.warn(`🍰 [Growth] users/${uid} onCreate without app profile fields, skipping growth`);
+      return null;
+    }
+
+    const nameForCode = data.nome || data.name || (data.email && data.email.split('@')[0]) || 'DOCE';
+    const referralCode = await mergeGrowthReferralFields(uid, nameForCode);
+    console.log(`🍰 [Growth] Referral code ${referralCode} gerado para ${uid} (profile onCreate)`);
+    return null;
+  });
 
 /**
  * TRIGGER: Growth Loop e Ciclo de Indicação após entrega
