@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,7 @@ import {
   Platform,
   TextInput,
 } from 'react-native';
-import { Camera } from '../compat/expoCamera';
-import * as FaceDetector from '../compat/expoFaceDetector';
+import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from '../compat/expoDocumentPicker';
 import { s } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
@@ -31,8 +30,6 @@ export default function DeliveryDriverRegistration() {
     vehicleDocument: null,
     insurance: null,
   });
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const cameraRef = useRef<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<{
     name: string;
@@ -64,7 +61,7 @@ export default function DeliveryDriverRegistration() {
     if (Platform.OS !== 'web') {
       (async () => {
         try {
-          const { status } = await (Camera as any).requestCameraPermissionsAsync();
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
           setHasPermission(status === 'granted');
         } catch (error) {
           console.error('Erro ao solicitar permissões da câmera:', error);
@@ -89,40 +86,38 @@ export default function DeliveryDriverRegistration() {
     }
   }, [user]);
 
-  const handleFaceDetection = ({ faces }: { faces: FaceDetector.FaceFeature[] }) => {
-    if (faces.length === 1) {
-      takePicture();
-    }
-  };
-
   const takePicture = async () => {
     if (Platform.OS === 'web') {
       Alert.alert('Aviso', 'A captura de foto não está disponível na versão web.');
       return;
     }
 
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 1,
-          base64: true,
-        });
-        setFaceImage(photo.uri);
-        setIsCameraActive(false);
-        if (!photo.base64) {
-          Alert.alert('Erro', 'Não foi possível validar a foto facial.');
-          return;
-        }
-        validateFace(photo.base64);
-      } catch (error) {
-        Alert.alert('Erro', 'Não foi possível capturar a foto.');
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Erro', 'Permissão da câmera negada.');
+        return;
       }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]?.uri) {
+        setFaceImage(result.assets[0].uri);
+        validateFace(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível capturar a foto.');
     }
   };
 
-  const validateFace = async (base64Image: string) => {
+  const validateFace = async (imageUri: string) => {
     try {
-      if (!base64Image) {
+      if (!imageUri) {
         throw new Error('Imagem inválida');
       }
       Alert.alert('Sucesso', 'Foto facial validada com sucesso!');
@@ -140,11 +135,10 @@ export default function DeliveryDriverRegistration() {
     }
 
     try {
-      const result = await (DocumentPicker.getDocumentAsync as any)({
+      const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*'],
         copyToCacheDirectory: true,
       });
-
 
       if (!result.canceled) {
         setDocuments(prev => ({
@@ -288,16 +282,6 @@ export default function DeliveryDriverRegistration() {
     return <Text>Sem acesso à câmera</Text>;
   }
 
-  const CameraView = Camera as unknown as React.ComponentType<any>;
-  const cameraType = (Camera as any).Constants?.Type?.front ?? 1;
-  const faceDetectorSettings = {
-    mode: (FaceDetector as any).FaceDetectorMode?.fast ?? 1,
-    detectLandmarks: (FaceDetector as any).FaceDetectorLandmarks?.none ?? 0,
-    runClassifications: (FaceDetector as any).FaceDetectorClassifications?.none ?? 0,
-    minDetectionInterval: 100,
-    tracking: true,
-  };
-
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Cadastro de Entregador</Text>
@@ -378,32 +362,18 @@ export default function DeliveryDriverRegistration() {
         onChangeText={vehicleColor => setForm(prev => ({ ...prev, vehicleColor }))}
       />
 
-      {Platform.OS !== 'web' && isCameraActive ? (
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          type={cameraType}
-          onFacesDetected={handleFaceDetection}
-          faceDetectorSettings={faceDetectorSettings}
-        >
-          <View style={styles.cameraOverlay}>
-            <Text style={styles.cameraText}>Posicione seu rosto no centro</Text>
-          </View>
-        </CameraView>
-      ) : (
-        <TouchableOpacity
-          style={styles.photoButton}
-          onPress={() => Platform.OS !== 'web' && setIsCameraActive(true)}
-        >
-          {faceImage ? (
-            <Image source={{ uri: faceImage }} style={styles.preview} />
-          ) : (
-            <Text style={styles.buttonText}>
-              {Platform.OS === 'web' ? 'Captura de foto disponível apenas no app' : 'Tirar Foto'}
-            </Text>
-          )}
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        style={styles.photoButton}
+        onPress={takePicture}
+      >
+        {faceImage ? (
+          <Image source={{ uri: faceImage }} style={styles.preview} />
+        ) : (
+          <Text style={styles.buttonText}>
+            {Platform.OS === 'web' ? 'Captura de foto disponível apenas no app' : 'Tirar Foto'}
+          </Text>
+        )}
+      </TouchableOpacity>
 
       <View style={styles.documentSection}>
         <Text style={styles.sectionTitle}>Documentos Necessários:</Text>
@@ -459,22 +429,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 12,
     backgroundColor: '#fff',
-  },
-  camera: {
-    height: 400,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  cameraOverlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cameraText: {
-    color: '#fff',
-    fontSize: 18,
-    textAlign: 'center',
   },
   photoButton: {
     height: 200,
