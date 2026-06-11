@@ -15,7 +15,17 @@ import * as DocumentPicker from '../compat/expoDocumentPicker';
 import { s } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { useAuth } from '../contexts/AuthContext';
+import type { DeliveryVehicleType } from '../types/DeliveryDriver';
 
+const VEHICLE_TYPE_OPTIONS: { label: string; value: DeliveryVehicleType }[] = [
+  { label: 'A Pé', value: 'walking' },
+  { label: 'Bicicleta', value: 'bicycle' },
+  { label: 'Bicicleta Elétrica', value: 'electric_bicycle' },
+  { label: 'Moto', value: 'motorcycle' },
+  { label: 'Carro', value: 'car' },
+];
+
+const VALID_VEHICLE_TYPES = VEHICLE_TYPE_OPTIONS.map(option => option.value);
 
 export default function DeliveryDriverRegistration() {
   const { user } = useAuth();
@@ -37,7 +47,7 @@ export default function DeliveryDriverRegistration() {
     email: string;
     cpf: string;
     cnh: string;
-    vehicleType: 'car' | 'bicycle' | 'motorcycle';
+    vehicleType: DeliveryVehicleType;
     vehicleBrand: string;
     vehicleModel: string;
     vehicleYear: string;
@@ -193,8 +203,8 @@ export default function DeliveryDriverRegistration() {
       return;
     }
 
-    if (!['motorcycle', 'car', 'bicycle'].includes(form.vehicleType)) {
-      Alert.alert('Erro', 'Tipo de veículo inválido. Use motorcycle, car ou bicycle.');
+    if (!VALID_VEHICLE_TYPES.includes(form.vehicleType)) {
+      Alert.alert('Erro', 'Selecione um tipo de veículo válido.');
       return;
     }
 
@@ -319,17 +329,23 @@ export default function DeliveryDriverRegistration() {
         value={form.cnh}
         onChangeText={cnh => setForm(prev => ({ ...prev, cnh }))}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Tipo de veículo (motorcycle, car, bicycle)"
-        value={form.vehicleType}
-        onChangeText={vehicleType =>
-          setForm(prev => ({
-            ...prev,
-            vehicleType: vehicleType as 'car' | 'bicycle' | 'motorcycle',
-          }))
-        }
-      />
+      <Text style={styles.sectionTitle}>Tipo de veículo</Text>
+      <View style={styles.vehicleTypeSection}>
+        {VEHICLE_TYPE_OPTIONS.map(option => {
+          const selected = form.vehicleType === option.value;
+          return (
+            <TouchableOpacity
+              key={option.value}
+              style={[styles.vehicleTypeOption, selected && styles.vehicleTypeOptionSelected]}
+              onPress={() => setForm(prev => ({ ...prev, vehicleType: option.value }))}
+            >
+              <Text style={[styles.vehicleTypeOptionText, selected && styles.vehicleTypeOptionTextSelected]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
       <TextInput
         style={styles.input}
         placeholder="Marca do veículo"
@@ -429,6 +445,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 12,
     backgroundColor: '#fff',
+  },
+  vehicleTypeSection: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  vehicleTypeOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+  },
+  vehicleTypeOptionSelected: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#E8F5E9',
+  },
+  vehicleTypeOptionText: {
+    color: '#555',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  vehicleTypeOptionTextSelected: {
+    color: '#2E7D32',
   },
   photoButton: {
     height: 200,
