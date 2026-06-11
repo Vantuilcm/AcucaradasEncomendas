@@ -16,6 +16,10 @@ export const EntregadorProfileScreen = () => {
     ]);
   };
 
+  const navigateToDriverRegistration = () => {
+    RootNavigation.navigate('DeliveryDriverRegistration');
+  };
+
   const navigateTo = (route: string) => {
     // TODO FASE 2: Habilitar rotas reais quando as telas forem implementadas
     Alert.alert(
@@ -45,7 +49,7 @@ export const EntregadorProfileScreen = () => {
               title="Meu Veículo"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="car-info" color="#555" />}
-              onPress={() => navigateTo('DriverVehicle')}
+              onPress={navigateToDriverRegistration}
               style={styles.menuItem}
             />
           </View>
@@ -66,7 +70,7 @@ export const EntregadorProfileScreen = () => {
               title="Meus Documentos"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="file-document-outline" color="#555" />}
-              onPress={() => navigateTo('DriverDocuments')}
+              onPress={navigateToDriverRegistration}
               style={styles.menuItem}
             />
           </View>
