@@ -16,8 +16,8 @@ export const EntregadorProfileScreen = () => {
     ]);
   };
 
-  const navigateToDriverRegistration = () => {
-    RootNavigation.navigate('DeliveryDriverRegistration');
+  const navigateToDriverRegistration = (scrollTo?: 'vehicle' | 'documents') => {
+    RootNavigation.navigate('DeliveryDriverRegistration', scrollTo ? { scrollTo } : undefined);
   };
 
   const navigateTo = (route: string) => {
@@ -49,7 +49,7 @@ export const EntregadorProfileScreen = () => {
               title="Meu Veículo"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="car-info" color="#555" />}
-              onPress={navigateToDriverRegistration}
+              onPress={() => navigateToDriverRegistration('vehicle')}
               style={styles.menuItem}
             />
           </View>
@@ -70,7 +70,7 @@ export const EntregadorProfileScreen = () => {
               title="Meus Documentos"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="file-document-outline" color="#555" />}
-              onPress={navigateToDriverRegistration}
+              onPress={() => navigateToDriverRegistration('documents')}
               style={styles.menuItem}
             />
           </View>
