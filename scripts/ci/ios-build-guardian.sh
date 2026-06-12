@@ -329,6 +329,10 @@ if [ "$ACTUAL_BN" != "$EXPECTED_BN" ]; then
     echo "✅ IPA Validada com Sucesso (Build $EXPECTED_BN)!"
 ls -lh *.ipa || echo "Nenhum IPA no root"
 
-# 🧩 ETAPA 10 — SUBMISSÃO EXPLICITA
-echo "📤 [ETAPA 10] Enviando para TestFlight..."
-eas submit -p ios --path "$LATEST_IPA" --profile production_v13 --non-interactive
+# 🧩 ETAPA 10 — SUBMISSÃO EXPLICITA (opcional)
+if [ "${SKIP_SUBMIT:-false}" = "true" ]; then
+    echo "⏭️ [ETAPA 10] SKIP_SUBMIT=true — submit ignorado (IPA local apenas)"
+else
+    echo "📤 [ETAPA 10] Enviando para TestFlight..."
+    eas submit -p ios --path "$LATEST_IPA" --profile production_v13 --non-interactive
+fi

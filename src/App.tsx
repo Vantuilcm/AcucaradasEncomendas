@@ -14,6 +14,7 @@ import { ErrorBoundary } from './core/monitoring/ErrorBoundary';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { STRIPE_PUBLISHABLE_KEY } from './config/stripe';
+import { AppVersion } from './utils/AppVersion';
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Estabilizada
@@ -27,7 +28,7 @@ function ThemedApp() {
         <AppNavigator />
         <View pointerEvents="none" style={{ position: 'absolute', bottom: 30, left: 0, right: 0, alignItems: 'center', zIndex: 9999 }}>
           <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 'bold' }}>
-            Build 1196 | Base 8173a1e
+            {AppVersion.getDisplayString()}
           </Text>
         </View>
       </View>
