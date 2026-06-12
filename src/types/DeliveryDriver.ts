@@ -1,3 +1,10 @@
+export type DeliveryVehicleType =
+  | 'walking'
+  | 'bicycle'
+  | 'electric_bicycle'
+  | 'motorcycle'
+  | 'car';
+
 export interface DeliveryDriver {
   id: string;
   userId: string;
@@ -7,7 +14,7 @@ export interface DeliveryDriver {
   cpf: string;
   cnh: string;
   vehicle: {
-    type: 'motorcycle' | 'car' | 'bicycle';
+    type: DeliveryVehicleType;
     brand: string;
     model: string;
     year: number;
@@ -57,7 +64,7 @@ export interface DeliveryDriverUpdate {
   cpf?: string;
   cnh?: string;
   vehicle?: {
-    type?: 'motorcycle' | 'car' | 'bicycle';
+    type?: DeliveryVehicleType;
     brand?: string;
     model?: string;
     year?: number;

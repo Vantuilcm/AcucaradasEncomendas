@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,22 @@ import {
   Platform,
   TextInput,
 } from 'react-native';
-import { Camera } from '../compat/expoCamera';
-import * as FaceDetector from '../compat/expoFaceDetector';
+import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from '../compat/expoDocumentPicker';
 import { s } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { useAuth } from '../contexts/AuthContext';
+import type { DeliveryVehicleType } from '../types/DeliveryDriver';
 
+const VEHICLE_TYPE_OPTIONS: { label: string; value: DeliveryVehicleType }[] = [
+  { label: 'A Pé', value: 'walking' },
+  { label: 'Bicicleta', value: 'bicycle' },
+  { label: 'Bicicleta Elétrica', value: 'electric_bicycle' },
+  { label: 'Moto', value: 'motorcycle' },
+  { label: 'Carro', value: 'car' },
+];
+
+const VALID_VEHICLE_TYPES = VEHICLE_TYPE_OPTIONS.map(option => option.value);
 
 export default function DeliveryDriverRegistration() {
   const { user } = useAuth();
@@ -31,8 +40,6 @@ export default function DeliveryDriverRegistration() {
     vehicleDocument: null,
     insurance: null,
   });
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const cameraRef = useRef<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<{
     name: string;
@@ -40,7 +47,7 @@ export default function DeliveryDriverRegistration() {
     email: string;
     cpf: string;
     cnh: string;
-    vehicleType: 'car' | 'bicycle' | 'motorcycle';
+    vehicleType: DeliveryVehicleType;
     vehicleBrand: string;
     vehicleModel: string;
     vehicleYear: string;
@@ -64,7 +71,7 @@ export default function DeliveryDriverRegistration() {
     if (Platform.OS !== 'web') {
       (async () => {
         try {
-          const { status } = await (Camera as any).requestCameraPermissionsAsync();
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
           setHasPermission(status === 'granted');
         } catch (error) {
           console.error('Erro ao solicitar permissões da câmera:', error);
@@ -89,40 +96,38 @@ export default function DeliveryDriverRegistration() {
     }
   }, [user]);
 
-  const handleFaceDetection = ({ faces }: { faces: FaceDetector.FaceFeature[] }) => {
-    if (faces.length === 1) {
-      takePicture();
-    }
-  };
-
   const takePicture = async () => {
     if (Platform.OS === 'web') {
       Alert.alert('Aviso', 'A captura de foto não está disponível na versão web.');
       return;
     }
 
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 1,
-          base64: true,
-        });
-        setFaceImage(photo.uri);
-        setIsCameraActive(false);
-        if (!photo.base64) {
-          Alert.alert('Erro', 'Não foi possível validar a foto facial.');
-          return;
-        }
-        validateFace(photo.base64);
-      } catch (error) {
-        Alert.alert('Erro', 'Não foi possível capturar a foto.');
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Erro', 'Permissão da câmera negada.');
+        return;
       }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]?.uri) {
+        setFaceImage(result.assets[0].uri);
+        validateFace(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível capturar a foto.');
     }
   };
 
-  const validateFace = async (base64Image: string) => {
+  const validateFace = async (imageUri: string) => {
     try {
-      if (!base64Image) {
+      if (!imageUri) {
         throw new Error('Imagem inválida');
       }
       Alert.alert('Sucesso', 'Foto facial validada com sucesso!');
@@ -140,11 +145,10 @@ export default function DeliveryDriverRegistration() {
     }
 
     try {
-      const result = await (DocumentPicker.getDocumentAsync as any)({
+      const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*'],
         copyToCacheDirectory: true,
       });
-
 
       if (!result.canceled) {
         setDocuments(prev => ({
@@ -199,8 +203,8 @@ export default function DeliveryDriverRegistration() {
       return;
     }
 
-    if (!['motorcycle', 'car', 'bicycle'].includes(form.vehicleType)) {
-      Alert.alert('Erro', 'Tipo de veículo inválido. Use motorcycle, car ou bicycle.');
+    if (!VALID_VEHICLE_TYPES.includes(form.vehicleType)) {
+      Alert.alert('Erro', 'Selecione um tipo de veículo válido.');
       return;
     }
 
@@ -288,16 +292,6 @@ export default function DeliveryDriverRegistration() {
     return <Text>Sem acesso à câmera</Text>;
   }
 
-  const CameraView = Camera as unknown as React.ComponentType<any>;
-  const cameraType = (Camera as any).Constants?.Type?.front ?? 1;
-  const faceDetectorSettings = {
-    mode: (FaceDetector as any).FaceDetectorMode?.fast ?? 1,
-    detectLandmarks: (FaceDetector as any).FaceDetectorLandmarks?.none ?? 0,
-    runClassifications: (FaceDetector as any).FaceDetectorClassifications?.none ?? 0,
-    minDetectionInterval: 100,
-    tracking: true,
-  };
-
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Cadastro de Entregador</Text>
@@ -335,17 +329,23 @@ export default function DeliveryDriverRegistration() {
         value={form.cnh}
         onChangeText={cnh => setForm(prev => ({ ...prev, cnh }))}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Tipo de veículo (motorcycle, car, bicycle)"
-        value={form.vehicleType}
-        onChangeText={vehicleType =>
-          setForm(prev => ({
-            ...prev,
-            vehicleType: vehicleType as 'car' | 'bicycle' | 'motorcycle',
-          }))
-        }
-      />
+      <Text style={styles.sectionTitle}>Tipo de veículo</Text>
+      <View style={styles.vehicleTypeSection}>
+        {VEHICLE_TYPE_OPTIONS.map(option => {
+          const selected = form.vehicleType === option.value;
+          return (
+            <TouchableOpacity
+              key={option.value}
+              style={[styles.vehicleTypeOption, selected && styles.vehicleTypeOptionSelected]}
+              onPress={() => setForm(prev => ({ ...prev, vehicleType: option.value }))}
+            >
+              <Text style={[styles.vehicleTypeOptionText, selected && styles.vehicleTypeOptionTextSelected]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
       <TextInput
         style={styles.input}
         placeholder="Marca do veículo"
@@ -378,32 +378,18 @@ export default function DeliveryDriverRegistration() {
         onChangeText={vehicleColor => setForm(prev => ({ ...prev, vehicleColor }))}
       />
 
-      {Platform.OS !== 'web' && isCameraActive ? (
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          type={cameraType}
-          onFacesDetected={handleFaceDetection}
-          faceDetectorSettings={faceDetectorSettings}
-        >
-          <View style={styles.cameraOverlay}>
-            <Text style={styles.cameraText}>Posicione seu rosto no centro</Text>
-          </View>
-        </CameraView>
-      ) : (
-        <TouchableOpacity
-          style={styles.photoButton}
-          onPress={() => Platform.OS !== 'web' && setIsCameraActive(true)}
-        >
-          {faceImage ? (
-            <Image source={{ uri: faceImage }} style={styles.preview} />
-          ) : (
-            <Text style={styles.buttonText}>
-              {Platform.OS === 'web' ? 'Captura de foto disponível apenas no app' : 'Tirar Foto'}
-            </Text>
-          )}
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        style={styles.photoButton}
+        onPress={takePicture}
+      >
+        {faceImage ? (
+          <Image source={{ uri: faceImage }} style={styles.preview} />
+        ) : (
+          <Text style={styles.buttonText}>
+            {Platform.OS === 'web' ? 'Captura de foto disponível apenas no app' : 'Tirar Foto'}
+          </Text>
+        )}
+      </TouchableOpacity>
 
       <View style={styles.documentSection}>
         <Text style={styles.sectionTitle}>Documentos Necessários:</Text>
@@ -460,21 +446,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: '#fff',
   },
-  camera: {
-    height: 400,
+  vehicleTypeSection: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  vehicleTypeOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 20,
-    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
   },
-  cameraOverlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
+  vehicleTypeOptionSelected: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#E8F5E9',
   },
-  cameraText: {
-    color: '#fff',
-    fontSize: 18,
-    textAlign: 'center',
+  vehicleTypeOptionText: {
+    color: '#555',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  vehicleTypeOptionTextSelected: {
+    color: '#2E7D32',
   },
   photoButton: {
     height: 200,
