@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
   StyleSheet,
   Alert,
   ScrollView,
@@ -11,11 +10,11 @@ import {
   TextInput,
 } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
-import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from '../compat/expoDocumentPicker';
 import { s } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { useAuth } from '../contexts/AuthContext';
+import { useDriverOnboardingPersonalData } from '../hooks/driverOnboardingPersonalStore';
 import type { DeliveryVehicleType } from '../types/DeliveryDriver';
 import { AppVersion } from '../utils/AppVersion';
 
@@ -59,7 +58,7 @@ function getRegistrationFieldRequirements(vehicleType: DeliveryVehicleType): Reg
   };
 }
 
-type RegistrationScrollTarget = 'personal' | 'vehicle' | 'documents';
+type RegistrationScrollTarget = 'vehicle' | 'documents';
 
 type DeliveryDriverRegistrationParams = {
   scrollTo?: RegistrationScrollTarget;
@@ -67,12 +66,11 @@ type DeliveryDriverRegistrationParams = {
 
 export default function DeliveryDriverRegistration() {
   const { user } = useAuth();
+  const [personalData] = useDriverOnboardingPersonalData();
   const route = useRoute<RouteProp<{ DeliveryDriverRegistration: DeliveryDriverRegistrationParams }, 'DeliveryDriverRegistration'>>();
   const scrollRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef<Partial<Record<RegistrationScrollTarget, number>>>({});
 
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [faceImage, setFaceImage] = useState<string | null>(null);
   const [documents, setDocuments] = useState<{
     cnhImage: DocumentPicker.DocumentPickerAsset | null;
     vehicleDocument: DocumentPicker.DocumentPickerAsset | null;
@@ -84,10 +82,6 @@ export default function DeliveryDriverRegistration() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<{
-    name: string;
-    phone: string;
-    email: string;
-    cpf: string;
     cnh: string;
     vehicleType: DeliveryVehicleType;
     vehicleBrand: string;
@@ -96,10 +90,6 @@ export default function DeliveryDriverRegistration() {
     vehiclePlate: string;
     vehicleColor: string;
   }>({
-    name: '',
-    phone: '',
-    email: '',
-    cpf: '',
     cnh: '',
     vehicleType: 'motorcycle',
     vehicleBrand: '',
@@ -120,35 +110,6 @@ export default function DeliveryDriverRegistration() {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') {
-      (async () => {
-        try {
-          const { status } = await ImagePicker.requestCameraPermissionsAsync();
-          setHasPermission(status === 'granted');
-        } catch (error) {
-          console.error('Erro ao solicitar permissões da câmera:', error);
-          setHasPermission(false);
-        }
-      })();
-    } else {
-      setHasPermission(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      if (user) {
-        setForm(prev => ({
-          ...prev,
-          email: user?.email || prev.email || '',
-        }));
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar formulário com dados do usuário:', error);
-    }
-  }, [user]);
-
-  useEffect(() => {
     const scrollTo = route.params?.scrollTo;
     if (!scrollTo) return;
 
@@ -161,46 +122,6 @@ export default function DeliveryDriverRegistration() {
 
     return () => clearTimeout(timer);
   }, [route.params?.scrollTo]);
-
-  const takePicture = async () => {
-    if (Platform.OS === 'web') {
-      Alert.alert('Aviso', 'A captura de foto não está disponível na versão web.');
-      return;
-    }
-
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Erro', 'Permissão da câmera negada.');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]?.uri) {
-        setFaceImage(result.assets[0].uri);
-        validateFace(result.assets[0].uri);
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível capturar a foto.');
-    }
-  };
-
-  const validateFace = async (imageUri: string) => {
-    try {
-      if (!imageUri) {
-        throw new Error('Imagem inválida');
-      }
-      Alert.alert('Sucesso', 'Foto facial validada com sucesso!');
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível validar a foto facial.');
-    }
-  };
 
   const pickDocument = async (
     documentType: 'cnhImage' | 'vehicleDocument' | 'insurance'
@@ -247,12 +168,12 @@ export default function DeliveryDriverRegistration() {
   };
 
   const validateRegistrationForm = (requirements: RegistrationFieldRequirements): string | null => {
-    if (!form.name || !form.phone || !form.email || !form.cpf) {
-      return 'Preencha todos os dados pessoais.';
+    if (!personalData.name || !personalData.phone || !personalData.email || !personalData.cpf) {
+      return 'Preencha todos os dados pessoais em Meus Documentos.';
     }
 
-    if (!faceImage) {
-      return 'Envie sua selfie.';
+    if (!personalData.faceImage) {
+      return 'Envie sua selfie em Meus Documentos.';
     }
 
     if (!VALID_VEHICLE_TYPES.includes(form.vehicleType)) {
@@ -313,7 +234,7 @@ export default function DeliveryDriverRegistration() {
       const timestamp = Date.now();
       const basePath = `delivery_drivers/${userId}/${timestamp}`;
 
-      const faceUrl = await uploadFile(faceImage!, `${basePath}/face.jpg`);
+      const faceUrl = await uploadFile(personalData.faceImage!, `${basePath}/face.jpg`);
 
       const cnhUrl =
         requirements.cnhImage && documents.cnhImage
@@ -341,10 +262,10 @@ export default function DeliveryDriverRegistration() {
 
       const driverPayload = {
         userId,
-        name: form.name,
-        phone: form.phone,
-        email: form.email,
-        cpf: form.cpf,
+        name: personalData.name,
+        phone: personalData.phone,
+        email: personalData.email,
+        cpf: personalData.cpf,
         cnh: requirements.cnh ? form.cnh : existing?.cnh || '',
         vehicle: {
           type: form.vehicleType,
@@ -388,61 +309,14 @@ export default function DeliveryDriverRegistration() {
     }
   };
 
-  if (hasPermission === null) {
-    return <View />;
-  }
-  if (hasPermission === false) {
-    return <Text>Sem acesso à câmera</Text>;
-  }
-
   return (
     <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Cadastro de Entregador</Text>
+      <Text style={styles.title}>Meu Veículo</Text>
 
-      <View
-        onLayout={event => registerSectionOffset('personal', event.nativeEvent.layout.y)}
-        style={styles.sectionCard}
-      >
-        <Text style={styles.sectionHeader}>👤 Dados do Entregador</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Nome completo"
-          value={form.name}
-          onChangeText={name => setForm(prev => ({ ...prev, name }))}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="CPF"
-          value={form.cpf}
-          onChangeText={cpf => setForm(prev => ({ ...prev, cpf }))}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Telefone"
-          value={form.phone}
-          onChangeText={phone => setForm(prev => ({ ...prev, phone }))}
-          keyboardType="phone-pad"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={form.email}
-          onChangeText={email => setForm(prev => ({ ...prev, email }))}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        <Text style={styles.fieldLabel}>Selfie</Text>
-        <TouchableOpacity style={styles.photoButton} onPress={takePicture}>
-          {faceImage ? (
-            <Image source={{ uri: faceImage }} style={styles.preview} />
-          ) : (
-            <Text style={styles.buttonText}>
-              {Platform.OS === 'web' ? 'Captura de foto disponível apenas no app' : 'Tirar Foto'}
-            </Text>
-          )}
-        </TouchableOpacity>
+      <View style={styles.infoCard}>
+        <Text style={styles.infoCardText}>
+          Os dados pessoais e documentos do parceiro são gerenciados em Meus Documentos.
+        </Text>
       </View>
 
       <View
@@ -568,6 +442,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
+  infoCard: {
+    backgroundColor: '#E3F2FD',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
+  },
+  infoCardText: {
+    fontSize: 14,
+    color: '#1565C0',
+    lineHeight: 20,
+    textAlign: 'center',
+  },
   sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -622,19 +510,6 @@ const styles = StyleSheet.create({
   },
   vehicleTypeOptionTextSelected: {
     color: '#2E7D32',
-  },
-  photoButton: {
-    height: 200,
-    backgroundColor: '#ddd',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-    marginBottom: 4,
-  },
-  preview: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 20,
   },
   documentButton: {
     backgroundColor: '#ff69b4',
