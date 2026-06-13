@@ -48,6 +48,7 @@ import { NotificationSettingsScreenV2 } from '../screens/NotificationSettingsScr
 import { NotificationSettingsMigrationScreen } from '../screens/NotificationSettingsMigrationScreen';
 import { DriverHomeScreen } from '../screens/DriverHomeScreen';
 import DeliveryDriverRegistration from '../screens/DeliveryDriverRegistration';
+import DriverDocumentsScreen from '../screens/DriverDocumentsScreen';
 import ScheduleDeliveryScreen from '../screens/ScheduleDeliveryScreen';
 import OrderCompletedScreen from '../screens/OrderCompletedScreen';
 import { HelpCenterScreen } from '../screens/HelpCenterScreen';
@@ -109,6 +110,7 @@ export type RootStackParamList = {
   Chat: { orderId: string, targetName?: string };
   PremiumTest: undefined;
   DeliveryDriverRegistration: undefined;
+  DriverDocumentsScreen: undefined;
   OrdersHistory: undefined;
   Favorites: undefined;
   Reports: undefined;
@@ -341,6 +343,11 @@ const AppNavigator = () => {
                   name="DeliveryDriverRegistration"
                   component={DeliveryDriverRegistration}
                   options={{ title: 'Cadastro de Entregador' }}
+                />
+                <Stack.Screen
+                  name="DriverDocumentsScreen"
+                  component={DriverDocumentsScreen}
+                  options={{ title: 'Meus Documentos' }}
                 />
                 <Stack.Screen
                   name="NotificationSettings"
