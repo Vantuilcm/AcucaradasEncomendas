@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,85 @@ import {
   Alert,
   Image,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
-import { useDriverOnboardingPersonalData, getDriverOnboardingPersonalData } from '../hooks/driverOnboardingPersonalStore';
+import { f, s } from '../config/firebase';
+import {
+  useDriverOnboardingPersonalData,
+  setDriverOnboardingPersonalData,
+} from '../hooks/driverOnboardingPersonalStore';
 import { AppVersion } from '../utils/AppVersion';
+
+type UserPersonalFirestoreData = {
+  nome?: string;
+  name?: string;
+  cpf?: string;
+  telefone?: string;
+  phone?: string;
+  email?: string;
+  driverOnboarding?: {
+    faceImage?: string;
+    updatedAt?: string;
+  };
+};
+
+async function uploadSelfieToStorage(userId: string, uri: string): Promise<string> {
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  const path = `delivery_drivers/${userId}/personal/face.jpg`;
+  const storageRef = s.ref(path);
+  await s.uploadBytes(storageRef, blob);
+  return s.getDownloadURL(storageRef);
+}
+
+async function loadPersonalDataFromFirestore(
+  userId: string,
+  fallbackEmail?: string
+): Promise<{ name: string; cpf: string; phone: string; email: string; faceImage: string | null }> {
+  const userRef = f.doc('users', userId);
+  const userSnap = await f.getDoc(userRef);
+  const data = (userSnap.exists() ? userSnap.data() : {}) as UserPersonalFirestoreData;
+
+  return {
+    name: data.nome || data.name || '',
+    cpf: data.cpf || '',
+    phone: data.telefone || data.phone || '',
+    email: data.email || fallbackEmail || '',
+    faceImage: data.driverOnboarding?.faceImage || null,
+  };
+}
+
+async function savePersonalDataToFirestore(
+  userId: string,
+  personalData: { name: string; cpf: string; phone: string; email: string; faceImage: string | null }
+): Promise<string | null> {
+  let faceImageUrl = personalData.faceImage;
+
+  if (faceImageUrl && !faceImageUrl.startsWith('http')) {
+    faceImageUrl = await uploadSelfieToStorage(userId, faceImageUrl);
+  }
+
+  const userRef = f.doc('users', userId);
+  await f.setDoc(
+    userRef,
+    {
+      nome: personalData.name,
+      cpf: personalData.cpf,
+      telefone: personalData.phone,
+      email: personalData.email,
+      driverOnboarding: {
+        faceImage: faceImageUrl || '',
+        updatedAt: new Date().toISOString(),
+      },
+    },
+    { merge: true }
+  );
+
+  return faceImageUrl;
+}
 
 type DocumentStatus = 'pending' | 'review' | 'approved';
 
@@ -46,6 +119,8 @@ const PERSONAL_DOCUMENTS: { key: PersonalDocumentKey; label: string }[] = [
 export default function DriverDocumentsScreen() {
   const { user } = useAuth();
   const [personalData, setPersonalData] = useDriverOnboardingPersonalData();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [overallStatus] = useState<DocumentStatus>('pending');
   const [selfieStatus, setSelfieStatus] = useState<DocumentStatus>(
@@ -70,19 +145,62 @@ export default function DriverDocumentsScreen() {
     state: '',
   });
 
+  const userId = user?.uid || (user as { id?: string })?.id;
+
+  const loadFromFirestore = useCallback(async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const loaded = await loadPersonalDataFromFirestore(userId, user?.email || undefined);
+      setDriverOnboardingPersonalData(loaded);
+      setSelfieStatus(loaded.faceImage ? 'review' : 'pending');
+    } catch (error) {
+      console.error('Erro ao carregar dados pessoais do entregador:', error);
+      Alert.alert('Erro', 'Não foi possível carregar seus dados pessoais.');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, user?.email]);
+
   useEffect(() => {
-    if (!user) return;
-    const current = getDriverOnboardingPersonalData();
-    setPersonalData({
-      name: current.name || user?.nome || user?.name || '',
-      email: current.email || user?.email || '',
-      phone:
-        current.phone
-        || (user as { telefone?: string; phone?: string })?.telefone
-        || (user as { telefone?: string; phone?: string })?.phone
-        || '',
-    });
-  }, [user, setPersonalData]);
+    loadFromFirestore();
+  }, [loadFromFirestore]);
+
+  const handleSavePersonalData = async () => {
+    if (!userId) {
+      Alert.alert('Erro', 'Você precisa estar autenticado para salvar seus dados.');
+      return;
+    }
+
+    if (!personalData.name || !personalData.cpf || !personalData.phone || !personalData.email) {
+      Alert.alert('Erro', 'Preencha nome, CPF, telefone e email antes de salvar.');
+      return;
+    }
+
+    if (!personalData.faceImage) {
+      Alert.alert('Atenção', 'Tire sua selfie antes de salvar seus dados.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const faceImageUrl = await savePersonalDataToFirestore(userId, personalData);
+      if (faceImageUrl) {
+        setPersonalData({ faceImage: faceImageUrl });
+        setSelfieStatus('review');
+      }
+      Alert.alert('Sucesso', 'Dados pessoais salvos com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar dados pessoais do entregador:', error);
+      Alert.alert('Erro', 'Não foi possível salvar seus dados pessoais.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const showComingSoon = () => {
     Alert.alert('Em breve', 'Esta etapa será ativada na próxima fase.');
@@ -137,6 +255,13 @@ export default function DriverDocumentsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {loading && (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color="#4CAF50" />
+            <Text style={styles.loadingText}>Carregando dados...</Text>
+          </View>
+        )}
+
         <Text style={styles.title}>Meus Documentos</Text>
         <Text style={styles.subtitle}>
           Documentação pessoal e de segurança do parceiro entregador.
@@ -273,6 +398,18 @@ export default function DriverDocumentsScreen() {
           </View>
         </View>
 
+        <TouchableOpacity
+          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          onPress={handleSavePersonalData}
+          disabled={saving || loading}
+        >
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveButtonText}>Salvar Dados</Text>
+          )}
+        </TouchableOpacity>
+
         <Text style={styles.buildText}>{AppVersion.getDisplayString()}</Text>
       </ScrollView>
     </SafeAreaView>
@@ -391,6 +528,32 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  saveButton: {
+    backgroundColor: '#1565C0',
+    padding: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   buildText: {
     textAlign: 'center',
