@@ -27,6 +27,28 @@ export function getDriverOnboardingPersonalData(): DriverOnboardingPersonalData 
   return personalData;
 }
 
+function hasStoredString(value: string | undefined): value is string {
+  return value != null && value !== '';
+}
+
+function hasStoredFaceImage(value: string | null | undefined): value is string {
+  return value != null && value !== '';
+}
+
+export function mergeDriverOnboardingPersonalDataFromFirestore(
+  loaded: Partial<DriverOnboardingPersonalData>
+): void {
+  const current = getDriverOnboardingPersonalData();
+
+  setDriverOnboardingPersonalData({
+    name: hasStoredString(loaded.name) ? loaded.name : current.name,
+    cpf: hasStoredString(loaded.cpf) ? loaded.cpf : current.cpf,
+    phone: hasStoredString(loaded.phone) ? loaded.phone : current.phone,
+    email: hasStoredString(loaded.email) ? loaded.email : current.email,
+    faceImage: hasStoredFaceImage(loaded.faceImage) ? loaded.faceImage : current.faceImage,
+  });
+}
+
 export function setDriverOnboardingPersonalData(
   partial: Partial<DriverOnboardingPersonalData>
 ): void {

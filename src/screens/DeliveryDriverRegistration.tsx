@@ -11,10 +11,14 @@ import {
 } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import * as DocumentPicker from '../compat/expoDocumentPicker';
-import { s } from '../config/firebase';
+import { f, s } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { useAuth } from '../contexts/AuthContext';
-import { useDriverOnboardingPersonalData } from '../hooks/driverOnboardingPersonalStore';
+import {
+  useDriverOnboardingPersonalData,
+  getDriverOnboardingPersonalData,
+  mergeDriverOnboardingPersonalDataFromFirestore,
+} from '../hooks/driverOnboardingPersonalStore';
 import type { DeliveryVehicleType } from '../types/DeliveryDriver';
 import { AppVersion } from '../utils/AppVersion';
 
@@ -64,6 +68,18 @@ type DeliveryDriverRegistrationParams = {
   scrollTo?: RegistrationScrollTarget;
 };
 
+type UserPersonalFirestoreData = {
+  nome?: string;
+  name?: string;
+  cpf?: string;
+  telefone?: string;
+  phone?: string;
+  email?: string;
+  driverOnboarding?: {
+    faceImage?: string;
+  };
+};
+
 export default function DeliveryDriverRegistration() {
   const { user } = useAuth();
   const [personalData] = useDriverOnboardingPersonalData();
@@ -108,6 +124,45 @@ export default function DeliveryDriverRegistration() {
   const registerSectionOffset = useCallback((key: RegistrationScrollTarget, y: number) => {
     sectionOffsets.current[key] = y;
   }, []);
+
+  useEffect(() => {
+    const userId = user?.uid || (user as { id?: string })?.id;
+    if (!userId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const userRef = f.doc('users', userId);
+        const userSnap = await f.getDoc(userRef);
+        if (cancelled) return;
+
+        const data = (userSnap.exists() ? userSnap.data() : {}) as UserPersonalFirestoreData;
+        mergeDriverOnboardingPersonalDataFromFirestore({
+          name: data.nome || data.name || '',
+          cpf: data.cpf || '',
+          phone: data.telefone || data.phone || '',
+          email: data.email || user?.email || '',
+          faceImage: data.driverOnboarding?.faceImage || null,
+        });
+
+        const hydrated = getDriverOnboardingPersonalData();
+        console.log('[DriverRegistration] personal data hydrated', {
+          name: hydrated.name,
+          cpf: hydrated.cpf,
+          phone: hydrated.phone,
+          email: hydrated.email,
+          faceImage: hydrated.faceImage,
+        });
+      } catch (error) {
+        console.error('[DriverRegistration] failed to hydrate personal data from Firestore', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     const scrollTo = route.params?.scrollTo;
