@@ -21,6 +21,7 @@ import {
 } from '../hooks/driverOnboardingPersonalStore';
 import type { DeliveryVehicleType } from '../types/DeliveryDriver';
 import { AppVersion } from '../utils/AppVersion';
+import * as FileSystem from 'expo-file-system';
 
 const VEHICLE_TYPE_OPTIONS: { label: string; value: DeliveryVehicleType }[] = [
   { label: 'A Pé', value: 'walking' },
@@ -79,6 +80,110 @@ type UserPersonalFirestoreData = {
     faceImage?: string;
   };
 };
+
+function inferUploadContentType(path: string, contentTypeHint?: string): string {
+  if (contentTypeHint?.trim()) {
+    return contentTypeHint;
+  }
+
+  const extension = path.split('.').pop()?.toLowerCase();
+  switch (extension) {
+    case 'pdf':
+      return 'application/pdf';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'heic':
+      return 'image/heic';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+function base64ToBlob(base64: string, contentType: string): Blob {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: contentType });
+}
+
+async function loadUploadBlob(uri: string, contentType: string): Promise<Blob> {
+  if (uri.startsWith('http://') || uri.startsWith('https://')) {
+    const response = await fetch(uri);
+    if (!response.ok) {
+      throw new Error(`Falha ao ler arquivo remoto (${response.status})`);
+    }
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      throw new Error('Arquivo remoto vazio');
+    }
+    if (blob.type) {
+      return blob;
+    }
+    return new Blob([await blob.arrayBuffer()], { type: contentType });
+  }
+
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    if (!base64) {
+      throw new Error('Arquivo local vazio');
+    }
+    const blob = base64ToBlob(base64, contentType);
+    if (blob.size === 0) {
+      throw new Error('Arquivo local ilegível');
+    }
+    return blob;
+  } catch (localReadError) {
+    const response = await fetch(uri);
+    if (!response.ok) {
+      const localMessage =
+        localReadError instanceof Error ? localReadError.message : String(localReadError);
+      throw new Error(
+        `Falha ao ler arquivo local (${response.status}). ${localMessage}`
+      );
+    }
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      throw new Error('Arquivo local vazio após fallback');
+    }
+    if (blob.type) {
+      return blob;
+    }
+    return new Blob([await blob.arrayBuffer()], { type: contentType });
+  }
+}
+
+async function uploadFile(uri: string, path: string, contentTypeHint?: string): Promise<string> {
+  const contentType = inferUploadContentType(path, contentTypeHint);
+
+  try {
+    const blob = await loadUploadBlob(uri, contentType);
+    const storageRef = s.ref(path);
+    const { uploadBytes } = require('firebase/storage');
+    await uploadBytes(storageRef, blob, { contentType });
+    return await s.getDownloadURL(storageRef);
+  } catch (error) {
+    const uploadError = error as Error & { code?: string };
+    console.error('[DriverRegistration] uploadFile failed', {
+      path,
+      contentType,
+      message: uploadError?.message,
+      code: uploadError?.code,
+      stack: uploadError?.stack,
+    });
+    throw error;
+  }
+}
 
 export default function DeliveryDriverRegistration() {
   const { user } = useAuth();
@@ -214,14 +319,6 @@ export default function DeliveryDriverRegistration() {
     Alert.alert('Sucesso', `Documento ${type.toUpperCase()} enviado para validação!`);
   };
 
-  const uploadFile = async (uri: string, path: string) => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const storageRef = s.ref(path);
-    await s.uploadBytes(storageRef, blob);
-    return await s.getDownloadURL(storageRef);
-  };
-
   const validateRegistrationForm = (requirements: RegistrationFieldRequirements): string | null => {
     if (!personalData.name || !personalData.phone || !personalData.email || !personalData.cpf) {
       return 'Preencha todos os dados pessoais em Meus Documentos.';
@@ -280,41 +377,54 @@ export default function DeliveryDriverRegistration() {
       return;
     }
 
+    let submitPhase = 'init';
+
     try {
       setSubmitting(true);
 
+      submitPhase = 'getDriverByUserId';
       const driverService = new DeliveryDriverService();
       const existing = await driverService.getDriverByUserId(userId);
 
       const timestamp = Date.now();
       const basePath = `delivery_drivers/${userId}/${timestamp}`;
 
-      const faceUrl = await uploadFile(personalData.faceImage!, `${basePath}/face.jpg`);
+      submitPhase = 'upload_face';
+      const faceUrl = personalData.faceImage!.startsWith('http')
+        ? personalData.faceImage!
+        : await uploadFile(personalData.faceImage!, `${basePath}/face.jpg`, 'image/jpeg');
 
+      submitPhase = 'upload_cnh';
       const cnhUrl =
         requirements.cnhImage && documents.cnhImage
           ? await uploadFile(
               documents.cnhImage.uri,
-              `${basePath}/cnh.${documents.cnhImage.name?.split('.').pop() || 'jpg'}`
+              `${basePath}/cnh.${documents.cnhImage.name?.split('.').pop() || 'jpg'}`,
+              documents.cnhImage.mimeType
             )
           : existing?.documents?.cnhImage || '';
 
+      submitPhase = 'upload_vehicle_document';
       const vehicleDocUrl =
         requirements.vehicleDocument && documents.vehicleDocument
           ? await uploadFile(
               documents.vehicleDocument.uri,
-              `${basePath}/vehicle_document.${documents.vehicleDocument.name?.split('.').pop() || 'jpg'}`
+              `${basePath}/vehicle_document.${documents.vehicleDocument.name?.split('.').pop() || 'jpg'}`,
+              documents.vehicleDocument.mimeType
             )
           : existing?.documents?.vehicleDocument || '';
 
+      submitPhase = 'upload_insurance';
       const insuranceUrl =
         requirements.insurance && documents.insurance
           ? await uploadFile(
               documents.insurance.uri,
-              `${basePath}/insurance.${documents.insurance.name?.split('.').pop() || 'jpg'}`
+              `${basePath}/insurance.${documents.insurance.name?.split('.').pop() || 'jpg'}`,
+              documents.insurance.mimeType
             )
           : existing?.documents?.insurance || '';
 
+      submitPhase = 'build_payload';
       const driverPayload = {
         userId,
         name: personalData.name,
@@ -350,14 +460,23 @@ export default function DeliveryDriverRegistration() {
       };
 
       if (existing) {
+        submitPhase = 'updateDriver';
         await driverService.updateDriver(existing.id, driverPayload);
       } else {
+        submitPhase = 'createDriver';
         await driverService.createDriver(driverPayload);
       }
 
       Alert.alert('Sucesso', 'Cadastro enviado para análise!');
     } catch (error) {
-      console.error('Erro ao enviar cadastro de entregador:', error);
+      const submitError = error as Error & { code?: string };
+      console.error('Erro ao enviar cadastro de entregador:', {
+        phase: submitPhase,
+        message: submitError?.message,
+        code: submitError?.code,
+        stack: submitError?.stack,
+        error,
+      });
       Alert.alert('Erro', 'Não foi possível enviar o cadastro. Tente novamente.');
     } finally {
       setSubmitting(false);
