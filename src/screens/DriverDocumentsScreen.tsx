@@ -17,9 +17,43 @@ import { useAuth } from '../contexts/AuthContext';
 import { f, s } from '../config/firebase';
 import {
   useDriverOnboardingPersonalData,
-  setDriverOnboardingPersonalData,
+  mergeDriverOnboardingPersonalDataFromFirestore,
 } from '../hooks/driverOnboardingPersonalStore';
 import { AppVersion } from '../utils/AppVersion';
+
+type DriverOnboardingAddressData = {
+  cep?: string;
+  rua?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+};
+
+type AddressFormState = {
+  rg: string;
+  birthDate: string;
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+};
+
+const emptyAddressForm = (): AddressFormState => ({
+  rg: '',
+  birthDate: '',
+  cep: '',
+  street: '',
+  number: '',
+  complement: '',
+  neighborhood: '',
+  city: '',
+  state: '',
+});
 
 type UserPersonalFirestoreData = {
   nome?: string;
@@ -31,6 +65,9 @@ type UserPersonalFirestoreData = {
   driverOnboarding?: {
     faceImage?: string;
     updatedAt?: string;
+    rg?: string;
+    dataNascimento?: string;
+    endereco?: DriverOnboardingAddressData;
   };
 };
 
@@ -46,23 +83,44 @@ async function uploadSelfieToStorage(userId: string, uri: string): Promise<strin
 async function loadPersonalDataFromFirestore(
   userId: string,
   fallbackEmail?: string
-): Promise<{ name: string; cpf: string; phone: string; email: string; faceImage: string | null }> {
+): Promise<{
+  name: string;
+  cpf: string;
+  phone: string;
+  email: string;
+  faceImage: string | null;
+  addressForm: AddressFormState;
+}> {
   const userRef = f.doc('users', userId);
   const userSnap = await f.getDoc(userRef);
   const data = (userSnap.exists() ? userSnap.data() : {}) as UserPersonalFirestoreData;
+  const onboarding = data.driverOnboarding;
+  const endereco = onboarding?.endereco;
 
   return {
     name: data.nome || data.name || '',
     cpf: data.cpf || '',
     phone: data.telefone || data.phone || '',
     email: data.email || fallbackEmail || '',
-    faceImage: data.driverOnboarding?.faceImage || null,
+    faceImage: onboarding?.faceImage || null,
+    addressForm: {
+      rg: onboarding?.rg || '',
+      birthDate: onboarding?.dataNascimento || '',
+      cep: endereco?.cep || '',
+      street: endereco?.rua || '',
+      number: endereco?.numero || '',
+      complement: endereco?.complemento || '',
+      neighborhood: endereco?.bairro || '',
+      city: endereco?.cidade || '',
+      state: endereco?.estado || '',
+    },
   };
 }
 
 async function savePersonalDataToFirestore(
   userId: string,
-  personalData: { name: string; cpf: string; phone: string; email: string; faceImage: string | null }
+  personalData: { name: string; cpf: string; phone: string; email: string; faceImage: string | null },
+  addressForm: AddressFormState
 ): Promise<string | null> {
   let faceImageUrl = personalData.faceImage;
 
@@ -81,6 +139,17 @@ async function savePersonalDataToFirestore(
       driverOnboarding: {
         faceImage: faceImageUrl || '',
         updatedAt: new Date().toISOString(),
+        rg: addressForm.rg,
+        dataNascimento: addressForm.birthDate,
+        endereco: {
+          cep: addressForm.cep,
+          rua: addressForm.street,
+          numero: addressForm.number,
+          complemento: addressForm.complement,
+          bairro: addressForm.neighborhood,
+          cidade: addressForm.city,
+          estado: addressForm.state,
+        },
       },
     },
     { merge: true }
@@ -133,17 +202,7 @@ export default function DriverDocumentsScreen() {
     criminalRecord: 'pending',
   });
 
-  const [addressForm, setAddressForm] = useState({
-    rg: '',
-    birthDate: '',
-    cep: '',
-    street: '',
-    number: '',
-    complement: '',
-    neighborhood: '',
-    city: '',
-    state: '',
-  });
+  const [addressForm, setAddressForm] = useState<AddressFormState>(emptyAddressForm);
 
   const userId = user?.uid || (user as { id?: string })?.id;
 
@@ -156,7 +215,14 @@ export default function DriverDocumentsScreen() {
     try {
       setLoading(true);
       const loaded = await loadPersonalDataFromFirestore(userId, user?.email || undefined);
-      setDriverOnboardingPersonalData(loaded);
+      mergeDriverOnboardingPersonalDataFromFirestore({
+        name: loaded.name,
+        cpf: loaded.cpf,
+        phone: loaded.phone,
+        email: loaded.email,
+        faceImage: loaded.faceImage,
+      });
+      setAddressForm(loaded.addressForm);
       setSelfieStatus(loaded.faceImage ? 'review' : 'pending');
     } catch (error) {
       console.error('Erro ao carregar dados pessoais do entregador:', error);
@@ -188,7 +254,7 @@ export default function DriverDocumentsScreen() {
 
     try {
       setSaving(true);
-      const faceImageUrl = await savePersonalDataToFirestore(userId, personalData);
+      const faceImageUrl = await savePersonalDataToFirestore(userId, personalData, addressForm);
       if (faceImageUrl) {
         setPersonalData({ faceImage: faceImageUrl });
         setSelfieStatus('review');
