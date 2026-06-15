@@ -23,6 +23,11 @@ import type { DeliveryVehicleType } from '../types/DeliveryDriver';
 import { AppVersion } from '../utils/AppVersion';
 import * as FileSystem from 'expo-file-system';
 
+const isDriverSubmitDiagnosticEnv =
+  __DEV__ ||
+  process.env.EXPO_PUBLIC_APP_ENV === 'preview' ||
+  process.env.APP_ENV === 'preview';
+
 const VEHICLE_TYPE_OPTIONS: { label: string; value: DeliveryVehicleType }[] = [
   { label: 'A Pé', value: 'walking' },
   { label: 'Bicicleta', value: 'bicycle' },
@@ -477,7 +482,14 @@ export default function DeliveryDriverRegistration() {
         stack: submitError?.stack,
         error,
       });
-      Alert.alert('Erro', 'Não foi possível enviar o cadastro. Tente novamente.');
+      if (isDriverSubmitDiagnosticEnv) {
+        Alert.alert(
+          'Erro técnico',
+          `Fase: ${submitPhase}\nCódigo: ${submitError?.code ?? '—'}\nMensagem: ${submitError?.message ?? 'Erro desconhecido'}`
+        );
+      } else {
+        Alert.alert('Erro', 'Não foi possível enviar o cadastro. Tente novamente.');
+      }
     } finally {
       setSubmitting(false);
     }
