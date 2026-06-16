@@ -263,6 +263,8 @@ fi
 
 # 🧩 ETAPA 7 — BUILD IOS LOCAL
 echo "🚀 [ETAPA 7] Iniciando Build iOS LOCAL (Build ${EXPECTED_BN})..."
+EAS_BUILD_PROFILE="${EAS_PROFILE:-${PROFILE:-production_v13}}"
+echo "📦 EAS build profile: ${EAS_BUILD_PROFILE}"
 export EXPO_DEBUG=1
 mkdir -p build-logs
 
@@ -279,7 +281,7 @@ run_eas_build_with_retry() {
   until [ $attempt -gt $max_attempts ]; do
     echo "🚀 Tentativa $attempt/$max_attempts: eas build iOS local"
 
-    if eas build --platform ios --local --non-interactive --profile production_v13 > build-logs/local-build.log 2>&1; then
+    if eas build --platform ios --local --non-interactive --profile "${EAS_BUILD_PROFILE}" > build-logs/local-build.log 2>&1; then
       echo "✅ EAS build concluído com sucesso"
       return 0
     fi
@@ -334,5 +336,5 @@ if [ "${SKIP_SUBMIT:-false}" = "true" ]; then
     echo "⏭️ [ETAPA 10] SKIP_SUBMIT=true — submit ignorado (IPA local apenas)"
 else
     echo "📤 [ETAPA 10] Enviando para TestFlight..."
-    eas submit -p ios --path "$LATEST_IPA" --profile production_v13 --non-interactive
+    eas submit -p ios --path "$LATEST_IPA" --profile "${EAS_BUILD_PROFILE}" --non-interactive
 fi
