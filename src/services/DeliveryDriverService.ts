@@ -64,6 +64,9 @@ export class DeliveryDriverService {
       const driversRef = collection(getDb(), this.collection);
       const docRef = doc(driversRef as any);
       const now = new Date().toISOString();
+      console.error('[CREATE_DRIVER_START]', {
+        userId: driver.userId,
+      });
       await setDoc(
         docRef,
         {
@@ -72,6 +75,9 @@ export class DeliveryDriverService {
           updatedAt: now,
         } as any
       );
+      console.error('[CREATE_DRIVER_SUCCESS]', {
+        userId: driver.userId,
+      });
 
       const newDriver: DeliveryDriver = {
         id: docRef.id,
@@ -83,6 +89,12 @@ export class DeliveryDriverService {
       loggingService.info('Entregador criado com sucesso', { driverId: docRef.id });
       return newDriver;
     } catch (error) {
+      const createError = error as Error & { code?: string };
+      console.error('[CREATE_DRIVER_ERROR]', {
+        message: createError?.message,
+        code: createError?.code,
+        stack: createError?.stack,
+      });
       loggingService.error(
         'Erro ao criar entregador',
         error instanceof Error ? error : undefined

@@ -411,10 +411,15 @@ export default function DeliveryDriverRegistration() {
 
     let submitPhase = 'init';
 
+    const logSubmitPhase = (phase: string) => {
+      console.error('[DRIVER-SUBMIT-PHASE]', { phase });
+    };
+
     try {
       setSubmitting(true);
 
       submitPhase = 'getDriverByUserId';
+      logSubmitPhase(submitPhase);
       const driverService = new DeliveryDriverService();
       const existing = await driverService.getDriverByUserId(userId);
 
@@ -422,11 +427,13 @@ export default function DeliveryDriverRegistration() {
       const basePath = `delivery_drivers/${userId}/${timestamp}`;
 
       submitPhase = 'upload_face';
+      logSubmitPhase(submitPhase);
       const faceUrl = personalData.faceImage!.startsWith('http')
         ? personalData.faceImage!
         : await uploadFile(personalData.faceImage!, `${basePath}/face.jpg`, 'image/jpeg');
 
       submitPhase = 'upload_cnh';
+      logSubmitPhase(submitPhase);
       const cnhUrl =
         requirements.cnhImage && documents.cnhImage
           ? await uploadFile(
@@ -437,6 +444,7 @@ export default function DeliveryDriverRegistration() {
           : existing?.documents?.cnhImage || '';
 
       submitPhase = 'upload_vehicle_document';
+      logSubmitPhase(submitPhase);
       const vehicleDocUrl =
         requirements.vehicleDocument && documents.vehicleDocument
           ? await uploadFile(
@@ -447,6 +455,7 @@ export default function DeliveryDriverRegistration() {
           : existing?.documents?.vehicleDocument || '';
 
       submitPhase = 'upload_insurance';
+      logSubmitPhase(submitPhase);
       const insuranceUrl =
         requirements.insurance && documents.insurance
           ? await uploadFile(
@@ -457,6 +466,7 @@ export default function DeliveryDriverRegistration() {
           : existing?.documents?.insurance || '';
 
       submitPhase = 'build_payload';
+      logSubmitPhase(submitPhase);
       const driverPayload = {
         userId,
         name: personalData.name,
@@ -493,15 +503,25 @@ export default function DeliveryDriverRegistration() {
 
       if (existing) {
         submitPhase = 'updateDriver';
+        logSubmitPhase(submitPhase);
         await driverService.updateDriver(existing.id, driverPayload);
       } else {
         submitPhase = 'createDriver';
+        logSubmitPhase(submitPhase);
         await driverService.createDriver(driverPayload);
       }
 
+      submitPhase = 'success';
+      logSubmitPhase(submitPhase);
       Alert.alert('Sucesso', 'Cadastro enviado para análise!');
     } catch (error) {
       const submitError = error as Error & { code?: string };
+      console.error('[DRIVER-SUBMIT-ERROR]', {
+        phase: submitPhase,
+        message: submitError?.message,
+        code: submitError?.code,
+        stack: submitError?.stack,
+      });
       console.error('Erro ao enviar cadastro de entregador:', {
         phase: submitPhase,
         message: submitError?.message,
