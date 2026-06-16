@@ -124,11 +124,38 @@ async function savePersonalDataToFirestore(
 ): Promise<string | null> {
   let faceImageUrl = personalData.faceImage;
 
+  console.error('[DRIVER-PERSONAL-SAVE]', {
+    phase: 'before_upload_selfie',
+    userId,
+    cpf: personalData.cpf,
+    phone: personalData.phone,
+    email: personalData.email,
+    faceImage: !!personalData.faceImage,
+  });
+
   if (faceImageUrl && !faceImageUrl.startsWith('http')) {
     faceImageUrl = await uploadSelfieToStorage(userId, faceImageUrl);
+    console.error('[DRIVER-PERSONAL-SAVE]', {
+      phase: 'after_upload_selfie',
+      userId,
+      cpf: personalData.cpf,
+      phone: personalData.phone,
+      email: personalData.email,
+      faceImage: !!faceImageUrl,
+    });
   }
 
   const userRef = f.doc('users', userId);
+
+  console.error('[DRIVER-PERSONAL-SAVE]', {
+    phase: 'before_setDoc',
+    userId,
+    cpf: personalData.cpf,
+    phone: personalData.phone,
+    email: personalData.email,
+    faceImage: !!faceImageUrl,
+  });
+
   await f.setDoc(
     userRef,
     {
@@ -154,6 +181,15 @@ async function savePersonalDataToFirestore(
     },
     { merge: true }
   );
+
+  console.error('[DRIVER-PERSONAL-SAVE]', {
+    phase: 'after_setDoc',
+    userId,
+    cpf: personalData.cpf,
+    phone: personalData.phone,
+    email: personalData.email,
+    faceImage: !!faceImageUrl,
+  });
 
   return faceImageUrl;
 }
@@ -237,10 +273,21 @@ export default function DriverDocumentsScreen() {
   }, [loadFromFirestore]);
 
   const handleSavePersonalData = async () => {
+    let savePhase = 'init';
+
     if (!userId) {
       Alert.alert('Erro', 'Você precisa estar autenticado para salvar seus dados.');
       return;
     }
+
+    console.error('[DRIVER-PERSONAL-SAVE]', {
+      phase: 'before_validation',
+      userId,
+      cpf: personalData.cpf,
+      phone: personalData.phone,
+      email: personalData.email,
+      faceImage: !!personalData.faceImage,
+    });
 
     if (!personalData.name || !personalData.cpf || !personalData.phone || !personalData.email) {
       Alert.alert('Erro', 'Preencha nome, CPF, telefone e email antes de salvar.');
@@ -254,13 +301,41 @@ export default function DriverDocumentsScreen() {
 
     try {
       setSaving(true);
+      savePhase = 'before_savePersonalDataToFirestore';
+      console.error('[DRIVER-PERSONAL-SAVE]', {
+        phase: savePhase,
+        userId,
+        cpf: personalData.cpf,
+        phone: personalData.phone,
+        email: personalData.email,
+        faceImage: !!personalData.faceImage,
+      });
+
       const faceImageUrl = await savePersonalDataToFirestore(userId, personalData, addressForm);
+
+      savePhase = 'after_savePersonalDataToFirestore';
+      console.error('[DRIVER-PERSONAL-SAVE]', {
+        phase: savePhase,
+        userId,
+        cpf: personalData.cpf,
+        phone: personalData.phone,
+        email: personalData.email,
+        faceImage: !!faceImageUrl,
+      });
+
       if (faceImageUrl) {
         setPersonalData({ faceImage: faceImageUrl });
         setSelfieStatus('review');
       }
       Alert.alert('Sucesso', 'Dados pessoais salvos com sucesso!');
     } catch (error) {
+      const saveError = error as Error & { code?: string };
+      console.error('[DRIVER-PERSONAL-SAVE-ERROR]', {
+        phase: savePhase,
+        message: saveError?.message,
+        code: saveError?.code,
+        stack: saveError?.stack,
+      });
       console.error('Erro ao salvar dados pessoais do entregador:', error);
       Alert.alert('Erro', 'Não foi possível salvar seus dados pessoais.');
     } finally {

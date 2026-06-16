@@ -380,6 +380,31 @@ export default function DeliveryDriverRegistration() {
     const requirements = getRegistrationFieldRequirements(form.vehicleType);
     const validationError = validateRegistrationForm(requirements);
     if (validationError) {
+      console.error('[DRIVER-VALIDATION-RUNTIME]', {
+        validationError,
+        vehicleType: form.vehicleType,
+        userId,
+        personalData: {
+          name: !!personalData.name,
+          phone: !!personalData.phone,
+          email: !!personalData.email,
+          cpf: !!personalData.cpf,
+          faceImage: !!personalData.faceImage,
+        },
+        vehicleData: {
+          vehicleBrand: !!form.vehicleBrand,
+          vehicleModel: !!form.vehicleModel,
+          vehicleYear: !!form.vehicleYear,
+          vehiclePlate: !!form.vehiclePlate,
+          vehicleColor: !!form.vehicleColor,
+          cnh: !!form.cnh,
+        },
+        documents: {
+          cnhImage: !!documents.cnhImage,
+          vehicleDocument: !!documents.vehicleDocument,
+          insurance: !!documents.insurance,
+        },
+      });
       Alert.alert('Erro', validationError);
       return;
     }
