@@ -1,6 +1,5 @@
-import { f } from '../config/firebase';
+import { f, db, getDb } from '../config/firebase';
 const { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, onSnapshot } = f;
-import { db } from '../config/firebase';
 import { DeliveryDriver, DeliveryDriverUpdate, DeliveryDriverStats } from '../types/DeliveryDriver';
 import { loggingService } from './LoggingService';
 
@@ -32,7 +31,7 @@ export class DeliveryDriverService {
 
   async getDriverByUserId(userId: string): Promise<DeliveryDriver | null> {
     try {
-      const driversRef = collection(db, this.collection);
+      const driversRef = collection(getDb(), this.collection);
       const q = query(driversRef, where('userId', '==', userId));
       const querySnapshot = (await getDocs(q as any)) as any;
 
@@ -62,7 +61,7 @@ export class DeliveryDriverService {
     driver: Omit<DeliveryDriver, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<DeliveryDriver> {
     try {
-      const driversRef = collection(db, this.collection);
+      const driversRef = collection(getDb(), this.collection);
       const docRef = doc(driversRef as any);
       const now = new Date().toISOString();
       await setDoc(
