@@ -531,8 +531,12 @@ export default function DeliveryDriverRegistration() {
       });
       if (isDriverSubmitDiagnosticEnv) {
         Alert.alert(
-          'Erro técnico',
-          `Fase: ${submitPhase}\nCódigo: ${submitError?.code ?? '-'}\nMensagem: ${submitError?.message ?? '-'}`
+          'Erro Técnico',
+          [
+            `Fase: ${submitPhase}`,
+            `Mensagem: ${submitError?.message || 'sem mensagem'}`,
+            `Código: ${submitError?.code || 'sem código'}`,
+          ].join('\n')
         );
       } else {
         Alert.alert('Erro', 'Não foi possível enviar o cadastro. Tente novamente.');
