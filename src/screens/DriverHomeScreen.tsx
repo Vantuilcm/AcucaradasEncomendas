@@ -20,9 +20,23 @@ import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { Order, OrderStatus } from '../types/Order';
 import { DeliveryDriver } from '../types/DeliveryDriver';
 import { formatCurrency } from '../utils/formatters';
+import {
+  canAcceptOrders,
+  canGoOnline,
+  canViewAvailableOrders,
+} from '../utils/driverStatusPolicy';
 import { AppVersion } from '../utils/AppVersion';
 import { LoadingState } from '../components/base/LoadingState';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+
+const isDriverToggleDiagnosticEnv =
+  __DEV__ ||
+  process.env.EXPO_PUBLIC_APP_ENV === 'preview' ||
+  process.env.APP_ENV === 'preview' ||
+  Constants.expoConfig?.extra?.env === 'preview';
+
+const isDriverLoadForensicEnv = isDriverToggleDiagnosticEnv;
 
 export function DriverHomeScreen() {
   const { theme } = useAppTheme();
@@ -45,14 +59,58 @@ export function DriverHomeScreen() {
     try {
       setLoading(true);
       const userId = (user as any).id || (user as any).uid;
+      const documentPath = `delivery_drivers/${userId}`;
+
+      if (isDriverLoadForensicEnv) {
+        console.error('[DRIVER_LOAD_FORENSIC]', {
+          uid: userId,
+          documentPath,
+          authUserId: (user as any).id ?? null,
+          authUserUid: (user as any).uid ?? null,
+          phase: 'before_getDriverByUserId',
+        });
+      }
+
       const driverData = await driverService.getDriverByUserId(userId);
+
+      if (isDriverLoadForensicEnv) {
+        console.error('[DRIVER_LOAD_FORENSIC]', {
+          uid: userId,
+          documentPath,
+          documentExists: Boolean(driverData),
+          documentId: driverData?.id ?? null,
+          driverId: driverData?.id ?? null,
+          driverUserId: driverData?.userId ?? null,
+          driverStatus: driverData?.status ?? null,
+          phase: 'after_getDriverByUserId',
+        });
+      }
       
       if (driverData) {
         setDriver(driverData);
         setIsOnline(driverData.availability?.isAvailable || false);
+      } else {
+        console.error('[TOGGLE_AVAILABILITY_FORENSIC] driver not found on load', {
+          uid: userId,
+          driverDocumentPath: documentPath,
+        });
       }
     } catch (error) {
-      console.error('Erro ao carregar dados do entregador:', error);
+      const loadError = error as Error & { code?: string };
+      console.error('Erro ao carregar dados do entregador:', loadError);
+      if (isDriverLoadForensicEnv) {
+        console.error('[DRIVER_LOAD_FORENSIC]', {
+          uid: (user as any)?.id || (user as any)?.uid || null,
+          documentPath: `delivery_drivers/${(user as any)?.id || (user as any)?.uid || 'unknown'}`,
+          documentExists: false,
+          documentId: null,
+          driverId: null,
+          driverUserId: null,
+          phase: 'load_error',
+          message: loadError?.message,
+          code: loadError?.code ?? 'sem código',
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -69,6 +127,17 @@ export function DriverHomeScreen() {
       if (!user) return;
       try {
         setLoading(true);
+
+        if (!canViewAvailableOrders(driver?.status)) {
+          console.error('[DRIVER_STATUS_POLICY]', {
+            driverId: driver?.id ?? null,
+            status: driver?.status ?? null,
+            action: 'viewAvailableOrders',
+          });
+          setAvailableOrders([]);
+          return;
+        }
+
         const allOrders = await orderService.getOrders();
 
         if (!active) return;
@@ -107,27 +176,105 @@ export function DriverHomeScreen() {
   }, [user, driver?.id, orderService]);
 
   const toggleOnline = async (value: boolean) => {
-    console.log('[DRIVER_ONLINE_STATUS] Toque no toggle:', value);
+    const uid = (user as any)?.uid || (user as any)?.id;
+    const driverDocumentPath = driver?.id
+      ? `delivery_drivers/${driver.id}`
+      : uid
+        ? `delivery_drivers/${uid}`
+        : 'delivery_drivers/unknown';
+    const availabilityField = 'availability.isAvailable';
+
+    console.error('[TOGGLE_AVAILABILITY_FORENSIC]', {
+      uid,
+      driverDocumentPath,
+      driverStatus: driver?.status ?? 'sem driver',
+      field: availabilityField,
+      value,
+      driverLoaded: Boolean(driver),
+      driverId: driver?.id ?? null,
+      switchDisabled: loading || !driver,
+    });
+
     if (!driver?.id) {
       console.warn('[DRIVER_ONLINE_STATUS] Perfil de entregador não encontrado no estado local');
-      Alert.alert('Erro', 'Perfil de entregador não carregado. Puxe a tela para baixo para atualizar.');
+      if (isDriverToggleDiagnosticEnv) {
+        Alert.alert(
+          'Erro Técnico',
+          [
+            'Fase: toggleAvailability',
+            'Mensagem: Perfil de entregador não carregado (driver.id ausente)',
+            'Código: sem código',
+          ].join('\n')
+        );
+      } else {
+        Alert.alert('Erro', 'Perfil de entregador não carregado. Puxe a tela para baixo para atualizar.');
+      }
       return;
     }
+
+    if (value && !canGoOnline(driver.status)) {
+      console.error('[DRIVER_STATUS_POLICY]', {
+        driverId: driver.id,
+        status: driver.status,
+        action: 'goOnline',
+      });
+      Alert.alert(
+        'Cadastro em análise',
+        'Seu cadastro precisa ser aprovado antes de ficar online.'
+      );
+      return;
+    }
+
     try {
       setIsOnline(value);
       console.log('[DRIVER_ONLINE_STATUS] Atualizando Firestore para o driver:', driver.id);
       await driverService.updateDriverAvailability(driver.id, value);
       console.log('[DRIVER_ONLINE_STATUS] Atualizado com sucesso no Firestore');
     } catch (error) {
-      console.error('[DRIVER_ONLINE_STATUS] Erro no Firestore:', error);
+      const toggleError = error as Error & { code?: string };
+      console.error('[DRIVER_ONLINE_STATUS] Erro no Firestore:', toggleError);
+      console.error('[TOGGLE_AVAILABILITY_FORENSIC_ERROR]', {
+        uid,
+        driverDocumentPath,
+        driverStatus: driver?.status,
+        field: availabilityField,
+        value,
+        message: toggleError?.message,
+        code: toggleError?.code,
+        stack: toggleError?.stack,
+      });
       setIsOnline(!value);
-      Alert.alert('Erro', 'Não foi possível alterar seu status. Verifique sua conexão.');
+      if (isDriverToggleDiagnosticEnv) {
+        Alert.alert(
+          'Erro Técnico',
+          [
+            'Fase: toggleAvailability',
+            `Mensagem: ${toggleError?.message || 'sem mensagem'}`,
+            `Código: ${toggleError?.code || 'sem código'}`,
+          ].join('\n')
+        );
+      } else {
+        Alert.alert('Erro', 'Não foi possível alterar seu status. Verifique sua conexão.');
+      }
     }
   };
 
   const handleAcceptOrder = async (order: Order) => {
     if (!driver || !isOnline) {
       Alert.alert('Aviso', 'Fique online para aceitar entregas.');
+      return;
+    }
+
+    if (!canAcceptOrders(driver.status)) {
+      console.error('[DRIVER_STATUS_POLICY]', {
+        driverId: driver.id,
+        status: driver.status,
+        action: 'acceptOrder',
+      });
+      Alert.alert(
+        'Cadastro em análise',
+        'Aguarde a aprovação do seu cadastro.'
+      );
       return;
     }
 

@@ -330,6 +330,18 @@ export class OrderService {
 
         const data = orderDoc.data();
 
+        const driverRef = f.doc('delivery_drivers', driverData.id);
+        const driverDoc = await transaction.get(driverRef);
+
+        if (!driverDoc.exists() || driverDoc.data()?.status !== 'active') {
+          console.error('[DRIVER_STATUS_POLICY]', {
+            driverId: driverData.id,
+            status: driverDoc.exists() ? driverDoc.data()?.status ?? null : null,
+            action: 'acceptOrderAtomic',
+          });
+          throw new Error('DRIVER_NOT_APPROVED');
+        }
+
         // VALIDAÇÃO DE CONCORRÊNCIA (AQUI É ONDE O SEGUNDO ENTREGADOR É BARRADO)
         if (data.deliveryDriver && data.deliveryDriver.id) {
           throw new Error('ORDER_ALREADY_ACCEPTED');
@@ -367,7 +379,14 @@ export class OrderService {
         loggingService.warn('[DELIVERY_TRANSACTION] Pedido não está mais disponível', { orderId });
         throw new Error('Esta entrega não está mais disponível para retirada.');
       }
-      
+      if (error.message === 'DRIVER_NOT_APPROVED') {
+        loggingService.warn('[DELIVERY_TRANSACTION] Entregador não aprovado para aceite', {
+          orderId,
+          driverId: driverData.id,
+        });
+        throw new Error('Seu cadastro precisa ser aprovado antes de aceitar entregas.');
+      }
+
       loggingService.error('[DELIVERY_TRANSACTION] Falha na transação de aceite', { error, orderId });
       throw error;
     }
