@@ -192,6 +192,16 @@ async function uploadFile(uri: string, path: string, contentTypeHint?: string): 
   }
 }
 
+function toHydratedDocumentAsset(
+  url?: string
+): DocumentPicker.DocumentPickerAsset | null {
+  if (!url) {
+    return null;
+  }
+
+  return { uri: url } as DocumentPicker.DocumentPickerAsset;
+}
+
 export default function DeliveryDriverRegistration() {
   const { user } = useAuth();
   const [personalData] = useDriverOnboardingPersonalData();
@@ -266,8 +276,29 @@ export default function DeliveryDriverRegistration() {
           email: hydrated.email,
           faceImage: hydrated.faceImage,
         });
+
+        const driverService = new DeliveryDriverService();
+        const driver = await driverService.getDriverByUserId(userId);
+        if (cancelled || !driver) return;
+
+        setForm(prev => ({
+          ...prev,
+          vehicleType: driver.vehicle?.type || prev.vehicleType,
+          vehicleBrand: driver.vehicle?.brand || '',
+          vehicleModel: driver.vehicle?.model || '',
+          vehicleYear: driver.vehicle?.year ? String(driver.vehicle.year) : '',
+          vehiclePlate: driver.vehicle?.plate || '',
+          vehicleColor: driver.vehicle?.color || '',
+          cnh: driver.cnh || '',
+        }));
+
+        setDocuments({
+          cnhImage: toHydratedDocumentAsset(driver.documents?.cnhImage),
+          vehicleDocument: toHydratedDocumentAsset(driver.documents?.vehicleDocument),
+          insurance: toHydratedDocumentAsset(driver.documents?.insurance),
+        });
       } catch (error) {
-        console.error('[DriverRegistration] failed to hydrate personal data from Firestore', error);
+        console.error('[DriverRegistration] failed to hydrate registration data from Firestore', error);
       }
     })();
 
