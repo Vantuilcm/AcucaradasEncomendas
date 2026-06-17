@@ -1,7 +1,32 @@
 import { f, db, getDb } from '../config/firebase';
+import { doc as firestoreDoc, setDoc as firestoreSetDoc } from 'firebase/firestore';
 const { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, onSnapshot } = f;
 import { DeliveryDriver, DeliveryDriverUpdate, DeliveryDriverStats } from '../types/DeliveryDriver';
 import { loggingService } from './LoggingService';
+
+function stripUndefinedFields<T extends Record<string, unknown>>(value: T): T {
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, entry] of Object.entries(value)) {
+    if (entry === undefined) {
+      continue;
+    }
+
+    if (
+      entry !== null &&
+      typeof entry === 'object' &&
+      !Array.isArray(entry) &&
+      !(entry instanceof Date)
+    ) {
+      sanitized[key] = stripUndefinedFields(entry as Record<string, unknown>);
+      continue;
+    }
+
+    sanitized[key] = entry;
+  }
+
+  return sanitized as T;
+}
 
 export class DeliveryDriverService {
   private readonly collection = 'delivery_drivers';
@@ -61,32 +86,42 @@ export class DeliveryDriverService {
     driver: Omit<DeliveryDriver, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<DeliveryDriver> {
     try {
-      const driversRef = collection(getDb(), this.collection);
-      const docRef = doc(driversRef as any);
+      if (!driver.userId) {
+        throw new Error('userId is required to create delivery driver');
+      }
+
+      const firestoreDb = getDb();
+      const driverRef = firestoreDoc(firestoreDb, this.collection, driver.userId);
+
+      if (!driverRef) {
+        throw new Error('Invalid Firestore document reference for delivery driver');
+      }
+
       const now = new Date().toISOString();
+      const payload = stripUndefinedFields({
+        ...driver,
+        createdAt: now,
+        updatedAt: now,
+      });
+
       console.error('[CREATE_DRIVER_START]', {
         userId: driver.userId,
       });
-      await setDoc(
-        docRef,
-        {
-          ...driver,
-          createdAt: now,
-          updatedAt: now,
-        } as any
-      );
+
+      await firestoreSetDoc(driverRef, payload, { merge: true });
+
       console.error('[CREATE_DRIVER_SUCCESS]', {
         userId: driver.userId,
       });
 
       const newDriver: DeliveryDriver = {
-        id: docRef.id,
+        id: driverRef.id,
         ...driver,
         createdAt: now,
         updatedAt: now,
       };
 
-      loggingService.info('Entregador criado com sucesso', { driverId: docRef.id });
+      loggingService.info('Entregador criado com sucesso', { driverId: driverRef.id });
       return newDriver;
     } catch (error) {
       const createError = error as Error & { code?: string };
