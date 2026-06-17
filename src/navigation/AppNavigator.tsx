@@ -43,6 +43,7 @@ import { ReportsScreen } from '../screens/ReportsScreen';
 import { StoreHoursScreen } from '../screens/StoreHoursScreen';
 import { InventoryManagementScreen } from '../screens/InventoryManagementScreen';
 import DriverApprovalManagementScreen from '../screens/DriverApprovalManagementScreen';
+import DriverDocumentReviewScreen from '../screens/DriverDocumentReviewScreen';
 import { AddEditProductScreen } from '../screens/AddEditProductScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 import { NotificationSettingsScreenV2 } from '../screens/NotificationSettingsScreenV2';
@@ -101,6 +102,7 @@ export type RootStackParamList = {
   InventoryManagement: undefined;
   OrderManagement: undefined;
   DriverApprovalManagement: undefined;
+  DriverDocumentReview: { driverId: string };
   AddEditProduct: undefined;
   NotificationSettings: undefined;
   NotificationSettingsV2: undefined;
@@ -405,6 +407,11 @@ const AppNavigator = () => {
                   name="DriverApprovalManagement"
                   component={DriverApprovalManagementScreen}
                   options={{ title: 'Aprovar Entregadores' }}
+                />
+                <Stack.Screen
+                  name="DriverDocumentReview"
+                  component={DriverDocumentReviewScreen}
+                  options={{ title: 'Documentos do Entregador' }}
                 />
                 <Stack.Screen
                   name="StorePreview"

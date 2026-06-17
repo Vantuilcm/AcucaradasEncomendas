@@ -2,12 +2,17 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, Alert, ScrollView } from 'react-native';
 import { Text, Button, Chip, Card, Divider, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 import { usePermissions } from '../hooks/usePermissions';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { DeliveryDriver } from '../types/DeliveryDriver';
 import { useAppTheme } from '../components/ThemeProvider';
 
 type DriverStatusFilter = DeliveryDriver['status'];
+
+type DriverApprovalNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const STATUS_TABS: { key: DriverStatusFilter; label: string }[] = [
   { key: 'pending', label: 'Pendentes' },
@@ -17,6 +22,7 @@ const STATUS_TABS: { key: DriverStatusFilter; label: string }[] = [
 ];
 
 export default function DriverApprovalManagementScreen() {
+  const navigation = useNavigation<DriverApprovalNavigationProp>();
   const { isAdmin } = usePermissions();
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -105,6 +111,10 @@ export default function DriverApprovalManagementScreen() {
 
   const handleUnblock = (driver: DeliveryDriver) =>
     runAction(driver, () => driverService.updateDriverStatus(driver.id, 'active'), 'Entregador desbloqueado.');
+
+  const handleViewDocuments = (driver: DeliveryDriver) => {
+    navigation.navigate('DriverDocumentReview', { driverId: driver.id });
+  };
 
   const renderActions = (driver: DeliveryDriver) => {
     const busy = actionDriverId === driver.id;
@@ -210,6 +220,9 @@ export default function DriverApprovalManagementScreen() {
         <Chip style={styles.statusChip} textStyle={styles.statusChipText}>
           {item.status}
         </Chip>
+        <Button mode="outlined" style={styles.actionButton} onPress={() => handleViewDocuments(item)}>
+          Ver Documentos
+        </Button>
         {renderActions(item)}
       </Card.Content>
     </Card>
