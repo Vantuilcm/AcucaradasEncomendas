@@ -1,5 +1,9 @@
 import { f, db, getDb } from '../config/firebase';
-import { doc as firestoreDoc, setDoc as firestoreSetDoc } from 'firebase/firestore';
+import {
+  doc as firestoreDoc,
+  getDoc as firestoreGetDoc,
+  setDoc as firestoreSetDoc,
+} from 'firebase/firestore';
 const { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, onSnapshot } = f;
 import { DeliveryDriver, DeliveryDriverUpdate, DeliveryDriverStats } from '../types/DeliveryDriver';
 import { loggingService } from './LoggingService';
@@ -56,22 +60,46 @@ export class DeliveryDriverService {
 
   async getDriverByUserId(userId: string): Promise<DeliveryDriver | null> {
     try {
-      const driversRef = collection(getDb(), this.collection);
-      const q = query(driversRef, where('userId', '==', userId));
-      const querySnapshot = (await getDocs(q as any)) as any;
+      if (!userId) {
+        throw new Error('userId is required to load delivery driver');
+      }
 
-      if (querySnapshot.empty) {
+      const firestoreDb = getDb();
+      const driverRef = firestoreDoc(firestoreDb, this.collection, userId);
+
+      if (!driverRef) {
+        throw new Error('Invalid Firestore document reference for delivery driver lookup');
+      }
+
+      const snapshot = await firestoreGetDoc(driverRef);
+
+      console.error('[DRIVER_LOAD_FORENSIC]', {
+        uid: userId,
+        documentPath: `delivery_drivers/${userId}`,
+        documentExists: snapshot.exists(),
+        documentId: snapshot.exists() ? snapshot.id : null,
+        driverUserIdField: snapshot.exists() ? snapshot.data()?.userId ?? null : null,
+      });
+
+      if (!snapshot.exists()) {
         return null;
       }
 
-      const driverDoc = querySnapshot.docs?.[0];
-      if (!driverDoc) {
-        return null;
-      }
-      return {
-        id: driverDoc.id,
-        ...driverDoc.data(),
+      const mappedDriver = {
+        id: snapshot.id,
+        ...snapshot.data(),
       } as DeliveryDriver;
+
+      console.error('[DRIVER_LOAD_FORENSIC_RESULT]', {
+        uid: userId,
+        documentPath: `delivery_drivers/${snapshot.id}`,
+        documentExists: true,
+        documentId: snapshot.id,
+        driverId: mappedDriver.id,
+        driverUserId: mappedDriver.userId,
+      });
+
+      return mappedDriver;
     } catch (error) {
       loggingService.error(
         'Erro ao buscar entregador por usuário',
