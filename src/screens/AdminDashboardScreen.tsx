@@ -154,6 +154,7 @@ export function AdminDashboardScreen() {
   const [cityMetrics, setCityMetrics] = useState<CityExpansionMetrics[]>([]);
   const [autonomousActions, setAutonomousActions] = useState<AutonomousAction[]>([]);
   const [alerts, setAlerts] = useState<{ id: string; type: 'payment' | 'stuck' | 'stock' | 'growth' | 'marketplace' | 'autonomous' | 'release'; message: string; timestamp: Date }[]>([]);
+  const [pendingDriversCount, setPendingDriversCount] = useState(0);
   
   const [stats, setStats] = useState({
     dailySales: 0,
@@ -246,11 +247,24 @@ export function AdminDashboardScreen() {
         setDemandInsights(insights);
       }
 
+      const userRole = ((user as any)?.role || (user as any)?.activeRole || '').toLowerCase();
+      if (userRole === 'admin') {
+        try {
+          const pendingDrivers = await driverService.getDriversByStatus('pending');
+          setPendingDriversCount(pendingDrivers.length);
+        } catch (error) {
+          console.error('Erro ao carregar entregadores pendentes:', error);
+          setPendingDriversCount(0);
+        }
+      } else {
+        setPendingDriversCount(0);
+      }
+
     } catch (error) {
       console.error('Erro ao carregar inteligência:', error);
     }
     setLoading(false);
-  }, [orderService, demandService]);
+  }, [orderService, demandService, driverService, user]);
 
   useEffect(() => {
     loadIntelligence();
@@ -495,6 +509,29 @@ export function AdminDashboardScreen() {
           />
 
           <Divider />
+
+          {role === 'admin' && (
+            <>
+              <List.Item
+                title="Aprovar Entregadores"
+                description="Gerenciar aprovação e status dos entregadores"
+                left={() => <List.Icon icon="moped" color={theme.colors.primary} />}
+                right={() =>
+                  pendingDriversCount > 0 ? (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{pendingDriversCount}</Text>
+                    </View>
+                  ) : (
+                    <List.Icon icon="chevron-right" />
+                  )
+                }
+                onPress={() => (navigation as any).navigate('DriverApprovalManagement')}
+                style={styles.menuItem}
+              />
+
+              <Divider />
+            </>
+          )}
 
           <List.Item
             title="Clientes"

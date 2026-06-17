@@ -1,8 +1,12 @@
 import { f, db, getDb } from '../config/firebase';
 import {
+  collection as firestoreCollection,
   doc as firestoreDoc,
   getDoc as firestoreGetDoc,
+  getDocs as firestoreGetDocs,
+  query as firestoreQuery,
   setDoc as firestoreSetDoc,
+  where as firestoreWhere,
 } from 'firebase/firestore';
 const { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, onSnapshot } = f;
 import { DeliveryDriver, DeliveryDriverUpdate, DeliveryDriverStats } from '../types/DeliveryDriver';
@@ -199,14 +203,23 @@ export class DeliveryDriverService {
 
   async updateDriverStatus(driverId: string, status: DeliveryDriver['status']): Promise<void> {
     try {
-      const driverRef = doc(db, this.collection, driverId);
-      await updateDoc(
-        driverRef,
-        {
-          status,
-          updatedAt: new Date().toISOString(),
-        } as any
-      );
+      if (!driverId) {
+        throw new Error('driverId is required to update delivery driver status');
+      }
+
+      const firestoreDb = getDb();
+      const driverRef = firestoreDoc(firestoreDb, this.collection, driverId);
+
+      if (!driverRef) {
+        throw new Error('Invalid Firestore document reference for delivery driver status update');
+      }
+
+      const payload = stripUndefinedFields({
+        status,
+        updatedAt: new Date().toISOString(),
+      });
+
+      await firestoreSetDoc(driverRef, payload, { merge: true });
 
       loggingService.info('Status do entregador atualizado com sucesso', {
         driverId,
@@ -295,6 +308,27 @@ export class DeliveryDriverService {
         'Erro ao buscar estatísticas do entregador',
         error instanceof Error ? error : undefined,
         { driverId }
+      );
+      throw error;
+    }
+  }
+
+  async getDriversByStatus(status: DeliveryDriver['status']): Promise<DeliveryDriver[]> {
+    try {
+      const firestoreDb = getDb();
+      const driversRef = firestoreCollection(firestoreDb, this.collection);
+      const driversQuery = firestoreQuery(driversRef, firestoreWhere('status', '==', status));
+      const querySnapshot = await firestoreGetDocs(driversQuery);
+
+      return querySnapshot.docs.map((snapshot) => ({
+        id: snapshot.id,
+        ...snapshot.data(),
+      })) as DeliveryDriver[];
+    } catch (error) {
+      loggingService.error(
+        'Erro ao buscar entregadores por status',
+        error instanceof Error ? error : undefined,
+        { status }
       );
       throw error;
     }

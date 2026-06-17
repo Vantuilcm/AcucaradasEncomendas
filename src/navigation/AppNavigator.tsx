@@ -42,6 +42,7 @@ import { OrderManagementScreen } from '../screens/OrderManagementScreen';
 import { ReportsScreen } from '../screens/ReportsScreen';
 import { StoreHoursScreen } from '../screens/StoreHoursScreen';
 import { InventoryManagementScreen } from '../screens/InventoryManagementScreen';
+import DriverApprovalManagementScreen from '../screens/DriverApprovalManagementScreen';
 import { AddEditProductScreen } from '../screens/AddEditProductScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 import { NotificationSettingsScreenV2 } from '../screens/NotificationSettingsScreenV2';
@@ -99,6 +100,7 @@ export type RootStackParamList = {
   StoreHours: undefined;
   InventoryManagement: undefined;
   OrderManagement: undefined;
+  DriverApprovalManagement: undefined;
   AddEditProduct: undefined;
   NotificationSettings: undefined;
   NotificationSettingsV2: undefined;
@@ -398,6 +400,11 @@ const AppNavigator = () => {
                   name="OrderManagement"
                   component={OrderManagementScreen}
                   options={{ title: 'Gerenciar Pedidos' }}
+                />
+                <Stack.Screen
+                  name="DriverApprovalManagement"
+                  component={DriverApprovalManagementScreen}
+                  options={{ title: 'Aprovar Entregadores' }}
                 />
                 <Stack.Screen
                   name="StorePreview"
