@@ -168,14 +168,23 @@ export class DeliveryDriverService {
 
   async updateDriver(driverId: string, updates: DeliveryDriverUpdate): Promise<void> {
     try {
-      const driverRef = doc(db, this.collection, driverId);
-      await updateDoc(
-        driverRef,
-        {
-          ...updates,
-          updatedAt: new Date().toISOString(),
-        } as any
-      );
+      if (!driverId) {
+        throw new Error('driverId is required to update delivery driver');
+      }
+
+      const firestoreDb = getDb();
+      const driverRef = firestoreDoc(firestoreDb, this.collection, driverId);
+
+      if (!driverRef) {
+        throw new Error('Invalid Firestore document reference for delivery driver update');
+      }
+
+      const payload = stripUndefinedFields({
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      });
+
+      await firestoreSetDoc(driverRef, payload, { merge: true });
 
       loggingService.info('Entregador atualizado com sucesso', { driverId });
     } catch (error) {
