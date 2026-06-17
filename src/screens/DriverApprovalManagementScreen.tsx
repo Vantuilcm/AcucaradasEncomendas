@@ -223,6 +223,7 @@ export default function DriverApprovalManagementScreen() {
         <Button mode="outlined" style={styles.actionButton} onPress={() => handleViewDocuments(item)}>
           Ver Documentos
         </Button>
+        <Text style={styles.buildTraceMarker}>BUILD-TRACE-C6</Text>
         {renderActions(item)}
       </Card.Content>
     </Card>
@@ -332,6 +333,13 @@ const createStyles = (theme: any) =>
     },
     actionButton: {
       marginRight: 8,
+      marginBottom: 8,
+    },
+    buildTraceMarker: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: '#D32F2F',
+      marginTop: 8,
       marginBottom: 8,
     },
     centered: {
