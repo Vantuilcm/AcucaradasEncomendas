@@ -66,6 +66,67 @@ function renderStatusBadge(status: LocalDocumentReviewStatus) {
   );
 }
 
+interface RejectDocumentModalProps {
+  visible: boolean;
+  documentLabel: string;
+  onDismiss: () => void;
+  onConfirm: (reason: string) => void;
+}
+
+const RejectDocumentModal = React.memo(function RejectDocumentModal({
+  visible,
+  documentLabel,
+  onDismiss,
+  onConfirm,
+}: RejectDocumentModalProps) {
+  const [draft, setDraft] = useState('');
+
+  useEffect(() => {
+    if (visible) {
+      setDraft('');
+    }
+  }, [visible, documentLabel]);
+
+  const handleConfirm = () => {
+    const trimmedReason = draft.trim();
+    if (!trimmedReason) {
+      Alert.alert('Informe o motivo da reprovação.');
+      return;
+    }
+    onConfirm(trimmedReason);
+  };
+
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <Portal>
+      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={styles.modalContent}>
+        <Text style={styles.modalTitle}>Reprovar {documentLabel}</Text>
+        <Text style={styles.modalLabel}>Motivo da reprovação</Text>
+        <TextInput
+          mode="outlined"
+          multiline
+          numberOfLines={4}
+          value={draft}
+          onChangeText={setDraft}
+          placeholder="Descreva o motivo da reprovação"
+          style={styles.reasonInput}
+        />
+        <View style={styles.modalActions}>
+          <Button mode="outlined" onPress={onDismiss} style={styles.modalButton}>
+            Cancelar
+          </Button>
+          <Button mode="contained" onPress={handleConfirm} style={styles.modalButton}>
+            Confirmar
+          </Button>
+        </View>
+      </Modal>
+    </Portal>
+  );
+});
+
 export default function DriverDocumentReviewScreen() {
   const route = useRoute<DriverDocumentReviewRouteProp>();
   const { driverId } = route.params;
@@ -85,7 +146,6 @@ export default function DriverDocumentReviewScreen() {
     useState<Record<ReviewableDocumentKey, LocalDocumentReview>>(INITIAL_DOCUMENT_REVIEWS);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [activeDocumentKey, setActiveDocumentKey] = useState<ReviewableDocumentKey | null>(null);
-  const [rejectionReasonDraft, setRejectionReasonDraft] = useState('');
 
   const loadDriver = useCallback(async () => {
     setLoading(true);
@@ -126,38 +186,33 @@ export default function DriverDocumentReviewScreen() {
     driver?.documents?.insurance,
   ]);
 
-  const openRejectModal = (documentKey: ReviewableDocumentKey) => {
+  const openRejectModal = useCallback((documentKey: ReviewableDocumentKey) => {
     setActiveDocumentKey(documentKey);
-    setRejectionReasonDraft('');
     setRejectModalVisible(true);
-  };
+  }, []);
 
-  const closeRejectModal = () => {
+  const closeRejectModal = useCallback(() => {
     setRejectModalVisible(false);
     setActiveDocumentKey(null);
-    setRejectionReasonDraft('');
-  };
+  }, []);
 
-  const confirmRejectDocument = () => {
-    if (!activeDocumentKey) {
-      return;
-    }
+  const handleRejectConfirm = useCallback(
+    (reason: string) => {
+      if (!activeDocumentKey) {
+        return;
+      }
 
-    const trimmedReason = rejectionReasonDraft.trim();
-    if (!trimmedReason) {
-      Alert.alert('Informe o motivo da reprovação.');
-      return;
-    }
-
-    setDocumentReviews((prev) => ({
-      ...prev,
-      [activeDocumentKey]: {
-        status: 'rejected',
-        rejectionReason: trimmedReason,
-      },
-    }));
-    closeRejectModal();
-  };
+      setDocumentReviews((prev) => ({
+        ...prev,
+        [activeDocumentKey]: {
+          status: 'rejected',
+          rejectionReason: reason,
+        },
+      }));
+      closeRejectModal();
+    },
+    [activeDocumentKey, closeRejectModal]
+  );
 
   const renderDocumentCard = (
     documentKey: ReviewableDocumentKey,
@@ -310,33 +365,12 @@ export default function DriverDocumentReviewScreen() {
         )}
       </ScrollView>
 
-      <Portal>
-        <Modal
-          visible={rejectModalVisible}
-          onDismiss={closeRejectModal}
-          contentContainerStyle={styles.modalContent}
-        >
-          <Text style={styles.modalTitle}>Reprovar {activeDocumentLabel}</Text>
-          <Text style={styles.modalLabel}>Motivo da reprovação</Text>
-          <TextInput
-            mode="outlined"
-            multiline
-            numberOfLines={4}
-            value={rejectionReasonDraft}
-            onChangeText={setRejectionReasonDraft}
-            placeholder="Descreva o motivo da reprovação"
-            style={styles.reasonInput}
-          />
-          <View style={styles.modalActions}>
-            <Button mode="outlined" onPress={closeRejectModal} style={styles.modalButton}>
-              Cancelar
-            </Button>
-            <Button mode="contained" onPress={confirmRejectDocument} style={styles.modalButton}>
-              Confirmar
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
+      <RejectDocumentModal
+        visible={rejectModalVisible}
+        documentLabel={activeDocumentLabel}
+        onDismiss={closeRejectModal}
+        onConfirm={handleRejectConfirm}
+      />
     </SafeAreaView>
   );
 }
