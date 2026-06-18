@@ -113,6 +113,9 @@ const RejectDocumentModal = React.memo(function RejectDocumentModal({
           onChangeText={setDraft}
           placeholder="Descreva o motivo da reprovação"
           style={styles.reasonInput}
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
         />
         <View style={styles.modalActions}>
           <Button mode="outlined" onPress={onDismiss} style={styles.modalButton}>
