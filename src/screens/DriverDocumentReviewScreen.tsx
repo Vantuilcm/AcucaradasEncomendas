@@ -37,6 +37,7 @@ export default function DriverDocumentReviewScreen() {
   const [selfieLoadFailed, setSelfieLoadFailed] = useState(false);
   const [cnhLoadFailed, setCnhLoadFailed] = useState(false);
   const [vehicleDocumentLoadFailed, setVehicleDocumentLoadFailed] = useState(false);
+  const [insuranceLoadFailed, setInsuranceLoadFailed] = useState(false);
 
   const loadDriver = useCallback(async () => {
     setLoading(true);
@@ -68,11 +69,13 @@ export default function DriverDocumentReviewScreen() {
     setSelfieLoadFailed(false);
     setCnhLoadFailed(false);
     setVehicleDocumentLoadFailed(false);
+    setInsuranceLoadFailed(false);
   }, [
     driver?.id,
     driver?.documents?.faceImage,
     driver?.documents?.cnhImage,
     driver?.documents?.vehicleDocument,
+    driver?.documents?.insurance,
   ]);
 
   if (!isAdmin) {
@@ -109,10 +112,12 @@ export default function DriverDocumentReviewScreen() {
   const faceImageUrl = driver.documents?.faceImage;
   const cnhImageUrl = driver.documents?.cnhImage;
   const vehicleDocumentUrl = driver.documents?.vehicleDocument;
+  const insuranceUrl = driver.documents?.insurance;
   const canShowSelfie = isDisplayableHttpsDocumentUrl(faceImageUrl) && !selfieLoadFailed;
   const canShowCnh = isDisplayableHttpsDocumentUrl(cnhImageUrl) && !cnhLoadFailed;
   const canShowVehicleDocument =
     isDisplayableHttpsDocumentUrl(vehicleDocumentUrl) && !vehicleDocumentLoadFailed;
+  const canShowInsurance = isDisplayableHttpsDocumentUrl(insuranceUrl) && !insuranceLoadFailed;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -163,6 +168,18 @@ export default function DriverDocumentReviewScreen() {
             style={styles.documentImage}
             resizeMode="contain"
             onError={() => setVehicleDocumentLoadFailed(true)}
+          />
+        ) : (
+          <Text style={styles.fallbackText}>Documento não disponível</Text>
+        )}
+
+        <Text style={styles.sectionTitle}>Seguro</Text>
+        {canShowInsurance ? (
+          <Image
+            source={{ uri: insuranceUrl }}
+            style={styles.documentImage}
+            resizeMode="contain"
+            onError={() => setInsuranceLoadFailed(true)}
           />
         ) : (
           <Text style={styles.fallbackText}>Documento não disponível</Text>
