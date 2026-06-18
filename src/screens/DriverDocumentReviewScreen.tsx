@@ -1,6 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, View } from 'react-native';
-import { Card, Text } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Button, Card, Modal, Portal, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -10,6 +17,29 @@ import { DeliveryDriver } from '../types/DeliveryDriver';
 import { useAppTheme } from '../components/ThemeProvider';
 
 type DriverDocumentReviewRouteProp = RouteProp<RootStackParamList, 'DriverDocumentReview'>;
+
+type ReviewableDocumentKey = 'faceImage' | 'cnhImage' | 'vehicleDocument' | 'insurance';
+
+type LocalDocumentReviewStatus = 'pending' | 'rejected';
+
+interface LocalDocumentReview {
+  status: LocalDocumentReviewStatus;
+  rejectionReason?: string;
+}
+
+const INITIAL_DOCUMENT_REVIEWS: Record<ReviewableDocumentKey, LocalDocumentReview> = {
+  faceImage: { status: 'pending' },
+  cnhImage: { status: 'pending' },
+  vehicleDocument: { status: 'pending' },
+  insurance: { status: 'pending' },
+};
+
+const DOCUMENT_LABELS: Record<ReviewableDocumentKey, string> = {
+  faceImage: 'Selfie',
+  cnhImage: 'CNH',
+  vehicleDocument: 'Documento do Veículo',
+  insurance: 'Seguro',
+};
 
 function isDisplayableHttpsDocumentUrl(url: string | undefined): url is string {
   if (!url || typeof url !== 'string') {
@@ -22,6 +52,18 @@ function isDisplayableHttpsDocumentUrl(url: string | undefined): url is string {
   }
 
   return trimmed.startsWith('https://');
+}
+
+function renderStatusBadge(status: LocalDocumentReviewStatus) {
+  const isRejected = status === 'rejected';
+
+  return (
+    <View style={[styles.statusBadge, isRejected ? styles.statusBadgeRejected : styles.statusBadgePending]}>
+      <Text style={[styles.statusBadgeText, isRejected ? styles.statusBadgeTextRejected : styles.statusBadgeTextPending]}>
+        {isRejected ? 'Reprovado' : 'Pendente'}
+      </Text>
+    </View>
+  );
 }
 
 export default function DriverDocumentReviewScreen() {
@@ -38,6 +80,12 @@ export default function DriverDocumentReviewScreen() {
   const [cnhLoadFailed, setCnhLoadFailed] = useState(false);
   const [vehicleDocumentLoadFailed, setVehicleDocumentLoadFailed] = useState(false);
   const [insuranceLoadFailed, setInsuranceLoadFailed] = useState(false);
+
+  const [documentReviews, setDocumentReviews] =
+    useState<Record<ReviewableDocumentKey, LocalDocumentReview>>(INITIAL_DOCUMENT_REVIEWS);
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [activeDocumentKey, setActiveDocumentKey] = useState<ReviewableDocumentKey | null>(null);
+  const [rejectionReasonDraft, setRejectionReasonDraft] = useState('');
 
   const loadDriver = useCallback(async () => {
     setLoading(true);
@@ -77,6 +125,87 @@ export default function DriverDocumentReviewScreen() {
     driver?.documents?.vehicleDocument,
     driver?.documents?.insurance,
   ]);
+
+  const openRejectModal = (documentKey: ReviewableDocumentKey) => {
+    setActiveDocumentKey(documentKey);
+    setRejectionReasonDraft('');
+    setRejectModalVisible(true);
+  };
+
+  const closeRejectModal = () => {
+    setRejectModalVisible(false);
+    setActiveDocumentKey(null);
+    setRejectionReasonDraft('');
+  };
+
+  const confirmRejectDocument = () => {
+    if (!activeDocumentKey) {
+      return;
+    }
+
+    const trimmedReason = rejectionReasonDraft.trim();
+    if (!trimmedReason) {
+      Alert.alert('Informe o motivo da reprovação.');
+      return;
+    }
+
+    setDocumentReviews((prev) => ({
+      ...prev,
+      [activeDocumentKey]: {
+        status: 'rejected',
+        rejectionReason: trimmedReason,
+      },
+    }));
+    closeRejectModal();
+  };
+
+  const renderDocumentCard = (
+    documentKey: ReviewableDocumentKey,
+    title: string,
+    imageUrl: string | undefined,
+    canShowImage: boolean,
+    onImageError: () => void,
+    imageStyle: typeof styles.selfieImage | typeof styles.documentImage
+  ) => {
+    const review = documentReviews[documentKey];
+
+    return (
+      <Card style={styles.card} key={documentKey}>
+        <Card.Content>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>{title}</Text>
+            {renderStatusBadge(review.status)}
+          </View>
+
+          {canShowImage ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={imageStyle}
+              resizeMode="contain"
+              onError={onImageError}
+            />
+          ) : (
+            <Text style={styles.fallbackText}>Documento não disponível</Text>
+          )}
+
+          {review.status === 'rejected' && review.rejectionReason ? (
+            <View style={styles.rejectionReasonBox}>
+              <Text style={styles.rejectionReasonLabel}>Motivo da reprovação:</Text>
+              <Text style={styles.rejectionReasonText}>{review.rejectionReason}</Text>
+            </View>
+          ) : (
+            <Button
+              mode="outlined"
+              style={styles.rejectButton}
+              onPress={() => openRejectModal(documentKey)}
+            >
+              Reprovar Documento
+            </Button>
+          )}
+        </Card.Content>
+      </Card>
+    );
+  };
 
   if (!isAdmin) {
     return (
@@ -119,6 +248,8 @@ export default function DriverDocumentReviewScreen() {
     isDisplayableHttpsDocumentUrl(vehicleDocumentUrl) && !vehicleDocumentLoadFailed;
   const canShowInsurance = isDisplayableHttpsDocumentUrl(insuranceUrl) && !insuranceLoadFailed;
 
+  const activeDocumentLabel = activeDocumentKey ? DOCUMENT_LABELS[activeDocumentKey] : '';
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -142,70 +273,70 @@ export default function DriverDocumentReviewScreen() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text style={styles.cardTitle}>Selfie</Text>
-            {canShowSelfie ? (
-              <Image
-                source={{ uri: faceImageUrl }}
-                style={styles.selfieImage}
-                resizeMode="contain"
-                onError={() => setSelfieLoadFailed(true)}
-              />
-            ) : (
-              <Text style={styles.fallbackText}>Documento não disponível</Text>
-            )}
-          </Card.Content>
-        </Card>
+        {renderDocumentCard(
+          'faceImage',
+          'Selfie',
+          faceImageUrl,
+          canShowSelfie,
+          () => setSelfieLoadFailed(true),
+          styles.selfieImage
+        )}
 
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text style={styles.cardTitle}>CNH</Text>
-            {canShowCnh ? (
-              <Image
-                source={{ uri: cnhImageUrl }}
-                style={styles.documentImage}
-                resizeMode="contain"
-                onError={() => setCnhLoadFailed(true)}
-              />
-            ) : (
-              <Text style={styles.fallbackText}>Documento não disponível</Text>
-            )}
-          </Card.Content>
-        </Card>
+        {renderDocumentCard(
+          'cnhImage',
+          'CNH',
+          cnhImageUrl,
+          canShowCnh,
+          () => setCnhLoadFailed(true),
+          styles.documentImage
+        )}
 
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text style={styles.cardTitle}>Documento do Veículo</Text>
-            {canShowVehicleDocument ? (
-              <Image
-                source={{ uri: vehicleDocumentUrl }}
-                style={styles.documentImage}
-                resizeMode="contain"
-                onError={() => setVehicleDocumentLoadFailed(true)}
-              />
-            ) : (
-              <Text style={styles.fallbackText}>Documento não disponível</Text>
-            )}
-          </Card.Content>
-        </Card>
+        {renderDocumentCard(
+          'vehicleDocument',
+          'Documento do Veículo',
+          vehicleDocumentUrl,
+          canShowVehicleDocument,
+          () => setVehicleDocumentLoadFailed(true),
+          styles.documentImage
+        )}
 
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text style={styles.cardTitle}>Seguro</Text>
-            {canShowInsurance ? (
-              <Image
-                source={{ uri: insuranceUrl }}
-                style={styles.documentImage}
-                resizeMode="contain"
-                onError={() => setInsuranceLoadFailed(true)}
-              />
-            ) : (
-              <Text style={styles.fallbackText}>Documento não disponível</Text>
-            )}
-          </Card.Content>
-        </Card>
+        {renderDocumentCard(
+          'insurance',
+          'Seguro',
+          insuranceUrl,
+          canShowInsurance,
+          () => setInsuranceLoadFailed(true),
+          styles.documentImage
+        )}
       </ScrollView>
+
+      <Portal>
+        <Modal
+          visible={rejectModalVisible}
+          onDismiss={closeRejectModal}
+          contentContainerStyle={styles.modalContent}
+        >
+          <Text style={styles.modalTitle}>Reprovar {activeDocumentLabel}</Text>
+          <Text style={styles.modalLabel}>Motivo da reprovação</Text>
+          <TextInput
+            mode="outlined"
+            multiline
+            numberOfLines={4}
+            value={rejectionReasonDraft}
+            onChangeText={setRejectionReasonDraft}
+            placeholder="Descreva o motivo da reprovação"
+            style={styles.reasonInput}
+          />
+          <View style={styles.modalActions}>
+            <Button mode="outlined" onPress={closeRejectModal} style={styles.modalButton}>
+              Cancelar
+            </Button>
+            <Button mode="contained" onPress={confirmRejectDocument} style={styles.modalButton}>
+              Confirmar
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
     </SafeAreaView>
   );
 }
@@ -222,6 +353,12 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 12,
     borderRadius: 12,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   centered: {
     flex: 1,
@@ -249,7 +386,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginBottom: 12,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgePending: {
+    backgroundColor: '#FFF3E0',
+  },
+  statusBadgeRejected: {
+    backgroundColor: '#FFEBEE',
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  statusBadgeTextPending: {
+    color: '#E65100',
+  },
+  statusBadgeTextRejected: {
+    color: '#C62828',
   },
   selfieImage: {
     width: '100%',
@@ -266,5 +423,59 @@ const styles = StyleSheet.create({
   fallbackText: {
     fontSize: 14,
     color: '#888',
+  },
+  rejectionReasonBox: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFF8F8',
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
+  },
+  rejectionReasonLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#C62828',
+    marginBottom: 4,
+  },
+  rejectionReasonText: {
+    fontSize: 14,
+    color: '#424242',
+    lineHeight: 20,
+  },
+  rejectButton: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    padding: 20,
+    borderRadius: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 16,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#444',
+    marginBottom: 8,
+  },
+  reasonInput: {
+    minHeight: 120,
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+  },
+  modalButton: {
+    marginLeft: 8,
+    marginTop: 4,
   },
 });
