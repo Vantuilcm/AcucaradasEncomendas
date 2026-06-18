@@ -5,6 +5,20 @@ export type DeliveryVehicleType =
   | 'motorcycle'
   | 'car';
 
+export interface DeliveryDriverDocuments {
+  cnhImage?: string;
+  vehicleDocument?: string;
+  insurance?: string;
+  faceImage?: string;
+  cnhFront?: string;
+  cnhBack?: string;
+  vehicleFront?: string;
+  vehicleBack?: string;
+  insuranceFront?: string;
+  insuranceBack?: string;
+  [key: string]: string | undefined;
+}
+
 export interface DeliveryDriver {
   id: string;
   userId: string;
@@ -21,12 +35,7 @@ export interface DeliveryDriver {
     plate: string;
     color: string;
   };
-  documents: {
-    cnhImage: string;
-    vehicleDocument: string;
-    insurance: string;
-    faceImage?: string;
-  };
+  documents: DeliveryDriverDocuments;
   status: 'pending' | 'active' | 'inactive' | 'blocked';
   rating: number;
   totalDeliveries: number;
@@ -71,12 +80,7 @@ export interface DeliveryDriverUpdate {
     plate?: string;
     color?: string;
   };
-  documents?: {
-    cnhImage?: string;
-    vehicleDocument?: string;
-    insurance?: string;
-    faceImage?: string;
-  };
+  documents?: DeliveryDriverDocuments;
   status?: 'pending' | 'active' | 'inactive' | 'blocked';
   rating?: number;
   totalDeliveries?: number;
