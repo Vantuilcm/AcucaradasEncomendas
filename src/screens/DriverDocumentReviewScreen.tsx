@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Card, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -122,68 +122,89 @@ export default function DriverDocumentReviewScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.label}>Nome:</Text>
-        <Text style={styles.value}>{driver.name}</Text>
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.cardTitle}>Dados do Entregador</Text>
+            <Text style={styles.label}>Nome:</Text>
+            <Text style={styles.value}>{driver.name}</Text>
 
-        <Text style={styles.label}>Email:</Text>
-        <Text style={styles.value}>{driver.email}</Text>
+            <Text style={styles.label}>Email:</Text>
+            <Text style={styles.value}>{driver.email}</Text>
 
-        <Text style={styles.label}>Telefone:</Text>
-        <Text style={styles.value}>{driver.phone || '—'}</Text>
+            <Text style={styles.label}>Telefone:</Text>
+            <Text style={styles.value}>{driver.phone || '—'}</Text>
 
-        <Text style={styles.label}>Status:</Text>
-        <Text style={styles.value}>{driver.status}</Text>
+            <Text style={styles.label}>Status:</Text>
+            <Text style={styles.value}>{driver.status}</Text>
 
-        <Text style={styles.label}>Driver ID:</Text>
-        <Text style={styles.value}>{driverId}</Text>
+            <Text style={styles.label}>Driver ID:</Text>
+            <Text style={styles.value}>{driverId}</Text>
+          </Card.Content>
+        </Card>
 
-        <Text style={styles.sectionTitle}>SELFIE</Text>
-        {canShowSelfie ? (
-          <Image
-            source={{ uri: faceImageUrl }}
-            style={styles.selfieImage}
-            resizeMode="contain"
-            onError={() => setSelfieLoadFailed(true)}
-          />
-        ) : (
-          <Text style={styles.fallbackText}>Documento não disponível</Text>
-        )}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.cardTitle}>Selfie</Text>
+            {canShowSelfie ? (
+              <Image
+                source={{ uri: faceImageUrl }}
+                style={styles.selfieImage}
+                resizeMode="contain"
+                onError={() => setSelfieLoadFailed(true)}
+              />
+            ) : (
+              <Text style={styles.fallbackText}>Documento não disponível</Text>
+            )}
+          </Card.Content>
+        </Card>
 
-        <Text style={styles.sectionTitle}>CNH</Text>
-        {canShowCnh ? (
-          <Image
-            source={{ uri: cnhImageUrl }}
-            style={styles.documentImage}
-            resizeMode="contain"
-            onError={() => setCnhLoadFailed(true)}
-          />
-        ) : (
-          <Text style={styles.fallbackText}>Documento não disponível</Text>
-        )}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.cardTitle}>CNH</Text>
+            {canShowCnh ? (
+              <Image
+                source={{ uri: cnhImageUrl }}
+                style={styles.documentImage}
+                resizeMode="contain"
+                onError={() => setCnhLoadFailed(true)}
+              />
+            ) : (
+              <Text style={styles.fallbackText}>Documento não disponível</Text>
+            )}
+          </Card.Content>
+        </Card>
 
-        <Text style={styles.sectionTitle}>Documento do Veículo</Text>
-        {canShowVehicleDocument ? (
-          <Image
-            source={{ uri: vehicleDocumentUrl }}
-            style={styles.documentImage}
-            resizeMode="contain"
-            onError={() => setVehicleDocumentLoadFailed(true)}
-          />
-        ) : (
-          <Text style={styles.fallbackText}>Documento não disponível</Text>
-        )}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.cardTitle}>Documento do Veículo</Text>
+            {canShowVehicleDocument ? (
+              <Image
+                source={{ uri: vehicleDocumentUrl }}
+                style={styles.documentImage}
+                resizeMode="contain"
+                onError={() => setVehicleDocumentLoadFailed(true)}
+              />
+            ) : (
+              <Text style={styles.fallbackText}>Documento não disponível</Text>
+            )}
+          </Card.Content>
+        </Card>
 
-        <Text style={styles.sectionTitle}>Seguro</Text>
-        {canShowInsurance ? (
-          <Image
-            source={{ uri: insuranceUrl }}
-            style={styles.documentImage}
-            resizeMode="contain"
-            onError={() => setInsuranceLoadFailed(true)}
-          />
-        ) : (
-          <Text style={styles.fallbackText}>Documento não disponível</Text>
-        )}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.cardTitle}>Seguro</Text>
+            {canShowInsurance ? (
+              <Image
+                source={{ uri: insuranceUrl }}
+                style={styles.documentImage}
+                resizeMode="contain"
+                onError={() => setInsuranceLoadFailed(true)}
+              />
+            ) : (
+              <Text style={styles.fallbackText}>Documento não disponível</Text>
+            )}
+          </Card.Content>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
@@ -197,6 +218,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 32,
+  },
+  card: {
+    marginBottom: 12,
+    borderRadius: 12,
   },
   centered: {
     flex: 1,
@@ -220,11 +245,10 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginTop: 4,
   },
-  sectionTitle: {
+  cardTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginTop: 24,
     marginBottom: 12,
   },
   selfieImage: {
