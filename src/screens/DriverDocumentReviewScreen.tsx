@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
@@ -116,7 +116,7 @@ export default function DriverDocumentReviewScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.label}>Nome:</Text>
         <Text style={styles.value}>{driver.name}</Text>
 
@@ -167,7 +167,7 @@ export default function DriverDocumentReviewScreen() {
         ) : (
           <Text style={styles.fallbackText}>Documento não disponível</Text>
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -177,9 +177,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FAFAFA',
   },
-  content: {
-    flex: 1,
+  scrollContent: {
     padding: 16,
+    paddingBottom: 32,
   },
   centered: {
     flex: 1,
