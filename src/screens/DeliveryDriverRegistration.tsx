@@ -687,9 +687,7 @@ export default function DeliveryDriverRegistration() {
           {renderFrontBackPlaceholderGroup('CNH', 'CNH Frente', 'CNH Verso')}
 
           <TouchableOpacity style={styles.documentButton} onPress={() => pickDocument('cnhImage')}>
-            <Text style={styles.buttonText}>
-              {documents.cnhImage ? '✓ CNH Enviada' : 'Enviar CNH'}
-            </Text>
+            <Text style={styles.buttonText}>Aguardando envio da CNH</Text>
           </TouchableOpacity>
 
           {renderFrontBackPlaceholderGroup(
@@ -699,17 +697,13 @@ export default function DeliveryDriverRegistration() {
           )}
 
           <TouchableOpacity style={styles.documentButton} onPress={() => pickDocument('vehicleDocument')}>
-            <Text style={styles.buttonText}>
-              {documents.vehicleDocument ? '✓ Documento do Veículo Enviado' : 'Enviar Documento do Veículo'}
-            </Text>
+            <Text style={styles.buttonText}>Aguardando envio do documento do veículo</Text>
           </TouchableOpacity>
 
           {renderFrontBackPlaceholderGroup('Seguro', 'Seguro Frente', 'Seguro Verso')}
 
           <TouchableOpacity style={styles.documentButton} onPress={() => pickDocument('insurance')}>
-            <Text style={styles.buttonText}>
-              {documents.insurance ? '✓ Seguro Enviado' : 'Enviar Seguro'}
-            </Text>
+            <Text style={styles.buttonText}>Aguardando envio do seguro</Text>
           </TouchableOpacity>
         </View>
       )}
