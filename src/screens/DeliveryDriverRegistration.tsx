@@ -357,6 +357,26 @@ export default function DeliveryDriverRegistration() {
     Alert.alert('Sucesso', `Documento ${type.toUpperCase()} enviado para validação!`);
   };
 
+  const showFrontBackUploadComingSoon = () => {
+    Alert.alert('Em desenvolvimento', 'Upload será habilitado na próxima fase.');
+  };
+
+  const renderFrontBackPlaceholderGroup = (
+    title: string,
+    frontLabel: string,
+    backLabel: string
+  ) => (
+    <View style={styles.documentGroup}>
+      <Text style={styles.documentGroupLabel}>{title}</Text>
+      <TouchableOpacity style={styles.documentButtonSecondary} onPress={showFrontBackUploadComingSoon}>
+        <Text style={styles.documentButtonSecondaryText}>{frontLabel}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.documentButtonSecondary} onPress={showFrontBackUploadComingSoon}>
+        <Text style={styles.documentButtonSecondaryText}>{backLabel}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const validateRegistrationForm = (requirements: RegistrationFieldRequirements): string | null => {
     if (!personalData.name || !personalData.phone || !personalData.email || !personalData.cpf) {
       return 'Preencha todos os dados pessoais em Meus Documentos.';
@@ -664,17 +684,27 @@ export default function DeliveryDriverRegistration() {
             onChangeText={cnh => setForm(prev => ({ ...prev, cnh }))}
           />
 
+          {renderFrontBackPlaceholderGroup('CNH', 'CNH Frente', 'CNH Verso')}
+
           <TouchableOpacity style={styles.documentButton} onPress={() => pickDocument('cnhImage')}>
             <Text style={styles.buttonText}>
               {documents.cnhImage ? '✓ CNH Enviada' : 'Enviar CNH'}
             </Text>
           </TouchableOpacity>
 
+          {renderFrontBackPlaceholderGroup(
+            'Documento do Veículo',
+            'Veículo Frente',
+            'Veículo Verso'
+          )}
+
           <TouchableOpacity style={styles.documentButton} onPress={() => pickDocument('vehicleDocument')}>
             <Text style={styles.buttonText}>
               {documents.vehicleDocument ? '✓ Documento do Veículo Enviado' : 'Enviar Documento do Veículo'}
             </Text>
           </TouchableOpacity>
+
+          {renderFrontBackPlaceholderGroup('Seguro', 'Seguro Frente', 'Seguro Verso')}
 
           <TouchableOpacity style={styles.documentButton} onPress={() => pickDocument('insurance')}>
             <Text style={styles.buttonText}>
@@ -784,6 +814,29 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
+  },
+  documentGroup: {
+    marginBottom: 8,
+  },
+  documentGroupLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 8,
+  },
+  documentButtonSecondary: {
+    backgroundColor: '#fff',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  documentButtonSecondaryText: {
+    color: '#555',
+    fontSize: 15,
+    textAlign: 'center',
+    fontWeight: '600',
   },
   buttonText: {
     color: '#fff',
