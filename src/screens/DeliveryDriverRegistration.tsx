@@ -219,6 +219,8 @@ export default function DeliveryDriverRegistration() {
     insurance: null,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [cnhFrontUrl, setCnhFrontUrl] = useState<string | null>(null);
+  const [uploadingCnhFront, setUploadingCnhFront] = useState(false);
   const [form, setForm] = useState<{
     cnh: string;
     vehicleType: DeliveryVehicleType;
@@ -297,6 +299,7 @@ export default function DeliveryDriverRegistration() {
           vehicleDocument: toHydratedDocumentAsset(driver.documents?.vehicleDocument),
           insurance: toHydratedDocumentAsset(driver.documents?.insurance),
         });
+        setCnhFrontUrl(driver.documents?.cnhFront || null);
       } catch (error) {
         console.error('[DriverRegistration] failed to hydrate registration data from Firestore', error);
       }
@@ -361,21 +364,114 @@ export default function DeliveryDriverRegistration() {
     Alert.alert('Em desenvolvimento', 'Upload será habilitado na próxima fase.');
   };
 
+  const persistCnhFrontUrl = async (userId: string, url: string) => {
+    const driverService = new DeliveryDriverService();
+    const existing = await driverService.getDriverByUserId(userId);
+
+    if (existing) {
+      await driverService.updateDriver(existing.id, {
+        documents: { cnhFront: url, cnhImage: url },
+      });
+      return;
+    }
+
+    await f.setDoc(
+      f.doc('delivery_drivers', userId),
+      {
+        userId,
+        documents: { cnhFront: url, cnhImage: url },
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  };
+
+  const pickAndUploadCnhFront = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Aviso', 'O upload de documentos está disponível apenas no aplicativo móvel.');
+      return;
+    }
+
+    const userId = user?.uid || (user as { id?: string })?.id;
+    if (!userId) {
+      Alert.alert('Erro', 'Você precisa estar autenticado para enviar a CNH Frente.');
+      return;
+    }
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets[0]?.uri) {
+        return;
+      }
+
+      setUploadingCnhFront(true);
+      const asset = result.assets[0];
+      const timestamp = Date.now();
+      const extension = asset.name?.split('.').pop() || 'jpg';
+      const storagePath = `delivery_drivers/${userId}/${timestamp}/cnh_front.${extension}`;
+      const url = await uploadFile(asset.uri, storagePath, asset.mimeType);
+
+      await persistCnhFrontUrl(userId, url);
+      setCnhFrontUrl(url);
+    } catch (error) {
+      console.error('[DriverRegistration] cnhFront upload failed', error);
+      Alert.alert('Erro', 'Não foi possível enviar a CNH Frente. Tente novamente.');
+    } finally {
+      setUploadingCnhFront(false);
+    }
+  };
+
   const renderFrontBackPlaceholderGroup = (
     title: string,
     frontLabel: string,
-    backLabel: string
-  ) => (
-    <View style={styles.documentGroup}>
-      <Text style={styles.documentGroupLabel}>{title}</Text>
-      <TouchableOpacity style={styles.documentButtonSecondary} onPress={showFrontBackUploadComingSoon}>
-        <Text style={styles.documentButtonSecondaryText}>{frontLabel}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.documentButtonSecondary} onPress={showFrontBackUploadComingSoon}>
-        <Text style={styles.documentButtonSecondaryText}>{backLabel}</Text>
-      </TouchableOpacity>
-    </View>
-  );
+    backLabel: string,
+    options?: {
+      onFrontPress?: () => void;
+      onBackPress?: () => void;
+      frontUploaded?: boolean;
+      frontUploadedLabel?: string;
+      frontUploading?: boolean;
+    }
+  ) => {
+    const onFrontPress = options?.onFrontPress ?? showFrontBackUploadComingSoon;
+    const onBackPress = options?.onBackPress ?? showFrontBackUploadComingSoon;
+    const frontUploaded = options?.frontUploaded ?? false;
+    const frontButtonText = frontUploaded
+      ? options?.frontUploadedLabel || `${frontLabel} enviada`
+      : options?.frontUploading
+        ? 'Enviando...'
+        : frontLabel;
+
+    return (
+      <View style={styles.documentGroup}>
+        <Text style={styles.documentGroupLabel}>{title}</Text>
+        <TouchableOpacity
+          style={[
+            styles.documentButtonSecondary,
+            frontUploaded && styles.documentButtonSecondaryUploaded,
+          ]}
+          onPress={onFrontPress}
+          disabled={options?.frontUploading}
+        >
+          <Text
+            style={[
+              styles.documentButtonSecondaryText,
+              frontUploaded && styles.documentButtonSecondaryTextUploaded,
+            ]}
+          >
+            {frontButtonText}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.documentButtonSecondary} onPress={onBackPress}>
+          <Text style={styles.documentButtonSecondaryText}>{backLabel}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   const validateRegistrationForm = (requirements: RegistrationFieldRequirements): string | null => {
     if (!personalData.name || !personalData.phone || !personalData.email || !personalData.cpf) {
@@ -408,7 +504,7 @@ export default function DeliveryDriverRegistration() {
     if (requirements.cnh && !form.cnh) {
       return 'Informe o número da CNH.';
     }
-    if (requirements.cnhImage && !documents.cnhImage) {
+    if (requirements.cnhImage && !documents.cnhImage && !cnhFrontUrl) {
       return 'Envie a CNH.';
     }
     if (requirements.vehicleDocument && !documents.vehicleDocument) {
@@ -492,7 +588,10 @@ export default function DeliveryDriverRegistration() {
               `${basePath}/cnh.${documents.cnhImage.name?.split('.').pop() || 'jpg'}`,
               documents.cnhImage.mimeType
             )
-          : existing?.documents?.cnhImage || '';
+          : cnhFrontUrl ||
+            existing?.documents?.cnhFront ||
+            existing?.documents?.cnhImage ||
+            '';
 
       submitPhase = 'upload_vehicle_document';
       logSubmitPhase(submitPhase);
@@ -540,6 +639,7 @@ export default function DeliveryDriverRegistration() {
           vehicleDocument: vehicleDocUrl,
           insurance: insuranceUrl,
           faceImage: faceUrl,
+          cnhFront: cnhFrontUrl || existing?.documents?.cnhFront || undefined,
         },
         status: existing?.status || 'pending',
         rating: existing?.rating || 0,
@@ -684,7 +784,12 @@ export default function DeliveryDriverRegistration() {
             onChangeText={cnh => setForm(prev => ({ ...prev, cnh }))}
           />
 
-          {renderFrontBackPlaceholderGroup('CNH', 'CNH Frente', 'CNH Verso')}
+          {renderFrontBackPlaceholderGroup('CNH', 'CNH Frente', 'CNH Verso', {
+            onFrontPress: pickAndUploadCnhFront,
+            frontUploaded: !!cnhFrontUrl,
+            frontUploadedLabel: 'CNH Frente enviada',
+            frontUploading: uploadingCnhFront,
+          })}
 
           <TouchableOpacity style={styles.documentButton} onPress={() => pickDocument('cnhImage')}>
             <Text style={styles.buttonText}>Aguardando envio da CNH</Text>
@@ -831,6 +936,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  documentButtonSecondaryUploaded: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#4CAF50',
+  },
+  documentButtonSecondaryTextUploaded: {
+    color: '#2E7D32',
   },
   buttonText: {
     color: '#fff',
