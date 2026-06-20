@@ -221,6 +221,16 @@ export default function DeliveryDriverRegistration() {
   const [submitting, setSubmitting] = useState(false);
   const [cnhFrontUrl, setCnhFrontUrl] = useState<string | null>(null);
   const [uploadingCnhFront, setUploadingCnhFront] = useState(false);
+  const [cnhBackUrl, setCnhBackUrl] = useState<string | null>(null);
+  const [uploadingCnhBack, setUploadingCnhBack] = useState(false);
+  const [vehicleFrontUrl, setVehicleFrontUrl] = useState<string | null>(null);
+  const [uploadingVehicleFront, setUploadingVehicleFront] = useState(false);
+  const [vehicleBackUrl, setVehicleBackUrl] = useState<string | null>(null);
+  const [uploadingVehicleBack, setUploadingVehicleBack] = useState(false);
+  const [insuranceFrontUrl, setInsuranceFrontUrl] = useState<string | null>(null);
+  const [uploadingInsuranceFront, setUploadingInsuranceFront] = useState(false);
+  const [insuranceBackUrl, setInsuranceBackUrl] = useState<string | null>(null);
+  const [uploadingInsuranceBack, setUploadingInsuranceBack] = useState(false);
   const [form, setForm] = useState<{
     cnh: string;
     vehicleType: DeliveryVehicleType;
@@ -300,6 +310,11 @@ export default function DeliveryDriverRegistration() {
           insurance: toHydratedDocumentAsset(driver.documents?.insurance),
         });
         setCnhFrontUrl(driver.documents?.cnhFront || null);
+        setCnhBackUrl(driver.documents?.cnhBack || null);
+        setVehicleFrontUrl(driver.documents?.vehicleFront || null);
+        setVehicleBackUrl(driver.documents?.vehicleBack || null);
+        setInsuranceFrontUrl(driver.documents?.insuranceFront || null);
+        setInsuranceBackUrl(driver.documents?.insuranceBack || null);
       } catch (error) {
         console.error('[DriverRegistration] failed to hydrate registration data from Firestore', error);
       }
@@ -364,13 +379,26 @@ export default function DeliveryDriverRegistration() {
     Alert.alert('Em desenvolvimento', 'Upload será habilitado na próxima fase.');
   };
 
-  const persistCnhFrontUrl = async (userId: string, url: string) => {
+  const persistDriverDocuments = async (
+    userId: string,
+    documentsPatch: {
+      cnhFront?: string;
+      cnhImage?: string;
+      cnhBack?: string;
+      vehicleFront?: string;
+      vehicleDocument?: string;
+      vehicleBack?: string;
+      insuranceFront?: string;
+      insurance?: string;
+      insuranceBack?: string;
+    }
+  ) => {
     const driverService = new DeliveryDriverService();
     const existing = await driverService.getDriverByUserId(userId);
 
     if (existing) {
       await driverService.updateDriver(existing.id, {
-        documents: { cnhFront: url, cnhImage: url },
+        documents: documentsPatch,
       });
       return;
     }
@@ -379,14 +407,32 @@ export default function DeliveryDriverRegistration() {
       f.doc('delivery_drivers', userId),
       {
         userId,
-        documents: { cnhFront: url, cnhImage: url },
+        documents: documentsPatch,
         updatedAt: new Date().toISOString(),
       },
       { merge: true }
     );
   };
 
-  const pickAndUploadCnhFront = async () => {
+  const pickAndUploadDocument = async (options: {
+    authErrorMessage: string;
+    storageFileName: string;
+    logKey: string;
+    errorAlertMessage: string;
+    setUploading: (uploading: boolean) => void;
+    setUrl: (url: string) => void;
+    buildDocumentsPatch: (url: string) => {
+      cnhFront?: string;
+      cnhImage?: string;
+      cnhBack?: string;
+      vehicleFront?: string;
+      vehicleDocument?: string;
+      vehicleBack?: string;
+      insuranceFront?: string;
+      insurance?: string;
+      insuranceBack?: string;
+    };
+  }) => {
     if (Platform.OS === 'web') {
       Alert.alert('Aviso', 'O upload de documentos está disponível apenas no aplicativo móvel.');
       return;
@@ -394,7 +440,7 @@ export default function DeliveryDriverRegistration() {
 
     const userId = user?.uid || (user as { id?: string })?.id;
     if (!userId) {
-      Alert.alert('Erro', 'Você precisa estar autenticado para enviar a CNH Frente.');
+      Alert.alert('Erro', options.authErrorMessage);
       return;
     }
 
@@ -408,22 +454,88 @@ export default function DeliveryDriverRegistration() {
         return;
       }
 
-      setUploadingCnhFront(true);
+      options.setUploading(true);
       const asset = result.assets[0];
       const timestamp = Date.now();
       const extension = asset.name?.split('.').pop() || 'jpg';
-      const storagePath = `delivery_drivers/${userId}/${timestamp}/cnh_front.${extension}`;
+      const storagePath = `delivery_drivers/${userId}/${timestamp}/${options.storageFileName}.${extension}`;
       const url = await uploadFile(asset.uri, storagePath, asset.mimeType);
 
-      await persistCnhFrontUrl(userId, url);
-      setCnhFrontUrl(url);
+      await persistDriverDocuments(userId, options.buildDocumentsPatch(url));
+      options.setUrl(url);
     } catch (error) {
-      console.error('[DriverRegistration] cnhFront upload failed', error);
-      Alert.alert('Erro', 'Não foi possível enviar a CNH Frente. Tente novamente.');
+      console.error(`[DriverRegistration] ${options.logKey} upload failed`, error);
+      Alert.alert('Erro', options.errorAlertMessage);
     } finally {
-      setUploadingCnhFront(false);
+      options.setUploading(false);
     }
   };
+
+  const pickAndUploadCnhFront = () =>
+    pickAndUploadDocument({
+      authErrorMessage: 'Você precisa estar autenticado para enviar a CNH Frente.',
+      storageFileName: 'cnh_front',
+      logKey: 'cnhFront',
+      errorAlertMessage: 'Erro ao enviar a CNH Frente. Tente novamente.',
+      setUploading: setUploadingCnhFront,
+      setUrl: setCnhFrontUrl,
+      buildDocumentsPatch: url => ({ cnhFront: url, cnhImage: url }),
+    });
+
+  const pickAndUploadCnhBack = () =>
+    pickAndUploadDocument({
+      authErrorMessage: 'Você precisa estar autenticado para enviar a CNH Verso.',
+      storageFileName: 'cnh_back',
+      logKey: 'cnhBack',
+      errorAlertMessage: 'Erro ao enviar a CNH Verso. Tente novamente.',
+      setUploading: setUploadingCnhBack,
+      setUrl: setCnhBackUrl,
+      buildDocumentsPatch: url => ({ cnhBack: url }),
+    });
+
+  const pickAndUploadVehicleFront = () =>
+    pickAndUploadDocument({
+      authErrorMessage: 'Você precisa estar autenticado para enviar o documento do veículo.',
+      storageFileName: 'vehicle_front',
+      logKey: 'vehicleFront',
+      errorAlertMessage: 'Erro ao enviar o documento do veículo (frente). Tente novamente.',
+      setUploading: setUploadingVehicleFront,
+      setUrl: setVehicleFrontUrl,
+      buildDocumentsPatch: url => ({ vehicleFront: url, vehicleDocument: url }),
+    });
+
+  const pickAndUploadVehicleBack = () =>
+    pickAndUploadDocument({
+      authErrorMessage: 'Você precisa estar autenticado para enviar o documento do veículo.',
+      storageFileName: 'vehicle_back',
+      logKey: 'vehicleBack',
+      errorAlertMessage: 'Erro ao enviar o documento do veículo (verso). Tente novamente.',
+      setUploading: setUploadingVehicleBack,
+      setUrl: setVehicleBackUrl,
+      buildDocumentsPatch: url => ({ vehicleBack: url }),
+    });
+
+  const pickAndUploadInsuranceFront = () =>
+    pickAndUploadDocument({
+      authErrorMessage: 'Você precisa estar autenticado para enviar o seguro.',
+      storageFileName: 'insurance_front',
+      logKey: 'insuranceFront',
+      errorAlertMessage: 'Erro ao enviar o seguro (frente). Tente novamente.',
+      setUploading: setUploadingInsuranceFront,
+      setUrl: setInsuranceFrontUrl,
+      buildDocumentsPatch: url => ({ insuranceFront: url, insurance: url }),
+    });
+
+  const pickAndUploadInsuranceBack = () =>
+    pickAndUploadDocument({
+      authErrorMessage: 'Você precisa estar autenticado para enviar o seguro.',
+      storageFileName: 'insurance_back',
+      logKey: 'insuranceBack',
+      errorAlertMessage: 'Erro ao enviar o seguro (verso). Tente novamente.',
+      setUploading: setUploadingInsuranceBack,
+      setUrl: setInsuranceBackUrl,
+      buildDocumentsPatch: url => ({ insuranceBack: url }),
+    });
 
   const renderFrontBackPlaceholderGroup = (
     title: string,
@@ -435,16 +547,25 @@ export default function DeliveryDriverRegistration() {
       frontUploaded?: boolean;
       frontUploadedLabel?: string;
       frontUploading?: boolean;
+      backUploaded?: boolean;
+      backUploadedLabel?: string;
+      backUploading?: boolean;
     }
   ) => {
     const onFrontPress = options?.onFrontPress ?? showFrontBackUploadComingSoon;
     const onBackPress = options?.onBackPress ?? showFrontBackUploadComingSoon;
     const frontUploaded = options?.frontUploaded ?? false;
+    const backUploaded = options?.backUploaded ?? false;
     const frontButtonText = frontUploaded
       ? options?.frontUploadedLabel || `${frontLabel} enviada`
       : options?.frontUploading
         ? 'Enviando...'
         : frontLabel;
+    const backButtonText = backUploaded
+      ? options?.backUploadedLabel || `${backLabel} enviada`
+      : options?.backUploading
+        ? 'Enviando...'
+        : backLabel;
 
     return (
       <View style={styles.documentGroup}>
@@ -466,8 +587,22 @@ export default function DeliveryDriverRegistration() {
             {frontButtonText}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.documentButtonSecondary} onPress={onBackPress}>
-          <Text style={styles.documentButtonSecondaryText}>{backLabel}</Text>
+        <TouchableOpacity
+          style={[
+            styles.documentButtonSecondary,
+            backUploaded && styles.documentButtonSecondaryUploaded,
+          ]}
+          onPress={onBackPress}
+          disabled={options?.backUploading}
+        >
+          <Text
+            style={[
+              styles.documentButtonSecondaryText,
+              backUploaded && styles.documentButtonSecondaryTextUploaded,
+            ]}
+          >
+            {backButtonText}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -507,10 +642,10 @@ export default function DeliveryDriverRegistration() {
     if (requirements.cnhImage && !documents.cnhImage && !cnhFrontUrl) {
       return 'Envie a CNH.';
     }
-    if (requirements.vehicleDocument && !documents.vehicleDocument) {
+    if (requirements.vehicleDocument && !documents.vehicleDocument && !vehicleFrontUrl) {
       return 'Envie o documento do veículo.';
     }
-    if (requirements.insurance && !documents.insurance) {
+    if (requirements.insurance && !documents.insurance && !insuranceFrontUrl) {
       return 'Envie o seguro do veículo.';
     }
 
@@ -602,7 +737,10 @@ export default function DeliveryDriverRegistration() {
               `${basePath}/vehicle_document.${documents.vehicleDocument.name?.split('.').pop() || 'jpg'}`,
               documents.vehicleDocument.mimeType
             )
-          : existing?.documents?.vehicleDocument || '';
+          : vehicleFrontUrl ||
+            existing?.documents?.vehicleFront ||
+            existing?.documents?.vehicleDocument ||
+            '';
 
       submitPhase = 'upload_insurance';
       logSubmitPhase(submitPhase);
@@ -613,7 +751,10 @@ export default function DeliveryDriverRegistration() {
               `${basePath}/insurance.${documents.insurance.name?.split('.').pop() || 'jpg'}`,
               documents.insurance.mimeType
             )
-          : existing?.documents?.insurance || '';
+          : insuranceFrontUrl ||
+            existing?.documents?.insuranceFront ||
+            existing?.documents?.insurance ||
+            '';
 
       submitPhase = 'build_payload';
       logSubmitPhase(submitPhase);
@@ -640,6 +781,11 @@ export default function DeliveryDriverRegistration() {
           insurance: insuranceUrl,
           faceImage: faceUrl,
           cnhFront: cnhFrontUrl || existing?.documents?.cnhFront || undefined,
+          cnhBack: cnhBackUrl || existing?.documents?.cnhBack || undefined,
+          vehicleFront: vehicleFrontUrl || existing?.documents?.vehicleFront || undefined,
+          vehicleBack: vehicleBackUrl || existing?.documents?.vehicleBack || undefined,
+          insuranceFront: insuranceFrontUrl || existing?.documents?.insuranceFront || undefined,
+          insuranceBack: insuranceBackUrl || existing?.documents?.insuranceBack || undefined,
         },
         status: existing?.status || 'pending',
         rating: existing?.rating || 0,
@@ -786,9 +932,13 @@ export default function DeliveryDriverRegistration() {
 
           {renderFrontBackPlaceholderGroup('CNH', 'CNH Frente', 'CNH Verso', {
             onFrontPress: pickAndUploadCnhFront,
+            onBackPress: pickAndUploadCnhBack,
             frontUploaded: !!cnhFrontUrl,
             frontUploadedLabel: 'CNH Frente enviada',
             frontUploading: uploadingCnhFront,
+            backUploaded: !!cnhBackUrl,
+            backUploadedLabel: 'CNH Verso enviada',
+            backUploading: uploadingCnhBack,
           })}
 
           <TouchableOpacity style={styles.documentButton} onPress={() => pickDocument('cnhImage')}>
@@ -798,14 +948,33 @@ export default function DeliveryDriverRegistration() {
           {renderFrontBackPlaceholderGroup(
             'Documento do Veículo',
             'Veículo Frente',
-            'Veículo Verso'
+            'Veículo Verso',
+            {
+              onFrontPress: pickAndUploadVehicleFront,
+              onBackPress: pickAndUploadVehicleBack,
+              frontUploaded: !!vehicleFrontUrl,
+              frontUploadedLabel: 'Veículo Frente enviada',
+              frontUploading: uploadingVehicleFront,
+              backUploaded: !!vehicleBackUrl,
+              backUploadedLabel: 'Veículo Verso enviada',
+              backUploading: uploadingVehicleBack,
+            }
           )}
 
           <TouchableOpacity style={styles.documentButton} onPress={() => pickDocument('vehicleDocument')}>
             <Text style={styles.buttonText}>Aguardando envio do documento do veículo</Text>
           </TouchableOpacity>
 
-          {renderFrontBackPlaceholderGroup('Seguro', 'Seguro Frente', 'Seguro Verso')}
+          {renderFrontBackPlaceholderGroup('Seguro', 'Seguro Frente', 'Seguro Verso', {
+            onFrontPress: pickAndUploadInsuranceFront,
+            onBackPress: pickAndUploadInsuranceBack,
+            frontUploaded: !!insuranceFrontUrl,
+            frontUploadedLabel: 'Seguro Frente enviada',
+            frontUploading: uploadingInsuranceFront,
+            backUploaded: !!insuranceBackUrl,
+            backUploadedLabel: 'Seguro Verso enviada',
+            backUploading: uploadingInsuranceBack,
+          })}
 
           <TouchableOpacity style={styles.documentButton} onPress={() => pickDocument('insurance')}>
             <Text style={styles.buttonText}>Aguardando envio do seguro</Text>
