@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   View,
@@ -52,6 +53,45 @@ function isDisplayableHttpsDocumentUrl(url: string | undefined): url is string {
   }
 
   return trimmed.startsWith('https://');
+}
+
+interface DocumentSlot {
+  label: string;
+  url: string;
+}
+
+function getUrlExtension(url: string | undefined): string | null {
+  if (!url) {
+    return null;
+  }
+
+  const decoded = decodeURIComponent(url);
+  const match = decoded.match(/\.([a-zA-Z0-9]+)(?:\?|$|\/)/);
+  return match ? match[1].toLowerCase() : null;
+}
+
+function isRasterImageExtension(extension: string | null): boolean {
+  return extension === 'jpg' || extension === 'jpeg' || extension === 'png' || extension === 'gif' || extension === 'webp';
+}
+
+function isExternalOpenExtension(extension: string | null): boolean {
+  return extension === 'heic' || extension === 'pdf';
+}
+
+function buildDocumentSlots(slots: Array<{ label: string; url?: string }>): DocumentSlot[] {
+  const seenUrls = new Set<string>();
+  const result: DocumentSlot[] = [];
+
+  for (const slot of slots) {
+    if (!isDisplayableHttpsDocumentUrl(slot.url) || seenUrls.has(slot.url)) {
+      continue;
+    }
+
+    seenUrls.add(slot.url);
+    result.push({ label: slot.label, url: slot.url });
+  }
+
+  return result;
 }
 
 function renderStatusBadge(status: LocalDocumentReviewStatus) {
@@ -140,10 +180,7 @@ export default function DriverDocumentReviewScreen() {
   const [loading, setLoading] = useState(true);
   const [driver, setDriver] = useState<DeliveryDriver | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [selfieLoadFailed, setSelfieLoadFailed] = useState(false);
-  const [cnhLoadFailed, setCnhLoadFailed] = useState(false);
-  const [vehicleDocumentLoadFailed, setVehicleDocumentLoadFailed] = useState(false);
-  const [insuranceLoadFailed, setInsuranceLoadFailed] = useState(false);
+  const [imageLoadFailedKeys, setImageLoadFailedKeys] = useState<Record<string, boolean>>({});
 
   const [documentReviews, setDocumentReviews] =
     useState<Record<ReviewableDocumentKey, LocalDocumentReview>>(INITIAL_DOCUMENT_REVIEWS);
@@ -177,17 +214,37 @@ export default function DriverDocumentReviewScreen() {
   }, [isAdmin, loadDriver]);
 
   useEffect(() => {
-    setSelfieLoadFailed(false);
-    setCnhLoadFailed(false);
-    setVehicleDocumentLoadFailed(false);
-    setInsuranceLoadFailed(false);
+    setImageLoadFailedKeys({});
   }, [
     driver?.id,
     driver?.documents?.faceImage,
     driver?.documents?.cnhImage,
+    driver?.documents?.cnhFront,
+    driver?.documents?.cnhBack,
     driver?.documents?.vehicleDocument,
+    driver?.documents?.vehicleFront,
+    driver?.documents?.vehicleBack,
     driver?.documents?.insurance,
+    driver?.documents?.insuranceFront,
+    driver?.documents?.insuranceBack,
   ]);
+
+  const openDocumentUrl = useCallback(async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Erro', 'Não foi possível abrir o documento.');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível abrir o documento.');
+    }
+  }, []);
+
+  const markImageLoadFailed = useCallback((slotKey: string) => {
+    setImageLoadFailedKeys((prev) => ({ ...prev, [slotKey]: true }));
+  }, []);
 
   const openRejectModal = useCallback((documentKey: ReviewableDocumentKey) => {
     setActiveDocumentKey(documentKey);
@@ -217,15 +274,62 @@ export default function DriverDocumentReviewScreen() {
     [activeDocumentKey, closeRejectModal]
   );
 
-  const renderDocumentCard = (
+  const renderDocumentPreview = (
+    slotKey: string,
+    url: string,
+    imageStyle: typeof styles.selfieImage | typeof styles.documentImage
+  ) => {
+    const extension = getUrlExtension(url);
+
+    if (isExternalOpenExtension(extension)) {
+      return (
+        <View style={styles.externalFormatBox}>
+          <Text style={styles.externalFormatText}>
+            Arquivo enviado, mas este formato precisa ser aberto externamente.
+          </Text>
+          <Button mode="outlined" onPress={() => openDocumentUrl(url)} style={styles.openDocumentButton}>
+            Abrir documento
+          </Button>
+        </View>
+      );
+    }
+
+    if (isRasterImageExtension(extension) && !imageLoadFailedKeys[slotKey]) {
+      return (
+        <Image
+          source={{ uri: url }}
+          style={imageStyle}
+          resizeMode="contain"
+          onError={() => markImageLoadFailed(slotKey)}
+        />
+      );
+    }
+
+    if (isDisplayableHttpsDocumentUrl(url)) {
+      return (
+        <View style={styles.externalFormatBox}>
+          <Text style={styles.externalFormatText}>
+            Arquivo enviado, mas este formato precisa ser aberto externamente.
+          </Text>
+          <Button mode="outlined" onPress={() => openDocumentUrl(url)} style={styles.openDocumentButton}>
+            Abrir documento
+          </Button>
+        </View>
+      );
+    }
+
+    return <Text style={styles.fallbackText}>Documento não disponível</Text>;
+  };
+
+  const renderDocumentGroupCard = (
     documentKey: ReviewableDocumentKey,
     title: string,
-    imageUrl: string | undefined,
-    canShowImage: boolean,
-    onImageError: () => void,
+    slots: DocumentSlot[],
+    frontBackNote: string | null,
     imageStyle: typeof styles.selfieImage | typeof styles.documentImage
   ) => {
     const review = documentReviews[documentKey];
+    const hasAnyDocument = slots.length > 0;
 
     return (
       <Card style={styles.card} key={documentKey}>
@@ -235,13 +339,15 @@ export default function DriverDocumentReviewScreen() {
             {renderStatusBadge(review.status)}
           </View>
 
-          {canShowImage ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={imageStyle}
-              resizeMode="contain"
-              onError={onImageError}
-            />
+          {frontBackNote ? <Text style={styles.frontBackNote}>{frontBackNote}</Text> : null}
+
+          {hasAnyDocument ? (
+            slots.map((slot) => (
+              <View key={`${documentKey}-${slot.label}`} style={styles.documentSlot}>
+                <Text style={styles.documentSlotLabel}>{slot.label}</Text>
+                {renderDocumentPreview(`${documentKey}-${slot.label}`, slot.url, imageStyle)}
+              </View>
+            ))
           ) : (
             <Text style={styles.fallbackText}>Documento não disponível</Text>
           )}
@@ -256,6 +362,53 @@ export default function DriverDocumentReviewScreen() {
               mode="outlined"
               style={styles.rejectButton}
               onPress={() => openRejectModal(documentKey)}
+            >
+              Reprovar Documento
+            </Button>
+          )}
+        </Card.Content>
+      </Card>
+    );
+  };
+
+  const renderSelfieCard = (faceImageUrl: string | undefined) => {
+    const review = documentReviews.faceImage;
+    const canShowSelfie =
+      isDisplayableHttpsDocumentUrl(faceImageUrl) &&
+      isRasterImageExtension(getUrlExtension(faceImageUrl)) &&
+      !imageLoadFailedKeys.faceImage;
+
+    return (
+      <Card style={styles.card} key="faceImage">
+        <Card.Content>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Selfie</Text>
+            {renderStatusBadge(review.status)}
+          </View>
+
+          {canShowSelfie && faceImageUrl ? (
+            <Image
+              source={{ uri: faceImageUrl }}
+              style={styles.selfieImage}
+              resizeMode="contain"
+              onError={() => markImageLoadFailed('faceImage')}
+            />
+          ) : isDisplayableHttpsDocumentUrl(faceImageUrl) ? (
+            renderDocumentPreview('faceImage', faceImageUrl, styles.selfieImage)
+          ) : (
+            <Text style={styles.fallbackText}>Documento não disponível</Text>
+          )}
+
+          {review.status === 'rejected' && review.rejectionReason ? (
+            <View style={styles.rejectionReasonBox}>
+              <Text style={styles.rejectionReasonLabel}>Motivo da reprovação:</Text>
+              <Text style={styles.rejectionReasonText}>{review.rejectionReason}</Text>
+            </View>
+          ) : (
+            <Button
+              mode="outlined"
+              style={styles.rejectButton}
+              onPress={() => openRejectModal('faceImage')}
             >
               Reprovar Documento
             </Button>
@@ -297,14 +450,40 @@ export default function DriverDocumentReviewScreen() {
   }
 
   const faceImageUrl = driver.documents?.faceImage;
-  const cnhImageUrl = driver.documents?.cnhImage;
-  const vehicleDocumentUrl = driver.documents?.vehicleDocument;
-  const insuranceUrl = driver.documents?.insurance;
-  const canShowSelfie = isDisplayableHttpsDocumentUrl(faceImageUrl) && !selfieLoadFailed;
-  const canShowCnh = isDisplayableHttpsDocumentUrl(cnhImageUrl) && !cnhLoadFailed;
-  const canShowVehicleDocument =
-    isDisplayableHttpsDocumentUrl(vehicleDocumentUrl) && !vehicleDocumentLoadFailed;
-  const canShowInsurance = isDisplayableHttpsDocumentUrl(insuranceUrl) && !insuranceLoadFailed;
+
+  const cnhSlots = buildDocumentSlots([
+    { label: 'Frente', url: driver.documents?.cnhFront },
+    { label: 'Verso', url: driver.documents?.cnhBack },
+    { label: 'Legado', url: driver.documents?.cnhImage },
+  ]);
+
+  const vehicleSlots = buildDocumentSlots([
+    { label: 'Frente', url: driver.documents?.vehicleFront },
+    { label: 'Verso', url: driver.documents?.vehicleBack },
+    { label: 'Legado', url: driver.documents?.vehicleDocument },
+  ]);
+
+  const insuranceSlots = buildDocumentSlots([
+    { label: 'Frente', url: driver.documents?.insuranceFront },
+    { label: 'Verso', url: driver.documents?.insuranceBack },
+    { label: 'Legado', url: driver.documents?.insurance },
+  ]);
+
+  const cnhFrontBackNote =
+    isDisplayableHttpsDocumentUrl(driver.documents?.cnhFront) &&
+    isDisplayableHttpsDocumentUrl(driver.documents?.cnhBack)
+      ? 'CNH com frente e verso disponíveis.'
+      : null;
+  const vehicleFrontBackNote =
+    isDisplayableHttpsDocumentUrl(driver.documents?.vehicleFront) &&
+    isDisplayableHttpsDocumentUrl(driver.documents?.vehicleBack)
+      ? 'Documento do veículo com frente e verso disponíveis.'
+      : null;
+  const insuranceFrontBackNote =
+    isDisplayableHttpsDocumentUrl(driver.documents?.insuranceFront) &&
+    isDisplayableHttpsDocumentUrl(driver.documents?.insuranceBack)
+      ? 'Seguro com frente e verso disponíveis.'
+      : null;
 
   const activeDocumentLabel = activeDocumentKey ? DOCUMENT_LABELS[activeDocumentKey] : '';
 
@@ -331,39 +510,29 @@ export default function DriverDocumentReviewScreen() {
           </Card.Content>
         </Card>
 
-        {renderDocumentCard(
-          'faceImage',
-          'Selfie',
-          faceImageUrl,
-          canShowSelfie,
-          () => setSelfieLoadFailed(true),
-          styles.selfieImage
-        )}
+        {renderSelfieCard(faceImageUrl)}
 
-        {renderDocumentCard(
+        {renderDocumentGroupCard(
           'cnhImage',
           'CNH',
-          cnhImageUrl,
-          canShowCnh,
-          () => setCnhLoadFailed(true),
+          cnhSlots,
+          cnhFrontBackNote,
           styles.documentImage
         )}
 
-        {renderDocumentCard(
+        {renderDocumentGroupCard(
           'vehicleDocument',
           'Documento do Veículo',
-          vehicleDocumentUrl,
-          canShowVehicleDocument,
-          () => setVehicleDocumentLoadFailed(true),
+          vehicleSlots,
+          vehicleFrontBackNote,
           styles.documentImage
         )}
 
-        {renderDocumentCard(
+        {renderDocumentGroupCard(
           'insurance',
           'Seguro',
-          insuranceUrl,
-          canShowInsurance,
-          () => setInsuranceLoadFailed(true),
+          insuranceSlots,
+          insuranceFrontBackNote,
           styles.documentImage
         )}
       </ScrollView>
@@ -460,6 +629,37 @@ const styles = StyleSheet.create({
   fallbackText: {
     fontSize: 14,
     color: '#888',
+  },
+  frontBackNote: {
+    fontSize: 13,
+    color: '#1565C0',
+    marginBottom: 12,
+    fontWeight: '600',
+  },
+  documentSlot: {
+    marginBottom: 16,
+  },
+  documentSlotLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 8,
+  },
+  externalFormatBox: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFF8E1',
+    borderWidth: 1,
+    borderColor: '#FFE082',
+  },
+  externalFormatText: {
+    fontSize: 14,
+    color: '#6D4C41',
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+  openDocumentButton: {
+    alignSelf: 'flex-start',
   },
   rejectionReasonBox: {
     marginTop: 12,
