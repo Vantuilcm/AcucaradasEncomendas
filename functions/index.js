@@ -563,8 +563,8 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
 
       switch (event.type) {
         case 'payment_intent.succeeded':
-          // Evita sobrescrever se já foi processado
-          if (orderData.status === 'paid' && orderData.paymentStatus === 'completed') {
+          // Evita sobrescrever se já foi processado (legado: status paid; atual: status confirmed)
+          if (orderData.paymentStatus === 'completed') {
             console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já estava pago. Ignorando.`);
             break;
           }
@@ -573,7 +573,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           
           let payoutStatus = 'pending';
           const updates = {
-            status: 'paid',
+            status: 'confirmed',
             paymentStatus: 'completed',
             paymentIntentId: paymentIntent.id,
             paidAt: admin.firestore.FieldValue.serverTimestamp(),
