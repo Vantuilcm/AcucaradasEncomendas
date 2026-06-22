@@ -744,17 +744,46 @@ export default function DeliveryDriverRegistration() {
 
       submitPhase = 'upload_insurance';
       logSubmitPhase(submitPhase);
-      const insuranceUrl =
-        requirements.insurance && documents.insurance
-          ? await uploadFile(
-              documents.insurance.uri,
+      let insuranceUrl = '';
+      let insuranceResolveBranch = 'not_required';
+
+      if (requirements.insurance) {
+        if (insuranceFrontUrl) {
+          insuranceUrl = insuranceFrontUrl;
+          insuranceResolveBranch = 'insuranceFrontUrl';
+        } else if (existing?.documents?.insuranceFront) {
+          insuranceUrl = existing.documents.insuranceFront;
+          insuranceResolveBranch = 'existing_insuranceFront';
+        } else if (existing?.documents?.insurance) {
+          insuranceUrl = existing.documents.insurance;
+          insuranceResolveBranch = 'existing_insurance';
+        } else if (documents.insurance?.uri) {
+          const insuranceUri = documents.insurance.uri;
+          const isExistingRemoteUrl =
+            insuranceUri.startsWith('http://') || insuranceUri.startsWith('https://');
+
+          if (isExistingRemoteUrl) {
+            insuranceUrl = insuranceUri;
+            insuranceResolveBranch = 'documents_insurance_https';
+          } else {
+            insuranceUrl = await uploadFile(
+              insuranceUri,
               `${basePath}/insurance.${documents.insurance.name?.split('.').pop() || 'jpg'}`,
               documents.insurance.mimeType
-            )
-          : insuranceFrontUrl ||
-            existing?.documents?.insuranceFront ||
-            existing?.documents?.insurance ||
-            '';
+            );
+            insuranceResolveBranch = 'uploadFile_legacy_local';
+          }
+        } else {
+          insuranceResolveBranch = 'empty';
+        }
+      }
+
+      console.error('[DRIVER_INSURANCE_RESOLVE]', {
+        branch: insuranceResolveBranch,
+        hasInsuranceFrontUrl: !!insuranceFrontUrl,
+        hasDocumentsInsurance: !!documents.insurance,
+        uriScheme: documents.insurance?.uri?.split(':')[0] ?? null,
+      });
 
       submitPhase = 'build_payload';
       logSubmitPhase(submitPhase);
