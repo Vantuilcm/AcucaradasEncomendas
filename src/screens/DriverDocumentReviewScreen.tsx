@@ -13,9 +13,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { usePermissions } from '../hooks/usePermissions';
+import { useAuth } from '../contexts/AuthContext';
+import { db, f } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { DeliveryDriver } from '../types/DeliveryDriver';
 import { useAppTheme } from '../components/ThemeProvider';
+
+const { doc, updateDoc } = f;
 
 type DriverDocumentReviewRouteProp = RouteProp<RootStackParamList, 'DriverDocumentReview'>;
 
@@ -27,6 +31,24 @@ interface LocalDocumentReview {
   status: LocalDocumentReviewStatus;
   rejectionReason?: string;
 }
+
+interface StoredDocumentReview {
+  status: LocalDocumentReviewStatus;
+  rejectionReason?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+}
+
+type DriverWithDocumentReviews = DeliveryDriver & {
+  documentReviews?: Partial<Record<ReviewableDocumentKey, StoredDocumentReview>>;
+};
+
+const REVIEWABLE_DOCUMENT_KEYS: ReviewableDocumentKey[] = [
+  'faceImage',
+  'cnhImage',
+  'vehicleDocument',
+  'insurance',
+];
 
 const INITIAL_DOCUMENT_REVIEWS: Record<ReviewableDocumentKey, LocalDocumentReview> = {
   faceImage: { status: 'pending' },
@@ -41,6 +63,47 @@ const DOCUMENT_LABELS: Record<ReviewableDocumentKey, string> = {
   vehicleDocument: 'Documento do Veículo',
   insurance: 'Seguro',
 };
+
+function mergeDocumentReviewsFromFirestore(
+  firestoreReviews: Partial<Record<ReviewableDocumentKey, StoredDocumentReview>> | undefined
+): Record<ReviewableDocumentKey, LocalDocumentReview> {
+  const merged: Record<ReviewableDocumentKey, LocalDocumentReview> = {
+    ...INITIAL_DOCUMENT_REVIEWS,
+  };
+
+  if (!firestoreReviews) {
+    return merged;
+  }
+
+  for (const documentKey of REVIEWABLE_DOCUMENT_KEYS) {
+    const stored = firestoreReviews[documentKey];
+    if (!stored || !stored.status) {
+      continue;
+    }
+
+    if (stored.status !== 'pending' && stored.status !== 'approved' && stored.status !== 'rejected') {
+      continue;
+    }
+
+    merged[documentKey] = {
+      status: stored.status,
+      ...(stored.rejectionReason ? { rejectionReason: stored.rejectionReason } : {}),
+    };
+  }
+
+  return merged;
+}
+
+async function persistDocumentReview(
+  driverId: string,
+  documentKey: ReviewableDocumentKey,
+  review: StoredDocumentReview
+): Promise<void> {
+  const driverRef = doc(db, 'delivery_drivers', driverId);
+  await updateDoc(driverRef, {
+    [`documentReviews.${documentKey}`]: review,
+  });
+}
 
 function isDisplayableHttpsDocumentUrl(url: string | undefined): url is string {
   if (!url || typeof url !== 'string') {
@@ -190,6 +253,7 @@ const RejectDocumentModal = React.memo(function RejectDocumentModal({
 export default function DriverDocumentReviewScreen() {
   const route = useRoute<DriverDocumentReviewRouteProp>();
   const { driverId } = route.params;
+  const { user } = useAuth();
   const { isAdmin } = usePermissions();
   const { theme } = useAppTheme();
   const driverService = useMemo(() => new DeliveryDriverService(), []);
@@ -213,6 +277,7 @@ export default function DriverDocumentReviewScreen() {
     setLoading(true);
     setNotFound(false);
     setDriver(null);
+    setDocumentReviews(INITIAL_DOCUMENT_REVIEWS);
 
     try {
       const data = await driverService.getDriverById(driverId);
@@ -221,6 +286,8 @@ export default function DriverDocumentReviewScreen() {
         return;
       }
       setDriver(data);
+      const driverWithReviews = data as DriverWithDocumentReviews;
+      setDocumentReviews(mergeDocumentReviewsFromFirestore(driverWithReviews.documentReviews));
     } catch {
       setNotFound(true);
     } finally {
@@ -268,12 +335,40 @@ export default function DriverDocumentReviewScreen() {
     setImageLoadFailedKeys((prev) => ({ ...prev, [slotKey]: true }));
   }, []);
 
-  const handleApproveDocument = useCallback((documentKey: ReviewableDocumentKey) => {
-    setDocumentReviews((prev) => ({
-      ...prev,
-      [documentKey]: { status: 'approved' },
-    }));
-  }, []);
+  const handleApproveDocument = useCallback(
+    async (documentKey: ReviewableDocumentKey) => {
+      const adminUid = user?.uid;
+      if (!adminUid) {
+        Alert.alert('Erro', 'Usuário administrador não identificado.');
+        return;
+      }
+
+      const reviewedAt = new Date().toISOString();
+      let previousReviews: Record<ReviewableDocumentKey, LocalDocumentReview> | null = null;
+
+      setDocumentReviews((prev) => {
+        previousReviews = prev;
+        return {
+          ...prev,
+          [documentKey]: { status: 'approved' },
+        };
+      });
+
+      try {
+        await persistDocumentReview(driverId, documentKey, {
+          status: 'approved',
+          reviewedAt,
+          reviewedBy: adminUid,
+        });
+      } catch {
+        if (previousReviews) {
+          setDocumentReviews(previousReviews);
+        }
+        Alert.alert('Erro', 'Não foi possível salvar a aprovação. Tente novamente.');
+      }
+    },
+    [driverId, user?.uid]
+  );
 
   const openRejectModal = useCallback((documentKey: ReviewableDocumentKey) => {
     setActiveDocumentKey(documentKey);
@@ -286,22 +381,48 @@ export default function DriverDocumentReviewScreen() {
   }, []);
 
   const handleRejectConfirm = useCallback(
-    (reason: string) => {
+    async (reason: string) => {
       const documentKey = activeDocumentKeyRef.current;
       if (!documentKey) {
         return;
       }
 
-      setDocumentReviews((prev) => ({
-        ...prev,
-        [documentKey]: {
+      const adminUid = user?.uid;
+      if (!adminUid) {
+        Alert.alert('Erro', 'Usuário administrador não identificado.');
+        return;
+      }
+
+      const reviewedAt = new Date().toISOString();
+      let previousReviews: Record<ReviewableDocumentKey, LocalDocumentReview> | null = null;
+
+      setDocumentReviews((prev) => {
+        previousReviews = prev;
+        return {
+          ...prev,
+          [documentKey]: {
+            status: 'rejected',
+            rejectionReason: reason,
+          },
+        };
+      });
+
+      try {
+        await persistDocumentReview(driverId, documentKey, {
           status: 'rejected',
           rejectionReason: reason,
-        },
-      }));
-      closeRejectModal();
+          reviewedAt,
+          reviewedBy: adminUid,
+        });
+        closeRejectModal();
+      } catch {
+        if (previousReviews) {
+          setDocumentReviews(previousReviews);
+        }
+        Alert.alert('Erro', 'Não foi possível salvar a reprovação. Tente novamente.');
+      }
     },
-    [closeRejectModal]
+    [closeRejectModal, driverId, user?.uid]
   );
 
   const renderDocumentActions = (documentKey: ReviewableDocumentKey) => {
