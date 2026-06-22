@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,7 +21,7 @@ type DriverDocumentReviewRouteProp = RouteProp<RootStackParamList, 'DriverDocume
 
 type ReviewableDocumentKey = 'faceImage' | 'cnhImage' | 'vehicleDocument' | 'insurance';
 
-type LocalDocumentReviewStatus = 'pending' | 'rejected';
+type LocalDocumentReviewStatus = 'pending' | 'approved' | 'rejected';
 
 interface LocalDocumentReview {
   status: LocalDocumentReviewStatus;
@@ -96,11 +96,30 @@ function buildDocumentSlots(slots: Array<{ label: string; url?: string }>): Docu
 
 function renderStatusBadge(status: LocalDocumentReviewStatus) {
   const isRejected = status === 'rejected';
+  const isApproved = status === 'approved';
 
   return (
-    <View style={[styles.statusBadge, isRejected ? styles.statusBadgeRejected : styles.statusBadgePending]}>
-      <Text style={[styles.statusBadgeText, isRejected ? styles.statusBadgeTextRejected : styles.statusBadgeTextPending]}>
-        {isRejected ? 'Reprovado' : 'Pendente'}
+    <View
+      style={[
+        styles.statusBadge,
+        isRejected
+          ? styles.statusBadgeRejected
+          : isApproved
+            ? styles.statusBadgeApproved
+            : styles.statusBadgePending,
+      ]}
+    >
+      <Text
+        style={[
+          styles.statusBadgeText,
+          isRejected
+            ? styles.statusBadgeTextRejected
+            : isApproved
+              ? styles.statusBadgeTextApproved
+              : styles.statusBadgeTextPending,
+        ]}
+      >
+        {isRejected ? 'Reprovado' : isApproved ? 'Aprovado' : 'Pendente'}
       </Text>
     </View>
   );
@@ -120,12 +139,14 @@ const RejectDocumentModal = React.memo(function RejectDocumentModal({
   onConfirm,
 }: RejectDocumentModalProps) {
   const [draft, setDraft] = useState('');
+  const wasVisibleRef = useRef(false);
 
   useEffect(() => {
-    if (visible) {
+    if (visible && !wasVisibleRef.current) {
       setDraft('');
     }
-  }, [visible, documentLabel]);
+    wasVisibleRef.current = visible;
+  }, [visible]);
 
   const handleConfirm = () => {
     const trimmedReason = draft.trim();
@@ -135,10 +156,6 @@ const RejectDocumentModal = React.memo(function RejectDocumentModal({
     }
     onConfirm(trimmedReason);
   };
-
-  if (!visible) {
-    return null;
-  }
 
   return (
     <Portal>
@@ -186,6 +203,11 @@ export default function DriverDocumentReviewScreen() {
     useState<Record<ReviewableDocumentKey, LocalDocumentReview>>(INITIAL_DOCUMENT_REVIEWS);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [activeDocumentKey, setActiveDocumentKey] = useState<ReviewableDocumentKey | null>(null);
+  const activeDocumentKeyRef = useRef<ReviewableDocumentKey | null>(null);
+
+  useEffect(() => {
+    activeDocumentKeyRef.current = activeDocumentKey;
+  }, [activeDocumentKey]);
 
   const loadDriver = useCallback(async () => {
     setLoading(true);
@@ -246,6 +268,13 @@ export default function DriverDocumentReviewScreen() {
     setImageLoadFailedKeys((prev) => ({ ...prev, [slotKey]: true }));
   }, []);
 
+  const handleApproveDocument = useCallback((documentKey: ReviewableDocumentKey) => {
+    setDocumentReviews((prev) => ({
+      ...prev,
+      [documentKey]: { status: 'approved' },
+    }));
+  }, []);
+
   const openRejectModal = useCallback((documentKey: ReviewableDocumentKey) => {
     setActiveDocumentKey(documentKey);
     setRejectModalVisible(true);
@@ -258,21 +287,62 @@ export default function DriverDocumentReviewScreen() {
 
   const handleRejectConfirm = useCallback(
     (reason: string) => {
-      if (!activeDocumentKey) {
+      const documentKey = activeDocumentKeyRef.current;
+      if (!documentKey) {
         return;
       }
 
       setDocumentReviews((prev) => ({
         ...prev,
-        [activeDocumentKey]: {
+        [documentKey]: {
           status: 'rejected',
           rejectionReason: reason,
         },
       }));
       closeRejectModal();
     },
-    [activeDocumentKey, closeRejectModal]
+    [closeRejectModal]
   );
+
+  const renderDocumentActions = (documentKey: ReviewableDocumentKey) => {
+    const review = documentReviews[documentKey];
+
+    if (review.status === 'rejected' && review.rejectionReason) {
+      return (
+        <View style={styles.rejectionReasonBox}>
+          <Text style={styles.rejectionReasonLabel}>Motivo da reprovação:</Text>
+          <Text style={styles.rejectionReasonText}>{review.rejectionReason}</Text>
+        </View>
+      );
+    }
+
+    if (review.status === 'approved') {
+      return (
+        <View style={styles.approvalReasonBox}>
+          <Text style={styles.approvalReasonText}>Documento aprovado.</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.documentActionsRow}>
+        <Button
+          mode="contained"
+          style={styles.approveButton}
+          onPress={() => handleApproveDocument(documentKey)}
+        >
+          Aprovar Documento
+        </Button>
+        <Button
+          mode="outlined"
+          style={styles.rejectButton}
+          onPress={() => openRejectModal(documentKey)}
+        >
+          Reprovar Documento
+        </Button>
+      </View>
+    );
+  };
 
   const renderDocumentPreview = (
     slotKey: string,
@@ -352,20 +422,7 @@ export default function DriverDocumentReviewScreen() {
             <Text style={styles.fallbackText}>Documento não disponível</Text>
           )}
 
-          {review.status === 'rejected' && review.rejectionReason ? (
-            <View style={styles.rejectionReasonBox}>
-              <Text style={styles.rejectionReasonLabel}>Motivo da reprovação:</Text>
-              <Text style={styles.rejectionReasonText}>{review.rejectionReason}</Text>
-            </View>
-          ) : (
-            <Button
-              mode="outlined"
-              style={styles.rejectButton}
-              onPress={() => openRejectModal(documentKey)}
-            >
-              Reprovar Documento
-            </Button>
-          )}
+          {renderDocumentActions(documentKey)}
         </Card.Content>
       </Card>
     );
@@ -399,20 +456,7 @@ export default function DriverDocumentReviewScreen() {
             <Text style={styles.fallbackText}>Documento não disponível</Text>
           )}
 
-          {review.status === 'rejected' && review.rejectionReason ? (
-            <View style={styles.rejectionReasonBox}>
-              <Text style={styles.rejectionReasonLabel}>Motivo da reprovação:</Text>
-              <Text style={styles.rejectionReasonText}>{review.rejectionReason}</Text>
-            </View>
-          ) : (
-            <Button
-              mode="outlined"
-              style={styles.rejectButton}
-              onPress={() => openRejectModal('faceImage')}
-            >
-              Reprovar Documento
-            </Button>
-          )}
+          {renderDocumentActions('faceImage')}
         </Card.Content>
       </Card>
     );
@@ -604,6 +648,9 @@ const styles = StyleSheet.create({
   statusBadgeRejected: {
     backgroundColor: '#FFEBEE',
   },
+  statusBadgeApproved: {
+    backgroundColor: '#E8F5E9',
+  },
   statusBadgeText: {
     fontSize: 12,
     fontWeight: '600',
@@ -613,6 +660,9 @@ const styles = StyleSheet.create({
   },
   statusBadgeTextRejected: {
     color: '#C62828',
+  },
+  statusBadgeTextApproved: {
+    color: '#2E7D32',
   },
   selfieImage: {
     width: '100%',
@@ -679,6 +729,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#424242',
     lineHeight: 20,
+  },
+  approvalReasonBox: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#F1F8E9',
+    borderWidth: 1,
+    borderColor: '#C5E1A5',
+  },
+  approvalReasonText: {
+    fontSize: 14,
+    color: '#33691E',
+    lineHeight: 20,
+  },
+  documentActionsRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  approveButton: {
+    alignSelf: 'flex-start',
   },
   rejectButton: {
     marginTop: 12,
