@@ -91,6 +91,7 @@ export interface ProductFilter {
   ordenarPor?: string;
   ordem?: 'asc' | 'desc';
   limite?: number;
+  producerId?: string;
 }
 
 export interface ProductStats {

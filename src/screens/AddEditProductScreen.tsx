@@ -194,6 +194,7 @@ export function AddEditProductScreen() {
       
       // Preparar payload. Valores vazios não numéricos serão deixados como undefined para o ProductService limpar.
       const payload: Partial<Product> = {
+        producerId,
         nome: productData.name,
         descricao: productData.description,
         preco: parseFloat(productData.price),
