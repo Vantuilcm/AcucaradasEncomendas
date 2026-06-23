@@ -58,7 +58,7 @@ export function ScheduledOrdersScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
   const { user } = useAuth();
-  const { isEntregador } = usePermissions();
+  const { isEntregador, isProdutor, isAdmin } = usePermissions();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,11 +91,13 @@ export function ScheduledOrdersScreen() {
       }
 
       const orderService = OrderService.getInstance();
-      const filters = { isScheduled: true };
       const userId = (user as any)?.id || (user as any)?.uid;
       if (!userId) {
         throw new Error('Usuário não autenticado');
       }
+
+      const isScheduledOrder = (order: Order) =>
+        order.isScheduledOrder && !!order.scheduledDelivery;
 
       let ordersData: Order[] = [];
       if (isEntregador) {
@@ -104,9 +106,20 @@ export function ScheduledOrdersScreen() {
         if (!driver) {
           throw new Error('Entregador não encontrado');
         }
-        ordersData = await orderService.getOrdersByDeliveryDriver(driver.id, filters);
+        ordersData = (await orderService.getOrdersByDeliveryDriver(driver.id)).filter(isScheduledOrder);
+      } else if (isProdutor || isAdmin) {
+        const allOrders = await orderService.getOrders();
+        ordersData = allOrders.filter(order => {
+          if (!isScheduledOrder(order)) {
+            return false;
+          }
+          if (isAdmin) {
+            return true;
+          }
+          return order.producerId === userId;
+        });
       } else {
-        ordersData = await orderService.getUserOrders(userId, filters);
+        ordersData = (await orderService.getUserOrders(userId)).filter(isScheduledOrder);
       }
 
       setOrders(ordersData);
