@@ -1,4 +1,4 @@
-import { dbFunctions } from '../config/firebase';
+import { dbFunctions, getAuth } from '../config/firebase';
 const f = dbFunctions;
 import { Product, ProductFilter, ProductStats } from '../types/Product';
 import { loggingService } from './LoggingService';
@@ -53,9 +53,12 @@ export class ProductService {
       // Criar referência para novo documento com auto-id seguro no Firestore v9
       const docRef = f.doc(f.collection(this.collectionName));
 
+      const producerId = dados.producerId || getAuth().currentUser?.uid;
+
       // Preparar dados do produto
       const novoProduto: Product = {
         id: docRef.id,
+        producerId,
         nome: dados.nome,
         descricao: dados.descricao || '',
         preco: dados.preco,
@@ -137,6 +140,9 @@ export class ProductService {
       let q = f.query(produtosRef);
 
       if (filtro) {
+        if (filtro.producerId) {
+          q = f.query(q, f.where('producerId', '==', filtro.producerId));
+        }
         if (filtro.categoria) {
           q = f.query(q, f.where('categoria', '==', filtro.categoria));
         }
