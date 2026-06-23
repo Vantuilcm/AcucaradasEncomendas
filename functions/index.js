@@ -36,11 +36,19 @@ function getStripeSecret() {
 }
 
 function getWebhookSecret() {
-  try {
-    return functions.config().stripe.webhook_secret;
-  } catch (e) {
-    return null;
+  // 1. Secret Manager binding (firebase-functions v7 / runWith secrets)
+  let webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || null;
+
+  // 2. Fallback legado — functions.config() removido em firebase-functions v7
+  if (!webhookSecret) {
+    try {
+      webhookSecret = functions.config().stripe?.webhook_secret;
+    } catch (e) {
+      // Ignora erro se functions.config() não estiver disponível
+    }
   }
+
+  return webhookSecret;
 }
 
 const db = admin.firestore();
@@ -495,8 +503,11 @@ exports.createPaymentIntent = functions
 /**
  * Stripe Webhook: Ouve eventos assíncronos de pagamento
  * IMPORTANTE: É onRequest (HTTP puro), não onCall.
+ * STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET injetadas via Secret Manager.
  */
-exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
+exports.stripeWebhook = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'] })
+  .https.onRequest(async (req, res) => {
   const stripe = require('stripe')(getStripeSecret());
   const endpointSecret = getWebhookSecret();
 
@@ -908,7 +919,9 @@ exports.onOrderUpdateGrowth = functions.firestore
  * TRIGGER: Repasse ao Entregador (Split do Marketplace)
  * Disparado apenas quando a entrega é concluída com sucesso.
  */
-exports.onOrderDelivered = functions.firestore
+exports.onOrderDelivered = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .firestore
   .document('orders/{orderId}')
   .onUpdate(async (change, context) => {
     const newData = change.after.data();

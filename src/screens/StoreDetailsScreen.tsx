@@ -65,11 +65,10 @@ export function StoreDetailsScreen() {
     try {
       await addItem({
         productId: product.id,
-        productName: product.nome,
+        name: product.nome,
+        producerId: store?.producerId || product.producerId,
         price: product.preco,
         quantity: 1,
-        storeId: product.producerId,
-        storeName: store?.name || 'Loja',
         image: product.imagens?.[0]
       });
       // Um pequeno feedback visual poderia ir aqui (ex: Snackbar)

@@ -355,6 +355,7 @@ export class OrderService {
         const updatedAt = new Date().toISOString();
         const updatePayload = {
           deliveryDriver: driverData,
+          deliveryDriverId: driverData.userId || driverData.id,
           updatedAt
         };
 
