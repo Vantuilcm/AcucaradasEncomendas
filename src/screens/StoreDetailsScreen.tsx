@@ -39,12 +39,14 @@ export function StoreDetailsScreen() {
         const storeService = new StoreService();
         const productService = ProductService.getInstance();
 
-        const [storeData, productsData] = await Promise.all([
-          storeService.getStoreByProducerId(storeId),
-          productService.listarProdutos({ producerId: storeId } as any)
-        ]);
-
+        const storeData = await storeService.getStoreById(storeId);
         setStore(storeData);
+
+        const producerId = storeData?.producerId || (storeData as any)?.ownerId;
+        const productsData = producerId
+          ? await productService.listarProdutos({ producerId } as any)
+          : [];
+
         setProducts(productsData || []);
       } catch (error) {
         console.error('Erro ao carregar dados da loja:', error);

@@ -13,6 +13,26 @@ export class StoreService {
     return uid;
   }
 
+  async getStoreById(storeId: string): Promise<Store | null> {
+    try {
+      if (!storeId?.trim()) {
+        return null;
+      }
+
+      const docRef = f.doc(this.collectionName, storeId);
+      const docSnap = await f.getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        return null;
+      }
+
+      return { id: docSnap.id, ...docSnap.data() } as Store;
+    } catch (error) {
+      loggingService.error('Erro ao buscar loja por ID', { storeId, error });
+      return null;
+    }
+  }
+
   async getStoreByProducerId(producerId: string): Promise<Store | null> {
     try {
       const uid = producerId || this.getAuthUid();
@@ -93,36 +113,8 @@ export class StoreService {
     }
   }
 
-  // Método para obter uma loja "padrão" se não houver producerId (para compatibilidade com itens antigos)
+  // Sem fallback global — evita retornar a primeira loja da coleção
   async getDefaultStore(): Promise<Store | null> {
-    try {
-      const q = f.query(f.collection(this.collectionName), f.limit(1));
-      const snapshot = await f.getDocs(q);
-      if (!snapshot.empty) {
-        const firstDoc = snapshot.docs[0];
-        return { id: firstDoc.id, ...firstDoc.data() } as Store;
-      }
-      
-      return {
-        id: 'default_store',
-        producerId: 'default_producer',
-        name: 'Açucaradas Encomendas',
-        isOpen: true,
-        leadTime: 60,
-        cutoffTime: '18:00',
-        businessHours: {
-          0: { open: '08:00', close: '12:00', isClosed: false },
-          1: { open: '08:00', close: '18:00', isClosed: false },
-          2: { open: '08:00', close: '18:00', isClosed: false },
-          3: { open: '08:00', close: '18:00', isClosed: false },
-          4: { open: '08:00', close: '18:00', isClosed: false },
-          5: { open: '08:00', close: '18:00', isClosed: false },
-          6: { open: '08:00', close: '14:00', isClosed: false },
-        }
-      };
-    } catch (error) {
-      loggingService.error('Erro ao buscar loja padrão', { error });
-      return null;
-    }
+    return null;
   }
 }
