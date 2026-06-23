@@ -39,6 +39,7 @@ import AdminPanelScreen from '../screens/AdminPanelScreen';
 import { StorePreviewScreen } from '../screens/StorePreviewScreen';
 import { ProductManagementScreen } from '../screens/ProductManagementScreen';
 import { OrderManagementScreen } from '../screens/OrderManagementScreen';
+import { ScheduledOrdersScreen } from '../screens/ScheduledOrdersScreen';
 import { ReportsScreen } from '../screens/ReportsScreen';
 import { StoreHoursScreen } from '../screens/StoreHoursScreen';
 import { InventoryManagementScreen } from '../screens/InventoryManagementScreen';
@@ -101,6 +102,7 @@ export type RootStackParamList = {
   StoreHours: undefined;
   InventoryManagement: undefined;
   OrderManagement: undefined;
+  ScheduledOrders: undefined;
   DriverApprovalManagement: undefined;
   DriverDocumentReview: { driverId: string };
   AddEditProduct: undefined;
@@ -402,6 +404,11 @@ const AppNavigator = () => {
                   name="OrderManagement"
                   component={OrderManagementScreen}
                   options={{ title: 'Gerenciar Pedidos' }}
+                />
+                <Stack.Screen
+                  name="ScheduledOrders"
+                  component={ScheduledOrdersScreen}
+                  options={{ title: 'Pedidos Agendados' }}
                 />
                 <Stack.Screen
                   name="DriverApprovalManagement"
