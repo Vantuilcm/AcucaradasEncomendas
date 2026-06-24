@@ -1,6 +1,12 @@
 import { f, getAuth } from '../config/firebase';
+import * as Location from 'expo-location';
 import { Store } from '../types/Store';
 import { loggingService } from './LoggingService';
+
+type StoreGeoPayload = {
+  address?: string;
+  coordinates?: { latitude: number; longitude: number };
+};
 
 export class StoreService {
   private readonly collectionName = 'stores';
@@ -11,6 +17,57 @@ export class StoreService {
       throw new Error('Usuário não autenticado no Firebase Auth');
     }
     return uid;
+  }
+
+  private async resolveCoordinatesFromAddress(
+    address?: string
+  ): Promise<{ latitude: number; longitude: number } | undefined> {
+    const trimmed = address?.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    try {
+      const results = await Location.geocodeAsync(trimmed);
+      if (!results?.length) {
+        loggingService.warn('Geocoding sem resultados para endereço da loja', { address: trimmed });
+        return undefined;
+      }
+
+      const { latitude, longitude } = results[0];
+      if (
+        latitude == null ||
+        longitude == null ||
+        Number.isNaN(latitude) ||
+        Number.isNaN(longitude)
+      ) {
+        return undefined;
+      }
+
+      return { latitude, longitude };
+    } catch (error) {
+      loggingService.warn('Falha no geocoding do endereço da loja', { address: trimmed, error });
+      return undefined;
+    }
+  }
+
+  private async enrichStoreDataWithCoordinates<T extends StoreGeoPayload>(
+    storeData: T
+  ): Promise<T> {
+    if (!storeData.address?.trim()) {
+      return storeData;
+    }
+
+    const coordinates = await this.resolveCoordinatesFromAddress(storeData.address);
+    if (!coordinates) {
+      return storeData;
+    }
+
+    return {
+      ...storeData,
+      address: storeData.address.trim(),
+      coordinates,
+    };
   }
 
   async getStoreById(storeId: string): Promise<Store | null> {
@@ -71,10 +128,12 @@ export class StoreService {
     try {
       const uid = this.getAuthUid();
       const storeRef = f.doc(this.collectionName, storeId);
+
+      const withCoordinates = await this.enrichStoreDataWithCoordinates(storeData as StoreGeoPayload);
       
       // ETAPA 3 — PADRONIZAÇÃO STORES NO UPDATE (BUILD 1161)
       const updatedData = {
-        ...storeData,
+        ...withCoordinates,
         ownerId: uid,
         userId: uid,
         producerId: uid,
@@ -93,9 +152,10 @@ export class StoreService {
   async createStore(storeData: Omit<Store, 'id'>): Promise<string> {
     try {
       const uid = this.getAuthUid();
+      const withCoordinates = await this.enrichStoreDataWithCoordinates(storeData as StoreGeoPayload);
       // ETAPA 3 — PADRONIZAÇÃO STORES NA CRIAÇÃO (BUILD 1161)
       const normalizedData = {
-        ...storeData,
+        ...withCoordinates,
         ownerId: uid,
         userId: uid,
         producerId: uid,

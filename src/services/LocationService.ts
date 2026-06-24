@@ -117,6 +117,29 @@ export class LocationService {
   }
 
   /**
+   * Normaliza coordenadas da loja (schema oficial + legado).
+   */
+  private resolveStoreCoordinates(data: any): GeoCoordinates | null {
+    if (data?.coordinates?.latitude != null && data?.coordinates?.longitude != null) {
+      const latitude = Number(data.coordinates.latitude);
+      const longitude = Number(data.coordinates.longitude);
+      if (!Number.isNaN(latitude) && !Number.isNaN(longitude)) {
+        return { latitude, longitude };
+      }
+    }
+
+    if (data?.latitude != null && data?.longitude != null) {
+      const latitude = Number(data.latitude);
+      const longitude = Number(data.longitude);
+      if (!Number.isNaN(latitude) && !Number.isNaN(longitude)) {
+        return { latitude, longitude };
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Busca todas as lojas próximas à localização informada
    * @param coordinates Coordenadas geográficas centrais
    * @param radius Raio de busca em km
@@ -137,17 +160,21 @@ export class LocationService {
       
       querySnapshot.forEach((doc: any) => {
         const data = doc.data();
+        const storeCoordinates = this.resolveStoreCoordinates(data);
+        if (!storeCoordinates) {
+          return;
+        }
+
         const store: Store = {
           id: doc.id,
           name: data.name,
           address: data.address,
-          coordinates: data.coordinates,
+          coordinates: storeCoordinates,
           isOpen: data.isOpen,
-          openingHours: data.openingHours,
+          openingHours: data.openingHours || data.businessHours,
         };
 
-        // Calcular distância
-        const distance = this.calculateDistance(coordinates, store.coordinates);
+        const distance = this.calculateDistance(coordinates, storeCoordinates);
         
         if (distance <= radius) {
           if (!onlyOpen || store.isOpen) {
@@ -215,6 +242,15 @@ export class LocationService {
    * @returns Distância em km
    */
   private calculateDistance(p1: GeoCoordinates, p2: GeoCoordinates): number {
+    if (
+      p1?.latitude == null ||
+      p1?.longitude == null ||
+      p2?.latitude == null ||
+      p2?.longitude == null
+    ) {
+      return Number.POSITIVE_INFINITY;
+    }
+
     const R = 6371; // Raio da Terra em km
     const dLat = this.deg2rad(p2.latitude - p1.latitude);
     const dLon = this.deg2rad(p2.longitude - p1.longitude);

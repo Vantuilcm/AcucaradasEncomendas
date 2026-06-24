@@ -33,6 +33,28 @@ export const StoreHoursScreen = () => {
 
   const storeService = useMemo(() => new StoreService(), []);
 
+  const getProducerAddress = () => {
+    if (!user) return undefined;
+    const profile = user as any;
+    return profile.address || profile.endereco?.[0]?.logradouro || undefined;
+  };
+
+  const buildStorePayload = (extra: Record<string, unknown> = {}) => {
+    const producerAddress = getProducerAddress();
+    return {
+      producerId: '',
+      name: storeName || `Loja de ${(user as any)?.nome || 'Produtor'}`,
+      description: storeDescription,
+      logo: logo || '',
+      banner: banner || '',
+      ...(producerAddress ? { address: producerAddress } : {}),
+      isOpen: true,
+      leadTime: 60,
+      businessHours,
+      ...extra,
+    };
+  };
+
   useEffect(() => {
     const loadHours = async () => {
       if (!user) return;
@@ -102,15 +124,9 @@ export const StoreHoursScreen = () => {
       } else {
         // Se a loja não existe, criar com a imagem
         console.log('🚀 [STORE_HOURS] Loja não existe, criando via Upload');
-        const newStoreId = await storeService.createStore({
-          producerId: '', // Será preenchido pelo service usando Auth UID
-          name: storeName || `Loja de ${user.nome || 'Produtor'}`,
-          description: storeDescription,
+        const newStoreId = await storeService.createStore(buildStorePayload({
           [type]: downloadURL,
-          isOpen: true,
-          leadTime: 60,
-          businessHours
-        } as any);
+        }) as any);
         if (newStoreId) setStoreId(newStoreId);
       }
 
@@ -144,20 +160,11 @@ export const StoreHoursScreen = () => {
     try {
       if (storeId) {
         console.log("🚀 [STORE_HOURS] Atualizando loja existente:", storeId);
-        await storeService.updateStore(storeId, { businessHours });
+        await storeService.updateStore(storeId, buildStorePayload({ businessHours }));
       } else {
         // Criar loja se não existir ao clicar em salvar
         console.log('🚀 [STORE_HOURS] Loja não existe, criando via Save');
-        const newStoreId = await storeService.createStore({
-          producerId: '', // Será preenchido pelo service usando Auth UID
-          name: storeName || `Loja de ${user.nome || 'Produtor'}`,
-          description: storeDescription,
-          logo: logo || '',
-          banner: banner || '',
-          isOpen: true,
-          leadTime: 60,
-          businessHours
-        } as any);
+        const newStoreId = await storeService.createStore(buildStorePayload() as any);
         console.log("✅ [STORE_HOURS] Nova loja criada:", newStoreId);
         if (newStoreId) setStoreId(newStoreId);
       }
