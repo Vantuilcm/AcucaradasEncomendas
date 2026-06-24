@@ -122,6 +122,7 @@ export function ProductGrid({
         addItem({
           productId: product.id,
           name: product.nome,
+          producerId: product.producerId,
           price: product.preco,
           quantity: 1,
           image:

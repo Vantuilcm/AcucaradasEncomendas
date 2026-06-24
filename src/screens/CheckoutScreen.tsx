@@ -274,6 +274,16 @@ export default function CheckoutScreen() {
       const deliveryFee = deliveryPricing.deliveryFee;
       const orderTotal = subtotalProducts + deliveryFee;
 
+      const orderProducerId = cart.items[0]?.producerId;
+      if (!orderProducerId) {
+        Alert.alert(
+          'Loja não identificada',
+          'Não foi possível identificar a loja deste pedido. Limpe o carrinho e adicione os produtos pela vitrine da loja.'
+        );
+        setIsProcessing(false);
+        return;
+      }
+
       const newOrder = await orderService.createOrder({
         userId,
         items: orderItems,
@@ -300,7 +310,7 @@ export default function CheckoutScreen() {
         isScheduledOrder: !!scheduledDelivery,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        producerId: cart.items[0]?.producerId || '',
+        producerId: orderProducerId,
         // deliveryDriverId será preenchido posteriormente pelo sistema de logística
       } as any);
 
