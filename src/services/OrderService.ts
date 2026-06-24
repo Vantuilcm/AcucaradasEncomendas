@@ -496,6 +496,33 @@ export class OrderService {
   }
 
   /**
+   * Obtém pedidos de um produtor
+   */
+  async getOrdersByProducerId(producerId: string): Promise<Order[]> {
+    try {
+      if (!this.assertValidId(producerId, 'producerId')) {
+        return [];
+      }
+
+      const ordersRef = f.collection(this.collectionName);
+      const q = f.query(
+        ordersRef,
+        f.where('producerId', '==', producerId),
+        f.orderBy('createdAt', 'desc')
+      );
+      const querySnapshot = await f.getDocs(q);
+
+      return querySnapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      })) as Order[];
+    } catch (error) {
+      loggingService.error('Erro ao buscar pedidos do produtor', { error, producerId });
+      throw error;
+    }
+  }
+
+  /**
    * Obtém todos os pedidos uma única vez
    */
   async getOrders(): Promise<Order[]> {

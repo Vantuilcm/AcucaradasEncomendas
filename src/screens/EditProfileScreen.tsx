@@ -151,6 +151,7 @@ const EditProfileScreen = () => {
           description: storeDescription,
           logo: logo || '',
           banner: banner || '',
+          address: address.trim() || undefined,
           producerId: user.id,
           isOpen: true,
           leadTime: 60,

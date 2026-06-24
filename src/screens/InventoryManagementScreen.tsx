@@ -21,12 +21,14 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { useAppTheme } from '../components/ThemeProvider';
 import { usePermissions } from '../hooks/usePermissions';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../contexts/AuthContext';
 
 export function InventoryManagementScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const productService = useMemo(() => ProductService.getInstance(), []);
   const { isAdmin, isProdutor } = usePermissions();
+  const { user } = useAuth();
   const navigation = useNavigation();
 
   const [loading, setLoading] = useState(true);
@@ -42,13 +44,25 @@ export function InventoryManagementScreen() {
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [user]);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await productService.listarProdutos();
+
+      if (!user) {
+        setProducts([]);
+        return;
+      }
+
+      const producerId = user.id || (user as any)?.uid;
+      if (!producerId) {
+        setProducts([]);
+        return;
+      }
+
+      const data = await productService.listarProdutos({ producerId } as any);
       setProducts(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar estoque');

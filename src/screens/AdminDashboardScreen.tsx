@@ -174,7 +174,14 @@ export function AdminDashboardScreen() {
   const loadIntelligence = React.useCallback(async () => {
     try {
       // 1. Carregar estatísticas reais de pedidos
-      const orders = await orderService.getOrders();
+      const userRole = ((user as any)?.role || (user as any)?.activeRole || '').toLowerCase();
+      const producerId = (user as any)?.id || (user as any)?.uid;
+      const orders =
+        userRole === 'admin'
+          ? await orderService.getOrders()
+          : (userRole === 'producer' || userRole === 'produtor') && producerId
+            ? await orderService.getOrdersByProducerId(producerId)
+            : await orderService.getOrders();
       if (!orders || orders.length === 0) {
         setStats(prev => ({
           ...prev,
@@ -247,7 +254,6 @@ export function AdminDashboardScreen() {
         setDemandInsights(insights);
       }
 
-      const userRole = ((user as any)?.role || (user as any)?.activeRole || '').toLowerCase();
       if (userRole === 'admin') {
         try {
           const pendingDrivers = await driverService.getDriversByStatus('pending');

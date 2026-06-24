@@ -1,6 +1,12 @@
 import { f, getAuth } from '../config/firebase';
+import * as Location from 'expo-location';
 import { Store } from '../types/Store';
 import { loggingService } from './LoggingService';
+
+type StoreGeoPayload = {
+  address?: string;
+  coordinates?: { latitude: number; longitude: number };
+};
 
 export class StoreService {
   private readonly collectionName = 'stores';
@@ -11,6 +17,77 @@ export class StoreService {
       throw new Error('Usuário não autenticado no Firebase Auth');
     }
     return uid;
+  }
+
+  private async resolveCoordinatesFromAddress(
+    address?: string
+  ): Promise<{ latitude: number; longitude: number } | undefined> {
+    const trimmed = address?.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    try {
+      const results = await Location.geocodeAsync(trimmed);
+      if (!results?.length) {
+        loggingService.warn('Geocoding sem resultados para endereço da loja', { address: trimmed });
+        return undefined;
+      }
+
+      const { latitude, longitude } = results[0];
+      if (
+        latitude == null ||
+        longitude == null ||
+        Number.isNaN(latitude) ||
+        Number.isNaN(longitude)
+      ) {
+        return undefined;
+      }
+
+      return { latitude, longitude };
+    } catch (error) {
+      loggingService.warn('Falha no geocoding do endereço da loja', { address: trimmed, error });
+      return undefined;
+    }
+  }
+
+  private async enrichStoreDataWithCoordinates<T extends StoreGeoPayload>(
+    storeData: T
+  ): Promise<T> {
+    if (!storeData.address?.trim()) {
+      return storeData;
+    }
+
+    const coordinates = await this.resolveCoordinatesFromAddress(storeData.address);
+    if (!coordinates) {
+      return storeData;
+    }
+
+    return {
+      ...storeData,
+      address: storeData.address.trim(),
+      coordinates,
+    };
+  }
+
+  async getStoreById(storeId: string): Promise<Store | null> {
+    try {
+      if (!storeId?.trim()) {
+        return null;
+      }
+
+      const docRef = f.doc(this.collectionName, storeId);
+      const docSnap = await f.getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        return null;
+      }
+
+      return { id: docSnap.id, ...docSnap.data() } as Store;
+    } catch (error) {
+      loggingService.error('Erro ao buscar loja por ID', { storeId, error });
+      return null;
+    }
   }
 
   async getStoreByProducerId(producerId: string): Promise<Store | null> {
@@ -51,10 +128,12 @@ export class StoreService {
     try {
       const uid = this.getAuthUid();
       const storeRef = f.doc(this.collectionName, storeId);
+
+      const withCoordinates = await this.enrichStoreDataWithCoordinates(storeData as StoreGeoPayload);
       
       // ETAPA 3 — PADRONIZAÇÃO STORES NO UPDATE (BUILD 1161)
       const updatedData = {
-        ...storeData,
+        ...withCoordinates,
         ownerId: uid,
         userId: uid,
         producerId: uid,
@@ -73,9 +152,10 @@ export class StoreService {
   async createStore(storeData: Omit<Store, 'id'>): Promise<string> {
     try {
       const uid = this.getAuthUid();
+      const withCoordinates = await this.enrichStoreDataWithCoordinates(storeData as StoreGeoPayload);
       // ETAPA 3 — PADRONIZAÇÃO STORES NA CRIAÇÃO (BUILD 1161)
       const normalizedData = {
-        ...storeData,
+        ...withCoordinates,
         ownerId: uid,
         userId: uid,
         producerId: uid,
@@ -93,36 +173,8 @@ export class StoreService {
     }
   }
 
-  // Método para obter uma loja "padrão" se não houver producerId (para compatibilidade com itens antigos)
+  // Sem fallback global — evita retornar a primeira loja da coleção
   async getDefaultStore(): Promise<Store | null> {
-    try {
-      const q = f.query(f.collection(this.collectionName), f.limit(1));
-      const snapshot = await f.getDocs(q);
-      if (!snapshot.empty) {
-        const firstDoc = snapshot.docs[0];
-        return { id: firstDoc.id, ...firstDoc.data() } as Store;
-      }
-      
-      return {
-        id: 'default_store',
-        producerId: 'default_producer',
-        name: 'Açucaradas Encomendas',
-        isOpen: true,
-        leadTime: 60,
-        cutoffTime: '18:00',
-        businessHours: {
-          0: { open: '08:00', close: '12:00', isClosed: false },
-          1: { open: '08:00', close: '18:00', isClosed: false },
-          2: { open: '08:00', close: '18:00', isClosed: false },
-          3: { open: '08:00', close: '18:00', isClosed: false },
-          4: { open: '08:00', close: '18:00', isClosed: false },
-          5: { open: '08:00', close: '18:00', isClosed: false },
-          6: { open: '08:00', close: '14:00', isClosed: false },
-        }
-      };
-    } catch (error) {
-      loggingService.error('Erro ao buscar loja padrão', { error });
-      return null;
-    }
+    return null;
   }
 }
