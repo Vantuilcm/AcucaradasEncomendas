@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { ProductService } from '../services/ProductService';
 import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 import { StoreService } from '../services/StoreService';
 import { DeliveryPricingService, PricingResult } from '../services/DeliveryPricingService';
+import { AddressService } from '../services/AddressService';
 import { NotificationService } from '../services/NotificationService';
 import { SalesAutomationService } from '../services/SalesAutomationService';
 import { loggingService } from '../services/LoggingService';
@@ -40,6 +41,19 @@ const ENABLE_STRIPE = ENV.EXPO_PUBLIC_ENABLE_STRIPE_PAYMENTS === 'true';
 type CheckoutScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Checkout'>;
 type CheckoutScreenRouteProp = RouteProp<RootStackParamList, 'Checkout'>;
 
+type CheckoutAddressState = {
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  reference: string;
+};
+
+const ADDRESS_TRACE_TAG = '[CHECKOUT-ADDRESS-TRACE]';
+
 export default function CheckoutScreen() {
   const navigation = useNavigation<CheckoutScreenNavigationProp>();
   const route = useRoute<CheckoutScreenRouteProp>();
@@ -51,7 +65,7 @@ export default function CheckoutScreen() {
   const storeService = new StoreService();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
-  const [address, setAddress] = useState({
+  const [address, setAddressRaw] = useState<CheckoutAddressState>({
     street: '',
     number: '',
     complement: '',
@@ -61,6 +75,31 @@ export default function CheckoutScreen() {
     zipCode: '',
     reference: '',
   });
+  const addressTraceSeq = useRef(0);
+  const lastAddressWriteOrigin = useRef<string>('initial-state');
+
+  const traceSetAddress = useCallback(
+    (origin: string, next: CheckoutAddressState, meta?: Record<string, unknown>) => {
+      const seq = ++addressTraceSeq.current;
+      lastAddressWriteOrigin.current = origin;
+      console.log(`${ADDRESS_TRACE_TAG} #${seq} setAddress`, {
+        origin,
+        meta,
+        payload: next,
+        stack: new Error().stack?.split('\n').slice(1, 5).join(' | '),
+      });
+      setAddressRaw(next);
+    },
+    []
+  );
+
+  useEffect(() => {
+    console.log(`${ADDRESS_TRACE_TAG} RENDER snapshot`, {
+      seq: addressTraceSeq.current,
+      lastWriteOrigin: lastAddressWriteOrigin.current,
+      address,
+    });
+  }, [address]);
 
   const [paymentMethod, setPaymentMethod] = useState<'creditCard' | 'pix'>('creditCard');
   const [cardNumber, setCardNumber] = useState('');
@@ -89,6 +128,22 @@ export default function CheckoutScreen() {
   useEffect(() => {
     // Simular carregamento de endereço salvo do usuário
     const loadSavedAddress = async () => {
+      const userId = (user as any)?.id || (user as any)?.uid;
+      console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:start`, { userId: userId ?? null });
+
+      if (userId) {
+        try {
+          const addresses = await new AddressService().getUserAddresses(userId);
+          console.log(`${ADDRESS_TRACE_TAG} Firestore getUserAddresses (read-only)`, {
+            userId,
+            count: addresses.length,
+            addresses,
+          });
+        } catch (error) {
+          console.log(`${ADDRESS_TRACE_TAG} Firestore getUserAddresses:error (read-only)`, { error });
+        }
+      }
+
       // Aqui, em uma implementação real, você carregaria do banco de dados ou API
       const savedAddress = {
         street: 'Rua das Flores',
@@ -101,15 +156,19 @@ export default function CheckoutScreen() {
         reference: 'Próximo ao Mercado Central',
       };
 
+      console.log(`${ADDRESS_TRACE_TAG} mock savedAddress prepared`, { savedAddress });
+
       // Em uma implementação real, você verificaria se há endereço salvo
       // Simular um delay para carregar o endereço
       setTimeout(() => {
-        setAddress(savedAddress);
+        traceSetAddress('loadSavedAddress:mock-hardcoded', savedAddress, {
+          source: 'hardcoded-simulation',
+        });
       }, 500);
     };
 
     loadSavedAddress();
-  }, []);
+  }, [user, traceSetAddress]);
 
   const formatCreditCard = (text: string) => {
     // Remover espaços e caracteres não numéricos
@@ -159,7 +218,10 @@ export default function CheckoutScreen() {
     // Formata o CEP quando tem 8 dígitos
     const formattedZipCode = validationService.formatZipCode(truncatedValue);
 
-    setAddress({ ...address, zipCode: formattedZipCode });
+    traceSetAddress('handleZipCodeChange', { ...address, zipCode: formattedZipCode }, {
+      input: text,
+      formattedZipCode,
+    });
   };
 
   const handlePlaceOrder = async () => {
@@ -767,7 +829,7 @@ export default function CheckoutScreen() {
             style={styles.input}
             placeholder="Rua"
             value={address.street}
-            onChangeText={text => setAddress({ ...address, street: text })}
+            onChangeText={text => traceSetAddress('input:street', { ...address, street: text }, { field: 'street', text })}
           />
 
           <View style={styles.rowInputs}>
@@ -775,7 +837,7 @@ export default function CheckoutScreen() {
               style={[styles.input, styles.numberInput]}
               placeholder="Número"
               value={address.number}
-              onChangeText={text => setAddress({ ...address, number: text })}
+              onChangeText={text => traceSetAddress('input:number', { ...address, number: text }, { field: 'number', text })}
               keyboardType="numeric"
             />
 
@@ -783,7 +845,7 @@ export default function CheckoutScreen() {
               style={[styles.input, styles.complementInput]}
               placeholder="Complemento"
               value={address.complement}
-              onChangeText={text => setAddress({ ...address, complement: text })}
+              onChangeText={text => traceSetAddress('input:complement', { ...address, complement: text }, { field: 'complement', text })}
             />
           </View>
 
@@ -791,7 +853,7 @@ export default function CheckoutScreen() {
             style={styles.input}
             placeholder="Bairro"
             value={address.neighborhood}
-            onChangeText={text => setAddress({ ...address, neighborhood: text })}
+            onChangeText={text => traceSetAddress('input:neighborhood', { ...address, neighborhood: text }, { field: 'neighborhood', text })}
           />
 
           <View style={styles.rowInputs}>
@@ -799,14 +861,14 @@ export default function CheckoutScreen() {
               style={[styles.input, styles.cityInput]}
               placeholder="Cidade"
               value={address.city}
-              onChangeText={text => setAddress({ ...address, city: text })}
+              onChangeText={text => traceSetAddress('input:city', { ...address, city: text }, { field: 'city', text })}
             />
 
             <TextInput
               style={[styles.input, styles.stateInput]}
               placeholder="Estado"
               value={address.state}
-              onChangeText={text => setAddress({ ...address, state: text })}
+              onChangeText={text => traceSetAddress('input:state', { ...address, state: text }, { field: 'state', text })}
               maxLength={2}
             />
           </View>
@@ -815,7 +877,7 @@ export default function CheckoutScreen() {
             style={styles.input}
             placeholder="Ponto de referência (opcional)"
             value={address.reference}
-            onChangeText={text => setAddress({ ...address, reference: text })}
+            onChangeText={text => traceSetAddress('input:reference', { ...address, reference: text }, { field: 'reference', text })}
           />
         </Card.Content>
       </Card>
