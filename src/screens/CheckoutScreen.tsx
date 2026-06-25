@@ -209,7 +209,7 @@ export default function CheckoutScreen() {
       if (store) {
         let requestedDate: Date | undefined;
         if (scheduledDelivery && scheduledDelivery.date) {
-          requestedDate = new Date(scheduledDelivery.date);
+          requestedDate = StoreAvailabilityService.parseLocalDate(scheduledDelivery.date);
           if (scheduledDelivery.type === 'scheduled' && scheduledDelivery.timeSlot) {
             // Ex: "09:00 - 11:00" -> Pega o início "09:00"
             const startTime = scheduledDelivery.timeSlot.split(' - ')[0];
@@ -679,7 +679,7 @@ export default function CheckoutScreen() {
                     style={styles.infoIcon}
                   />
                   <Text style={styles.infoText}>
-                    {new Date(scheduledDelivery.date).toLocaleDateString('pt-BR', {
+                    {StoreAvailabilityService.parseLocalDate(scheduledDelivery.date).toLocaleDateString('pt-BR', {
                       day: '2-digit',
                       month: '2-digit',
                       year: 'numeric',

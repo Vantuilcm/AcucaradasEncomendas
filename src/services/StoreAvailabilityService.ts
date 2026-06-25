@@ -2,6 +2,15 @@ import { Store } from '../types/Store';
 
 export class StoreAvailabilityService {
   /**
+   * Interpreta "YYYY-MM-DD" como data local (meia-noite no fuso do device).
+   * `new Date("YYYY-MM-DD")` é tratado como UTC e desloca o dia em fusos como BRT.
+   */
+  static parseLocalDate(dateString: string): Date {
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  /**
    * Verifica se a loja está aberta no momento atual
    */
   static isStoreOpenNow(store: Store): boolean {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList } from 'react-native';
-import { Text, Button, Card, Title, Paragraph, IconButton, Avatar, Chip, Divider } from 'react-native-paper';
+import { Text, Button, Card, Title, Paragraph, IconButton, Avatar, Chip, Divider, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -19,7 +19,7 @@ type StoreDetailsRouteProp = RouteProp<RootStackParamList, 'StoreDetails'>;
 export function StoreDetailsScreen() {
   const navigation = useNavigation();
   const { theme } = useAppTheme();
-  const { addItem } = useCart() as any;
+  const { addItem } = useCart();
   const route = useRoute<StoreDetailsRouteProp>();
   const { storeId, storeName } = route.params || {};
 
@@ -27,6 +27,7 @@ export function StoreDetailsScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
 
   useEffect(() => {
     const loadStoreData = async () => {
@@ -65,7 +66,7 @@ export function StoreDetailsScreen() {
 
   const handleQuickAdd = async (product: Product) => {
     try {
-      await addItem({
+      const result = await addItem({
         productId: product.id,
         name: product.nome,
         producerId: store?.producerId || product.producerId,
@@ -73,7 +74,9 @@ export function StoreDetailsScreen() {
         quantity: 1,
         image: product.imagens?.[0]
       });
-      // Um pequeno feedback visual poderia ir aqui (ex: Snackbar)
+      if (result.success && !result.swapped) {
+        setSnackbarVisible(true);
+      }
     } catch (error) {
       console.error('Erro ao adicionar rápido ao carrinho:', error);
     }
@@ -240,6 +243,13 @@ export function StoreDetailsScreen() {
           </View>
         )}
       </ScrollView>
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+      >
+        Produto adicionado ao carrinho
+      </Snackbar>
     </SafeAreaView>
   );
 }
@@ -290,10 +300,21 @@ const styles = StyleSheet.create({
   productName: { fontSize: 16, fontWeight: '600', color: '#1A1A1A', marginBottom: 4 },
   productDescription: { fontSize: 13, color: '#777', lineHeight: 18, marginBottom: 8 },
   productPrice: { fontSize: 16, fontWeight: 'bold', color: '#2E7D32' },
-  productImageContainer: { position: 'relative' },
+  productImageContainer: { position: 'relative', width: 90, height: 90 },
   productImage: { width: 90, height: 90, borderRadius: 12 },
   placeholderImage: { backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' },
-  addButton: { position: 'absolute', bottom: -5, right: -5, width: 32, height: 32, borderRadius: 16, backgroundColor: '#E91E63', justifyContent: 'center', alignItems: 'center', elevation: 2 },
+  addButton: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E91E63',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+  },
   
   emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 60, paddingHorizontal: 40 },
   emptyText: { textAlign: 'center', color: '#666', marginTop: 16, fontSize: 16 },

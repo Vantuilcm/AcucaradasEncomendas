@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card, Button, SegmentedButtons, RadioButton } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import type { DeliverySchedule } from '../types/Order';
+import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 
 // Configurar o calendário para português brasileiro
 LocaleConfig.locales['pt-br'] = {
@@ -124,7 +125,7 @@ export default function ScheduleDeliveryScreen() {
   const getAvailableTimeSlots = (): TimeSlot[] => {
     if (!selectedDate) return [];
 
-    const date = new Date(selectedDate);
+    const date = StoreAvailabilityService.parseLocalDate(selectedDate);
     const dayOfWeek = date.getDay();
 
     // Horários diferentes para finais de semana
@@ -397,7 +398,7 @@ export default function ScheduleDeliveryScreen() {
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Data de entrega:</Text>
               <Text style={styles.summaryValue}>
-                {new Date(selectedDate).toLocaleDateString('pt-BR', {
+                {StoreAvailabilityService.parseLocalDate(selectedDate).toLocaleDateString('pt-BR', {
                   day: '2-digit',
                   month: '2-digit',
                   year: 'numeric',

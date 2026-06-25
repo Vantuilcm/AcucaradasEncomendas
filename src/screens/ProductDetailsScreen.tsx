@@ -22,7 +22,7 @@ const { width } = Dimensions.get('window');
 export default function ProductDetailsScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { addToCart } = useCart() as any;
+  const { addItem } = useCart();
   const { user } = useAuth();
   const { product } = route.params as any;
 
@@ -66,39 +66,54 @@ export default function ProductDetailsScreen() {
   }, [product, user, recommendationService]);
 
   // Função para adicionar ao carrinho com animação
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
 
-    // Adicionar ao carrinho
-    addToCart(product);
-
-    // Feedback tátil
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    // Mostrar toast
-    showToast('Produto adicionado ao carrinho', FeedbackType.SUCCESS);
-
-    // Calcular posição para animação
-    if (addToCartButtonRef.current) {
-      (addToCartButtonRef.current as any)?.measure((_fx: any, _fy: any, width: any, _height: any, px: any, py: any) => {
-        const startPosition = {
-          x: px + width / 2,
-          y: py,
-        };
-
-        // Posição do carrinho no header (estimado)
-        const endPosition = {
-          x: width - 30,
-          y: 50,
-        };
-
-        // Iniciar animação
-        setCartAnimation({
-          visible: true,
-          startPosition,
-          endPosition,
-        });
+    try {
+      const result = await addItem({
+        productId: product.id,
+        name: product.nome,
+        producerId: product.producerId,
+        price: product.preco,
+        quantity: 1,
+        image: product.imagens?.[0],
       });
+
+      if (!result.success) {
+        return;
+      }
+
+      // Feedback tátil
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // Mostrar toast
+      showToast('Produto adicionado ao carrinho', FeedbackType.SUCCESS);
+
+      // Calcular posição para animação
+      if (addToCartButtonRef.current) {
+        (addToCartButtonRef.current as any)?.measure((_fx: any, _fy: any, width: any, _height: any, px: any, py: any) => {
+          const startPosition = {
+            x: px + width / 2,
+            y: py,
+          };
+
+          // Posição do carrinho no header (estimado)
+          const endPosition = {
+            x: width - 30,
+            y: 50,
+          };
+
+          // Iniciar animação
+          setCartAnimation({
+            visible: true,
+            startPosition,
+            endPosition,
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error);
+      showToast('Erro ao adicionar ao carrinho', FeedbackType.ERROR);
     }
   };
 
