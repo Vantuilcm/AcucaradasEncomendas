@@ -19,7 +19,7 @@ type StoreDetailsRouteProp = RouteProp<RootStackParamList, 'StoreDetails'>;
 export function StoreDetailsScreen() {
   const navigation = useNavigation();
   const { theme } = useAppTheme();
-  const { addItem } = useCart() as any;
+  const { addItem } = useCart();
   const route = useRoute<StoreDetailsRouteProp>();
   const { storeId, storeName } = route.params || {};
 
@@ -66,7 +66,7 @@ export function StoreDetailsScreen() {
 
   const handleQuickAdd = async (product: Product) => {
     try {
-      await addItem({
+      const result = await addItem({
         productId: product.id,
         name: product.nome,
         producerId: store?.producerId || product.producerId,
@@ -74,7 +74,9 @@ export function StoreDetailsScreen() {
         quantity: 1,
         image: product.imagens?.[0]
       });
-      setSnackbarVisible(true);
+      if (result.success && !result.swapped) {
+        setSnackbarVisible(true);
+      }
     } catch (error) {
       console.error('Erro ao adicionar rápido ao carrinho:', error);
     }

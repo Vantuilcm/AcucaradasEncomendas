@@ -22,6 +22,12 @@ export interface Cart {
   lastUpdated: string;
 }
 
+export type AddItemFailureReason = 'DIFFERENT_PRODUCER';
+
+export type AddItemResult =
+  | { success: true; cart: Cart }
+  | { success: false; reason: AddItemFailureReason };
+
 export class CartService {
   private readonly CART_STORAGE_KEY = 'acucaradas:cart';
 
@@ -58,9 +64,21 @@ export class CartService {
   }
 
   // Adicionar item ao carrinho
-  async addItem(item: Omit<CartItem, 'id'>): Promise<Cart> {
+  async addItem(item: Omit<CartItem, 'id'>): Promise<AddItemResult> {
     try {
       const cart = await this.getCart();
+
+      if (cart.items.length > 0) {
+        const cartProducerId = cart.items[0]?.producerId;
+        const itemProducerId = item.producerId;
+        if (
+          cartProducerId &&
+          itemProducerId &&
+          cartProducerId !== itemProducerId
+        ) {
+          return { success: false, reason: 'DIFFERENT_PRODUCER' };
+        }
+      }
 
       // Verificar se já existe um item idêntico (mesmo produto e mesmas opções)
       const existingItemIndex = cart.items.findIndex(cartItem => {
@@ -92,7 +110,7 @@ export class CartService {
       }
 
       await this.saveCart(cart);
-      return cart;
+      return { success: true, cart };
     } catch (error) {
       loggingService.error('Erro ao adicionar item ao carrinho', { error });
       throw error;

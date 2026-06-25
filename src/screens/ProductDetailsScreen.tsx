@@ -70,7 +70,7 @@ export default function ProductDetailsScreen() {
     if (!product) return;
 
     try {
-      await addItem({
+      const result = await addItem({
         productId: product.id,
         name: product.nome,
         producerId: product.producerId,
@@ -78,6 +78,10 @@ export default function ProductDetailsScreen() {
         quantity: 1,
         image: product.imagens?.[0],
       });
+
+      if (!result.success) {
+        return;
+      }
 
       // Feedback tátil
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

@@ -117,11 +117,12 @@ export function ProductGrid({
 
   // Função para adicionar produto ao carrinho
   const handleAddToCart = useCallback(
-    (product: Product) => {
+    async (product: Product) => {
       try {
-        addItem({
+        await addItem({
           productId: product.id,
           name: product.nome,
+          producerId: product.producerId,
           price: product.preco,
           quantity: 1,
           image:

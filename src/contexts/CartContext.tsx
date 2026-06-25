@@ -1,12 +1,18 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { Alert } from 'react-native';
+import { Snackbar } from 'react-native-paper';
 import { CartService, CartItem, Cart } from '../services/CartService';
+
+export type AddItemResponse =
+  | { success: true; swapped?: boolean }
+  | { success: false; reason: 'DIFFERENT_PRODUCER' | 'CANCELLED' };
 
 interface CartContextType {
   cart: Cart;
   isLoading: boolean;
   itemCount: number;
   cartTotal: number;
-  addItem: (item: Omit<CartItem, 'id'>) => Promise<void>;
+  addItem: (item: Omit<CartItem, 'id'>) => Promise<AddItemResponse>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -23,6 +29,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [itemCount, setItemCount] = useState<number>(0);
   const [cartTotal, setCartTotal] = useState<number>(0);
+  const [swapSnackbarVisible, setSwapSnackbarVisible] = useState(false);
+
+  const syncCartState = useCallback(async (updatedCart: Cart) => {
+    setCart(updatedCart);
+    const count = updatedCart.items.reduce((total, item) => total + item.quantity, 0);
+    setItemCount(count);
+    const total = await cartService.getCartTotal();
+    setCartTotal(total);
+  }, []);
 
   // Função para carregar o carrinho do armazenamento local
   const loadCart = useCallback(async () => {
@@ -30,49 +45,76 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       const currentCart = await cartService.getCart();
       if (currentCart && currentCart.items) {
-        setCart(currentCart);
-
-        // Atualizar contagem de itens
-        const count = currentCart.items.reduce((total, item) => total + (item.quantity || 0), 0);
-        setItemCount(count);
-
-        // Calcular total
-        try {
-          const total = await cartService.getCartTotal();
-          setCartTotal(total || 0);
-        } catch (totalErr) {
-          console.error('Erro ao calcular total do carrinho:', totalErr);
-        }
+        await syncCartState(currentCart);
       }
     } catch (error) {
       console.error('Erro crítico ao carregar carrinho:', error);
-      // Fallback para estado seguro
       setCart({ items: [], lastUpdated: new Date().toISOString() });
       setItemCount(0);
       setCartTotal(0);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [syncCartState]);
 
-  // Carregar o carrinho quando o componente for montado
   useEffect(() => {
     loadCart();
   }, [loadCart]);
 
-  // Função para adicionar um item ao carrinho
-  const addItem = async (item: Omit<CartItem, 'id'>) => {
+  const promptProducerSwap = (item: Omit<CartItem, 'id'>): Promise<AddItemResponse> =>
+    new Promise(resolve => {
+      Alert.alert(
+        'Trocar de loja',
+        'Seu carrinho possui produtos de outra loja.\n\nDeseja limpar o carrinho para comprar nesta loja?',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => resolve({ success: false, reason: 'CANCELLED' }),
+          },
+          {
+            text: 'Trocar de Loja',
+            onPress: async () => {
+              try {
+                await cartService.clearCart();
+                setCart({ items: [], lastUpdated: new Date().toISOString() });
+                setItemCount(0);
+                setCartTotal(0);
+
+                const retry = await cartService.addItem(item);
+                if (retry.success) {
+                  await syncCartState(retry.cart);
+                  setSwapSnackbarVisible(true);
+                  resolve({ success: true, swapped: true });
+                } else {
+                  resolve({ success: false, reason: 'DIFFERENT_PRODUCER' });
+                }
+              } catch (error) {
+                console.error('Erro ao trocar loja do carrinho:', error);
+                resolve({ success: false, reason: 'CANCELLED' });
+              }
+            },
+          },
+        ],
+        { cancelable: true, onDismiss: () => resolve({ success: false, reason: 'CANCELLED' }) }
+      );
+    });
+
+  const addItem = async (item: Omit<CartItem, 'id'>): Promise<AddItemResponse> => {
     try {
       setIsLoading(true);
-      const updatedCart = await cartService.addItem(item);
-      setCart(updatedCart);
+      const result = await cartService.addItem(item);
 
-      // Atualizar contagem e total
-      const count = updatedCart.items.reduce((total, item) => total + item.quantity, 0);
-      setItemCount(count);
+      if (!result.success && result.reason === 'DIFFERENT_PRODUCER') {
+        return promptProducerSwap(item);
+      }
 
-      const total = await cartService.getCartTotal();
-      setCartTotal(total);
+      if (result.success) {
+        await syncCartState(result.cart);
+        return { success: true };
+      }
+
+      return { success: false, reason: 'DIFFERENT_PRODUCER' };
     } catch (error) {
       console.error('Erro ao adicionar item ao carrinho:', error);
       throw error;
@@ -81,19 +123,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Função para atualizar a quantidade de um item
   const updateQuantity = async (itemId: string, quantity: number) => {
     try {
       setIsLoading(true);
       const updatedCart = await cartService.updateQuantity(itemId, quantity);
-      setCart(updatedCart);
-
-      // Atualizar contagem e total
-      const count = updatedCart.items.reduce((total, item) => total + item.quantity, 0);
-      setItemCount(count);
-
-      const total = await cartService.getCartTotal();
-      setCartTotal(total);
+      await syncCartState(updatedCart);
     } catch (error) {
       console.error('Erro ao atualizar quantidade:', error);
       throw error;
@@ -102,19 +136,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Função para remover um item do carrinho
   const removeItem = async (itemId: string) => {
     try {
       setIsLoading(true);
       const updatedCart = await cartService.removeItem(itemId);
-      setCart(updatedCart);
-
-      // Atualizar contagem e total
-      const count = updatedCart.items.reduce((total, item) => total + item.quantity, 0);
-      setItemCount(count);
-
-      const total = await cartService.getCartTotal();
-      setCartTotal(total);
+      await syncCartState(updatedCart);
     } catch (error) {
       console.error('Erro ao remover item:', error);
       throw error;
@@ -123,7 +149,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Função para limpar o carrinho
   const clearCart = async () => {
     try {
       setIsLoading(true);
@@ -139,7 +164,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Função para atualizar observações de um item
   const updateItemNotes = async (itemId: string, notes: string) => {
     try {
       setIsLoading(true);
@@ -153,7 +177,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Função para atualizar o carrinho (por exemplo, depois de voltar à tela)
   const refreshCart = async () => {
     await loadCart();
   };
@@ -174,11 +197,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }}
     >
       {children}
+      <Snackbar
+        visible={swapSnackbarVisible}
+        onDismiss={() => setSwapSnackbarVisible(false)}
+        duration={3000}
+      >
+        Carrinho atualizado para a nova loja.
+      </Snackbar>
     </CartContext.Provider>
   );
 };
 
-// Hook para usar o contexto do carrinho
 export const useCart = (): CartContextType => {
   const context = useContext(CartContext);
 
