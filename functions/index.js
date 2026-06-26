@@ -424,6 +424,30 @@ exports.createSetupIntent = functions
   });
 
 /**
+ * Normaliza paymentMethod do client para whitelist interna (card | pix).
+ */
+function normalizeCreatePaymentIntentMethod(paymentMethod) {
+  if (paymentMethod == null || paymentMethod === '') {
+    return 'card';
+  }
+
+  const normalized = String(paymentMethod).trim().toLowerCase();
+
+  if (normalized === 'card' || normalized === 'creditcard' || normalized === 'credit_card') {
+    return 'card';
+  }
+
+  if (normalized === 'pix') {
+    return 'pix';
+  }
+
+  throw new functions.https.HttpsError(
+    'invalid-argument',
+    'paymentMethod inválido. Valores aceitos: card, creditCard ou pix.'
+  );
+}
+
+/**
  * Cria um PaymentIntent com suporte a transfer_group para split futuro
  * STRIPE_SECRET_KEY injetada via Secret Manager (mesmo padrão Connect/onboarding).
  */
@@ -433,7 +457,7 @@ exports.createPaymentIntent = functions
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
 
   const stripe = require('stripe')(getStripeSecret());
-  const { amount, currency = 'brl', orderId, customerId } = data;
+  const { amount, currency = 'brl', orderId, customerId, paymentMethod } = data;
 
   if (!amount || amount <= 0 || !orderId) {
     throw new functions.https.HttpsError('invalid-argument', 'Amount (maior que 0) e OrderId são obrigatórios.');
@@ -442,6 +466,8 @@ exports.createPaymentIntent = functions
   if (currency.toLowerCase() !== 'brl') {
     throw new functions.https.HttpsError('invalid-argument', 'Apenas a moeda BRL é suportada para transações.');
   }
+
+  const resolvedPaymentMethod = normalizeCreatePaymentIntentMethod(paymentMethod);
 
   try {
     const idempotencyKey = `pi_${orderId}`;
@@ -463,8 +489,13 @@ exports.createPaymentIntent = functions
         orderId,
         userId: uid,
         app: 'acucaradas-encomendas',
+        paymentMethod: resolvedPaymentMethod,
       },
     };
+
+    if (resolvedPaymentMethod === 'pix') {
+      paymentIntentParams.payment_method_types = ['pix'];
+    }
 
     let ephemeralKeySecret = null;
     if (stripeCustomerId) {
