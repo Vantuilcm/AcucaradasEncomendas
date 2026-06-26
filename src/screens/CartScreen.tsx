@@ -113,16 +113,15 @@ export default function CartScreen() {
                 <Text style={styles.summaryValue}>R$ {cartTotal.toFixed(2)}</Text>
               </View>
 
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Frete:</Text>
-                <Text style={styles.summaryValue}>R$ 10,00</Text>
-              </View>
+              <Text style={styles.scheduleInfo}>
+                Frete calculado na próxima etapa conforme o endereço de entrega.
+              </Text>
 
               <Divider style={styles.divider} />
 
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>Total:</Text>
-                <Text style={styles.totalValue}>R$ {(cartTotal + 10).toFixed(2)}</Text>
+                <Text style={styles.totalValue}>R$ {cartTotal.toFixed(2)}</Text>
               </View>
 
               <Button
