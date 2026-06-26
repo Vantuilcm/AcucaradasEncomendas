@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Modal,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -158,6 +159,9 @@ export default function CheckoutScreen() {
     deliveryFee: 5.0, // Base default
     withinRange: true,
   });
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [addressSelectorVisible, setAddressSelectorVisible] = useState(false);
 
   // Obter dados do agendamento da navegação
   const scheduledDelivery = route.params?.scheduledDelivery;
@@ -191,6 +195,7 @@ export default function CheckoutScreen() {
           firestoreAddressCount: addresses.length,
           lastUpdatedAt: new Date().toISOString(),
         }));
+        setSavedAddresses(addresses);
 
         if (addresses.length === 0) {
           console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:skip`, { reason: 'empty-addresses' });
@@ -216,6 +221,7 @@ export default function CheckoutScreen() {
           selectedId: selected.id,
           isDefault: selected.isDefault ?? false,
         });
+        setSelectedAddressId(selected.id);
       } catch (error) {
         console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:error`, { error });
         loggingService.warn('Erro ao carregar endereço salvo no checkout', { error });
@@ -224,6 +230,19 @@ export default function CheckoutScreen() {
 
     loadSavedAddress();
   }, [user, traceSetAddress]);
+
+  const handleSelectSavedAddress = useCallback(
+    (selected: Address) => {
+      traceSetAddress('loadSavedAddress:user-selected', mapFirestoreAddressToCheckoutState(selected), {
+        addressId: selected.id,
+        selectedId: selected.id,
+        isDefault: selected.isDefault ?? false,
+      });
+      setSelectedAddressId(selected.id);
+      setAddressSelectorVisible(false);
+    },
+    [traceSetAddress]
+  );
 
   const formatCreditCard = (text: string) => {
     // Remover espaços e caracteres não numéricos
@@ -759,6 +778,7 @@ export default function CheckoutScreen() {
   }
 
   return (
+    <>
     <ScrollView style={styles.container}>
       <Card style={styles.tracePanelCard}>
         <Card.Content>
@@ -901,6 +921,16 @@ export default function CheckoutScreen() {
               Endereço Salvo
             </Chip>
           </View>
+
+          {savedAddresses.length > 0 && (
+            <Button
+              mode="outlined"
+              onPress={() => setAddressSelectorVisible(true)}
+              style={styles.changeAddressButton}
+            >
+              Trocar endereço
+            </Button>
+          )}
 
           <TextInput
             style={styles.input}
@@ -1089,6 +1119,49 @@ export default function CheckoutScreen() {
 
       <View style={styles.bottomSpace} />
     </ScrollView>
+
+    <Modal
+      visible={addressSelectorVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setAddressSelectorVisible(false)}
+    >
+      <View style={styles.addressModalOverlay}>
+        <View style={styles.addressModalContent}>
+          <Text style={styles.addressModalTitle}>Escolher endereço</Text>
+          <ScrollView style={styles.addressModalList}>
+            {savedAddresses.map(savedAddress => {
+              const isSelected = savedAddress.id === selectedAddressId;
+              return (
+                <TouchableOpacity
+                  key={savedAddress.id}
+                  style={[
+                    styles.addressModalItem,
+                    isSelected && styles.addressModalItemSelected,
+                  ]}
+                  onPress={() => handleSelectSavedAddress(savedAddress)}
+                >
+                  <Text style={styles.addressModalItemTitle}>{savedAddress.name}</Text>
+                  <Text style={styles.addressModalItemLine}>
+                    {savedAddress.street}, {savedAddress.number}
+                  </Text>
+                  <Text style={styles.addressModalItemLine}>
+                    {savedAddress.neighborhood}, {savedAddress.city} - {savedAddress.state}
+                  </Text>
+                  {isSelected && (
+                    <Text style={styles.addressModalSelectedLabel}>Selecionado</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <Button mode="text" onPress={() => setAddressSelectorVisible(false)}>
+            Cancelar
+          </Button>
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -1148,6 +1221,58 @@ const styles = StyleSheet.create({
   },
   savedAddressChip: {
     backgroundColor: '#e9f5ff',
+  },
+  changeAddressButton: {
+    marginBottom: 12,
+  },
+  addressModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  addressModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    maxHeight: '70%',
+  },
+  addressModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: '#333',
+  },
+  addressModalList: {
+    marginBottom: 8,
+  },
+  addressModalItem: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: '#fafafa',
+  },
+  addressModalItemSelected: {
+    borderColor: '#E91E63',
+    backgroundColor: '#fce4ec',
+  },
+  addressModalItemTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  addressModalItemLine: {
+    fontSize: 14,
+    color: '#555',
+  },
+  addressModalSelectedLabel: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#E91E63',
   },
   input: {
     backgroundColor: '#fff',
