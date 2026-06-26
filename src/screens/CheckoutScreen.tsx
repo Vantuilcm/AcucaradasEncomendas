@@ -25,6 +25,7 @@ import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 import { StoreService } from '../services/StoreService';
 import { DeliveryPricingService, PricingResult } from '../services/DeliveryPricingService';
 import { AddressService } from '../services/AddressService';
+import type { Address } from '../types/Address';
 import { NotificationService } from '../services/NotificationService';
 import { SalesAutomationService } from '../services/SalesAutomationService';
 import { loggingService } from '../services/LoggingService';
@@ -53,6 +54,17 @@ type CheckoutAddressState = {
 };
 
 const ADDRESS_TRACE_TAG = '[CHECKOUT-ADDRESS-TRACE]';
+
+const mapFirestoreAddressToCheckoutState = (selected: Address): CheckoutAddressState => ({
+  street: selected.street,
+  number: selected.number,
+  complement: selected.complement ?? '',
+  neighborhood: selected.neighborhood,
+  city: selected.city,
+  state: selected.state,
+  zipCode: selected.zipCode,
+  reference: '',
+});
 
 type AddressTracePanelState = {
   writeCount: number;
@@ -157,52 +169,57 @@ export default function CheckoutScreen() {
     }
   }, [scheduledDelivery, cart.items.length, navigation]);
 
-  // Efeito para aplicar CEP automático de endereços salvos (simulação)
   useEffect(() => {
-    // Simular carregamento de endereço salvo do usuário
     const loadSavedAddress = async () => {
       const userId = (user as any)?.id || (user as any)?.uid;
       console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:start`, { userId: userId ?? null });
 
-      if (userId) {
-        try {
-          const addresses = await new AddressService().getUserAddresses(userId);
-          console.log(`${ADDRESS_TRACE_TAG} Firestore getUserAddresses (read-only)`, {
-            userId,
-            count: addresses.length,
-            addresses,
-          });
-          setAddressTracePanel(prev => ({
-            ...prev,
-            firestoreAddressCount: addresses.length,
-            lastUpdatedAt: new Date().toISOString(),
-          }));
-        } catch (error) {
-          console.log(`${ADDRESS_TRACE_TAG} Firestore getUserAddresses:error (read-only)`, { error });
-        }
+      if (!userId) {
+        console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:skip`, { reason: 'no-userId' });
+        return;
       }
 
-      // Aqui, em uma implementação real, você carregaria do banco de dados ou API
-      const savedAddress = {
-        street: 'Rua das Flores',
-        number: '123',
-        complement: 'Apto 101',
-        neighborhood: 'Jardim Primavera',
-        city: 'São Paulo',
-        state: 'SP',
-        zipCode: '01234-567',
-        reference: 'Próximo ao Mercado Central',
-      };
-
-      console.log(`${ADDRESS_TRACE_TAG} mock savedAddress prepared`, { savedAddress });
-
-      // Em uma implementação real, você verificaria se há endereço salvo
-      // Simular um delay para carregar o endereço
-      setTimeout(() => {
-        traceSetAddress('loadSavedAddress:mock-hardcoded', savedAddress, {
-          source: 'hardcoded-simulation',
+      try {
+        const addresses = await new AddressService().getUserAddresses(userId);
+        console.log(`${ADDRESS_TRACE_TAG} Firestore getUserAddresses`, {
+          userId,
+          count: addresses.length,
+          addresses,
         });
-      }, 500);
+        setAddressTracePanel(prev => ({
+          ...prev,
+          firestoreAddressCount: addresses.length,
+          lastUpdatedAt: new Date().toISOString(),
+        }));
+
+        if (addresses.length === 0) {
+          console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:skip`, { reason: 'empty-addresses' });
+          return;
+        }
+
+        const defaultAddress = addresses.find(item => item.isDefault);
+        const selected = defaultAddress ?? addresses[0];
+        const origin = defaultAddress
+          ? 'loadSavedAddress:firestore-default'
+          : 'loadSavedAddress:firestore-first';
+
+        console.log(`${ADDRESS_TRACE_TAG} address selected`, {
+          selectedId: selected.id,
+          isDefault: selected.isDefault ?? false,
+          origin,
+          selected,
+        });
+
+        traceSetAddress(origin, mapFirestoreAddressToCheckoutState(selected), {
+          userId,
+          addressCount: addresses.length,
+          selectedId: selected.id,
+          isDefault: selected.isDefault ?? false,
+        });
+      } catch (error) {
+        console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:error`, { error });
+        loggingService.warn('Erro ao carregar endereço salvo no checkout', { error });
+      }
     };
 
     loadSavedAddress();
