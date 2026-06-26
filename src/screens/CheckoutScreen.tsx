@@ -24,7 +24,12 @@ import { PaymentService } from '../services/PaymentService';
 import { ProductService } from '../services/ProductService';
 import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 import { StoreService } from '../services/StoreService';
-import { DeliveryPricingService, PricingResult } from '../services/DeliveryPricingService';
+import {
+  DeliveryPricingService,
+  PricingResult,
+  Coordinates,
+} from '../services/DeliveryPricingService';
+import * as Location from 'expo-location';
 import { AddressService } from '../services/AddressService';
 import type { Address } from '../types/Address';
 import { NotificationService } from '../services/NotificationService';
@@ -64,6 +69,73 @@ const mapFirestoreAddressToCheckoutState = (selected: Address): CheckoutAddressS
   zipCode: selected.zipCode,
   reference: '',
 });
+
+const buildAddressQuery = (addr: CheckoutAddressState): string => {
+  return [
+    addr.street,
+    addr.number,
+    addr.neighborhood,
+    addr.city,
+    addr.state,
+    addr.zipCode,
+  ]
+    .map(part => part?.trim())
+    .filter(Boolean)
+    .join(', ');
+};
+
+const geocodeAddressString = async (query: string): Promise<Coordinates | null> => {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const results = await Location.geocodeAsync(trimmed);
+    if (!results?.length) {
+      return null;
+    }
+
+    const { latitude, longitude } = results[0];
+    if (
+      latitude == null ||
+      longitude == null ||
+      Number.isNaN(latitude) ||
+      Number.isNaN(longitude)
+    ) {
+      return null;
+    }
+
+    return { latitude, longitude };
+  } catch {
+    return null;
+  }
+};
+
+const geocodeCheckoutAddress = async (addr: CheckoutAddressState): Promise<Coordinates | null> => {
+  return geocodeAddressString(buildAddressQuery(addr));
+};
+
+const resolveStoreCoordinates = (store: Record<string, unknown>): Coordinates | null => {
+  const coordinates = store?.coordinates as { latitude?: unknown; longitude?: unknown } | undefined;
+  if (coordinates?.latitude != null && coordinates?.longitude != null) {
+    const latitude = Number(coordinates.latitude);
+    const longitude = Number(coordinates.longitude);
+    if (!Number.isNaN(latitude) && !Number.isNaN(longitude)) {
+      return { latitude, longitude };
+    }
+  }
+
+  if (store?.latitude != null && store?.longitude != null) {
+    const latitude = Number(store.latitude);
+    const longitude = Number(store.longitude);
+    if (!Number.isNaN(latitude) && !Number.isNaN(longitude)) {
+      return { latitude, longitude };
+    }
+  }
+
+  return null;
+};
 
 export default function CheckoutScreen() {
   const navigation = useNavigation<CheckoutScreenNavigationProp>();
@@ -173,18 +245,96 @@ export default function CheckoutScreen() {
     }
   };
 
-  // Efeito para calcular a taxa de entrega quando o CEP mudar
+  // Efeito para calcular a taxa de entrega quando o endereço ou loja mudar
   useEffect(() => {
     const calculatePricing = async () => {
-      if (address.zipCode && address.zipCode.replace(/\D/g, '').length === 8) {
-        // Em produção, isso usaria o CEP real da loja como originZip.
-        // Como é um mock/safe mode, passamos CEPs para ativar o fallback provisório.
-        const pricing = await DeliveryPricingService.calculatePricingByZipCode('00000000', address.zipCode);
+      const normalizedZip = address.zipCode?.replace(/\D/g, '') ?? '';
+      if (normalizedZip.length !== 8) {
+        return;
+      }
+
+      const producerId = cart.items[0]?.producerId;
+      let pricing: PricingResult;
+      let method: 'coordinates' | 'fallback' = 'fallback';
+      let originCoords: Coordinates | null = null;
+      let destinationCoords: Coordinates | null = null;
+      let storeFound = false;
+
+      try {
+        const store = producerId ? await storeService.getStoreByProducerId(producerId) : null;
+        storeFound = !!store;
+
+        if (store) {
+          const storeRecord = store as unknown as Record<string, unknown>;
+          originCoords = resolveStoreCoordinates(storeRecord);
+          if (!originCoords) {
+            const storeAddress = (store as { address?: string }).address?.trim();
+            if (storeAddress) {
+              originCoords = await geocodeAddressString(storeAddress);
+            }
+          }
+        }
+
+        destinationCoords = await geocodeCheckoutAddress(address);
+
+        if (originCoords && destinationCoords) {
+          method = 'coordinates';
+          pricing = DeliveryPricingService.calculatePricingByCoordinates(
+            originCoords,
+            destinationCoords
+          );
+        } else {
+          pricing = await DeliveryPricingService.calculatePricingByZipCode(
+            normalizedZip,
+            normalizedZip
+          );
+        }
+
+        if (__DEV__) {
+          const subtotalProducts = cart.items.reduce(
+            (acc, item) => acc + item.price * item.quantity,
+            0
+          );
+          const orderTotal = subtotalProducts + pricing.deliveryFee;
+          const amountInCents = Math.round(orderTotal * 100);
+          console.log('[DELIVERY-PRICING-TRACE]', {
+            producerId: producerId ?? null,
+            storeFound,
+            originCoords,
+            destinationAddress: buildAddressQuery(address),
+            destinationCoords,
+            method,
+            distanceKm: pricing.distanceKm,
+            deliveryFee: pricing.deliveryFee,
+            withinRange: pricing.withinRange,
+            orderTotal,
+            amountInCents,
+          });
+        }
+
+        setDeliveryPricing(pricing);
+      } catch (error) {
+        if (__DEV__) {
+          console.warn('[DELIVERY-PRICING-TRACE] fallback after error', { error });
+        }
+        pricing = await DeliveryPricingService.calculatePricingByZipCode(
+          normalizedZip,
+          normalizedZip
+        );
         setDeliveryPricing(pricing);
       }
     };
+
     calculatePricing();
-  }, [address.zipCode]);
+  }, [
+    address.zipCode,
+    address.street,
+    address.number,
+    address.neighborhood,
+    address.city,
+    address.state,
+    cart.items[0]?.producerId,
+  ]);
 
   const handleZipCodeChange = (text: string) => {
     // Remove caracteres não numéricos
