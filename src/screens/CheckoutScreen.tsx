@@ -255,14 +255,11 @@ export default function CheckoutScreen() {
 
       const producerId = cart.items[0]?.producerId;
       let pricing: PricingResult;
-      let method: 'coordinates' | 'fallback' = 'fallback';
       let originCoords: Coordinates | null = null;
       let destinationCoords: Coordinates | null = null;
-      let storeFound = false;
 
       try {
         const store = producerId ? await storeService.getStoreByProducerId(producerId) : null;
-        storeFound = !!store;
 
         if (store) {
           const storeRecord = store as unknown as Record<string, unknown>;
@@ -278,7 +275,6 @@ export default function CheckoutScreen() {
         destinationCoords = await geocodeCheckoutAddress(address);
 
         if (originCoords && destinationCoords) {
-          method = 'coordinates';
           pricing = DeliveryPricingService.calculatePricingByCoordinates(
             originCoords,
             destinationCoords
@@ -290,33 +286,8 @@ export default function CheckoutScreen() {
           );
         }
 
-        if (__DEV__) {
-          const subtotalProducts = cart.items.reduce(
-            (acc, item) => acc + item.price * item.quantity,
-            0
-          );
-          const orderTotal = subtotalProducts + pricing.deliveryFee;
-          const amountInCents = Math.round(orderTotal * 100);
-          console.log('[DELIVERY-PRICING-TRACE]', {
-            producerId: producerId ?? null,
-            storeFound,
-            originCoords,
-            destinationAddress: buildAddressQuery(address),
-            destinationCoords,
-            method,
-            distanceKm: pricing.distanceKm,
-            deliveryFee: pricing.deliveryFee,
-            withinRange: pricing.withinRange,
-            orderTotal,
-            amountInCents,
-          });
-        }
-
         setDeliveryPricing(pricing);
       } catch (error) {
-        if (__DEV__) {
-          console.warn('[DELIVERY-PRICING-TRACE] fallback after error', { error });
-        }
         pricing = await DeliveryPricingService.calculatePricingByZipCode(
           normalizedZip,
           normalizedZip
