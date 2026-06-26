@@ -1,11 +1,20 @@
 export type OrderStatus =
   | 'pending'
+  | 'pending_payment'
   | 'confirmed'
   | 'preparing'
   | 'ready'
   | 'delivering'
   | 'delivered'
   | 'cancelled';
+
+export type OrderPaymentMethodType = 'credit_card' | 'debit_card' | 'pix';
+
+export type OrderPaymentStatus =
+  | 'pending'
+  | 'completed'
+  | 'failed'
+  | 'expired';
 
 export interface OrderItem {
   id: string;
@@ -34,9 +43,15 @@ export interface Order {
   totalAmount: number;
   status: OrderStatus;
   paymentMethod: {
-    type: string;
+    type: OrderPaymentMethodType | string;
     id: string;
   };
+  paymentStatus?: OrderPaymentStatus;
+  paymentIntentId?: string;
+  paidAt?: string;
+  pixExpiresAt?: string;
+  pixQrCode?: string;
+  pixCopyPaste?: string;
   deliveryAddress: {
     id: string;
     street: string;
@@ -82,6 +97,7 @@ export interface OrderFilters {
 export interface OrderSummary {
   total: number;
   pending: number;
+  pendingPayment?: number;
   confirmed: number;
   preparing: number;
   ready: number;

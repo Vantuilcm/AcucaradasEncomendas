@@ -4,7 +4,9 @@ export type PaymentStatus =
   | 'pending'
   | 'processing'
   | 'approved'
+  | 'completed'
   | 'failed'
+  | 'expired'
   | 'refunded'
   | 'cancelled';
 
@@ -28,6 +30,9 @@ export interface PaymentTransaction {
   status: PaymentStatus;
   cardId?: string;
   pixCode?: string;
+  pixCopyPaste?: string;
+  pixExpiresAt?: string;
+  paymentIntentId?: string;
   errorMessage?: string;
   metadata?: {
     [key: string]: string | number | boolean | null;
