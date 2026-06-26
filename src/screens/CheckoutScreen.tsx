@@ -54,6 +54,16 @@ type CheckoutAddressState = {
 
 const ADDRESS_TRACE_TAG = '[CHECKOUT-ADDRESS-TRACE]';
 
+type AddressTracePanelState = {
+  writeCount: number;
+  lastOrigin: string;
+  lastMeta: Record<string, unknown> | null;
+  firestoreAddressCount: number | null;
+  mockApplied: boolean;
+  overwriteAfterMock: boolean;
+  lastUpdatedAt: string;
+};
+
 export default function CheckoutScreen() {
   const navigation = useNavigation<CheckoutScreenNavigationProp>();
   const route = useRoute<CheckoutScreenRouteProp>();
@@ -77,17 +87,40 @@ export default function CheckoutScreen() {
   });
   const addressTraceSeq = useRef(0);
   const lastAddressWriteOrigin = useRef<string>('initial-state');
+  const mockAppliedRef = useRef(false);
+  const [addressTracePanel, setAddressTracePanel] = useState<AddressTracePanelState>({
+    writeCount: 0,
+    lastOrigin: 'initial-state',
+    lastMeta: null,
+    firestoreAddressCount: null,
+    mockApplied: false,
+    overwriteAfterMock: false,
+    lastUpdatedAt: '',
+  });
 
   const traceSetAddress = useCallback(
     (origin: string, next: CheckoutAddressState, meta?: Record<string, unknown>) => {
       const seq = ++addressTraceSeq.current;
       lastAddressWriteOrigin.current = origin;
+      const isMockOrigin = origin === 'loadSavedAddress:mock-hardcoded';
+      if (isMockOrigin) {
+        mockAppliedRef.current = true;
+      }
       console.log(`${ADDRESS_TRACE_TAG} #${seq} setAddress`, {
         origin,
         meta,
         payload: next,
         stack: new Error().stack?.split('\n').slice(1, 5).join(' | '),
       });
+      setAddressTracePanel(prev => ({
+        ...prev,
+        writeCount: seq,
+        lastOrigin: origin,
+        lastMeta: meta ?? null,
+        mockApplied: mockAppliedRef.current,
+        overwriteAfterMock: mockAppliedRef.current && !isMockOrigin,
+        lastUpdatedAt: new Date().toISOString(),
+      }));
       setAddressRaw(next);
     },
     []
@@ -139,6 +172,11 @@ export default function CheckoutScreen() {
             count: addresses.length,
             addresses,
           });
+          setAddressTracePanel(prev => ({
+            ...prev,
+            firestoreAddressCount: addresses.length,
+            lastUpdatedAt: new Date().toISOString(),
+          }));
         } catch (error) {
           console.log(`${ADDRESS_TRACE_TAG} Firestore getUserAddresses:error (read-only)`, { error });
         }
@@ -705,6 +743,37 @@ export default function CheckoutScreen() {
 
   return (
     <ScrollView style={styles.container}>
+      <Card style={styles.tracePanelCard}>
+        <Card.Content>
+          <Text style={styles.tracePanelTitle}>BUYER ADDRESS TRACE — PREVIEW ONLY</Text>
+          <Text style={styles.tracePanelLine}>Last origin: {addressTracePanel.lastOrigin}</Text>
+          <Text style={styles.tracePanelLine}>Write count: {addressTracePanel.writeCount}</Text>
+          <Text style={styles.tracePanelLine}>
+            Mock applied: {addressTracePanel.mockApplied ? 'true' : 'false'}
+          </Text>
+          <Text style={styles.tracePanelLine}>
+            Overwrite after mock: {addressTracePanel.overwriteAfterMock ? 'true' : 'false'}
+          </Text>
+          <Text style={styles.tracePanelLine}>
+            Firestore addresses count:{' '}
+            {addressTracePanel.firestoreAddressCount === null
+              ? '—'
+              : String(addressTracePanel.firestoreAddressCount)}
+          </Text>
+          <Text style={styles.tracePanelLine}>
+            Last updated: {addressTracePanel.lastUpdatedAt || '—'}
+          </Text>
+          <Divider style={styles.divider} />
+          <Text style={styles.tracePanelSubtitle}>Current address snapshot:</Text>
+          <Text style={styles.tracePanelLine}>street: {address.street || '—'}</Text>
+          <Text style={styles.tracePanelLine}>number: {address.number || '—'}</Text>
+          <Text style={styles.tracePanelLine}>neighborhood: {address.neighborhood || '—'}</Text>
+          <Text style={styles.tracePanelLine}>city: {address.city || '—'}</Text>
+          <Text style={styles.tracePanelLine}>state: {address.state || '—'}</Text>
+          <Text style={styles.tracePanelLine}>zipCode: {address.zipCode || '—'}</Text>
+        </Card.Content>
+      </Card>
+
       {/* Resumo do pedido */}
       <Card style={styles.card}>
         <Card.Content>
@@ -1016,6 +1085,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 10,
     elevation: 2,
+  },
+  tracePanelCard: {
+    marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: '#fff8e1',
+    borderWidth: 2,
+    borderColor: '#f57c00',
+  },
+  tracePanelTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#e65100',
+    marginBottom: 8,
+  },
+  tracePanelSubtitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 6,
+  },
+  tracePanelLine: {
+    fontSize: 12,
+    color: '#333',
+    marginBottom: 4,
+    fontFamily: 'monospace',
   },
   sectionTitle: {
     fontSize: 20,
