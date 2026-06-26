@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -54,8 +54,6 @@ type CheckoutAddressState = {
   reference: string;
 };
 
-const ADDRESS_TRACE_TAG = '[CHECKOUT-ADDRESS-TRACE]';
-
 const mapFirestoreAddressToCheckoutState = (selected: Address): CheckoutAddressState => ({
   street: selected.street,
   number: selected.number,
@@ -66,16 +64,6 @@ const mapFirestoreAddressToCheckoutState = (selected: Address): CheckoutAddressS
   zipCode: selected.zipCode,
   reference: '',
 });
-
-type AddressTracePanelState = {
-  writeCount: number;
-  lastOrigin: string;
-  lastMeta: Record<string, unknown> | null;
-  firestoreAddressCount: number | null;
-  mockApplied: boolean;
-  overwriteAfterMock: boolean;
-  lastUpdatedAt: string;
-};
 
 export default function CheckoutScreen() {
   const navigation = useNavigation<CheckoutScreenNavigationProp>();
@@ -88,7 +76,7 @@ export default function CheckoutScreen() {
   const storeService = new StoreService();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
-  const [address, setAddressRaw] = useState<CheckoutAddressState>({
+  const [address, setAddress] = useState<CheckoutAddressState>({
     street: '',
     number: '',
     complement: '',
@@ -98,54 +86,6 @@ export default function CheckoutScreen() {
     zipCode: '',
     reference: '',
   });
-  const addressTraceSeq = useRef(0);
-  const lastAddressWriteOrigin = useRef<string>('initial-state');
-  const mockAppliedRef = useRef(false);
-  const [addressTracePanel, setAddressTracePanel] = useState<AddressTracePanelState>({
-    writeCount: 0,
-    lastOrigin: 'initial-state',
-    lastMeta: null,
-    firestoreAddressCount: null,
-    mockApplied: false,
-    overwriteAfterMock: false,
-    lastUpdatedAt: '',
-  });
-
-  const traceSetAddress = useCallback(
-    (origin: string, next: CheckoutAddressState, meta?: Record<string, unknown>) => {
-      const seq = ++addressTraceSeq.current;
-      lastAddressWriteOrigin.current = origin;
-      const isMockOrigin = origin === 'loadSavedAddress:mock-hardcoded';
-      if (isMockOrigin) {
-        mockAppliedRef.current = true;
-      }
-      console.log(`${ADDRESS_TRACE_TAG} #${seq} setAddress`, {
-        origin,
-        meta,
-        payload: next,
-        stack: new Error().stack?.split('\n').slice(1, 5).join(' | '),
-      });
-      setAddressTracePanel(prev => ({
-        ...prev,
-        writeCount: seq,
-        lastOrigin: origin,
-        lastMeta: meta ?? null,
-        mockApplied: mockAppliedRef.current,
-        overwriteAfterMock: mockAppliedRef.current && !isMockOrigin,
-        lastUpdatedAt: new Date().toISOString(),
-      }));
-      setAddressRaw(next);
-    },
-    []
-  );
-
-  useEffect(() => {
-    console.log(`${ADDRESS_TRACE_TAG} RENDER snapshot`, {
-      seq: addressTraceSeq.current,
-      lastWriteOrigin: lastAddressWriteOrigin.current,
-      address,
-    });
-  }, [address]);
 
   const [paymentMethod, setPaymentMethod] = useState<'creditCard' | 'pix'>('creditCard');
   const [cardNumber, setCardNumber] = useState('');
@@ -176,73 +116,37 @@ export default function CheckoutScreen() {
   useEffect(() => {
     const loadSavedAddress = async () => {
       const userId = (user as any)?.id || (user as any)?.uid;
-      console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:start`, { userId: userId ?? null });
 
       if (!userId) {
-        console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:skip`, { reason: 'no-userId' });
         return;
       }
 
       try {
         const addresses = await new AddressService().getUserAddresses(userId);
-        console.log(`${ADDRESS_TRACE_TAG} Firestore getUserAddresses`, {
-          userId,
-          count: addresses.length,
-          addresses,
-        });
-        setAddressTracePanel(prev => ({
-          ...prev,
-          firestoreAddressCount: addresses.length,
-          lastUpdatedAt: new Date().toISOString(),
-        }));
         setSavedAddresses(addresses);
 
         if (addresses.length === 0) {
-          console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:skip`, { reason: 'empty-addresses' });
           return;
         }
 
         const defaultAddress = addresses.find(item => item.isDefault);
         const selected = defaultAddress ?? addresses[0];
-        const origin = defaultAddress
-          ? 'loadSavedAddress:firestore-default'
-          : 'loadSavedAddress:firestore-first';
 
-        console.log(`${ADDRESS_TRACE_TAG} address selected`, {
-          selectedId: selected.id,
-          isDefault: selected.isDefault ?? false,
-          origin,
-          selected,
-        });
-
-        traceSetAddress(origin, mapFirestoreAddressToCheckoutState(selected), {
-          userId,
-          addressCount: addresses.length,
-          selectedId: selected.id,
-          isDefault: selected.isDefault ?? false,
-        });
+        setAddress(mapFirestoreAddressToCheckoutState(selected));
         setSelectedAddressId(selected.id);
       } catch (error) {
-        console.log(`${ADDRESS_TRACE_TAG} loadSavedAddress:error`, { error });
         loggingService.warn('Erro ao carregar endereço salvo no checkout', { error });
       }
     };
 
     loadSavedAddress();
-  }, [user, traceSetAddress]);
+  }, [user]);
 
-  const handleSelectSavedAddress = useCallback(
-    (selected: Address) => {
-      traceSetAddress('loadSavedAddress:user-selected', mapFirestoreAddressToCheckoutState(selected), {
-        addressId: selected.id,
-        selectedId: selected.id,
-        isDefault: selected.isDefault ?? false,
-      });
-      setSelectedAddressId(selected.id);
-      setAddressSelectorVisible(false);
-    },
-    [traceSetAddress]
-  );
+  const handleSelectSavedAddress = useCallback((selected: Address) => {
+    setAddress(mapFirestoreAddressToCheckoutState(selected));
+    setSelectedAddressId(selected.id);
+    setAddressSelectorVisible(false);
+  }, []);
 
   const formatCreditCard = (text: string) => {
     // Remover espaços e caracteres não numéricos
@@ -292,10 +196,7 @@ export default function CheckoutScreen() {
     // Formata o CEP quando tem 8 dígitos
     const formattedZipCode = validationService.formatZipCode(truncatedValue);
 
-    traceSetAddress('handleZipCodeChange', { ...address, zipCode: formattedZipCode }, {
-      input: text,
-      formattedZipCode,
-    });
+    setAddress({ ...address, zipCode: formattedZipCode });
   };
 
   const handlePlaceOrder = async () => {
@@ -780,37 +681,6 @@ export default function CheckoutScreen() {
   return (
     <>
     <ScrollView style={styles.container}>
-      <Card style={styles.tracePanelCard}>
-        <Card.Content>
-          <Text style={styles.tracePanelTitle}>BUYER ADDRESS TRACE — PREVIEW ONLY</Text>
-          <Text style={styles.tracePanelLine}>Last origin: {addressTracePanel.lastOrigin}</Text>
-          <Text style={styles.tracePanelLine}>Write count: {addressTracePanel.writeCount}</Text>
-          <Text style={styles.tracePanelLine}>
-            Mock applied: {addressTracePanel.mockApplied ? 'true' : 'false'}
-          </Text>
-          <Text style={styles.tracePanelLine}>
-            Overwrite after mock: {addressTracePanel.overwriteAfterMock ? 'true' : 'false'}
-          </Text>
-          <Text style={styles.tracePanelLine}>
-            Firestore addresses count:{' '}
-            {addressTracePanel.firestoreAddressCount === null
-              ? '—'
-              : String(addressTracePanel.firestoreAddressCount)}
-          </Text>
-          <Text style={styles.tracePanelLine}>
-            Last updated: {addressTracePanel.lastUpdatedAt || '—'}
-          </Text>
-          <Divider style={styles.divider} />
-          <Text style={styles.tracePanelSubtitle}>Current address snapshot:</Text>
-          <Text style={styles.tracePanelLine}>street: {address.street || '—'}</Text>
-          <Text style={styles.tracePanelLine}>number: {address.number || '—'}</Text>
-          <Text style={styles.tracePanelLine}>neighborhood: {address.neighborhood || '—'}</Text>
-          <Text style={styles.tracePanelLine}>city: {address.city || '—'}</Text>
-          <Text style={styles.tracePanelLine}>state: {address.state || '—'}</Text>
-          <Text style={styles.tracePanelLine}>zipCode: {address.zipCode || '—'}</Text>
-        </Card.Content>
-      </Card>
-
       {/* Resumo do pedido */}
       <Card style={styles.card}>
         <Card.Content>
@@ -945,7 +815,7 @@ export default function CheckoutScreen() {
             style={styles.input}
             placeholder="Rua"
             value={address.street}
-            onChangeText={text => traceSetAddress('input:street', { ...address, street: text }, { field: 'street', text })}
+            onChangeText={text => setAddress({ ...address, street: text })}
           />
 
           <View style={styles.rowInputs}>
@@ -953,7 +823,7 @@ export default function CheckoutScreen() {
               style={[styles.input, styles.numberInput]}
               placeholder="Número"
               value={address.number}
-              onChangeText={text => traceSetAddress('input:number', { ...address, number: text }, { field: 'number', text })}
+              onChangeText={text => setAddress({ ...address, number: text })}
               keyboardType="numeric"
             />
 
@@ -961,7 +831,7 @@ export default function CheckoutScreen() {
               style={[styles.input, styles.complementInput]}
               placeholder="Complemento"
               value={address.complement}
-              onChangeText={text => traceSetAddress('input:complement', { ...address, complement: text }, { field: 'complement', text })}
+              onChangeText={text => setAddress({ ...address, complement: text })}
             />
           </View>
 
@@ -969,7 +839,7 @@ export default function CheckoutScreen() {
             style={styles.input}
             placeholder="Bairro"
             value={address.neighborhood}
-            onChangeText={text => traceSetAddress('input:neighborhood', { ...address, neighborhood: text }, { field: 'neighborhood', text })}
+            onChangeText={text => setAddress({ ...address, neighborhood: text })}
           />
 
           <View style={styles.rowInputs}>
@@ -977,14 +847,14 @@ export default function CheckoutScreen() {
               style={[styles.input, styles.cityInput]}
               placeholder="Cidade"
               value={address.city}
-              onChangeText={text => traceSetAddress('input:city', { ...address, city: text }, { field: 'city', text })}
+              onChangeText={text => setAddress({ ...address, city: text })}
             />
 
             <TextInput
               style={[styles.input, styles.stateInput]}
               placeholder="Estado"
               value={address.state}
-              onChangeText={text => traceSetAddress('input:state', { ...address, state: text }, { field: 'state', text })}
+              onChangeText={text => setAddress({ ...address, state: text })}
               maxLength={2}
             />
           </View>
@@ -993,7 +863,7 @@ export default function CheckoutScreen() {
             style={styles.input}
             placeholder="Ponto de referência (opcional)"
             value={address.reference}
-            onChangeText={text => traceSetAddress('input:reference', { ...address, reference: text }, { field: 'reference', text })}
+            onChangeText={text => setAddress({ ...address, reference: text })}
           />
         </Card.Content>
       </Card>
@@ -1175,31 +1045,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 10,
     elevation: 2,
-  },
-  tracePanelCard: {
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff8e1',
-    borderWidth: 2,
-    borderColor: '#f57c00',
-  },
-  tracePanelTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#e65100',
-    marginBottom: 8,
-  },
-  tracePanelSubtitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 6,
-  },
-  tracePanelLine: {
-    fontSize: 12,
-    color: '#333',
-    marginBottom: 4,
-    fontFamily: 'monospace',
   },
   sectionTitle: {
     fontSize: 20,
