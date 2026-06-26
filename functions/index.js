@@ -532,6 +532,41 @@ exports.createPaymentIntent = functions
   });
 
 /**
+ * Estados operacionais em que o pedido já foi pago ou avançou no fluxo.
+ */
+const ADVANCED_ORDER_STATUSES = ['confirmed', 'preparing', 'ready', 'delivering', 'delivered', 'paid', 'completed'];
+
+function isOrderPaymentSettled(orderData) {
+  return (
+    orderData.paymentStatus === 'completed' ||
+    ADVANCED_ORDER_STATUSES.includes(orderData.status)
+  );
+}
+
+function isOrderPaymentTerminalFailure(orderData) {
+  return (
+    orderData.paymentStatus === 'failed' ||
+    orderData.paymentStatus === 'expired' ||
+    orderData.status === 'cancelled' ||
+    orderData.status === 'payment_failed'
+  );
+}
+
+function extractPaymentMethodType(paymentIntent) {
+  const fromMetadata = paymentIntent.metadata?.paymentMethod;
+  if (fromMetadata === 'pix') return 'pix';
+  if (fromMetadata === 'card') return 'credit_card';
+
+  const types = paymentIntent.payment_method_types;
+  if (Array.isArray(types) && types.length > 0) {
+    if (types[0] === 'pix') return 'pix';
+    if (types[0] === 'card') return 'credit_card';
+  }
+
+  return null;
+}
+
+/**
  * Stripe Webhook: Ouve eventos assíncronos de pagamento
  * IMPORTANTE: É onRequest (HTTP puro), não onCall.
  * STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET injetadas via Secret Manager.
@@ -622,6 +657,11 @@ exports.stripeWebhook = functions
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
           };
 
+          const paymentMethodType = extractPaymentMethodType(paymentIntent);
+          if (paymentMethodType) {
+            updates.paymentMethodType = paymentMethodType;
+          }
+
           // 1. Extração de Valores e Identificadores do Pedido
           const { producerId, deliveryDriverId, courierId, subtotalProducts, deliveryFee, totalAmount } = orderData;
           const targetCourierId = deliveryDriverId || courierId; // Aceita ambas as nomenclaturas
@@ -699,10 +739,14 @@ exports.stripeWebhook = functions
           break;
 
         case 'payment_intent.payment_failed':
-          // Evita sobrescrever se o pedido já avançou no fluxo ou já foi pago
-          if (orderData.status === 'paid' || orderData.status === 'delivering' || orderData.status === 'completed') {
-             console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já está num estado avançado (${orderData.status}). Ignorando falha tardia.`);
-             break;
+          if (isOrderPaymentSettled(orderData)) {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já pago/operacional (${orderData.status}). Ignorando falha tardia.`);
+            break;
+          }
+
+          if (isOrderPaymentTerminalFailure(orderData)) {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já marcado como falha/cancelado. Ignorando.`);
+            break;
           }
 
           console.error(`❌ [Stripe Webhook] Falha no pagamento do pedido ${orderId}`);
@@ -710,9 +754,49 @@ exports.stripeWebhook = functions
           transaction.update(orderRef, {
             status: 'payment_failed',
             paymentStatus: 'failed',
+            paymentIntentId: paymentIntent.id,
             paymentError: lastError,
+            paymentFailedAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
           });
+          break;
+
+        case 'payment_intent.canceled':
+          if (isOrderPaymentSettled(orderData)) {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já pago/operacional (${orderData.status}). Ignorando cancelamento tardio.`);
+            break;
+          }
+
+          if (isOrderPaymentTerminalFailure(orderData)) {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já marcado como falha/cancelado. Ignorando cancelamento duplicado.`);
+            break;
+          }
+
+          {
+            const canceledMethodType = extractPaymentMethodType(paymentIntent);
+            const isPixCancellation = canceledMethodType === 'pix';
+            console.warn(`⚠️ [Stripe Webhook] PaymentIntent cancelado para pedido ${orderId} (${isPixCancellation ? 'PIX' : 'pagamento'})`);
+
+            const cancelUpdates = {
+              status: 'cancelled',
+              paymentStatus: isPixCancellation ? 'expired' : 'failed',
+              paymentIntentId: paymentIntent.id,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            };
+
+            if (isPixCancellation) {
+              cancelUpdates.expiredAt = admin.firestore.FieldValue.serverTimestamp();
+            } else {
+              cancelUpdates.cancelledAt = admin.firestore.FieldValue.serverTimestamp();
+            }
+
+            const cancelReason = paymentIntent.cancellation_reason;
+            if (cancelReason) {
+              cancelUpdates.paymentError = cancelReason;
+            }
+
+            transaction.update(orderRef, cancelUpdates);
+          }
           break;
 
         default:
