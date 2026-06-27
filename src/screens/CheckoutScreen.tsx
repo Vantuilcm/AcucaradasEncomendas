@@ -682,9 +682,17 @@ export default function CheckoutScreen() {
           }
         }
 
-        // 4. Baixa automática de estoque (Só após confirmação de pagamento para Cartão ou criação para PIX)
-        // Nota: Para PIX, o status continua 'pending' até o webhook confirmar.
-        if (paymentMethod === 'creditCard' || paymentMethod === 'pix') {
+        // Guard: PIX não pode concluir checkout sem paymentStatus completed (webhook).
+        if (paymentMethod === 'pix') {
+          Alert.alert(
+            'PIX ainda não disponível',
+            'O pagamento por PIX ainda está em preparação. Selecione cartão para finalizar este pedido.'
+          );
+          throw new Error('PIX unavailable: payment not confirmed');
+        }
+
+        // 4. Baixa automática de estoque (somente após confirmação de pagamento via cartão)
+        if (paymentMethod === 'creditCard') {
           for (const item of cart.items) {
             const product = await productService.consultarProduto(item.productId);
             if (product && product.estoque !== undefined) {
