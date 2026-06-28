@@ -438,7 +438,8 @@ export default function CheckoutScreen() {
         subtotalProducts: subtotalProducts, // CAMPO NOVO PARA O MARKETPLACE
         deliveryFee: deliveryFee,           // CAMPO NOVO PARA O MARKETPLACE
         totalAmount: orderTotal,
-        status: 'pending',
+        status: paymentMethod === 'pix' ? 'pending_payment' : 'pending',
+        ...(paymentMethod === 'pix' ? { paymentStatus: 'pending' as const } : {}),
         paymentMethod: {
           type: mappedPaymentMethod,
           id: '',
@@ -680,19 +681,8 @@ export default function CheckoutScreen() {
           if (updatedOrder) {
             orderForSuccess = updatedOrder;
           }
-        }
 
-        // Guard: PIX não pode concluir checkout sem paymentStatus completed (webhook).
-        if (paymentMethod === 'pix') {
-          Alert.alert(
-            'PIX ainda não disponível',
-            'O pagamento por PIX ainda está em preparação. Selecione cartão para finalizar este pedido.'
-          );
-          throw new Error('PIX unavailable: payment not confirmed');
-        }
-
-        // 4. Baixa automática de estoque (somente após confirmação de pagamento via cartão)
-        if (paymentMethod === 'creditCard') {
+          // 4. Baixa automática de estoque (somente após confirmação de pagamento via cartão)
           for (const item of cart.items) {
             const product = await productService.consultarProduto(item.productId);
             if (product && product.estoque !== undefined) {
@@ -703,22 +693,160 @@ export default function CheckoutScreen() {
               });
             }
           }
+
+          await clearCart();
+
+          await SalesAutomationService.getInstance().logAutomationEvent(userId, 'PAYMENT_SUCCESS', {
+            orderId: newOrder.id,
+            amount: orderTotal
+          });
+
+          navigation.navigate('OrderCompleted', { order: orderForSuccess });
+        } else if (paymentMethod === 'pix') {
+          if (!ENABLE_STRIPE) {
+            throw new Error('Pagamento PIX indisponível no momento.');
+          }
+
+          const amountInCents = Math.round(orderTotal * 100);
+          const finalOrderId = newOrder.id;
+
+          if (!finalOrderId) throw new Error('ID do pedido (orderId) está indefinido ou nulo');
+          if (!amountInCents || amountInCents <= 0) throw new Error('Valor do pedido (amount) inválido');
+
+          getApp();
+          const functions = getFunctions();
+          const safeUser = user || {};
+          const userNameForLog = (safeUser as any)?.displayName || 'Cliente';
+          const userEmail = (safeUser as any)?.email;
+
+          if (userEmail) {
+            const createStripeCustomer = httpsCallable(functions, 'createStripeCustomer');
+            await createStripeCustomer({
+              email: userEmail,
+              name: userNameForLog,
+            });
+          }
+
+          const createPaymentIntent = httpsCallable(functions, 'createPaymentIntent');
+          const response = await createPaymentIntent({
+            amount: amountInCents,
+            currency: 'brl',
+            orderId: finalOrderId,
+            paymentMethod: 'pix',
+          });
+
+          if (!response || !response.data) {
+            throw new Error('Resposta do backend (createPaymentIntent) veio vazia ou indefinida');
+          }
+
+          const pixData = response.data as { clientSecret: string; ephemeralKey?: string; customer?: string };
+          if (!pixData.clientSecret) {
+            throw new Error('clientSecret não retornado pelo backend');
+          }
+
+          const pixInitParams: any = {
+            merchantDisplayName: 'Açucaradas Encomendas',
+            paymentIntentClientSecret: pixData.clientSecret,
+          };
+          if (pixData.customer) pixInitParams.customerId = pixData.customer;
+          if (pixData.ephemeralKey) pixInitParams.customerEphemeralKeySecret = pixData.ephemeralKey;
+
+          const { error: pixInitError } = await initPaymentSheet(pixInitParams);
+          if (pixInitError) {
+            throw new Error(pixInitError.message || 'Erro ao inicializar pagamento PIX');
+          }
+
+          const { error: pixPresentError } = await presentPaymentSheet();
+          if (pixPresentError) {
+            if (pixPresentError.code === 'Canceled') {
+              throw new Error('PIX_SHEET_CANCELLED');
+            }
+            throw new Error(pixPresentError.message || 'Pagamento PIX cancelado ou falhou');
+          }
+
+          setWaitingWebhook(true);
+
+          const pixCurrentUid = user?.id || (user as any)?.uid;
+          if (!pixCurrentUid) {
+            throw new Error('Usuário não autenticado para escutar pedido');
+          }
+
+          const pixIsPaid = await new Promise<boolean>((resolve, reject) => {
+            const orderRef = f.doc('orders', newOrder.id);
+            let unsubscribe = () => {};
+
+            const timeoutId = setTimeout(() => {
+              unsubscribe();
+              resolve(false);
+            }, 120000);
+
+            unsubscribe = f.onSnapshot(
+              orderRef,
+              (snapshot: any) => {
+                const currentOrderData = snapshot.data();
+                if (currentOrderData?.paymentStatus === 'completed') {
+                  clearTimeout(timeoutId);
+                  unsubscribe();
+                  resolve(true);
+                } else if (
+                  currentOrderData?.paymentStatus === 'failed' ||
+                  currentOrderData?.status === 'payment_failed'
+                ) {
+                  clearTimeout(timeoutId);
+                  unsubscribe();
+                  reject(new Error(currentOrderData?.paymentError || 'Pagamento PIX falhou'));
+                } else if (
+                  currentOrderData?.paymentStatus === 'expired' ||
+                  currentOrderData?.status === 'cancelled'
+                ) {
+                  clearTimeout(timeoutId);
+                  unsubscribe();
+                  reject(new Error('PIX_PAYMENT_EXPIRED'));
+                }
+              },
+              (error: any) => {
+                clearTimeout(timeoutId);
+                unsubscribe();
+                reject(error);
+              }
+            );
+          });
+
+          setWaitingWebhook(false);
+
+          if (!pixIsPaid) {
+            throw new Error('PIX_TIMEOUT_PENDING');
+          }
+
+          const pixUpdatedOrder = await orderService.getOrderById(newOrder.id);
+          if (pixUpdatedOrder) {
+            orderForSuccess = pixUpdatedOrder;
+          }
+
+          for (const item of cart.items) {
+            const product = await productService.consultarProduto(item.productId);
+            if (product && product.estoque !== undefined) {
+              const novoEstoque = Math.max(0, product.estoque - item.quantity);
+              await productService.atualizarProduto(item.productId, {
+                estoque: novoEstoque,
+                temEstoque: novoEstoque > 0
+              });
+            }
+          }
+
+          await clearCart();
+
+          await SalesAutomationService.getInstance().logAutomationEvent(userId, 'PAYMENT_SUCCESS', {
+            orderId: newOrder.id,
+            amount: orderTotal
+          });
+
+          navigation.navigate('OrderCompleted', { order: orderForSuccess });
         }
-
-        await clearCart();
-        
-        // Registrar sucesso para automação
-        await SalesAutomationService.getInstance().logAutomationEvent(userId, 'PAYMENT_SUCCESS', {
-          orderId: newOrder.id,
-          amount: orderTotal
-        });
-
-        navigation.navigate('OrderCompleted', { order: orderForSuccess });
       } catch (paymentError: any) {
         setWaitingWebhook(false);
 
         // Se foi apenas um timeout do webhook, não cancelamos o pedido nem limpamos o carrinho.
-        // O webhook continuará processando no backend.
         if (paymentError.message === 'TIMEOUT_PENDING') {
           Alert.alert(
             'Pagamento em Processamento',
@@ -728,7 +856,40 @@ export default function CheckoutScreen() {
           return;
         }
 
-        // 5. Rollback: Cancelar pedido se o pagamento falhar
+        if (paymentError.message === 'PIX_TIMEOUT_PENDING') {
+          Alert.alert(
+            'Aguardando pagamento PIX',
+            'Seu pedido foi criado e aguarda a compensação do PIX. Acompanhe em "Meus Pedidos".'
+          );
+          navigation.navigate('MainTabs', { screen: 'Orders' } as any);
+          return;
+        }
+
+        if (paymentError.message === 'PIX_SHEET_CANCELLED') {
+          Alert.alert(
+            'Pagamento PIX não concluído',
+            'Você pode tentar novamente ou acompanhar o pedido em "Meus Pedidos".'
+          );
+          return;
+        }
+
+        if (paymentMethod === 'pix') {
+          if (paymentError.message === 'PIX_PAYMENT_EXPIRED') {
+            Alert.alert(
+              'PIX expirado',
+              'O prazo para pagamento expirou. Tente gerar um novo PIX em "Meus Pedidos".'
+            );
+            return;
+          }
+
+          Alert.alert(
+            'Pagamento PIX não concluído',
+            paymentError.message || 'Não foi possível confirmar o pagamento PIX.'
+          );
+          return;
+        }
+
+        // 5. Rollback: Cancelar pedido se o pagamento falhar (somente cartão)
         console.error('Falha no pagamento:', paymentError);
         
         // Registrar falha para automação (Recuperação de Venda)
@@ -1025,7 +1186,6 @@ export default function CheckoutScreen() {
               </Text>
             </TouchableOpacity>
 
-            {/* TODO FASE 2: Restaurar PIX após implementar exibição de QR Code seguro
             <TouchableOpacity
               style={[
                 styles.paymentOption,
@@ -1047,7 +1207,6 @@ export default function CheckoutScreen() {
                 PIX
               </Text>
             </TouchableOpacity>
-            */}
 
           </View>
 
@@ -1094,7 +1253,7 @@ export default function CheckoutScreen() {
           {paymentMethod === 'pix' && (
             <View style={styles.pixInfo}>
               <Text style={styles.pixInfoText}>
-                O QR Code para pagamento será exibido após a confirmação do pedido.
+                Após gerar o PIX, seu pedido ficará aguardando pagamento. O pedido será confirmado automaticamente após a compensação.
               </Text>
             </View>
           )}
@@ -1113,7 +1272,15 @@ export default function CheckoutScreen() {
         disabled={isProcessing || waitingWebhook}
         icon={(isProcessing || waitingWebhook) ? undefined : 'check'}
       >
-        {waitingWebhook ? 'Aguardando confirmação...' : isProcessing ? 'Processando...' : 'Finalizar Pedido'}
+        {waitingWebhook
+          ? paymentMethod === 'pix'
+            ? 'Aguardando pagamento PIX...'
+            : 'Aguardando confirmação...'
+          : isProcessing
+            ? 'Processando...'
+            : paymentMethod === 'pix'
+              ? 'Gerar PIX'
+              : 'Finalizar Pedido'}
       </Button>
 
       <View style={styles.bottomSpace} />
