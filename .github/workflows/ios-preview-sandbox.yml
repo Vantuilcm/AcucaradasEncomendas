@@ -1,0 +1,208 @@
+# iOS Preview Sandbox — Firebase sandbox + Stripe test (PIX visual only)
+# Profile: preview only — never production / production_v13
+# Isolated from ios-preview-local.yml — uses _SANDBOX secrets exclusively for Firebase/Stripe
+name: iOS Preview Sandbox (PIX)
+
+concurrency:
+  group: ios-preview-sandbox
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch ou ref para build (vazio = branch atual do dispatch)'
+        required: false
+        default: ''
+
+jobs:
+  preview-sandbox-build:
+    name: iOS Preview Sandbox — PIX Environment
+    runs-on: macos-15
+    timeout-minutes: 120
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+      EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+      EXPO_PUBLIC_ONESIGNAL_APP_ID: ${{ secrets.EXPO_PUBLIC_ONESIGNAL_APP_ID }}
+      EXPO_PUBLIC_PROJECT_ID: '6090106b-e327-4744-bce5-9ddb0d037045'
+      GOOGLE_SERVICES_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64_SANDBOX }}
+      EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY_SANDBOX }}
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN_SANDBOX }}
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID_SANDBOX }}
+      EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET_SANDBOX }}
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID_SANDBOX }}
+      EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID_SANDBOX }}
+      EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_SANDBOX }}
+      APP_ENV: sandbox
+      EXPO_PUBLIC_APP_ENV: sandbox
+      EXPO_PUBLIC_ENABLE_STRIPE_PAYMENTS: 'true'
+      SKIP_SUBMIT: 'true'
+      PROFILE: preview
+      EAS_PROFILE: preview
+      FORCE_BUILD_MODE: LOCAL
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Diagnose macOS/Xcode
+        run: |
+          echo "=== System Info ==="
+          sw_vers
+          ls /Applications | grep Xcode || true
+          xcode-select -p
+          xcodebuild -version
+          xcodebuild -showsdks
+
+      - name: Setup Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.0'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install EAS CLI and build tools
+        run: |
+          npm install -g eas-cli@latest
+          brew install cocoapods || true
+          gem install cocoapods || true
+          echo "CI=true" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Materialize Firebase config (iOS sandbox only)
+        run: |
+          set -euo pipefail
+          echo "SANDBOX iOS-only: google-services.json not required in this workflow."
+          if [ -n "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
+            echo "${GOOGLE_SERVICES_INFO_PLIST_BASE64}" | base64 --decode > GoogleService-Info.plist
+            echo "✅ GoogleService-Info.plist ($(wc -c < GoogleService-Info.plist | tr -d ' ') bytes)"
+          else
+            echo "❌ GoogleService-Info.plist: configure GOOGLE_SERVICES_INFO_PLIST_BASE64_SANDBOX"
+            exit 1
+          fi
+
+      - name: Sandbox environment hard-fail checks
+        run: |
+          set -euo pipefail
+          test "$EXPO_PUBLIC_FIREBASE_PROJECT_ID" = "acucaradas-encomendas-sandbox"
+          case "$EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY" in
+            pk_test_*) echo "Stripe publishable key prefix OK: pk_test_" ;;
+            *) echo "ERROR: Stripe publishable key is not pk_test_"; exit 1 ;;
+          esac
+          test "$EXPO_PUBLIC_APP_ENV" = "sandbox"
+          grep -q "acucaradas-encomendas-sandbox" GoogleService-Info.plist
+          grep -q "1:1076144560003:ios:aae39ea70739dffe1688b6" GoogleService-Info.plist
+          echo "SANDBOX_BUILD=true"
+          echo "EXPO_PUBLIC_FIREBASE_PROJECT_ID=$EXPO_PUBLIC_FIREBASE_PROJECT_ID"
+          echo "EXPO_PUBLIC_APP_ENV=$EXPO_PUBLIC_APP_ENV"
+          echo "Stripe publishable prefix=pk_test_"
+
+      - name: Validate environment (fail-fast)
+        run: node scripts/validate-env.js
+
+      - name: Pre-flight validation (sandbox profile)
+        run: |
+          set -euo pipefail
+          echo "=== SANDBOX BUILD ==="
+          echo "=== BRANCH ==="
+          git branch --show-current
+          echo "=== COMMIT (git rev-parse HEAD) ==="
+          git rev-parse HEAD
+          echo "=== EXPO_PUBLIC_FIREBASE_PROJECT_ID ==="
+          echo "$EXPO_PUBLIC_FIREBASE_PROJECT_ID"
+          echo "=== EXPO_PUBLIC_APP_ENV ==="
+          echo "$EXPO_PUBLIC_APP_ENV"
+          echo "=== eas.json preview env (grep) ==="
+          grep -A12 '"preview"' eas.json | head -16 || true
+          echo "=== BLOCKED profiles check ==="
+          if [ "$EAS_PROFILE" = "production" ] || [ "$EAS_PROFILE" = "production_v13" ]; then
+            echo "❌ Forbidden profile: $EAS_PROFILE"
+            exit 1
+          fi
+          echo "✅ Profile: $EAS_PROFILE (local build, no EAS cloud credits)"
+          echo "=== eas config preview (resolved) ==="
+          eas config --profile preview --platform ios 2>&1 | tail -20 || true
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Build Number Enforcer (Source of Truth)
+        run: |
+          node scripts/ci/force-build-number.js --run
+          BUILD_NUMBER=$(jq -r '.buildNumber' version-state.json)
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "CURRENT_BN=$BUILD_NUMBER" >> $GITHUB_ENV
+
+      - name: Generate public_config.json
+        run: npx expo config --type public --json > public_config.json
+
+      - name: iOS Build Guardian (local preview)
+        run: |
+          chmod +x ./scripts/ci/ios-build-guardian.sh
+          ./scripts/ci/ios-build-guardian.sh
+
+      - name: Stage sandbox IPA artifact
+        if: success()
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          LATEST_IPA=$(ls -t build-*.ipa 2>/dev/null | head -n 1 || ls -t *.ipa 2>/dev/null | head -n 1 || true)
+          if [ -z "$LATEST_IPA" ]; then
+            echo "❌ IPA não encontrada após build local"
+            exit 1
+          fi
+          cp "$LATEST_IPA" dist/preview-sandbox.ipa
+          echo "PREVIEW_IPA=dist/preview-sandbox.ipa" >> $GITHUB_ENV
+          ls -lh dist/preview-sandbox.ipa
+
+      - name: Capture build metadata
+        if: always()
+        run: |
+          echo "## SANDBOX BUILD" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Mode | LOCAL (GitHub Actions macOS) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Environment | **SANDBOX** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Firebase Project | acucaradas-encomendas-sandbox |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Stripe Mode | test / pk_test_ |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Profile | preview |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| HEAD commit | \`$(git rev-parse HEAD)\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Artifact | ios-preview-sandbox-${{ github.run_number }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| PIX financeiro | NÃO validado |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Functions sandbox | NÃO deployadas |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Webhook test | NÃO criado |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| EAS cloud credits | 0 (eas build --local) |" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f dist/preview-sandbox.ipa ]; then
+            echo "| IPA artifact | preview-sandbox.ipa |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload sandbox IPA and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-preview-sandbox-${{ github.run_number }}
+          path: |
+            dist/preview-sandbox.ipa
+            build-logs/
+            build-*.ipa
+            *.ipa
+          retention-days: 14
+          if-no-files-found: warn
