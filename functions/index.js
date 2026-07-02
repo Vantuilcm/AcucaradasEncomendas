@@ -641,8 +641,12 @@ exports.stripeWebhook = functions
       switch (event.type) {
         case 'payment_intent.succeeded':
           // Evita sobrescrever se já foi processado (legado: status paid; atual: status confirmed)
-          if (orderData.paymentStatus === 'completed') {
-            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já estava pago. Ignorando.`);
+          const splitAlreadyDone =
+            orderData.producerTransferId ||
+            orderData.payoutStatus === 'paid';
+
+          if (orderData.paymentStatus === 'completed' && splitAlreadyDone) {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já pago e split concluído. Ignorando.`);
             break;
           }
 
@@ -687,6 +691,14 @@ exports.stripeWebhook = functions
                 const producerPayoutAmount = Math.floor(netSubtotal * 0.90 * 100); // 90% em centavos
                 const platformFeeAmount = Math.floor(netSubtotal * 0.10 * 100);    // 10% retido
 
+                const chargeId = typeof paymentIntent.latest_charge === 'string'
+                  ? paymentIntent.latest_charge
+                  : paymentIntent.latest_charge?.id;
+
+                if (!chargeId) {
+                  throw new Error(`Charge ID indisponível para transfer BR do pedido ${orderId}`);
+                }
+
                 const transfersToExecute = [];
 
                 // Repasse do Produtor (Imediato)
@@ -695,6 +707,7 @@ exports.stripeWebhook = functions
                     amount: producerPayoutAmount,
                     currency: 'brl',
                     destination: producerStripeAccountId,
+                    source_transaction: chargeId,
                     transfer_group: orderId,
                     metadata: { role: 'producer', orderId }
                   }, {
