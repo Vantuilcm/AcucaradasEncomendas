@@ -44,6 +44,7 @@ import { ENV } from '../config/env';
 
 // Usa variável de ambiente explícita em vez de apenas __DEV__
 const ENABLE_STRIPE = ENV.EXPO_PUBLIC_ENABLE_STRIPE_PAYMENTS === 'true';
+const ENABLE_PIX = ENV.EXPO_PUBLIC_ENABLE_PIX_PAYMENTS === 'true';
 
 type CheckoutScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Checkout'>;
 type CheckoutScreenRouteProp = RouteProp<RootStackParamList, 'Checkout'>;
@@ -352,6 +353,14 @@ export default function CheckoutScreen() {
 
     if (!user) {
       Alert.alert('Erro', 'Você precisa estar autenticado para finalizar o pedido.');
+      return;
+    }
+
+    if (paymentMethod === 'pix' && !ENABLE_PIX) {
+      Alert.alert(
+        'PIX indisponível',
+        'Pagamento PIX temporariamente indisponível. Use cartão ou tente novamente mais tarde.'
+      );
       return;
     }
 
@@ -1190,8 +1199,10 @@ export default function CheckoutScreen() {
               style={[
                 styles.paymentOption,
                 paymentMethod === 'pix' && styles.selectedPaymentOption,
+                !ENABLE_PIX && styles.disabledPaymentOption,
               ]}
-              onPress={() => setPaymentMethod('pix')}
+              onPress={() => ENABLE_PIX && setPaymentMethod('pix')}
+              disabled={!ENABLE_PIX}
             >
               <Ionicons
                 name="phone-portrait-outline"
@@ -1209,6 +1220,10 @@ export default function CheckoutScreen() {
             </TouchableOpacity>
 
           </View>
+
+          {!ENABLE_PIX && (
+            <Text style={styles.pixUnavailableText}>PIX temporariamente indisponível</Text>
+          )}
 
           {paymentMethod === 'creditCard' && (
             <View style={styles.creditCardForm}>
@@ -1269,7 +1284,7 @@ export default function CheckoutScreen() {
         labelStyle={styles.finishButtonLabel}
         onPress={handlePlaceOrder}
         loading={isProcessing || waitingWebhook}
-        disabled={isProcessing || waitingWebhook}
+        disabled={isProcessing || waitingWebhook || (paymentMethod === 'pix' && !ENABLE_PIX)}
         icon={(isProcessing || waitingWebhook) ? undefined : 'check'}
       >
         {waitingWebhook
@@ -1279,7 +1294,7 @@ export default function CheckoutScreen() {
           : isProcessing
             ? 'Processando...'
             : paymentMethod === 'pix'
-              ? 'Gerar PIX'
+              ? (ENABLE_PIX ? 'Gerar PIX' : 'PIX indisponível')
               : 'Finalizar Pedido'}
       </Button>
 
@@ -1463,6 +1478,15 @@ const styles = StyleSheet.create({
   },
   selectedPaymentOption: {
     backgroundColor: '#6C2BD9',
+  },
+  disabledPaymentOption: {
+    opacity: 0.5,
+  },
+  pixUnavailableText: {
+    color: '#888',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   paymentOptionText: {
     marginLeft: 6,
