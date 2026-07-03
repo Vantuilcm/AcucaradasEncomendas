@@ -1,7 +1,22 @@
 import { jwtDecode } from 'jwt-decode';
-import { getAuth, dbFunctions } from '../config/firebase';
+import { getAuth, getApp, dbFunctions } from '../config/firebase';
 import { logInfo, logError as logProofError } from '../core/monitoring/logger';
 import { proveAuthContextFromFunction } from './authContextProofTelemetry';
+
+function getRuntimeProjectProof(): { projectId?: string; appId?: string; authDomain?: string } {
+  try {
+    const options = getApp().options;
+    return {
+      projectId: options.projectId,
+      appId: typeof options.appId === 'string'
+        ? `${options.appId.slice(0, 8)}...${options.appId.slice(-4)}`
+        : undefined,
+      authDomain: options.authDomain,
+    };
+  } catch {
+    return { projectId: undefined };
+  }
+}
 
 export type AuthTokenProofSource = 'bootstrap' | 'login';
 
@@ -40,6 +55,14 @@ export async function proofTraceGetDocUserProfile(
 ) {
   const auth = getAuth();
   const nowMs = Date.now();
+  const runtimeProof = getRuntimeProjectProof();
+
+  console.log('[RUNTIME_PROOF][PROJECT_ID]', {
+    ...runtimeProof,
+    contextUid,
+    source,
+    timestamp: new Date(nowMs).toISOString(),
+  });
 
   const authCurrentUserUid = auth.currentUser?.uid ?? null;
   const authCurrentUserEmail = auth.currentUser?.email ?? null;
@@ -51,6 +74,7 @@ export async function proofTraceGetDocUserProfile(
     authInitialized: !!auth.currentUser,
     providerId,
     contextUid,
+    projectId: runtimeProof.projectId,
     timestamp: nowMs,
     source,
   };
@@ -135,6 +159,7 @@ export async function proofTraceGetDocUserProfile(
     path,
     tokenUid,
     firebaseAuthUid: authCurrentUserUid,
+    projectId: runtimeProof.projectId,
     tokenUidMatchesAuthUid:
       tokenUid != null && authCurrentUserUid != null && tokenUid === authCurrentUserUid
         ? 'SIM'
@@ -171,6 +196,7 @@ export async function proofTraceGetDocUserProfile(
     const errorPayload = {
       uid: contextUid,
       path,
+      projectId: runtimeProof.projectId,
       code: error?.code ?? null,
       message: error?.message ?? String(error),
       timestamp: Date.now(),
