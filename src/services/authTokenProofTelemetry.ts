@@ -209,3 +209,17 @@ export async function proofTraceGetDocUserProfile(
     throw error;
   }
 }
+
+/**
+ * Pre-auth telemetry: logs projectId BEFORE signInWithEmailAndPassword.
+ * If auth fails, this is the only proof of which Firebase project the app targeted.
+ */
+export function proofTracePreAuth(email: string) {
+  const runtimeProof = getRuntimeProjectProof();
+  const payload = {
+    ...runtimeProof,
+    emailDomain: email.includes('@') ? email.split('@')[1] : 'unknown',
+    timestamp: new Date().toISOString(),
+  };
+  console.log('[RUNTIME_PROOF][PRE_AUTH]', payload);
+}

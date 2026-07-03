@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getAuth, authFunctions, dbFunctions } from '../config/firebase';
 import { TwoFactorAuthService } from '../services/TwoFactorAuthService';
-import { proofTraceGetDocUserProfile } from '../services/authTokenProofTelemetry';
+import { proofTraceGetDocUserProfile, proofTracePreAuth } from '../services/authTokenProofTelemetry';
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Lazy-Getter
@@ -131,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Passo 1: Autenticação Firebase
+      proofTracePreAuth(normalizedEmail);
       console.log('🛡️ [DEBUG_LOGIN] Chamando Firebase SDK...');
       const userCredential = await signInFn(normalizedEmail, password);
       console.log('✅ [DEBUG_LOGIN] SUCESSO SDK! UID:', userCredential.user.uid);
