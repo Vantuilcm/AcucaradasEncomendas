@@ -24,11 +24,13 @@ import { OrderService } from '../services/OrderService';
 import { formatCurrency } from '../utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
 import { UserUtils } from '../utils/UserUtils';
+import { usePermissions } from '../hooks/usePermissions';
 
 export function OrdersScreen() {
   const theme = useTheme();
   const navigation = useNavigation<MainTabNavigationProp<'Orders'>>();
   const { user } = useAuth();
+  const { isProdutor } = usePermissions();
   const [orders, setOrders] = useState<Order[]>([]);
   const [summary, setSummary] = useState<OrderSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,10 +58,15 @@ export function OrdersScreen() {
       }
 
       const orderService = OrderService.getInstance();
-      const [ordersData, summaryData] = await Promise.all([
-        orderService.getUserOrders(userId, filters),
-        orderService.getOrderSummary(userId),
-      ]);
+      const [ordersData, summaryData] = isProdutor
+        ? await Promise.all([
+            orderService.getProducerOrders(userId),
+            orderService.getProducerOrderSummary(userId),
+          ])
+        : await Promise.all([
+            orderService.getUserOrders(userId, filters),
+            orderService.getOrderSummary(userId),
+          ]);
 
       setOrders(ordersData || []);
       setSummary(summaryData);

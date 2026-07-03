@@ -496,6 +496,64 @@ export class OrderService {
   }
 
   /**
+   * Obtém pedidos de um produtor via getOrders() + filtro client-side (sem índice composto).
+   */
+  async getProducerOrders(producerId: string): Promise<Order[]> {
+    try {
+      if (!this.assertValidId(producerId, 'producerId')) {
+        return [];
+      }
+
+      const allOrders = await this.getOrders();
+      return allOrders.filter(order => order.producerId === producerId);
+    } catch (error) {
+      loggingService.error('Erro ao buscar pedidos do produtor', { error, producerId });
+      throw error;
+    }
+  }
+
+  /**
+   * Resumo de pedidos para produtor (filtrado por producerId).
+   */
+  async getProducerOrderSummary(producerId: string): Promise<OrderSummary> {
+    const emptySummary: OrderSummary = {
+      total: 0,
+      pending: 0,
+      confirmed: 0,
+      preparing: 0,
+      ready: 0,
+      delivering: 0,
+      delivered: 0,
+      cancelled: 0,
+      scheduledOrders: 0,
+    };
+
+    try {
+      if (!this.assertValidId(producerId, 'producerId')) {
+        return emptySummary;
+      }
+
+      const orders = await this.getProducerOrders(producerId);
+      const activeStatuses: OrderStatus[] = ['confirmed', 'preparing', 'ready', 'delivering'];
+
+      return {
+        total: orders.length,
+        pending: orders.filter(o => activeStatuses.includes(o.status)).length,
+        confirmed: orders.filter(o => o.status === 'confirmed').length,
+        preparing: orders.filter(o => o.status === 'preparing').length,
+        ready: orders.filter(o => o.status === 'ready').length,
+        delivering: orders.filter(o => o.status === 'delivering').length,
+        delivered: orders.filter(o => o.status === 'delivered').length,
+        cancelled: orders.filter(o => o.status === 'cancelled').length,
+        scheduledOrders: orders.filter(o => o.isScheduledOrder && o.status !== 'cancelled').length,
+      };
+    } catch (error) {
+      loggingService.error('Erro ao obter resumo de pedidos do produtor', { error, producerId });
+      throw error;
+    }
+  }
+
+  /**
    * Obtém pedidos de um produtor
    */
   async getOrdersByProducerId(producerId: string): Promise<Order[]> {

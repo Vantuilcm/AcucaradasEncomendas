@@ -180,7 +180,7 @@ export function AdminDashboardScreen() {
         userRole === 'admin'
           ? await orderService.getOrders()
           : (userRole === 'producer' || userRole === 'produtor') && producerId
-            ? await orderService.getOrdersByProducerId(producerId)
+            ? await orderService.getProducerOrders(producerId)
             : await orderService.getOrders();
       if (!orders || orders.length === 0) {
         setStats(prev => ({
@@ -232,9 +232,16 @@ export function AdminDashboardScreen() {
         }
 
         // Status
-        if (order.status === 'pending') pendingOrders++;
+        if (
+          order.status === 'confirmed' ||
+          order.status === 'preparing' ||
+          order.status === 'ready' ||
+          order.status === 'delivering'
+        ) {
+          pendingOrders++;
+        }
         if (order.status === 'preparing') activeOrders++;
-        if (order.status === 'confirmed') scheduledOrders++; // Consider confirmed as scheduled for now
+        if (order.isScheduledOrder && order.status !== 'cancelled') scheduledOrders++;
       });
 
         setStats(prev => ({
