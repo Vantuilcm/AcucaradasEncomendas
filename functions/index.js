@@ -1091,14 +1091,40 @@ exports.onOrderDelivered = functions
           return;
         }
 
+        const courierSplitAlreadyDone =
+          newData.courierTransferId ||
+          newData.courierPayoutStatus === 'paid';
+
+        if (courierSplitAlreadyDone) {
+          console.log(`ℹ️ [onOrderDelivered] Courier payout já concluído para pedido ${orderId}. Ignorando.`);
+          return;
+        }
+
         // 3. Executar Transferência com Idempotência
         const courierPayoutAmountInCents = Math.floor(deliveryFee * 100);
         const idempotencyKey = `courier_delivery_payout_${orderId}`;
+
+        const paymentIntentId = newData.paymentIntentId;
+
+        if (!paymentIntentId) {
+          throw new Error(`PaymentIntent ID indisponível para courier transfer BR do pedido ${orderId}`);
+        }
+
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+        const chargeId = typeof paymentIntent.latest_charge === 'string'
+          ? paymentIntent.latest_charge
+          : paymentIntent.latest_charge?.id;
+
+        if (!chargeId) {
+          throw new Error(`Charge ID indisponível para courier transfer BR do pedido ${orderId}`);
+        }
 
         const transfer = await stripe.transfers.create({
           amount: courierPayoutAmountInCents,
           currency: 'brl',
           destination: courierStripeAccountId,
+          source_transaction: chargeId,
           transfer_group: orderId,
           metadata: { role: 'courier', orderId }
         }, {
