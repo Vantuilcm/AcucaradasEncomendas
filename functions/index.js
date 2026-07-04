@@ -1244,7 +1244,7 @@ exports.createConnectedAccount = functions
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
     
-    if (!userDoc.exists()) {
+    if (!userDoc.exists) {
       console.warn('[FS_GUARD] createConnectedAccount: Document users/{uid} does not exist', { uid, email, role });
       // Fallback: Criar documento com dados mínimos
       await userRef.set({
@@ -1351,7 +1351,7 @@ exports.syncStripeAccountStatus = functions
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
     
-    if (!userDoc.exists()) {
+    if (!userDoc.exists) {
       console.warn('[FS_GUARD] syncStripeAccountStatus: Document users/{uid} does not exist', { uid, accountId });
       // Fallback: Não sincronizar se documento não existe
       console.log('[FALLBACK] syncStripeAccountStatus: Documento não existe, retornando vazio');
