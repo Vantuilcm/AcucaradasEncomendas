@@ -222,4 +222,5 @@ export function proofTracePreAuth(email: string) {
     timestamp: new Date().toISOString(),
   };
   console.log('[RUNTIME_PROOF][PRE_AUTH]', payload);
+  logInfo('AUTH_TOKEN_PROOF', '[RUNTIME_PROOF][PRE_AUTH]', payload);
 }
