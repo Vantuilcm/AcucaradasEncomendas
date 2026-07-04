@@ -1229,7 +1229,9 @@ exports.scheduledGrowthAutomation = functions.pubsub.schedule('every 4 hours').o
 /**
  * Cria uma conta conectada (Stripe Connect) para o produtor ou entregador
  */
-exports.createConnectedAccount = functions.https.onCall(async (data, context) => {
+exports.createConnectedAccount = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .https.onCall(async (data, context) => {
   const stripe = require('stripe')(getStripeSecret());
   const { email, role } = data;
   const uid = context.auth.uid;
@@ -1311,7 +1313,9 @@ exports.createConnectedAccount = functions.https.onCall(async (data, context) =>
 /**
  * Gera o link de onboarding para o Stripe Connect
  */
-exports.createStripeOnboardingLink = functions.https.onCall(async (data, context) => {
+exports.createStripeOnboardingLink = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .https.onCall(async (data, context) => {
   const stripe = require('stripe')(getStripeSecret());
   const { accountId, refreshUrl, returnUrl } = data;
 
@@ -1332,7 +1336,9 @@ exports.createStripeOnboardingLink = functions.https.onCall(async (data, context
   }
 });
 
-exports.syncStripeAccountStatus = functions.https.onCall(async (data, context) => {
+exports.syncStripeAccountStatus = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .https.onCall(async (data, context) => {
   const stripe = require('stripe')(getStripeSecret());
   const uid = context.auth.uid;
   const { accountId } = data;
