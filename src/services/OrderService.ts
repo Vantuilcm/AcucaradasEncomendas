@@ -282,15 +282,24 @@ export class OrderService {
         updatedAt,
       } as Order;
 
-      // Notificar mudança de status
-      await NotificationService.getInstance().createNotification({
-        userId: updatedOrder.userId,
-        type: 'order_status' as any,
-        title: 'Status do Pedido Atualizado',
-        message: `Seu pedido agora está: ${status}`,
-        priority: 'normal',
-        read: false
-      });
+      // Notificar mudança de status (best-effort: falha não invalida o update)
+      try {
+        await NotificationService.getInstance().createNotification({
+          userId: updatedOrder.userId,
+          type: 'order_status' as any,
+          title: 'Status do Pedido Atualizado',
+          message: `Seu pedido agora está: ${status}`,
+          priority: 'normal',
+          read: false
+        });
+      } catch (notificationError) {
+        loggingService.warn('Notificação de status do pedido não criada (best-effort)', {
+          orderId,
+          status,
+          userId: updatedOrder.userId,
+          error: notificationError
+        });
+      }
       
       // Se concluído, atualizar serviço de entrega
       if (status === 'delivered' || status === 'cancelled') {
