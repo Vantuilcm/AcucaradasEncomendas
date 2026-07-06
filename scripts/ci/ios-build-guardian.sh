@@ -206,6 +206,12 @@ fi
 
 echo "✅ Build Number validado no config: $BN_CHECK"
 
+# Preview CI: Firebase secrets hold plist/json CONTENT, while Expo expects
+# googleServicesFile to be a file path. Files are already materialized on disk.
+# Unset content env vars so app.config.js falls back to ./GoogleService-Info.plist.
+unset GOOGLE_SERVICE_INFO_PLIST
+unset GOOGLE_SERVICES_JSON
+
 # EXPO PREBUILD
 echo "🔨 Executando npx expo prebuild..."
 # Usar CI=1 para evitar o warning do --non-interactive
@@ -269,6 +275,8 @@ fi
 # 🧩 ETAPA 7 — BUILD IOS LOCAL
 echo "🚀 [ETAPA 7] Iniciando Build iOS LOCAL (Build ${EXPECTED_BN})..."
 unset GITHUB_RUN_NUMBER
+unset GOOGLE_SERVICE_INFO_PLIST
+unset GOOGLE_SERVICES_JSON
 EAS_BUILD_PROFILE="${EAS_PROFILE:-${PROFILE:-production_v13}}"
 echo "📦 EAS build profile: ${EAS_BUILD_PROFILE}"
 export EXPO_DEBUG=1
