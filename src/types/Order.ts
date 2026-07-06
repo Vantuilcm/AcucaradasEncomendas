@@ -49,12 +49,14 @@ export interface Order {
     zipCode: string;
     reference?: string;
   };
+  deliveryFee?: number;
+  deliveryDriverId?: string;
   deliveryDriver?: {
     id: string;
-    name: string;
-    phone: string;
-    vehicle: string;
-    plate: string;
+    name?: string;
+    phone?: string;
+    vehicle?: string;
+    plate?: string;
   };
 
   // Informações de agendamento
