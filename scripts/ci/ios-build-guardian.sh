@@ -125,6 +125,24 @@ fi
     [ -f assets/icon.png ] && cp assets/icon.png assets/splash.png
 }
 
+if [ ! -f "version-state.json" ]; then
+    echo "❌ [FATAL] version-state.json ausente. Fonte de verdade obrigatória."
+    exit 1
+fi
+
+EXPECTED_BN=$(jq -r '.buildNumber' version-state.json 2>/dev/null || true)
+if [ -z "${EXPECTED_BN}" ] || [ "${EXPECTED_BN}" == "null" ]; then
+    echo "❌ [FATAL] version-state.json inválido ou sem buildNumber."
+    exit 1
+fi
+
+echo "🔍 Build Number esperado: ${EXPECTED_BN}"
+
+# Preview CI: force-build-number.js already wrote app.json/version-state.json.
+# GitHub Actions provides GITHUB_RUN_NUMBER, but app.config.js gives it precedence
+# over app.json. Unset it here so Expo reads the buildNumber written by the enforcer.
+unset GITHUB_RUN_NUMBER
+
 # Limpar arquivos temporários antes
 rm -f public_config.json
 
@@ -143,19 +161,6 @@ if [ ! -s public_config.json ]; then
     echo "-------------------"
     exit 1
 fi
-
-if [ ! -f "version-state.json" ]; then
-    echo "❌ [FATAL] version-state.json ausente. Fonte de verdade obrigatória."
-    exit 1
-fi
-
-EXPECTED_BN=$(jq -r '.buildNumber' version-state.json 2>/dev/null || true)
-if [ -z "${EXPECTED_BN}" ] || [ "${EXPECTED_BN}" == "null" ]; then
-    echo "❌ [FATAL] version-state.json inválido ou sem buildNumber."
-    exit 1
-fi
-
-echo "🔍 Build Number esperado: ${EXPECTED_BN}"
 
 BN_CHECK=$(node - <<'NODE'
 const fs = require('fs');
@@ -263,6 +268,7 @@ fi
 
 # 🧩 ETAPA 7 — BUILD IOS LOCAL
 echo "🚀 [ETAPA 7] Iniciando Build iOS LOCAL (Build ${EXPECTED_BN})..."
+unset GITHUB_RUN_NUMBER
 EAS_BUILD_PROFILE="${EAS_PROFILE:-${PROFILE:-production_v13}}"
 echo "📦 EAS build profile: ${EAS_BUILD_PROFILE}"
 export EXPO_DEBUG=1
