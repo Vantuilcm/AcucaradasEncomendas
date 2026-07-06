@@ -96,9 +96,13 @@ echo "✅ credentials.json criado."
 
 # Sincronização explícita (opcional, mas bom para debug)
 echo "🔄 Sincronizando credenciais..."
-export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
+# EAS CLI expects the ASC private key path in EXPO_ASC_API_KEY_PATH.
+# Keep the legacy/internal name as well to avoid breaking any existing script usage.
+export EXPO_ASC_API_KEY_PATH="$(pwd)/AuthKey.p8"
+export EXPO_ASC_PRIVATE_KEY_PATH="${EXPO_ASC_API_KEY_PATH}"
 export EXPO_ASC_KEY_ID="${EXPO_ASC_KEY_ID}"
 export EXPO_ASC_ISSUER_ID="${EXPO_ASC_ISSUER_ID}"
+export EXPO_APPLE_TEAM_TYPE="${EXPO_APPLE_TEAM_TYPE:-COMPANY_OR_ORGANIZATION}"
 
 # Tentar sync. Não bloquear a pipeline neste ambiente
 echo "ℹ️ EAS credentials:sync não disponível nesta versão; seguindo com credenciais configuradas."
