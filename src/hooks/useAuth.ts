@@ -58,7 +58,7 @@ export function useAuth(): AuthState {
   const socialAuthService = SocialAuthService.getInstance();
   const twoFactorAuthService = new TwoFactorAuthService();
   const [, , googlePromptAsync] = Google.useAuthRequest({
-    expoClientId: GOOGLE_CLIENT_ID.expo,
+    clientId: GOOGLE_CLIENT_ID.expo,
     iosClientId: GOOGLE_CLIENT_ID.ios,
     androidClientId: GOOGLE_CLIENT_ID.android,
     webClientId: GOOGLE_CLIENT_ID.web,
