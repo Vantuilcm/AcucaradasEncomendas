@@ -35,6 +35,7 @@ import { NotificationSettingsScreen } from '../screens/NotificationSettingsScree
 import { NotificationSettingsScreenV2 } from '../screens/NotificationSettingsScreenV2';
 import { NotificationSettingsMigrationScreen } from '../screens/NotificationSettingsMigrationScreen';
 import { DeliveryDriverProfileScreen } from '../screens/DeliveryDriverProfileScreen';
+import { DriverHomeScreen } from '../screens/DriverHomeScreen';
 import DeliveryDriverRegistration from '../screens/DeliveryDriverRegistration';
 import ScheduleDeliveryScreen from '../screens/ScheduleDeliveryScreen';
 import OrderCompletedScreen from '../screens/OrderCompletedScreen';
@@ -172,7 +173,7 @@ const DriverTabs = () => {
     >
       <DriverTab.Screen
         name="DriverDeliveries"
-        component={OrderManagementScreen}
+        component={DriverHomeScreen}
         options={{ title: 'Entregas' }}
       />
       <DriverTab.Screen
