@@ -116,8 +116,8 @@ export class MobileNotificationService {
 
     if (Constants.expoConfig?.extra?.eas?.projectId) {
       projectId = Constants.expoConfig.extra.eas.projectId;
-    } else if (Constants.manifest?.extra?.eas?.projectId) {
-      projectId = Constants.manifest.extra.eas.projectId;
+    } else if ((Constants.manifest as any)?.extra?.eas?.projectId) {
+      projectId = (Constants.manifest as any).extra.eas.projectId;
     } else if ((Constants.expoConfig as any)?.projectId) {
       projectId = (Constants.expoConfig as any).projectId;
     } else if ((Constants.manifest as any)?.projectId) {
