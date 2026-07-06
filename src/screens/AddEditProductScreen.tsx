@@ -3,7 +3,6 @@ import { View, StyleSheet, ScrollView, Alert, Image } from 'react-native';
 import { Text, Button, TextInput, Card, Chip, HelperText } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { ErrorMessage } from '../components/ErrorMessage';
 // Usando o mock local em vez do módulo real
