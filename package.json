@@ -131,7 +131,7 @@
     "@types/ws": "8.18.1",
     "babel-plugin-transform-remove-console": "^6.9.4",
     "babel-plugin-transform-rename-import": "^2.3.0",
-    "babel-preset-expo": "9.9.0",
+    "babel-preset-expo": "~12.0.12",
     "dotenv": "^17.3.1",
     "eslint": "9.39.3",
     "eslint-config-expo": "10.0.0",
@@ -145,5 +145,8 @@
     "typescript": "5.9.3",
     "watchman": "1.0.0"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "hermes-parser": "0.25.1"
+  }
 }
