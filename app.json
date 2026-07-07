@@ -104,8 +104,6 @@
       }
     },
     "owner": "acucaradaencomendas",
-    "runtimeVersion": {
-      "policy": "sdkVersion"
-    }
+    "runtimeVersion": "52.0.0"
   }
 }
