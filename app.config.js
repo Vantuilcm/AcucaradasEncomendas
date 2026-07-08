@@ -1,6 +1,7 @@
 export default ({ config }) => {
   const isProduction = process.env.APP_ENV === "production" || process.env.EXPO_PUBLIC_APP_ENV === "production";
   const isPreview = process.env.APP_ENV === "preview" || process.env.EXPO_PUBLIC_APP_ENV === "preview";
+  const isPreviewBuild = process.env.EAS_BUILD_PROFILE === "preview";
 
   // Incremento automático baseado no ambiente ou variável de build
   const buildNumber = process.env.GITHUB_RUN_NUMBER || config.ios?.buildNumber || "1";
@@ -8,6 +9,10 @@ export default ({ config }) => {
 
   return {
     ...config,
+    updates: {
+      ...(config.updates || {}),
+      ...(isPreviewBuild ? { checkAutomatically: "NEVER" } : {}),
+    },
     version: "1.0.1", // Mantendo fixo conforme solicitado ou pode ser dinâmico
     ios: {
       ...config.ios,
