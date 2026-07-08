@@ -11,7 +11,7 @@ export default ({ config }) => {
     ...config,
     updates: {
       ...(config.updates || {}),
-      ...(isPreviewBuild ? { checkAutomatically: "NEVER" } : {}),
+      ...(isPreviewBuild ? { checkAutomatically: "NEVER", enabled: false } : {}),
     },
     version: "1.0.1", // Mantendo fixo conforme solicitado ou pode ser dinâmico
     ios: {
