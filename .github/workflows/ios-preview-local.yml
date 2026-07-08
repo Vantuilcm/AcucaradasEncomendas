@@ -205,6 +205,9 @@ jobs:
           if [ -f dist/preview-local.ipa ]; then
             echo "| IPA artifact | preview-local.ipa |" >> "$GITHUB_STEP_SUMMARY"
           fi
+          if [ -d dist/symbolication ]; then
+            echo "| Symbolication | dist/symbolication/ (dSYM, xcarchive, README) |" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload preview IPA and logs
         if: always()
@@ -213,6 +216,7 @@ jobs:
           name: ios-preview-local-${{ github.run_number }}
           path: |
             dist/preview-local.ipa
+            dist/symbolication/
             build-logs/
             build-*.ipa
             *.ipa

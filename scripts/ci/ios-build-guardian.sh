@@ -358,6 +358,107 @@ if [ "$ACTUAL_BN" != "$EXPECTED_BN" ]; then
     echo "✅ IPA Validada com Sucesso (Build $EXPECTED_BN)!"
 ls -lh *.ipa || echo "Nenhum IPA no root"
 
+# 🧩 ETAPA 9.5 — PRESERVAR ARTEFATOS DE SYMBOLICATION
+echo "📦 [ETAPA 9.5] Preservando dSYM/xcarchive para symbolication..."
+SYMBOL_DIR="dist/symbolication"
+mkdir -p "$SYMBOL_DIR"
+
+stage_symbolication_artifacts() {
+    local copied=0
+
+    while IFS= read -r -d '' artifact; do
+        echo "  → copiando: $artifact"
+        cp -R "$artifact" "$SYMBOL_DIR/"
+        copied=$((copied + 1))
+    done < <(find . -maxdepth 6 \( -name "*.dSYM.zip" -o -name "*.dSYM" \) -not -path "./dist/*" -print0 2>/dev/null)
+
+    while IFS= read -r -d '' archive; do
+        echo "  → copiando xcarchive: $archive"
+        cp -R "$archive" "$SYMBOL_DIR/"
+        copied=$((copied + 1))
+    done < <(find . -maxdepth 6 -name "*.xcarchive" -type d -not -path "./dist/*" -print0 2>/dev/null)
+
+    if [ -d "$HOME/Library/Developer/Xcode/Archives" ]; then
+        while IFS= read -r archive; do
+            [ -z "$archive" ] && continue
+            base_name=$(basename "$archive")
+            if [ ! -e "$SYMBOL_DIR/$base_name" ]; then
+                echo "  → copiando xcarchive recente: $archive"
+                cp -R "$archive" "$SYMBOL_DIR/"
+                copied=$((copied + 1))
+            fi
+        done < <(find "$HOME/Library/Developer/Xcode/Archives" -name "*.xcarchive" -type d -mmin -240 2>/dev/null | sort -r | head -n 2)
+    fi
+
+    echo "$copied"
+}
+
+COPIED_COUNT=$(stage_symbolication_artifacts)
+echo "[GUARDIAN] Artefatos de symbolication copiados: $COPIED_COUNT"
+ls -la "$SYMBOL_DIR" || true
+
+APP_BIN_PATH=$(unzip -Z1 "$LATEST_IPA" 2>/dev/null | awk -F/ '/^Payload\/[^\/]+\.app\/[^\/]+$/ && $0 !~ /\.(plist|car|png|jpg|jpeg|gif|ttf|otf|woff|json|bundle|momd|sqlite|db|nib|storyboardc|lproj|mobileprovision)$/ { print; exit }')
+APP_UUIDS=""
+if [ -n "$APP_BIN_PATH" ]; then
+    unzip -p "$LATEST_IPA" "$APP_BIN_PATH" > "$SYMBOL_DIR/app-binary-for-uuid" 2>/dev/null || true
+    if [ -s "$SYMBOL_DIR/app-binary-for-uuid" ]; then
+        if command -v dwarfdump >/dev/null 2>&1; then
+            APP_UUIDS=$(dwarfdump --uuid "$SYMBOL_DIR/app-binary-for-uuid" 2>/dev/null || true)
+        elif command -v otool >/dev/null 2>&1; then
+            APP_UUIDS=$(otool -l "$SYMBOL_DIR/app-binary-for-uuid" 2>/dev/null | awk '/uuid/ {print $2}' || true)
+        fi
+    fi
+fi
+
+{
+    echo "SYMBOLICATION_README"
+    echo "===================="
+    echo "Commit SHA: $(git rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "GitHub Run ID: ${GITHUB_RUN_ID:-local}"
+    echo "CFBundleVersion: ${ACTUAL_BN:-unknown}"
+    echo "IPA source: ${LATEST_IPA}"
+    echo "IPA staged path: dist/preview-local.ipa"
+    echo "EAS_BUILD_PROFILE: ${EAS_BUILD_PROFILE:-preview}"
+    echo ""
+    echo "Mach-O UUID (main binary):"
+    if [ -n "$APP_UUIDS" ]; then
+        echo "$APP_UUIDS"
+    else
+        echo "(unavailable — extract on macOS with: dwarfdump --uuid <binary>)"
+    fi
+    echo ""
+    echo "dSYM UUIDs:"
+    if command -v dwarfdump >/dev/null 2>&1; then
+        find "$SYMBOL_DIR" \( -name "*.dSYM" -o -name "*.dSYM.zip" \) -print0 2>/dev/null | while IFS= read -r -d '' dsym; do
+            echo "--- $dsym"
+            if [[ "$dsym" == *.zip ]]; then
+                echo "(zip — unzip and run: dwarfdump --uuid Contents/Resources/DWARF/*)"
+            else
+                dwarfdump --uuid "$dsym" 2>/dev/null || true
+            fi
+        done
+    else
+        echo "(dwarfdump not available)"
+    fi
+    echo ""
+    echo "Crash offsets to symbolicate (imageIndex 0, main binary):"
+    echo "  379620"
+    echo "  375004"
+    echo "  380744"
+    echo "  175232"
+    echo ""
+    echo "BUILD-17 reference crash UUID: 47d24aa5-bf31-3e92-8723-1e87b05aca16"
+    echo ""
+    echo "Symbolication (macOS):"
+    echo "  atos -o <path-to-dSYM>/Contents/Resources/DWARF/<AppName> -arch arm64 -l <load-address> <offset>"
+    echo "  symbolicatecrash <crash.ips> <dSYM-dir>"
+    echo ""
+    echo "NOTE: dSYM UUID must match crash slice_uuid. Different builds have different UUIDs."
+} > "$SYMBOL_DIR/SYMBOLICATION_README.txt"
+
+echo "✅ [ETAPA 9.5] Symbolication staging em $SYMBOL_DIR"
+cat "$SYMBOL_DIR/SYMBOLICATION_README.txt"
+
 # 🧩 ETAPA 10 — SUBMISSÃO EXPLICITA (opcional)
 if [ "${SKIP_SUBMIT:-false}" = "true" ]; then
     echo "⏭️ [ETAPA 10] SKIP_SUBMIT=true — submit ignorado (IPA local apenas)"
