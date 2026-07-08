@@ -9,6 +9,7 @@
   },
   "scripts": {
     "prebuild": "node scripts/validate-env.js",
+    "eas-build-pre-install": "bash scripts/ci/materialize-firebase-plist-ios.sh",
     "prepare:ios": "node ./scripts/prepare-ios-build.js",
     "postinstall": "patch-package",
     "build:ios": "eas build --platform ios --profile production --local --non-interactive",

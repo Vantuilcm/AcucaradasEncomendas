@@ -276,6 +276,9 @@ else
     exit 1
 fi
 
+echo "[GUARDIAN] Ensuring Firebase plist exists in native iOS target path"
+REQUIRE_NATIVE_IOS_PLIST=1 bash scripts/ci/materialize-firebase-plist-ios.sh
+
 # 🧩 ETAPA 7 — BUILD IOS LOCAL
 echo "🚀 [ETAPA 7] Iniciando Build iOS LOCAL (Build ${EXPECTED_BN})..."
 unset GITHUB_RUN_NUMBER
