@@ -216,6 +216,12 @@ echo "✅ Build Number validado no config: $BN_CHECK"
 unset GOOGLE_SERVICE_INFO_PLIST
 unset GOOGLE_SERVICES_JSON
 
+if [ -z "${EAS_BUILD_PROFILE:-}" ]; then
+  export EAS_BUILD_PROFILE="preview"
+fi
+
+echo "[GUARDIAN] EAS_BUILD_PROFILE=${EAS_BUILD_PROFILE} before expo prebuild"
+
 # EXPO PREBUILD
 echo "🔨 Executando npx expo prebuild..."
 # Usar CI=1 para evitar o warning do --non-interactive
