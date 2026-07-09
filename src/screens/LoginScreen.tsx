@@ -130,6 +130,15 @@ export default function LoginScreen() {
               style={styles.segmentedButtons}
             />
 
+            {(role === Role.PRODUTOR || role === Role.ENTREGADOR) && (
+              <View style={styles.partnerPhraseContainer}>
+                <Text variant="bodyMedium" style={styles.partnerPhrase}>
+                  {role === Role.PRODUTOR && 'Seja um parceiro produtor e venda seus doces!'}
+                  {role === Role.ENTREGADOR && 'Seja um parceiro entregador e ganhe com suas entregas!'}
+                </Text>
+              </View>
+            )}
+
             {authError && <ErrorMessage message={authError || 'Erro'} />}
 
 
@@ -228,6 +237,15 @@ const createStyles = (theme: { colors: any }) =>
   },
   segmentedButtons: {
     marginBottom: 30, // Aumentado um pouco
+  },
+  partnerPhraseContainer: {
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  partnerPhrase: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   title: {
     textAlign: 'center',
