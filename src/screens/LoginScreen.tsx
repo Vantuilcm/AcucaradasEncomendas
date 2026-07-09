@@ -144,7 +144,9 @@ export default function LoginScreen() {
               </View>
             )}
 
-            {authError && <ErrorMessage message={authError || 'Erro'} />}
+            {(error || authError) && (
+              <ErrorMessage message={error || authError || 'Erro'} />
+            )}
 
 
           <TextInput
