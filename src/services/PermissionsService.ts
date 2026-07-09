@@ -368,31 +368,94 @@ export class PermissionsService {
   }
 
   /**
+   * Normaliza valores de role vindos de Firestore ou legado para o enum Role.
+   */
+  private normalizeRoleValue(role?: unknown): Role | null {
+    if (role == null) {
+      return null;
+    }
+
+    const normalized = String(role).trim().toLowerCase();
+
+    if (!normalized) {
+      return null;
+    }
+
+    if (normalized === 'produtor' || normalized === 'producer') {
+      return Role.PRODUTOR;
+    }
+
+    if (
+      normalized === 'entregador' ||
+      normalized === 'driver' ||
+      normalized === 'courier' ||
+      normalized === 'delivery'
+    ) {
+      return Role.ENTREGADOR;
+    }
+
+    if (normalized === 'cliente') {
+      return Role.CLIENTE;
+    }
+
+    if (normalized === 'comprador' || normalized === 'customer' || normalized === 'buyer') {
+      return Role.COMPRADOR;
+    }
+
+    if (normalized === 'admin') {
+      return Role.ADMIN;
+    }
+
+    if (normalized === 'gerente') {
+      return Role.GERENTE;
+    }
+
+    if (normalized === 'atendente') {
+      return Role.ATENDENTE;
+    }
+
+    return null;
+  }
+
+  /**
    * Obtém o papel do usuário
    * @param userId ID do usuário
    * @returns Papel do usuário
    */
   public async getUserRole(userId: string): Promise<Role> {
     try {
-      // Validar ID do usuário
       if (!userId) {
-        throw new Error('ID do usuário não informado');
+        return Role.COMPRADOR;
       }
 
-      // Verificar se o documento de permissões existe
       const permissionsDoc = await getDoc(doc(db, this.permissionsCollection, userId));
 
-      if (!permissionsDoc.exists()) {
-        // Se não existir, definir como CLIENTE por padrão
-        await this.changeUserRole(userId, Role.CLIENTE);
-        return Role.CLIENTE;
+      if (permissionsDoc.exists()) {
+        const permissionsData = permissionsDoc.data();
+        const permissionsRole = this.normalizeRoleValue(permissionsData?.role);
+
+        if (permissionsRole) {
+          return permissionsRole;
+        }
       }
 
-      const permissionsData = permissionsDoc.data();
-      return permissionsData?.role as Role;
+      const userDoc = await getDoc(doc(db, 'users', userId));
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userRole = this.normalizeRoleValue(
+          userData?.role || userData?.userType || userData?.accountType
+        );
+
+        if (userRole) {
+          return userRole;
+        }
+      }
+
+      return Role.COMPRADOR;
     } catch (error) {
       loggingService.error('Erro ao obter papel do usuário', { error, userId });
-      throw error;
+      return Role.COMPRADOR;
     }
   }
 
