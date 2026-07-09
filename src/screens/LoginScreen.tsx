@@ -174,11 +174,13 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.termsContainer}>
-            <Checkbox
-              status={termsAccepted ? 'checked' : 'unchecked'}
-              onPress={() => setTermsAccepted(!termsAccepted)}
-              color={theme.colors.primary}
-            />
+            <View style={styles.checkboxWrapper}>
+              <Checkbox
+                status={termsAccepted ? 'checked' : 'unchecked'}
+                onPress={() => setTermsAccepted(!termsAccepted)}
+                color={theme.colors.primary}
+              />
+            </View>
             <View style={styles.termsTextContainer}>
               <TouchableOpacity onPress={() => setTermsAccepted(!termsAccepted)}>
                 <Text style={styles.termsText}>
@@ -282,9 +284,19 @@ const createStyles = (theme: { colors: any }) =>
   },
   termsContainer: {
     marginBottom: 24,
-    paddingHorizontal: 8,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(233, 30, 99, 0.05)',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    borderRadius: 8,
+  },
+  checkboxWrapper: {
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    borderRadius: 4,
+    marginRight: 8,
   },
   termsTextContainer: {
     flex: 1,

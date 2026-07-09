@@ -287,11 +287,13 @@ export function RegisterScreen({ route }: { route?: any }) {
             />
 
             <View style={styles.termsContainer}>
-              <Checkbox
-                status={termsAccepted ? 'checked' : 'unchecked'}
-                onPress={() => setTermsAccepted(!termsAccepted)}
-                color={theme.colors.primary}
-              />
+              <View style={styles.checkboxWrapper}>
+                <Checkbox
+                  status={termsAccepted ? 'checked' : 'unchecked'}
+                  onPress={() => setTermsAccepted(!termsAccepted)}
+                  color={theme.colors.primary}
+                />
+              </View>
               <View style={styles.termsTextContainer}>
                 <Text style={styles.termsText}>
                   Eu concordo com os{' '}
@@ -374,8 +376,19 @@ const createStyles = (theme: { colors: any }) =>
   },
   termsContainer: {
     marginBottom: 24,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(233, 30, 99, 0.05)',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    borderRadius: 8,
+  },
+  checkboxWrapper: {
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    borderRadius: 4,
+    marginRight: 8,
   },
   termsTextContainer: {
     flex: 1,
