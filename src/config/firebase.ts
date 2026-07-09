@@ -7,9 +7,20 @@ import { getAnalytics, isSupported } from 'firebase/analytics';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+const FIREBASE_ENV = {
+  EXPO_PUBLIC_FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  EXPO_PUBLIC_FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  EXPO_PUBLIC_FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+} as const;
+
+type FirebaseEnvKey = keyof typeof FIREBASE_ENV;
+
 // Helper para validar variáveis críticas de forma segura
-const getEnvVar = (expoKey: string, nodeKey: string, fallbackKey: string, name: string): string => {
-  const value = process.env[expoKey] || process.env[nodeKey] || Constants.expoConfig?.extra?.[fallbackKey];
+const getEnvVar = (expoKey: FirebaseEnvKey, nodeKey: string, fallbackKey: string, name: string): string => {
+  const value = FIREBASE_ENV[expoKey] || process.env[nodeKey] || Constants.expoConfig?.extra?.[fallbackKey];
   
   // Se for nulo, vazio, ou o valor padrão (mock), lançamos um erro claro
   if (!value || value.includes('your-')) {
