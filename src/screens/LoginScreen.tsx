@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { TextInput, Button, Text, SegmentedButtons, Checkbox } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -104,6 +104,11 @@ export default function LoginScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoid}
         >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator
+          >
           <View style={styles.content}>
             <View style={styles.logoContainer}>
               <Image 
@@ -206,6 +211,7 @@ export default function LoginScreen() {
             Não tem uma conta? Cadastre-se
           </Button>
           </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </ScreenshotProtection>
@@ -221,8 +227,12 @@ const createStyles = (theme: { colors: any }) =>
   keyboardAvoid: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    backgroundColor: theme.colors.background,
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: 24,
     justifyContent: 'center',
     backgroundColor: theme.colors.background,
