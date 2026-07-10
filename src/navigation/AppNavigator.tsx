@@ -53,6 +53,8 @@ export type MainTabParamList = {
   Orders: undefined;
   Cart: undefined;
   Profile: undefined;
+  ProducerStoreTab: undefined;
+  ProducerOrdersTab: undefined;
 };
 
 export type DriverTabParamList = {
@@ -98,6 +100,9 @@ const DriverTab = createBottomTabNavigator<DriverTabParamList>();
 // Navegador de abas principal
 const MainTabs = () => {
   const { theme } = useAppTheme();
+  const { isProdutor, isAdmin } = usePermissions();
+  const isProducerExperience = isProdutor || isAdmin;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => {
@@ -109,7 +114,11 @@ const MainTabs = () => {
               iconName = focused ? 'home' : 'home-outline';
             } else if (route.name === 'Catalog') {
               iconName = focused ? 'view-grid' : 'view-grid-outline';
+            } else if (route.name === 'ProducerStoreTab') {
+              iconName = focused ? 'store' : 'store-outline';
             } else if (route.name === 'Orders') {
+              iconName = focused ? 'clipboard-list' : 'clipboard-list-outline';
+            } else if (route.name === 'ProducerOrdersTab') {
               iconName = focused ? 'clipboard-list' : 'clipboard-list-outline';
             } else if (route.name === 'Cart') {
               iconName = focused ? 'cart' : 'cart-outline';
@@ -133,9 +142,27 @@ const MainTabs = () => {
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Início' }} />
-      <Tab.Screen name="Catalog" component={CatalogScreen} options={{ title: 'Catálogo' }} />
-      <Tab.Screen name="Orders" component={OrdersScreen} options={{ title: 'Pedidos' }} />
-      <Tab.Screen name="Cart" component={CartScreen} options={{ title: 'Carrinho' }} />
+      {isProducerExperience ? (
+        <Tab.Screen
+          name="ProducerStoreTab"
+          component={ProductManagementScreen}
+          options={{ title: 'Minha Loja' }}
+        />
+      ) : (
+        <Tab.Screen name="Catalog" component={CatalogScreen} options={{ title: 'Catálogo' }} />
+      )}
+      {isProducerExperience ? (
+        <Tab.Screen
+          name="ProducerOrdersTab"
+          component={OrderManagementScreen}
+          options={{ title: 'Pedidos Recebidos' }}
+        />
+      ) : (
+        <Tab.Screen name="Orders" component={OrdersScreen} options={{ title: 'Pedidos' }} />
+      )}
+      {!isProducerExperience && (
+        <Tab.Screen name="Cart" component={CartScreen} options={{ title: 'Carrinho' }} />
+      )}
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Perfil' }} />
     </Tab.Navigator>
   );
