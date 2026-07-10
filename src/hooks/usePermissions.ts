@@ -43,19 +43,26 @@ export function usePermissions(): UsePermissionsReturn {
         const role = await permissionsService.getUserRole(userId);
         setUserRole(role);
 
-        // Obter documento de permissões
-        const permissionsDoc = await getDoc(doc(db, 'permissoes', userId));
+        try {
+          const permissionsDoc = await getDoc(doc(db, 'permissoes', userId));
 
-        if (permissionsDoc.exists()) {
-          const permissions = permissionsDoc.data()?.permissions as Permission[] || [];
-          setUserPermissions(permissions);
-        } else {
-          // Se não existir, usar permissões padrão do papel
-          const defaultPermissions = permissionsService.getRolePermissions(role);
-          setUserPermissions(defaultPermissions);
+          if (permissionsDoc.exists()) {
+            const permissions = permissionsDoc.data()?.permissions as Permission[] || [];
+            setUserPermissions(permissions);
+          } else {
+            const defaultPermissions = permissionsService.getRolePermissions(role);
+            setUserPermissions(defaultPermissions);
+          }
+        } catch (permissionsError) {
+          loggingService.error('Permissões detalhadas indisponíveis; mantendo role resolvido', {
+            error: permissionsError,
+            userId,
+            role,
+          });
+          setUserPermissions([]);
         }
       } catch (error) {
-        loggingService.error('Erro ao carregar permissões', { error });
+        loggingService.error('Erro ao carregar papel do usuário', { error, userId });
         setUserRole(null);
         setUserPermissions([]);
       } finally {
@@ -103,19 +110,27 @@ export function usePermissions(): UsePermissionsReturn {
       const role = await permissionsService.getUserRole(userId);
       setUserRole(role);
 
-      // Obter documento de permissões
-      const permissionsDoc = await getDoc(doc(db, 'permissoes', userId));
+      try {
+        const permissionsDoc = await getDoc(doc(db, 'permissoes', userId));
 
-      if (permissionsDoc.exists()) {
-        const permissions = permissionsDoc.data()?.permissions as Permission[] || [];
-        setUserPermissions(permissions);
-      } else {
-        // Se não existir, usar permissões padrão do papel
-        const defaultPermissions = permissionsService.getRolePermissions(role);
-        setUserPermissions(defaultPermissions);
+        if (permissionsDoc.exists()) {
+          const permissions = permissionsDoc.data()?.permissions as Permission[] || [];
+          setUserPermissions(permissions);
+        } else {
+          const defaultPermissions = permissionsService.getRolePermissions(role);
+          setUserPermissions(defaultPermissions);
+        }
+      } catch (permissionsError) {
+        loggingService.error('Permissões detalhadas indisponíveis; mantendo role resolvido', {
+          error: permissionsError,
+          userId,
+          role,
+        });
+        setUserPermissions([]);
       }
     } catch (error) {
-      loggingService.error('Erro ao atualizar permissões', { error });
+      loggingService.error('Erro ao atualizar papel do usuário', { error, userId });
+      setUserPermissions([]);
     } finally {
       setLoading(false);
     }

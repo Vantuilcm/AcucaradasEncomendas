@@ -428,15 +428,22 @@ export class PermissionsService {
         return Role.COMPRADOR;
       }
 
-      const permissionsDoc = await getDoc(doc(db, this.permissionsCollection, userId));
+      try {
+        const permissionsDoc = await getDoc(doc(db, this.permissionsCollection, userId));
 
-      if (permissionsDoc.exists()) {
-        const permissionsData = permissionsDoc.data();
-        const permissionsRole = this.normalizeRoleValue(permissionsData?.role);
+        if (permissionsDoc.exists()) {
+          const permissionsData = permissionsDoc.data();
+          const permissionsRole = this.normalizeRoleValue(permissionsData?.role);
 
-        if (permissionsRole) {
-          return permissionsRole;
+          if (permissionsRole) {
+            return permissionsRole;
+          }
         }
+      } catch (permissionsError) {
+        loggingService.error('Permissões indisponíveis; usando fallback users.role', {
+          error: permissionsError,
+          userId,
+        });
       }
 
       const userDoc = await getDoc(doc(db, 'users', userId));
