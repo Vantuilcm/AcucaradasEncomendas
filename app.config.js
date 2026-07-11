@@ -14,7 +14,11 @@ export default ({ config }) => {
   }
 
   const isProduction = process.env.APP_ENV === "production" || process.env.EXPO_PUBLIC_APP_ENV === "production";
-  const isPreview = process.env.APP_ENV === "preview" || process.env.EXPO_PUBLIC_APP_ENV === "preview";
+  const isPreviewBuild = process.env.EAS_BUILD_PROFILE === "preview";
+  const isPreview =
+    process.env.APP_ENV === "preview" ||
+    process.env.EXPO_PUBLIC_APP_ENV === "preview" ||
+    isPreviewBuild;
   const sentryEnabled = process.env.EXPO_PUBLIC_SENTRY_ENABLED === "true" || !!process.env.SENTRY_AUTH_TOKEN;
 
   // 2. SINCRONIZAÇÃO DE VERSÃO (MODO VERSION-LOCK)
@@ -45,7 +49,10 @@ export default ({ config }) => {
     }
   }
 
-  let firebaseProjectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "acucaradas-encomendas";
+  // Preview/sandbox builds must not silently fall back to production Firebase.
+  let firebaseProjectId =
+    process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ||
+    (isPreview ? "acucaradas-encomendas-sandbox" : "acucaradas-encomendas");
   let firebaseAppId = process.env.EXPO_PUBLIC_FIREBASE_APP_ID;
 
   console.log("🔍 [DEBUG_ENV] EXPO_PUBLIC_FIREBASE_API_KEY do ENV:", firebaseApiKey ? "EXISTE" : "AUSENTE");
@@ -99,6 +106,16 @@ export default ({ config }) => {
     version: appVersion,
     name: appConfig.name,
     slug: appConfig.slug,
+    runtimeVersion: config.runtimeVersion || "52.0.0",
+    updates: {
+      ...(config.updates || {}),
+      ...(isPreview
+        ? {
+            enabled: false,
+            checkAutomatically: "NEVER",
+          }
+        : {}),
+    },
     facebookAppId: facebookAppId,
     facebookDisplayName: appConfig.name,
     facebookScheme: facebookAppId ? `fb${facebookAppId}` : undefined,

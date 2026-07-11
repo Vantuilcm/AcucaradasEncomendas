@@ -26,7 +26,8 @@
       "env": {
         "APP_ENV": "preview",
         "EXPO_PUBLIC_APP_ENV": "preview",
-        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045"
+        "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "acucaradas-encomendas-sandbox"
       },
       "android": {
         "buildType": "apk"
