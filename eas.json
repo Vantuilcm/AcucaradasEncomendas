@@ -27,7 +27,11 @@
         "APP_ENV": "preview",
         "EXPO_PUBLIC_APP_ENV": "preview",
         "EXPO_PUBLIC_PROJECT_ID": "6090106b-e327-4744-bce5-9ddb0d037045",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "acucaradas-encomendas-sandbox"
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "acucaradas-encomendas-sandbox",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "acucaradas-encomendas-sandbox.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "acucaradas-encomendas-sandbox.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "1076144560003",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:1076144560003:ios:aae39ea70739dffe1688b6"
       },
       "android": {
         "buildType": "apk"

@@ -53,7 +53,33 @@ export default ({ config }) => {
   let firebaseProjectId =
     process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ||
     (isPreview ? "acucaradas-encomendas-sandbox" : "acucaradas-encomendas");
+  if (isPreview && !String(firebaseProjectId).includes("sandbox")) {
+    firebaseProjectId = "acucaradas-encomendas-sandbox";
+  }
   let firebaseAppId = process.env.EXPO_PUBLIC_FIREBASE_APP_ID;
+  // Preview must never keep production Identity Toolkit / storage endpoints.
+  let firebaseAuthDomain =
+    process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ||
+    `${firebaseProjectId}.firebaseapp.com`;
+  let firebaseStorageBucket =
+    process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+    `${firebaseProjectId}.firebasestorage.app`;
+  let firebaseMessagingSenderId =
+    process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID;
+  if (isPreview) {
+    if (!String(firebaseAuthDomain).includes("sandbox")) {
+      firebaseAuthDomain = `${firebaseProjectId}.firebaseapp.com`;
+    }
+    if (!String(firebaseStorageBucket).includes("sandbox")) {
+      firebaseStorageBucket = `${firebaseProjectId}.firebasestorage.app`;
+    }
+    if (!firebaseMessagingSenderId || String(firebaseMessagingSenderId) === "627855691834") {
+      firebaseMessagingSenderId = "1076144560003";
+    }
+    if (!firebaseAppId || String(firebaseAppId).includes("627855691834")) {
+      firebaseAppId = "1:1076144560003:ios:aae39ea70739dffe1688b6";
+    }
+  }
 
   console.log("🔍 [DEBUG_ENV] EXPO_PUBLIC_FIREBASE_API_KEY do ENV:", firebaseApiKey ? "EXISTE" : "AUSENTE");
   // 🍎 [IOS-PLIST-FALLBACK] Tentar ler do plist se estiver no iOS build
@@ -162,9 +188,9 @@ export default ({ config }) => {
       firebaseApiKey: firebaseApiKey,
       firebaseAppId: firebaseAppId,
       firebaseProjectId: firebaseProjectId,
-      firebaseAuthDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || `${firebaseProjectId}.firebaseapp.com`,
-      firebaseStorageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || `${firebaseProjectId}.firebasestorage.app`,
-      firebaseMessagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      firebaseAuthDomain: firebaseAuthDomain,
+      firebaseStorageBucket: firebaseStorageBucket,
+      firebaseMessagingSenderId: firebaseMessagingSenderId,
       googleIosClientId,
       googleAndroidClientId,
       googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
