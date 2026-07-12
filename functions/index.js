@@ -878,11 +878,40 @@ exports.onOrderDelivered = functions.firestore
 
     // Apenas agir se o status mudou para 'delivered'
     if (newData.status === 'delivered' && oldData.status !== 'delivered') {
-      
+
+      // HARDENING: só payout na transição exata delivering → delivered
+      if (oldData.status !== 'delivering') {
+        console.log(
+          `ℹ️ [Split Entregador] Pedido ${orderId} delivered sem before.status=delivering (era ${oldData.status}). Ignorando repasse.`
+        );
+        return null;
+      }
+
+      // HARDENING: exige hold explícito pending_delivery (também bloqueia paid/failed/missing)
+      if (newData.courierPayoutStatus !== 'pending_delivery') {
+        console.log(
+          `ℹ️ [Split Entregador] Pedido ${orderId} courierPayoutStatus=${newData.courierPayoutStatus || 'undefined'} (exige pending_delivery). Ignorando repasse.`
+        );
+        return null;
+      }
+
+      // HARDENING: se paymentStatus existir, só completed/paid (valores já usados no webhook/app)
+      if (
+        newData.paymentStatus !== undefined &&
+        newData.paymentStatus !== null &&
+        newData.paymentStatus !== 'completed' &&
+        newData.paymentStatus !== 'paid'
+      ) {
+        console.log(
+          `ℹ️ [Split Entregador] Pedido ${orderId} paymentStatus inválido (${newData.paymentStatus}). Ignorando repasse.`
+        );
+        return null;
+      }
+
       // 1. Validar se há fundos retidos para o entregador
-      if (!newData.deliveryFeeHeld || newData.courierPayoutStatus === 'paid') {
-        console.log(`ℹ️ [Split Entregador] Pedido ${orderId} entregue, mas sem taxa retida ou já pago. Ignorando repasse.`);
-        return;
+      if (!newData.deliveryFeeHeld) {
+        console.log(`ℹ️ [Split Entregador] Pedido ${orderId} entregue, mas sem taxa retida. Ignorando repasse.`);
+        return null;
       }
 
       const targetCourierId = newData.deliveryDriverId || newData.courierId;
