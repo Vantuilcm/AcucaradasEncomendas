@@ -69,6 +69,177 @@ service cloud.firestore {
       );
     }
 
+    // Helpers para entregadores (definidos cedo para uso em orders)
+    function isDriverResourceOwner(driverId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/delivery_drivers/$(driverId)).data.userId == request.auth.uid;
+    }
+
+    // ================================
+    // Order update hardening helpers
+    // ================================
+    function isOrderOwner() {
+      return isOwner(resource.data.userId);
+    }
+
+    function isOrderProducerOwner() {
+      return isProducer()
+        && resource.data.producerId != null
+        && (
+          resource.data.producerId == request.auth.uid
+          || (
+            exists(/databases/$(database)/documents/producers/$(resource.data.producerId))
+            && get(/databases/$(database)/documents/producers/$(resource.data.producerId)).data.userId == request.auth.uid
+          )
+        );
+    }
+
+    function orderHasAssignedCourier() {
+      return ('deliveryDriverId' in resource.data && resource.data.deliveryDriverId != null)
+        || ('courierId' in resource.data && resource.data.courierId != null)
+        || ('deliveryDriver' in resource.data && 'id' in resource.data.deliveryDriver);
+    }
+
+    function isAssignedCourier() {
+      return isAuthenticated() && isCourier() && (
+        ('deliveryDriverId' in resource.data && resource.data.deliveryDriverId == request.auth.uid)
+        || ('courierId' in resource.data && resource.data.courierId == request.auth.uid)
+        || (
+          'deliveryDriver' in resource.data
+          && 'id' in resource.data.deliveryDriver
+          && (
+            resource.data.deliveryDriver.id == request.auth.uid
+            || isDriverResourceOwner(resource.data.deliveryDriver.id)
+          )
+        )
+      );
+    }
+
+    function financialFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'paymentIntentId',
+        'paymentStatus',
+        'deliveryFeeHeld',
+        'courierPayoutStatus',
+        'courierPayoutAmount',
+        'courierTransferId',
+        'courierPayoutProcessedAt',
+        'courierPayoutError',
+        'producerTransferId',
+        'payoutStatus',
+        'chargeId',
+        'latest_charge',
+        'stripeAccountId',
+        'applicationFee',
+        'platformFee'
+      ]);
+    }
+
+    function identityFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'userId',
+        'producerId',
+        'deliveryDriverId',
+        'courierId',
+        'deliveryDriver',
+        'isSandboxTest',
+        'testPurpose',
+        'createdByMission'
+      ]);
+    }
+
+    function onlyOrderKeysChanged(allowedKeys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedKeys);
+    }
+
+    function isCancelableStatus(status) {
+      return status == 'pending'
+        || status == 'confirmed'
+        || status == 'preparing'
+        || status == 'ready';
+    }
+
+    function buyerOrderUpdateAllowed() {
+      return isOrderOwner()
+        && financialFieldsUnchanged()
+        && identityFieldsUnchanged()
+        && isCancelableStatus(resource.data.status)
+        && request.resource.data.status == 'cancelled'
+        && onlyOrderKeysChanged(['status', 'updatedAt', 'cancellationReason']);
+    }
+
+    function producerOrderUpdateAllowed() {
+      return isOrderProducerOwner()
+        && financialFieldsUnchanged()
+        && identityFieldsUnchanged()
+        && (
+          (
+            onlyOrderKeysChanged(['status', 'updatedAt'])
+            && (
+              (resource.data.status == 'pending' && request.resource.data.status == 'confirmed')
+              || (resource.data.status == 'confirmed' && request.resource.data.status == 'preparing')
+              || (resource.data.status == 'preparing' && request.resource.data.status == 'ready')
+            )
+          )
+          || (
+            isCancelableStatus(resource.data.status)
+            && request.resource.data.status == 'cancelled'
+            && onlyOrderKeysChanged(['status', 'updatedAt', 'cancellationReason'])
+          )
+        );
+    }
+
+    function courierClaimUnassignedOrderAllowed() {
+      return isCourier()
+        && financialFieldsUnchanged()
+        && resource.data.status == 'ready'
+        && request.resource.data.status == 'ready'
+        && !orderHasAssignedCourier()
+        && onlyOrderKeysChanged(['deliveryDriver', 'deliveryDriverId', 'updatedAt'])
+        && 'deliveryDriver' in request.resource.data
+        && 'id' in request.resource.data.deliveryDriver
+        && (
+          request.resource.data.deliveryDriver.id == request.auth.uid
+          || isDriverResourceOwner(request.resource.data.deliveryDriver.id)
+        )
+        && (
+          !('deliveryDriverId' in request.resource.data)
+          || request.resource.data.deliveryDriverId == request.resource.data.deliveryDriver.id
+          || request.resource.data.deliveryDriverId == request.auth.uid
+        );
+    }
+
+    function courierStatusUpdateAllowed() {
+      return isAssignedCourier()
+        && financialFieldsUnchanged()
+        && identityFieldsUnchanged()
+        && onlyOrderKeysChanged(['status', 'updatedAt'])
+        && (
+          (resource.data.status == 'ready' && request.resource.data.status == 'delivering')
+          || (resource.data.status == 'delivering' && request.resource.data.status == 'delivered')
+        );
+    }
+
+    function courierOrderUpdateAllowed() {
+      return courierClaimUnassignedOrderAllowed() || courierStatusUpdateAllowed();
+    }
+
+    function adminOrderUpdateAllowed() {
+      return isAdmin()
+        && financialFieldsUnchanged()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'userId',
+          'producerId',
+          'isSandboxTest',
+          'testPurpose',
+          'createdByMission',
+          'paymentIntentId',
+          'deliveryFeeHeld',
+          'courierPayoutStatus',
+          'courierTransferId'
+        ]);
+    }
+
     // ================================
     // Lojas cadastradas usadas na tela "Lojas próximas"
     // ================================
@@ -170,10 +341,10 @@ service cloud.firestore {
       allow create: if isAuthenticated();
 
       allow update: if
-        isAdmin() ||
-        isOwner(resource.data.userId) ||
-        isProducer() ||
-        isCourier();
+        adminOrderUpdateAllowed() ||
+        buyerOrderUpdateAllowed() ||
+        producerOrderUpdateAllowed() ||
+        courierOrderUpdateAllowed();
 
       allow delete: if isAdmin();
     }
@@ -323,15 +494,8 @@ service cloud.firestore {
     }
 
     // ================================
-    // Helpers para entregadores
-    // ================================
-    function isDriverResourceOwner(driverId) {
-      return isAuthenticated() &&
-        get(/databases/$(database)/documents/delivery_drivers/$(driverId)).data.userId == request.auth.uid;
-    }
-
-    // ================================
     // Entregadores e ganhos
+    // (isDriverResourceOwner definido acima, junto aos helpers de orders)
     // ================================
     match /delivery_drivers/{driverId} {
       allow read: if isAdmin() || isOwner(resource.data.userId);
