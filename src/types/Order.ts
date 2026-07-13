@@ -55,6 +55,10 @@ export interface Order {
     vehicle: string;
     plate: string;
   };
+  /** Top-level assigned courier id (normalized on accept). */
+  deliveryDriverId?: string;
+  /** Legacy alias used by Functions. */
+  courierId?: string;
 
   // Informações de agendamento
   scheduledDelivery?: DeliverySchedule;

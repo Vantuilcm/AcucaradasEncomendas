@@ -1,9 +1,57 @@
-import { dbFunctions as f } from '../config/firebase';
+import { dbFunctions as f, getAuth } from '../config/firebase';
 import { Order, OrderFilters, OrderSummary, OrderStatus } from '../types/Order';
 import { loggingService } from './LoggingService';
 // import { DeliveryService } from './DeliveryService';
 import { NotificationService } from './NotificationService';
 import { GrowthService } from './GrowthService';
+
+type OrderStatusActorContext = {
+  uid?: string;
+  role?: string;
+  isAdmin?: boolean;
+};
+
+const CANCELABLE_STATUSES: OrderStatus[] = [
+  'pending',
+  'confirmed',
+  'preparing',
+  'ready',
+];
+
+const ALLOWED_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['preparing', 'cancelled'],
+  preparing: ['ready', 'cancelled'],
+  ready: ['delivering', 'cancelled'],
+  delivering: ['delivered'],
+  delivered: [],
+  cancelled: [],
+};
+
+const CLIENT_ORDER_UPDATE_BLACKLIST = [
+  'paymentIntentId',
+  'paymentStatus',
+  'deliveryFeeHeld',
+  'courierPayoutStatus',
+  'courierPayoutAmount',
+  'courierTransferId',
+  'courierPayoutProcessedAt',
+  'courierPayoutError',
+  'producerTransferId',
+  'payoutStatus',
+  'chargeId',
+  'latest_charge',
+  'stripeAccountId',
+  'applicationFee',
+  'platformFee',
+  'userId',
+  'producerId',
+  'deliveryDriverId',
+  'courierId',
+  'isSandboxTest',
+  'testPurpose',
+  'createdByMission',
+] as const;
 
 export class OrderService {
   private readonly collectionName = 'orders';
@@ -29,6 +77,81 @@ export class OrderService {
       loggingService.warn('OrderService recebeu ID inválido', { name, value: id });
     }
     return isValid;
+  }
+
+  private getAssignedCourierIds(order: Order | Record<string, any>): string[] {
+    const ids = [
+      order.deliveryDriverId,
+      (order as any).courierId,
+      order.deliveryDriver?.id,
+    ];
+    return [...new Set(ids.filter((id): id is string => typeof id === 'string' && id.trim().length > 0))];
+  }
+
+  private resolveActorUid(actorContext?: OrderStatusActorContext): string | null {
+    if (actorContext?.uid && actorContext.uid.trim().length > 0) {
+      return actorContext.uid.trim();
+    }
+    try {
+      const uid = getAuth()?.currentUser?.uid;
+      return typeof uid === 'string' && uid.trim().length > 0 ? uid.trim() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private validateOrderTransition(
+    currentOrder: Order | Record<string, any>,
+    nextStatus: OrderStatus,
+    actorContext?: OrderStatusActorContext
+  ): void {
+    const currentStatus = currentOrder.status as OrderStatus;
+
+    if (currentStatus === 'delivered') {
+      throw new Error('Invalid order status transition');
+    }
+
+    if (currentStatus === 'cancelled') {
+      throw new Error('Invalid order status transition');
+    }
+
+    const allowedNext = ALLOWED_STATUS_TRANSITIONS[currentStatus] || [];
+    if (!allowedNext.includes(nextStatus)) {
+      throw new Error('Invalid order status transition');
+    }
+
+    if (nextStatus === 'cancelled' && !CANCELABLE_STATUSES.includes(currentStatus)) {
+      throw new Error('Invalid order status transition');
+    }
+
+    if (nextStatus === 'delivered') {
+      if (currentStatus !== 'delivering') {
+        throw new Error('Invalid order status transition');
+      }
+
+      if (actorContext?.isAdmin === true) {
+        return;
+      }
+
+      const actorUid = this.resolveActorUid(actorContext);
+      if (!actorUid) {
+        throw new Error('Only assigned courier can mark order as delivered');
+      }
+
+      const assignedIds = this.getAssignedCourierIds(currentOrder);
+      if (!assignedIds.includes(actorUid)) {
+        throw new Error('Only assigned courier can mark order as delivered');
+      }
+    }
+  }
+
+  private assertNoForbiddenClientOrderFields(orderData: Record<string, any>): void {
+    const blocked = CLIENT_ORDER_UPDATE_BLACKLIST.filter((key) =>
+      Object.prototype.hasOwnProperty.call(orderData, key)
+    );
+    if (blocked.length > 0) {
+      throw new Error(`Order field update not allowed: ${blocked.join(', ')}`);
+    }
   }
 
   /**
@@ -258,9 +381,14 @@ export class OrderService {
    * Atualiza o status de um pedido
    * @param orderId ID do pedido
    * @param status Novo status
+   * @param actorContext Contexto opcional do ator (uid/role/admin)
    * @returns O pedido atualizado
    */
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+  async updateOrderStatus(
+    orderId: string,
+    status: OrderStatus,
+    actorContext?: OrderStatusActorContext
+  ): Promise<Order> {
     try {
       if (!this.assertValidId(orderId, 'orderId')) {
         throw new Error('ID de pedido inválido');
@@ -272,12 +400,18 @@ export class OrderService {
         throw new Error('Pedido não encontrado');
       }
 
+      const currentOrder = {
+        id: orderId,
+        ...orderDoc.data(),
+      } as Order;
+
+      this.validateOrderTransition(currentOrder, status, actorContext);
+
       const updatedAt = new Date().toISOString();
       await f.updateDoc(orderRef, { status, updatedAt });
 
       const updatedOrder = {
-        id: orderId,
-        ...orderDoc.data(),
+        ...currentOrder,
         status,
         updatedAt,
       } as Order;
@@ -343,6 +477,7 @@ export class OrderService {
         const updatedAt = new Date().toISOString();
         const updatePayload = {
           deliveryDriver: driverData,
+          deliveryDriverId: driverData.id,
           updatedAt
         };
 
@@ -384,6 +519,9 @@ export class OrderService {
       if (!this.assertValidId(orderId, 'orderId')) {
         throw new Error('ID de pedido inválido');
       }
+
+      this.assertNoForbiddenClientOrderFields(orderData as Record<string, any>);
+
       const orderRef = f.doc(this.collectionName, orderId);
       const orderDoc = await f.getDoc(orderRef);
 
@@ -422,6 +560,11 @@ export class OrderService {
 
       if (!orderDoc.exists()) {
         throw new Error('Pedido não encontrado');
+      }
+
+      const currentStatus = orderDoc.data()?.status as OrderStatus;
+      if (!CANCELABLE_STATUSES.includes(currentStatus)) {
+        throw new Error('Invalid order status transition');
       }
 
       const updatedAt = new Date().toISOString();
