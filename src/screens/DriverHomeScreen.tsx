@@ -23,6 +23,27 @@ import { formatCurrency } from '../utils/formatters';
 import { LoadingState } from '../components/base/LoadingState';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+function getAssignedCourierIds(order: Order): string[] {
+  const ids = [
+    order.deliveryDriverId,
+    (order as any).courierId,
+    order.deliveryDriver?.id,
+  ];
+  return [...new Set(ids.filter((id): id is string => typeof id === 'string' && id.trim().length > 0))];
+}
+
+function isAssignedToCurrentDriver(
+  order: Order,
+  uid: string | null | undefined,
+  driverId?: string | null
+): boolean {
+  const assigned = getAssignedCourierIds(order);
+  if (assigned.length === 0) return false;
+  if (uid && assigned.includes(uid)) return true;
+  if (driverId && assigned.includes(driverId)) return true;
+  return false;
+}
+
 export function DriverHomeScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -146,11 +167,43 @@ export function DriverHomeScreen() {
     }
   };
 
-  const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
+  const handleUpdateStatus = async (order: Order, status: OrderStatus) => {
+    const authUid = user ? ((user as any).id || (user as any).uid) : null;
+    const assigned = getAssignedCourierIds(order);
+    const actorUid =
+      (authUid && assigned.includes(authUid) && authUid) ||
+      (driver?.id && assigned.includes(driver.id) && driver.id) ||
+      authUid ||
+      driver?.id ||
+      null;
+
     try {
-      await orderService.updateOrderStatus(orderId, status);
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível atualizar o status.');
+      if (status === 'delivered') {
+        if (order.status !== 'delivering') {
+          Alert.alert('Aviso', 'Só é possível marcar entregue quando o pedido está em rota.');
+          return;
+        }
+        if (!isAssignedToCurrentDriver(order, authUid, driver?.id)) {
+          Alert.alert('Aviso', 'Apenas o entregador atribuído pode marcar este pedido como entregue.');
+          return;
+        }
+        if (!actorUid) {
+          Alert.alert('Erro', 'Não foi possível identificar o entregador autenticado.');
+          return;
+        }
+        await orderService.updateOrderStatus(order.id, 'delivered', {
+          uid: actorUid,
+          role: 'courier',
+        });
+        return;
+      }
+
+      await orderService.updateOrderStatus(order.id, status, actorUid ? {
+        uid: actorUid,
+        role: 'courier',
+      } : undefined);
+    } catch (error: any) {
+      Alert.alert('Erro', error?.message || 'Não foi possível atualizar o status.');
     }
   };
 
@@ -258,22 +311,27 @@ export function DriverHomeScreen() {
                     {order.status === 'ready' ? (
                       <Button 
                         mode="contained" 
-                        onPress={() => handleUpdateStatus(order.id, 'delivering')}
+                        onPress={() => handleUpdateStatus(order, 'delivering')}
                         style={styles.actionButton}
                         buttonColor="#6A1B9A"
                       >
                         Retirei
                       </Button>
-                    ) : (
+                    ) : order.status === 'delivering' &&
+                      isAssignedToCurrentDriver(
+                        order,
+                        user ? ((user as any).id || (user as any).uid) : null,
+                        driver?.id
+                      ) ? (
                       <Button 
                         mode="contained" 
-                        onPress={() => handleUpdateStatus(order.id, 'delivered')}
+                        onPress={() => handleUpdateStatus(order, 'delivered')}
                         style={styles.actionButton}
                         buttonColor="#4CAF50"
                       >
                         Entregue
                       </Button>
-                    )}
+                    ) : null}
                   </View>
                 </Card.Content>
               </Card>

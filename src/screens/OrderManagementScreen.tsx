@@ -173,9 +173,13 @@ export function OrderManagementScreen() {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+  const updateOrderStatus = async (
+    orderId: string,
+    newStatus: OrderStatus,
+    actorContext?: { uid?: string; role?: string; isAdmin?: boolean }
+  ) => {
     try {
-      await orderService.updateOrderStatus(orderId, newStatus);
+      await orderService.updateOrderStatus(orderId, newStatus, actorContext);
       // O onSnapshot cuidará de atualizar a lista de pedidos automaticamente
       setMenuVisible(null);
     } catch (error) {
@@ -259,6 +263,16 @@ export function OrderManagementScreen() {
   };
 
   const smartAlert = getSmartAlert();
+  const statusAdvanceRole: 'producer' | 'admin' | 'courier' | 'other' = isAdmin
+    ? 'admin'
+    : isProdutor
+      ? 'producer'
+      : isEntregador
+        ? 'courier'
+        : 'other';
+  /** Admin-only: delivering/delivered on this screen. Producer stops at ready. */
+  const canSetDeliveryStatuses = isAdmin;
+
   const handleAdvanceStatus = async (orderId: string, currentStatus: OrderStatus) => {
     if (isEntregador && currentStatus === 'ready' && user) {
       try {
@@ -272,6 +286,7 @@ export function OrderManagementScreen() {
         }
 
         // Atribuir entregador ao pedido antes de avançar
+        // WARNING: still uses updateOrder({ deliveryDriver }) — dual-ID/acceptOrderAtomic migration deferred
         await orderService.updateOrder(orderId, {
           deliveryDriver: {
             id: driverData.id,
@@ -288,7 +303,7 @@ export function OrderManagementScreen() {
       }
     }
 
-    const nextStatus = getNextStatus(currentStatus);
+    const nextStatus = getNextStatus(currentStatus, statusAdvanceRole);
     if (nextStatus !== currentStatus) {
       updateOrderStatus(orderId, nextStatus);
     }
@@ -420,14 +435,23 @@ export function OrderManagementScreen() {
                       onPress={() => updateOrderStatus(order.id, 'ready')}
                       title="Pronto"
                     />
-                    <Menu.Item
-                      onPress={() => updateOrderStatus(order.id, 'delivering')}
-                      title="Em Entrega"
-                    />
-                    <Menu.Item
-                      onPress={() => updateOrderStatus(order.id, 'delivered')}
-                      title="Entregue"
-                    />
+                    {canSetDeliveryStatuses && (
+                      <Menu.Item
+                        onPress={() => updateOrderStatus(order.id, 'delivering')}
+                        title="Em Entrega"
+                      />
+                    )}
+                    {canSetDeliveryStatuses && (
+                      <Menu.Item
+                        onPress={() =>
+                          updateOrderStatus(order.id, 'delivered', {
+                            uid: (user as any)?.id || (user as any)?.uid,
+                            isAdmin: true,
+                          })
+                        }
+                        title="Entregue (suporte)"
+                      />
+                    )}
                     <Menu.Item
                       onPress={() => updateOrderStatus(order.id, 'cancelled')}
                       title="Cancelado"
@@ -479,7 +503,9 @@ export function OrderManagementScreen() {
                     Ver Detalhes
                   </Button>
 
-                  {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                  {order.status !== 'delivered' &&
+                    order.status !== 'cancelled' &&
+                    getNextStatus(order.status, statusAdvanceRole) !== order.status && (
                     <Button
                       mode="contained"
                       onPress={() => handleAdvanceStatus(order.id, order.status)}
@@ -499,7 +525,31 @@ export function OrderManagementScreen() {
 }
 
 // Função auxiliar para determinar o próximo status no fluxo do pedido
-function getNextStatus(currentStatus: OrderStatus): OrderStatus {
+function getNextStatus(
+  currentStatus: OrderStatus,
+  role: 'producer' | 'admin' | 'courier' | 'other' = 'other'
+): OrderStatus {
+  if (role === 'producer') {
+    switch (currentStatus) {
+      case 'pending':
+        return 'confirmed';
+      case 'confirmed':
+        return 'preparing';
+      case 'preparing':
+        return 'ready';
+      default:
+        return currentStatus;
+    }
+  }
+
+  if (role === 'courier') {
+    // Delivered happens on DriverHome, not here
+    if (currentStatus === 'ready') {
+      return 'delivering';
+    }
+    return currentStatus;
+  }
+
   switch (currentStatus) {
     case 'pending':
       return 'confirmed';
