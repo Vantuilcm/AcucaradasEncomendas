@@ -940,7 +940,41 @@ exports.onOrderDelivered = functions.firestore
           return;
         }
 
-        // 3. Executar Transferência com Idempotência
+        // 3. Resolver source_transaction (obrigatório para Transfers BR)
+        const paymentIntentId = newData.paymentIntentId;
+        if (!paymentIntentId) {
+          console.warn(
+            `⚠️ [Split Entregador] Pedido ${orderId} sem paymentIntentId; não foi possível resolver source_transaction.`
+          );
+          await change.after.ref.update({
+            courierPayoutStatus: 'failed',
+            courierPayoutError:
+              'paymentIntentId ausente; não foi possível resolver source_transaction para repasse courier'
+          });
+          return null;
+        }
+
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+        let chargeId = null;
+        if (typeof paymentIntent.latest_charge === 'string') {
+          chargeId = paymentIntent.latest_charge;
+        } else if (paymentIntent.latest_charge && paymentIntent.latest_charge.id) {
+          chargeId = paymentIntent.latest_charge.id;
+        }
+
+        if (!chargeId) {
+          console.warn(
+            `⚠️ [Split Entregador] Pedido ${orderId} PaymentIntent ${paymentIntentId} sem latest_charge; source_transaction não resolvido.`
+          );
+          await change.after.ref.update({
+            courierPayoutStatus: 'failed',
+            courierPayoutError:
+              'latest_charge ausente no PaymentIntent; source_transaction não resolvido para repasse courier'
+          });
+          return null;
+        }
+
+        // 4. Executar Transferência com Idempotência
         const courierPayoutAmountInCents = Math.floor(deliveryFee * 100);
         const idempotencyKey = `courier_delivery_payout_${orderId}`;
 
@@ -948,13 +982,14 @@ exports.onOrderDelivered = functions.firestore
           amount: courierPayoutAmountInCents,
           currency: 'brl',
           destination: courierStripeAccountId,
+          source_transaction: chargeId,
           transfer_group: orderId,
           metadata: { role: 'courier', orderId }
         }, {
           idempotencyKey
         });
 
-        // 4. Confirmar sucesso no Firestore
+        // 5. Confirmar sucesso no Firestore
         await change.after.ref.update({
           courierPayoutStatus: 'paid',
           courierTransferId: transfer.id,
