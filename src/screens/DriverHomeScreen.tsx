@@ -20,6 +20,7 @@ import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { Order, OrderStatus } from '../types/Order';
 import { DeliveryDriver } from '../types/DeliveryDriver';
 import { formatCurrency } from '../utils/formatters';
+import { AppVersion } from '../utils/AppVersion';
 import { LoadingState } from '../components/base/LoadingState';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -409,7 +410,7 @@ export function DriverHomeScreen() {
          )}
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>Versão 1.1.8 (Build 1128)</Text>
+          <Text style={styles.versionText}>{AppVersion.getDisplayString()}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
