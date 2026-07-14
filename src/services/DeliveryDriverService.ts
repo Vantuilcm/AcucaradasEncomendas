@@ -32,7 +32,7 @@ export class DeliveryDriverService {
 
   async getDriverByUserId(userId: string): Promise<DeliveryDriver | null> {
     try {
-      const driversRef = collection(db, this.collection);
+      const driversRef = collection(this.collection);
       const q = query(driversRef, where('userId', '==', userId));
       const querySnapshot = (await getDocs(q as any)) as any;
 
@@ -62,7 +62,7 @@ export class DeliveryDriverService {
     driver: Omit<DeliveryDriver, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<DeliveryDriver> {
     try {
-      const driversRef = collection(db, this.collection);
+      const driversRef = collection(this.collection);
       const docRef = doc(driversRef as any);
       const now = new Date().toISOString();
       await setDoc(
@@ -219,7 +219,7 @@ export class DeliveryDriverService {
 
   async getAvailableDrivers(): Promise<DeliveryDriver[]> {
     try {
-      const driversRef = collection(db, this.collection);
+      const driversRef = collection(this.collection);
       const q = query(
         driversRef,
         where('status', '==', 'active'),
@@ -241,7 +241,7 @@ export class DeliveryDriverService {
   }
 
   public subscribeToActiveDrivers(callback: (drivers: DeliveryDriver[]) => void): () => void {
-    const driversRef = collection(db, this.collection);
+    const driversRef = collection(this.collection);
     const q = query(
       driversRef,
       where('status', '==', 'active'),
