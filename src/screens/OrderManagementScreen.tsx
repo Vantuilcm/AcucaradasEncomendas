@@ -285,16 +285,13 @@ export function OrderManagementScreen() {
           return;
         }
 
-        // Atribuir entregador ao pedido antes de avançar
-        // WARNING: still uses updateOrder({ deliveryDriver }) — dual-ID/acceptOrderAtomic migration deferred
-        await orderService.updateOrder(orderId, {
-          deliveryDriver: {
-            id: driverData.id,
-            name: driverData.name,
-            phone: driverData.phone,
-            vehicle: driverData.vehicle.model,
-            plate: driverData.vehicle.plate
-          }
+        // Align with DriverHome: atomic claim writes nested deliveryDriver + top-level deliveryDriverId
+        await orderService.acceptOrderAtomic(orderId, {
+          id: driverData.id,
+          name: driverData.name,
+          phone: driverData.phone,
+          vehicle: driverData.vehicle.model,
+          plate: driverData.vehicle.plate
         });
       } catch (err) {
         console.error('Erro ao atribuir entregador:', err);
