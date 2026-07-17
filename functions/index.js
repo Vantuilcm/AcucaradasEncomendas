@@ -914,16 +914,7 @@ exports.executePaymentSplit = functions.https.onCall(async (data, context) => {
       metadata: { role: 'producer', orderId }
     }));
 
-    // 2. Transfer para o Entregador (100% da taxa de entrega)
-    if (courierAccountId && deliveryFee > 0) {
-      transfers.push(stripe.transfers.create({
-        amount: deliveryFee,
-        currency: 'brl',
-        destination: courierAccountId,
-        transfer_group: orderId,
-        metadata: { role: 'courier', orderId }
-      }));
-    }
+    // Courier payout ocorre após a entrega via stripeWebhook/onOrderDelivered.
 
     const results = await Promise.all(transfers);
 
