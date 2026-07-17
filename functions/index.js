@@ -858,10 +858,58 @@ exports.executePaymentSplit = functions.https.onCall(async (data, context) => {
     const transfers = [];
 
     // 1. Transfer para o Produtor (90% do valor dos produtos)
+    const orderSnapshot = await db
+      .collection('orders')
+      .doc(orderId)
+      .get();
+
+    if (!orderSnapshot.exists) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Pedido inválido para processamento do repasse.'
+      );
+    }
+
+    const orderData = orderSnapshot.data() || {};
+    const paymentIntentId =
+      typeof orderData.paymentIntentId === 'string' &&
+      orderData.paymentIntentId
+        ? orderData.paymentIntentId
+        : typeof orderData.stripePaymentIntentId === 'string'
+          ? orderData.stripePaymentIntentId
+          : null;
+
+    if (!paymentIntentId || !paymentIntentId.startsWith('pi_')) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Pagamento indisponível para processamento do repasse.'
+      );
+    }
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      paymentIntentId,
+      { expand: ['latest_charge'] }
+    );
+    const sourceChargeId =
+      typeof paymentIntent.latest_charge === 'string'
+        ? paymentIntent.latest_charge
+        : paymentIntent.latest_charge &&
+            typeof paymentIntent.latest_charge.id === 'string'
+          ? paymentIntent.latest_charge.id
+          : null;
+
+    if (!sourceChargeId || !sourceChargeId.startsWith('ch_')) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Cobrança indisponível para processamento do repasse.'
+      );
+    }
+
     transfers.push(stripe.transfers.create({
       amount: producerAmount,
       currency: 'brl',
       destination: producerAccountId,
+      source_transaction: sourceChargeId,
       transfer_group: orderId,
       metadata: { role: 'producer', orderId }
     }));
