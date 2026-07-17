@@ -1096,7 +1096,16 @@ exports.onOrderDelivered = functions
     const orderId = context.params.orderId;
 
     // Apenas agir se o status mudou para 'delivered'
-    if (newData.status === 'delivered' && oldData.status !== 'delivered') {
+    const becameDelivered =
+      newData.status === 'delivered' && oldData.status !== 'delivered';
+    const holdBecameReadyAfterDelivery =
+      newData.status === 'delivered' &&
+      newData.deliveryFeeHeld === true &&
+      oldData.deliveryFeeHeld !== true;
+    if (!becameDelivered && !holdBecameReadyAfterDelivery) {
+      return null;
+    }
+    if (becameDelivered || holdBecameReadyAfterDelivery) {
       
       // 1. Validar se há fundos retidos para o entregador
       if (!newData.deliveryFeeHeld || newData.courierPayoutStatus === 'paid') {
