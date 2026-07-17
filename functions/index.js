@@ -1086,6 +1086,151 @@ exports.onOrderUpdateGrowth = functions.firestore
  * TRIGGER: Repasse ao Entregador (Split do Marketplace)
  * Disparado apenas quando a entrega é concluída com sucesso.
  */
+exports.retryCourierMissingConnectPayout = functions.https.onCall(async (data, context) => {
+  if (!context || !context.auth || !context.auth.uid) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Authentication required.'
+    );
+  }
+
+  await validateAdmin(context.auth.uid);
+
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid request payload.');
+  }
+
+  const inputKeys = Object.keys(data);
+  if (
+    inputKeys.length !== 1 ||
+    inputKeys[0] !== 'orderId' ||
+    typeof data.orderId !== 'string' ||
+    data.orderId.trim() === ''
+  ) {
+    throw new functions.https.HttpsError('invalid-argument', 'Only orderId is accepted.');
+  }
+
+  const orderId = data.orderId.trim();
+  const orderRef = db.collection('orders').doc(orderId);
+
+  const resolveOrderState = (snapshot, staleCheck = false) => {
+    if (!snapshot.exists) {
+      throw new functions.https.HttpsError(
+        staleCheck ? 'aborted' : 'not-found',
+        staleCheck ? 'Order state changed.' : 'Order not found.'
+      );
+    }
+
+    const order = snapshot.data() || {};
+    if (
+      order.status !== 'delivered' ||
+      order.deliveryFeeHeld !== true ||
+      order.courierPayoutStatus !== 'missing_connected_account' ||
+      order.courierTransferId
+    ) {
+      throw new functions.https.HttpsError(
+        staleCheck ? 'aborted' : 'failed-precondition',
+        staleCheck ? 'Order state changed.' : 'Order is not eligible for retry.'
+      );
+    }
+
+    const courierId = order.deliveryDriverId || order.courierId;
+    if (typeof courierId !== 'string' || courierId.trim() === '') {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Courier identity is unavailable.'
+      );
+    }
+
+    const deliveryFee = order.deliveryFee || order.courierPayoutAmount;
+    const amountInCents = Math.floor(deliveryFee * 100);
+    if (
+      !Number.isFinite(deliveryFee) ||
+      deliveryFee <= 0 ||
+      !Number.isSafeInteger(amountInCents) ||
+      amountInCents <= 0
+    ) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Courier payout amount is invalid.'
+      );
+    }
+
+    return { courierId: courierId.trim(), deliveryFee, amountInCents };
+  };
+
+  const initialOrderSnapshot = await orderRef.get();
+  const initialState = resolveOrderState(initialOrderSnapshot);
+  const courierRef = db.collection('users').doc(initialState.courierId);
+  const initialCourierSnapshot = await courierRef.get();
+  const initialStripeAccountId = initialCourierSnapshot.exists
+    ? initialCourierSnapshot.data()?.stripeAccountId
+    : null;
+
+  if (
+    typeof initialStripeAccountId !== 'string' ||
+    !initialStripeAccountId.startsWith('acct_')
+  ) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'Courier connected account is unavailable.'
+    );
+  }
+
+  const [currentOrderSnapshot, currentCourierSnapshot] = await Promise.all([
+    orderRef.get(),
+    courierRef.get(),
+  ]);
+  const currentState = resolveOrderState(currentOrderSnapshot, true);
+  const currentStripeAccountId = currentCourierSnapshot.exists
+    ? currentCourierSnapshot.data()?.stripeAccountId
+    : null;
+
+  if (
+    currentState.courierId !== initialState.courierId ||
+    currentState.deliveryFee !== initialState.deliveryFee ||
+    currentState.amountInCents !== initialState.amountInCents ||
+    typeof currentStripeAccountId !== 'string' ||
+    !currentStripeAccountId.startsWith('acct_') ||
+    currentStripeAccountId !== initialStripeAccountId
+  ) {
+    throw new functions.https.HttpsError('aborted', 'Payout state changed.');
+  }
+
+  const stripe = require('stripe')(getStripeSecret());
+  let transfer;
+  try {
+    transfer = await stripe.transfers.create({
+      amount: initialState.amountInCents,
+      currency: 'brl',
+      destination: initialStripeAccountId,
+      transfer_group: orderId,
+      metadata: { role: 'courier', orderId }
+    }, {
+      idempotencyKey: `courier_delivery_payout_${orderId}`
+    });
+
+    await orderRef.update({
+      courierPayoutStatus: 'paid',
+      courierTransferId: transfer.id,
+      courierPayoutProcessedAt: admin.firestore.FieldValue.serverTimestamp(),
+      deliveryFeeHeld: false
+    });
+  } catch (error) {
+    throw new functions.https.HttpsError(
+      'internal',
+      'Courier payout retry failed.'
+    );
+  }
+
+  return {
+    success: true,
+    orderId,
+    courierTransferId: transfer.id,
+    courierPayoutStatus: 'paid'
+  };
+});
+
 exports.onOrderDelivered = functions
   .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
   .firestore
