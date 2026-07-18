@@ -614,6 +614,142 @@ describe('retryCourierFailedPayout', () => {
     expect(mockWrites).toEqual([]);
   });
 
+  test('marks idempotency_key_in_use via error.code as ambiguous without retry or write', async () => {
+    setEligibleState();
+    const err = new Error('idempotency key in use');
+    err.code = 'idempotency_key_in_use';
+    mockStripeInstance.transfers.create.mockRejectedValueOnce(err);
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'unavailable',
+      details: expect.objectContaining({
+        phase: 'transfer_create_ambiguous',
+        transferCreated: 'unknown',
+      }),
+    });
+    expect(mockStripeInstance.transfers.create).toHaveBeenCalledTimes(1);
+    expect(mockWrites).toEqual([]);
+  });
+
+  test('marks idempotency_key_in_use via error.raw.code as ambiguous without retry or write', async () => {
+    setEligibleState();
+    const err = new Error('idempotency key in use');
+    err.raw = { code: 'idempotency_key_in_use' };
+    mockStripeInstance.transfers.create.mockRejectedValueOnce(err);
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'unavailable',
+      details: expect.objectContaining({
+        phase: 'transfer_create_ambiguous',
+        transferCreated: 'unknown',
+      }),
+    });
+    expect(mockStripeInstance.transfers.create).toHaveBeenCalledTimes(1);
+    expect(mockWrites).toEqual([]);
+  });
+
+  test('marks StripeAPIError 409 with exact idempotency_key_in_use code as ambiguous', async () => {
+    setEligibleState();
+    const err = new Error('Keys for idempotent requests can only be used while in flight');
+    err.type = 'StripeAPIError';
+    err.rawType = 'idempotency_error';
+    err.code = 'idempotency_key_in_use';
+    err.statusCode = 409;
+    mockStripeInstance.transfers.create.mockRejectedValueOnce(err);
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'unavailable',
+      details: expect.objectContaining({
+        phase: 'transfer_create_ambiguous',
+        transferCreated: 'unknown',
+      }),
+    });
+    expect(mockStripeInstance.transfers.create).toHaveBeenCalledTimes(1);
+    expect(mockWrites).toEqual([]);
+  });
+
+  test('does not treat generic HTTP 409 without idempotency_key_in_use as ambiguous', async () => {
+    setEligibleState();
+    const err = new Error('conflict');
+    err.statusCode = 409;
+    mockStripeInstance.transfers.create.mockRejectedValueOnce(err);
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'internal',
+      details: expect.objectContaining({
+        phase: 'transfer_create',
+        transferCreated: false,
+      }),
+    });
+    expect(mockStripeInstance.transfers.create).toHaveBeenCalledTimes(1);
+    expect(mockWrites).toEqual([]);
+  });
+
+  test('does not treat StripeIdempotencyError parameter mismatch as idempotency_key_in_use ambiguous', async () => {
+    setEligibleState();
+    const err = new Error('Keys for idempotent requests can only be used with the same parameters');
+    err.type = 'StripeIdempotencyError';
+    err.rawType = 'idempotency_error';
+    err.statusCode = 400;
+    mockStripeInstance.transfers.create.mockRejectedValueOnce(err);
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'internal',
+      details: expect.objectContaining({
+        phase: 'transfer_create',
+        transferCreated: false,
+      }),
+    });
+    expect(mockStripeInstance.transfers.create).toHaveBeenCalledTimes(1);
+    expect(mockWrites).toEqual([]);
+  });
+
+  test('keeps existing ambiguous classifications for connection, 429, 5xx and timeouts', async () => {
+    const cases = [
+      (() => {
+        const e = new Error('conn');
+        e.type = 'StripeConnectionError';
+        return e;
+      })(),
+      (() => {
+        const e = new Error('rate');
+        e.statusCode = 429;
+        return e;
+      })(),
+      (() => {
+        const e = new Error('api');
+        e.type = 'StripeAPIError';
+        e.statusCode = 503;
+        return e;
+      })(),
+      (() => {
+        const e = new Error('timeout');
+        e.code = 'ETIMEDOUT';
+        return e;
+      })(),
+      (() => {
+        const e = new Error('reset');
+        e.code = 'ECONNRESET';
+        return e;
+      })(),
+    ];
+
+    for (const err of cases) {
+      setEligibleState();
+      mockStripeInstance.transfers.create.mockRejectedValueOnce(err);
+      await expect(invokeValid()).rejects.toMatchObject({
+        name: 'HttpsError',
+        code: 'unavailable',
+        details: expect.objectContaining({
+          phase: 'transfer_create_ambiguous',
+          transferCreated: 'unknown',
+        }),
+      });
+      expect(mockWrites).toEqual([]);
+    }
+    expect(mockStripeInstance.transfers.create).toHaveBeenCalledTimes(cases.length);
+  });
+
   test('distinguishes paid-write failure after transfer create without failed write', async () => {
     setEligibleState();
     mockUpdateErrorPaths.add('orders/order-1');

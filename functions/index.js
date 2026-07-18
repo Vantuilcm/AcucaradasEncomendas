@@ -1342,6 +1342,8 @@ function isAmbiguousStripeCreateError(error) {
   if (!error) return false;
   const type = error.type || error.rawType || '';
   const statusCode = error.statusCode;
+  const stripeErrorCode = error.code || (error.raw && error.raw.code);
+  if (stripeErrorCode === 'idempotency_key_in_use') return true;
   if (type === 'StripeConnectionError') return true;
   if (type === 'StripeAPIError' && (statusCode === 500 || statusCode === 502 || statusCode === 503 || statusCode === 504)) {
     return true;
