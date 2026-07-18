@@ -1536,14 +1536,35 @@ exports.retryCourierFailedPayout = functions
       );
     }
 
-    // Final pre-create guard after reconciliation.
-    const preCreateOrderSnapshot = await orderRef.get();
+    // Final pre-create guard after reconciliation: revalidate order and Connect destination.
+    const [
+      preCreateOrderSnapshot,
+      preCreateCourierSnapshot,
+    ] = await Promise.all([
+      orderRef.get(),
+      courierRef.get(),
+    ]);
     const preCreateState = resolveFailedOrderState(preCreateOrderSnapshot, true);
+    const preCreateStripeAccountId = preCreateCourierSnapshot.exists
+      ? preCreateCourierSnapshot.data()?.stripeAccountId
+      : null;
     if (
       preCreateState.courierId !== initialState.courierId ||
-      preCreateState.amountInCents !== initialState.amountInCents
+      preCreateState.amountInCents !== initialState.amountInCents ||
+      typeof preCreateStripeAccountId !== 'string' ||
+      !preCreateStripeAccountId.startsWith('acct_') ||
+      preCreateStripeAccountId !== initialStripeAccountId
     ) {
-      throw new functions.https.HttpsError('aborted', 'Payout state changed.');
+      const destinationOnlyDrift =
+        preCreateState.courierId === initialState.courierId &&
+        preCreateState.amountInCents === initialState.amountInCents;
+      throw new functions.https.HttpsError('aborted', 'Payout state changed.', {
+        phase: 'pre_create_guard',
+        transferCreated: false,
+        ...(destinationOnlyDrift
+          ? { classification: 'destination_drift' }
+          : {}),
+      });
     }
 
     let transfer;

@@ -354,6 +354,102 @@ describe('retryCourierFailedPayout', () => {
     ]);
     // initial + concurrency reread + pre-create guard
     expect(mockReferences.get('orders/order-1').get).toHaveBeenCalledTimes(3);
+    expect(mockReferences.get('users/courier-1').get).toHaveBeenCalledTimes(3);
+  });
+
+  test('keeps destination stable through final courier reread before create', async () => {
+    mockReadSequences.set('orders/order-1', [
+      { ...eligibleOrder },
+      { ...eligibleOrder },
+      { ...eligibleOrder },
+    ]);
+    mockReadSequences.set('users/courier-1', [
+      { stripeAccountId: 'acct_courier' },
+      { stripeAccountId: 'acct_courier' },
+      { stripeAccountId: 'acct_courier' },
+    ]);
+    const result = await invokeValid();
+    expect(result.courierPayoutStatus).toBe('paid');
+    expect(mockStripeInstance.transfers.create).toHaveBeenCalledTimes(1);
+    expect(mockStripeInstance.transfers.create).toHaveBeenCalledWith(
+      expect.objectContaining({ destination: 'acct_courier' }),
+      expect.any(Object)
+    );
+    expect(mockWrites).toHaveLength(1);
+    expect(mockReferences.get('users/courier-1').get).toHaveBeenCalledTimes(3);
+  });
+
+  test('aborts when stripeAccountId changes after reconciliation', async () => {
+    mockReadSequences.set('orders/order-1', [
+      { ...eligibleOrder },
+      { ...eligibleOrder },
+      { ...eligibleOrder },
+    ]);
+    mockReadSequences.set('users/courier-1', [
+      { stripeAccountId: 'acct_courier' },
+      { stripeAccountId: 'acct_courier' },
+      { stripeAccountId: 'acct_replaced' },
+    ]);
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'aborted',
+      details: expect.objectContaining({
+        phase: 'pre_create_guard',
+        transferCreated: false,
+        classification: 'destination_drift',
+      }),
+    });
+    expect(mockStripeInstance.transfers.list).toHaveBeenCalledTimes(1);
+    expect(mockStripeInstance.transfers.create).not.toHaveBeenCalled();
+    expect(mockWrites).toEqual([]);
+  });
+
+  test('aborts when stripeAccountId is removed after reconciliation', async () => {
+    mockReadSequences.set('orders/order-1', [
+      { ...eligibleOrder },
+      { ...eligibleOrder },
+      { ...eligibleOrder },
+    ]);
+    mockReadSequences.set('users/courier-1', [
+      { stripeAccountId: 'acct_courier' },
+      { stripeAccountId: 'acct_courier' },
+      {},
+    ]);
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'aborted',
+      details: expect.objectContaining({
+        phase: 'pre_create_guard',
+        transferCreated: false,
+        classification: 'destination_drift',
+      }),
+    });
+    expect(mockStripeInstance.transfers.create).not.toHaveBeenCalled();
+    expect(mockWrites).toEqual([]);
+  });
+
+  test('aborts when stripeAccountId becomes invalid after reconciliation', async () => {
+    mockReadSequences.set('orders/order-1', [
+      { ...eligibleOrder },
+      { ...eligibleOrder },
+      { ...eligibleOrder },
+    ]);
+    mockReadSequences.set('users/courier-1', [
+      { stripeAccountId: 'acct_courier' },
+      { stripeAccountId: 'acct_courier' },
+      { stripeAccountId: 'not_an_account' },
+    ]);
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'aborted',
+      details: expect.objectContaining({
+        phase: 'pre_create_guard',
+        transferCreated: false,
+        classification: 'destination_drift',
+      }),
+    });
+    expect(mockStripeInstance.transfers.create).not.toHaveBeenCalled();
+    expect(mockWrites).toEqual([]);
   });
 
   test('does not create when exact active transfer already exists', async () => {
