@@ -1634,6 +1634,254 @@ exports.retryCourierFailedPayout = functions
     };
   });
 
+/**
+ * Admin read-only reconciliation for ambiguous failed courier payout create.
+ * Lists transfers by transfer_group and classifies locally.
+ * Never creates, reverses, or writes Firestore.
+ */
+function mapCourierFailedPayoutReconciliationClassification(classification) {
+  if (classification.resultCount === 0) {
+    return { classification: 'zero_matches', manualReviewRequired: true };
+  }
+  if (classification.resultCount > 1) {
+    return { classification: 'multiple_matches', manualReviewRequired: true };
+  }
+  if (classification.exactActiveCount === 1) {
+    return { classification: 'exact_active_match', manualReviewRequired: false };
+  }
+  if (classification.partiallyReversedCount > 0) {
+    return { classification: 'partially_reversed', manualReviewRequired: true };
+  }
+  if (classification.reversedCount > 0) {
+    return { classification: 'reversed', manualReviewRequired: true };
+  }
+  if (classification.liveModeCount > 0) {
+    return { classification: 'live_mode_anomaly', manualReviewRequired: true };
+  }
+  return { classification: 'divergent_match', manualReviewRequired: true };
+}
+
+exports.reconcileCourierFailedPayoutTransfer = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .https.onCall(async (data, context) => {
+    if (!context || !context.auth || !context.auth.uid) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'Authentication required.'
+      );
+    }
+
+    await validateAdmin(context.auth.uid);
+
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Invalid request payload.');
+    }
+
+    const inputKeys = Object.keys(data);
+    if (
+      inputKeys.length !== 1 ||
+      inputKeys[0] !== 'orderId' ||
+      typeof data.orderId !== 'string' ||
+      data.orderId.trim() === ''
+    ) {
+      throw new functions.https.HttpsError('invalid-argument', 'Only orderId is accepted.');
+    }
+
+    const orderId = data.orderId.trim();
+    const orderRef = db.collection('orders').doc(orderId);
+
+    const resolveFailedOrderState = (snapshot, staleCheck = false) => {
+      if (!snapshot.exists) {
+        throw new functions.https.HttpsError(
+          staleCheck ? 'aborted' : 'not-found',
+          staleCheck ? 'Order state changed.' : 'Order not found.',
+          staleCheck
+            ? {
+                phase: 'post_reconciliation_guard',
+                classification: 'state_drift',
+                transferCreated: 'unknown',
+                firestoreWritten: false,
+              }
+            : { phase: 'order_read' }
+        );
+      }
+
+      const order = snapshot.data() || {};
+      if (
+        order.status !== 'delivered' ||
+        order.deliveryFeeHeld !== true ||
+        order.courierPayoutStatus !== 'failed' ||
+        order.courierTransferId
+      ) {
+        throw new functions.https.HttpsError(
+          staleCheck ? 'aborted' : 'failed-precondition',
+          staleCheck
+            ? 'Order state changed.'
+            : 'Order is not eligible for failed payout reconciliation.',
+          staleCheck
+            ? {
+                phase: 'post_reconciliation_guard',
+                classification: 'state_drift',
+                transferCreated: 'unknown',
+                firestoreWritten: false,
+              }
+            : { phase: 'order_precondition' }
+        );
+      }
+
+      const courierId = order.deliveryDriverId || order.courierId;
+      if (typeof courierId !== 'string' || courierId.trim() === '') {
+        throw new functions.https.HttpsError(
+          staleCheck ? 'aborted' : 'failed-precondition',
+          staleCheck ? 'Order state changed.' : 'Courier identity is unavailable.',
+          staleCheck
+            ? {
+                phase: 'post_reconciliation_guard',
+                classification: 'state_drift',
+                transferCreated: 'unknown',
+                firestoreWritten: false,
+              }
+            : { phase: 'order_precondition' }
+        );
+      }
+
+      const deliveryFee = order.deliveryFee || order.courierPayoutAmount;
+      const amountInCents = Math.floor(Number(deliveryFee) * 100);
+      if (
+        !Number.isFinite(deliveryFee) ||
+        deliveryFee <= 0 ||
+        !Number.isSafeInteger(amountInCents) ||
+        amountInCents <= 0
+      ) {
+        throw new functions.https.HttpsError(
+          staleCheck ? 'aborted' : 'failed-precondition',
+          staleCheck ? 'Order state changed.' : 'Courier payout amount is invalid.',
+          staleCheck
+            ? {
+                phase: 'post_reconciliation_guard',
+                classification: 'state_drift',
+                transferCreated: 'unknown',
+                firestoreWritten: false,
+              }
+            : { phase: 'order_precondition' }
+        );
+      }
+
+      return { courierId: courierId.trim(), deliveryFee, amountInCents };
+    };
+
+    const initialOrderSnapshot = await orderRef.get();
+    const initialState = resolveFailedOrderState(initialOrderSnapshot);
+    const courierRef = db.collection('users').doc(initialState.courierId);
+    const initialCourierSnapshot = await courierRef.get();
+    const initialStripeAccountId = initialCourierSnapshot.exists
+      ? initialCourierSnapshot.data()?.stripeAccountId
+      : null;
+
+    if (!initialCourierSnapshot.exists) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Courier user is unavailable.',
+        { phase: 'courier_read' }
+      );
+    }
+
+    if (
+      typeof initialStripeAccountId !== 'string' ||
+      !initialStripeAccountId.startsWith('acct_')
+    ) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Courier connected account is unavailable.',
+        { phase: 'courier_read' }
+      );
+    }
+
+    const stripe = require('stripe')(getStripeSecret());
+
+    let listResult;
+    try {
+      listResult = await listCourierTransfersByGroup(stripe, orderId);
+    } catch (error) {
+      throw new functions.https.HttpsError(
+        'unavailable',
+        'Unable to reconcile courier transfers.',
+        {
+          phase: 'transfer_group_list',
+          transferCreated: 'unknown',
+          firestoreWritten: false,
+        }
+      );
+    }
+
+    if (!listResult.complete) {
+      throw new functions.https.HttpsError(
+        'aborted',
+        'Transfer group reconciliation result set is incomplete.',
+        {
+          phase: 'transfer_group_incomplete',
+          transferCreated: 'unknown',
+          firestoreWritten: false,
+          classification: 'incomplete_results',
+        }
+      );
+    }
+
+    const classificationCounts = classifyCourierTransferGroupMatches(listResult.transfers, {
+      orderId,
+      expectedAmountCents: initialState.amountInCents,
+      expectedDestination: initialStripeAccountId,
+    });
+    const mapped = mapCourierFailedPayoutReconciliationClassification(classificationCounts);
+
+    const [finalOrderSnapshot, finalCourierSnapshot] = await Promise.all([
+      orderRef.get(),
+      courierRef.get(),
+    ]);
+    const finalState = resolveFailedOrderState(finalOrderSnapshot, true);
+    const finalStripeAccountId = finalCourierSnapshot.exists
+      ? finalCourierSnapshot.data()?.stripeAccountId
+      : null;
+
+    if (
+      finalState.courierId !== initialState.courierId ||
+      finalState.amountInCents !== initialState.amountInCents ||
+      typeof finalStripeAccountId !== 'string' ||
+      !finalStripeAccountId.startsWith('acct_') ||
+      finalStripeAccountId !== initialStripeAccountId
+    ) {
+      throw new functions.https.HttpsError('aborted', 'Payout state changed.', {
+        phase: 'post_reconciliation_guard',
+        classification: 'state_drift',
+        transferCreated: 'unknown',
+        firestoreWritten: false,
+      });
+    }
+
+    const response = {
+      success: true,
+      orderId,
+      reconciliation: {
+        classification: mapped.classification,
+        resultCount: classificationCounts.resultCount,
+        exactActiveCount: classificationCounts.exactActiveCount,
+        complete: true,
+        manualReviewRequired: mapped.manualReviewRequired,
+        safeToCreateTransfer: false,
+        safeToRepairFirestore: false,
+      },
+    };
+
+    if (classificationCounts.resultCount === 1) {
+      const onlyTransfer = listResult.transfers[0] || {};
+      const transferId = typeof onlyTransfer.id === 'string' ? onlyTransfer.id : '';
+      response.transferIdLast4 =
+        transferId.length >= 4 ? transferId.slice(-4) : null;
+    }
+
+    return response;
+  });
+
 exports.onOrderDelivered = functions
   .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
   .firestore
