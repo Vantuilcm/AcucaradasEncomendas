@@ -1353,6 +1353,73 @@ function isAmbiguousStripeCreateError(error) {
   return false;
 }
 
+function hashOrderIdPrefixForCourierRetryLog(orderId) {
+  const crypto = require('crypto');
+  return crypto
+    .createHash('sha256')
+    .update(String(orderId), 'utf8')
+    .digest('hex')
+    .slice(0, 12);
+}
+
+function sanitizeCourierRetryStripeErrorMessage(rawMessage) {
+  if (rawMessage == null) return null;
+  let message = String(rawMessage).replace(/[\r\n]+/g, ' ');
+  message = message
+    .replace(/acct_[A-Za-z0-9]+/g, 'acct_[REDACTED]')
+    .replace(/tr_[A-Za-z0-9]+/g, 'tr_[REDACTED]')
+    .replace(/pi_[A-Za-z0-9]+/g, 'pi_[REDACTED]')
+    .replace(/ch_[A-Za-z0-9]+/g, 'ch_[REDACTED]')
+    .replace(/req_[A-Za-z0-9]+/g, 'req_[REDACTED]')
+    .replace(/sk_test_[A-Za-z0-9]+/g, '[REDACTED_SECRET]')
+    .replace(/sk_live_[A-Za-z0-9]+/g, '[REDACTED_SECRET]')
+    .replace(/pk_test_[A-Za-z0-9]+/g, '[REDACTED_SECRET]')
+    .replace(/pk_live_[A-Za-z0-9]+/g, '[REDACTED_SECRET]');
+  if (message.length > 300) {
+    message = message.slice(0, 300);
+  }
+  return message;
+}
+
+function sanitizeCourierRetryStripeErrorMetaField(value) {
+  if (value == null || value === '') return null;
+  return sanitizeCourierRetryStripeErrorMessage(value);
+}
+
+function stripeRequestIdLast4ForCourierRetryLog(error) {
+  if (!error) return null;
+  const requestId =
+    (typeof error.requestId === 'string' && error.requestId) ||
+    (error.raw && typeof error.raw.requestId === 'string' && error.raw.requestId) ||
+    null;
+  if (!requestId || requestId.length < 4) return null;
+  return requestId.slice(-4);
+}
+
+function logCourierRetryTransferCreateError(orderId, error, ambiguous) {
+  const statusCode = error && typeof error.statusCode === 'number' ? error.statusCode : null;
+  console.error('[COURIER_PAYOUT_RETRY_TRANSFER_CREATE_ERROR]', {
+    phase: 'transfer_create',
+    orderIdHashPrefix: hashOrderIdPrefixForCourierRetryLog(orderId),
+    errorType: sanitizeCourierRetryStripeErrorMetaField(
+      error && (error.type || error.rawType)
+    ),
+    errorCode: sanitizeCourierRetryStripeErrorMetaField(
+      error && (error.code || (error.raw && error.raw.code))
+    ),
+    declineCode: sanitizeCourierRetryStripeErrorMetaField(
+      error && (error.decline_code || (error.raw && error.raw.decline_code))
+    ),
+    errorParam: sanitizeCourierRetryStripeErrorMetaField(
+      error && (error.param || (error.raw && error.raw.param))
+    ),
+    stripeRequestIdLast4: stripeRequestIdLast4ForCourierRetryLog(error),
+    httpStatusCode: statusCode,
+    message: sanitizeCourierRetryStripeErrorMessage(error && error.message),
+    ambiguousClassification: ambiguous === true,
+  });
+}
+
 exports.retryCourierFailedPayout = functions
   .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
   .https.onCall(async (data, context) => {
@@ -1581,7 +1648,9 @@ exports.retryCourierFailedPayout = functions
         idempotencyKey: `courier_delivery_payout_${orderId}`,
       });
     } catch (error) {
-      if (isAmbiguousStripeCreateError(error)) {
+      const ambiguous = isAmbiguousStripeCreateError(error);
+      logCourierRetryTransferCreateError(orderId, error, ambiguous);
+      if (ambiguous) {
         throw new functions.https.HttpsError(
           'unavailable',
           'Courier payout recovery result is ambiguous. Reconcile transfer_group before retrying.',

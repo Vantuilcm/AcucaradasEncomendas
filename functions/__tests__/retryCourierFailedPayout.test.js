@@ -779,4 +779,126 @@ describe('retryCourierFailedPayout', () => {
     expect(mockStripeInstance.transfers.list).toHaveBeenCalledTimes(1);
     expect(mockStripeInstance.transfers.create).not.toHaveBeenCalled();
   });
+
+  test('logs sanitized metadata for non-ambiguous Stripe create failure', async () => {
+    setEligibleState();
+    const err = new Error(
+      'Insufficient funds for acct_ABCDEF123 destination tr_XYZabc pi_123 ch_456 req_789token sk_test_SECRETVALUE'
+    );
+    err.type = 'StripeInvalidRequestError';
+    err.code = 'balance_insufficient';
+    err.decline_code = 'generic_decline';
+    err.param = 'amount';
+    err.requestId = 'req_abcdefghijKLMN';
+    err.statusCode = 400;
+    mockStripeInstance.transfers.create.mockRejectedValueOnce(err);
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'internal',
+      message: 'Courier payout recovery failed before paid write.',
+      details: expect.objectContaining({
+        phase: 'transfer_create',
+        transferCreated: false,
+      }),
+    });
+
+    const createErrorCalls = errorSpy.mock.calls.filter(
+      call => call[0] === '[COURIER_PAYOUT_RETRY_TRANSFER_CREATE_ERROR]'
+    );
+    expect(createErrorCalls).toHaveLength(1);
+    const payload = createErrorCalls[0][1];
+    expect(payload).toEqual(
+      expect.objectContaining({
+        phase: 'transfer_create',
+        orderIdHashPrefix: expect.stringMatching(/^[a-f0-9]{12}$/),
+        errorType: 'StripeInvalidRequestError',
+        errorCode: 'balance_insufficient',
+        declineCode: 'generic_decline',
+        errorParam: 'amount',
+        stripeRequestIdLast4: 'KLMN',
+        httpStatusCode: 400,
+        ambiguousClassification: false,
+      })
+    );
+    expect(payload.message).toContain('acct_[REDACTED]');
+    expect(payload.message).toContain('tr_[REDACTED]');
+    expect(payload.message).toContain('pi_[REDACTED]');
+    expect(payload.message).toContain('ch_[REDACTED]');
+    expect(payload.message).toContain('req_[REDACTED]');
+    expect(payload.message).toContain('[REDACTED_SECRET]');
+    expect(payload.message).not.toMatch(/acct_ABCDEF123|tr_XYZabc|sk_test_SECRETVALUE/);
+    expect(payload.message.length).toBeLessThanOrEqual(300);
+    expect(payload).not.toHaveProperty('stack');
+    expect(JSON.stringify(createErrorCalls[0])).not.toContain('sk_test_SECRETVALUE');
+    expect(mockWrites).toEqual([]);
+    errorSpy.mockRestore();
+  });
+
+  test('logs sanitized metadata for ambiguous Stripe create failure', async () => {
+    setEligibleState();
+    const ambiguous = new Error('timeout');
+    ambiguous.type = 'StripeConnectionError';
+    mockStripeInstance.transfers.create.mockRejectedValueOnce(ambiguous);
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'unavailable',
+      details: expect.objectContaining({
+        phase: 'transfer_create_ambiguous',
+        transferCreated: 'unknown',
+      }),
+    });
+
+    const createErrorCalls = errorSpy.mock.calls.filter(
+      call => call[0] === '[COURIER_PAYOUT_RETRY_TRANSFER_CREATE_ERROR]'
+    );
+    expect(createErrorCalls).toHaveLength(1);
+    expect(createErrorCalls[0][1]).toEqual(
+      expect.objectContaining({
+        phase: 'transfer_create',
+        ambiguousClassification: true,
+        errorType: 'StripeConnectionError',
+      })
+    );
+    expect(mockWrites).toEqual([]);
+    errorSpy.mockRestore();
+  });
+
+  test('sanitizes long Stripe create error messages and never logs raw error object', async () => {
+    setEligibleState();
+    const longCore =
+      'x'.repeat(320) +
+      ' acct_SHOULDHIDE tr_SHOULDHIDE pi_SHOULDHIDE ch_SHOULDHIDE req_SHOULDHIDE sk_live_SHOULDHIDE';
+    const err = new Error(longCore);
+    err.type = 'StripeCardError';
+    err.code = 'card_declined';
+    err.requestId = 'req_ZZZZ';
+    mockStripeInstance.transfers.create.mockRejectedValueOnce(err);
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(invokeValid()).rejects.toMatchObject({
+      name: 'HttpsError',
+      code: 'internal',
+    });
+
+    const createErrorCalls = errorSpy.mock.calls.filter(
+      call => call[0] === '[COURIER_PAYOUT_RETRY_TRANSFER_CREATE_ERROR]'
+    );
+    expect(createErrorCalls).toHaveLength(1);
+    const payload = createErrorCalls[0][1];
+    expect(payload.message.length).toBe(300);
+    expect(payload.message).not.toContain('\n');
+    expect(payload.stripeRequestIdLast4).toBe('ZZZZ');
+    expect(createErrorCalls[0].length).toBe(2);
+    expect(createErrorCalls[0][1]).not.toBe(err);
+    expect(payload.stack).toBeUndefined();
+    expect(JSON.stringify(payload)).not.toMatch(
+      /acct_SHOULDHIDE|tr_SHOULDHIDE|sk_live_SHOULDHIDE/
+    );
+    expect(mockWrites).toEqual([]);
+    errorSpy.mockRestore();
+  });
 });
