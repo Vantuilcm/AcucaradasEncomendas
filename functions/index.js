@@ -1971,7 +1971,37 @@ exports.onOrderDelivered = functions
       return null;
     }
     if (becameDelivered || holdBecameReadyAfterDelivery) {
-      
+
+      // HARDENING remoto: transição normal deve ser exatamente delivering → delivered.
+      // O caminho holdBecameReadyAfterDelivery permanece válido para o webhook tardio.
+      if (becameDelivered && oldData.status !== 'delivering') {
+        console.log(
+          `ℹ️ [Split Entregador] Pedido ${orderId} delivered sem before.status=delivering (era ${oldData.status}). Ignorando repasse.`
+        );
+        return null;
+      }
+
+      // HARDENING remoto: exige hold explícito pending_delivery.
+      if (newData.courierPayoutStatus !== 'pending_delivery') {
+        console.log(
+          `ℹ️ [Split Entregador] Pedido ${orderId} courierPayoutStatus=${newData.courierPayoutStatus || 'undefined'} (exige pending_delivery). Ignorando repasse.`
+        );
+        return null;
+      }
+
+      // HARDENING remoto: se paymentStatus existir, deve ser completed/paid.
+      if (
+        newData.paymentStatus !== undefined &&
+        newData.paymentStatus !== null &&
+        newData.paymentStatus !== 'completed' &&
+        newData.paymentStatus !== 'paid'
+      ) {
+        console.log(
+          `ℹ️ [Split Entregador] Pedido ${orderId} paymentStatus inválido (${newData.paymentStatus}). Ignorando repasse.`
+        );
+        return null;
+      }
+
       // 1. Validar se há fundos retidos para o entregador
       if (!newData.deliveryFeeHeld || newData.courierPayoutStatus === 'paid') {
         console.log(`ℹ️ [Split Entregador] Pedido ${orderId} entregue, mas sem taxa retida ou já pago. Ignorando repasse.`);
@@ -2004,7 +2034,41 @@ exports.onOrderDelivered = functions
           return;
         }
 
-        // 3. Executar Transferência com Idempotência
+        // 3. Resolver source_transaction (obrigatório para Transfers BR)
+        const paymentIntentId = newData.paymentIntentId;
+        if (!paymentIntentId) {
+          console.warn(
+            `⚠️ [Split Entregador] Pedido ${orderId} sem paymentIntentId; não foi possível resolver source_transaction.`
+          );
+          await change.after.ref.update({
+            courierPayoutStatus: 'failed',
+            courierPayoutError:
+              'paymentIntentId ausente; não foi possível resolver source_transaction para repasse courier'
+          });
+          return null;
+        }
+
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['latest_charge'] });
+        let chargeId = null;
+        if (typeof paymentIntent.latest_charge === 'string') {
+          chargeId = paymentIntent.latest_charge;
+        } else if (paymentIntent.latest_charge && paymentIntent.latest_charge.id) {
+          chargeId = paymentIntent.latest_charge.id;
+        }
+
+        if (!chargeId) {
+          console.warn(
+            `⚠️ [Split Entregador] Pedido ${orderId} PaymentIntent ${paymentIntentId} sem latest_charge; source_transaction não resolvido.`
+          );
+          await change.after.ref.update({
+            courierPayoutStatus: 'failed',
+            courierPayoutError:
+              'latest_charge ausente no PaymentIntent; source_transaction não resolvido para repasse courier'
+          });
+          return null;
+        }
+
+        // 4. Executar Transferência com Idempotência
         const courierPayoutAmountInCents = Math.floor(deliveryFee * 100);
         const idempotencyKey = `courier_delivery_payout_${orderId}`;
 
@@ -2012,13 +2076,14 @@ exports.onOrderDelivered = functions
           amount: courierPayoutAmountInCents,
           currency: 'brl',
           destination: courierStripeAccountId,
+          source_transaction: chargeId,
           transfer_group: orderId,
           metadata: { role: 'courier', orderId }
         }, {
           idempotencyKey
         });
 
-        // 4. Confirmar sucesso no Firestore
+        // 5. Confirmar sucesso no Firestore
         await change.after.ref.update({
           courierPayoutStatus: 'paid',
           courierTransferId: transfer.id,
