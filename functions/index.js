@@ -459,19 +459,81 @@ exports.createPaymentIntent = functions
   const stripe = require('stripe')(getStripeSecret());
   const { amount, currency = 'brl', orderId, customerId, paymentMethod } = data;
 
-  if (!amount || amount <= 0 || !orderId) {
-    throw new functions.https.HttpsError('invalid-argument', 'Amount (maior que 0) e OrderId são obrigatórios.');
+  if (typeof orderId !== 'string' || !orderId.trim()) {
+    throw new functions.https.HttpsError('invalid-argument', 'OrderId é obrigatório.');
   }
-
-  if (currency.toLowerCase() !== 'brl') {
+  const resolvedOrderId = orderId.trim();
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
+    throw new functions.https.HttpsError('invalid-argument', 'Amount (inteiro em centavos maior que 0) é obrigatório.');
+  }
+  if (typeof currency !== 'string' || currency.toLowerCase() !== 'brl') {
     throw new functions.https.HttpsError('invalid-argument', 'Apenas a moeda BRL é suportada para transações.');
   }
 
   const resolvedPaymentMethod = normalizeCreatePaymentIntentMethod(paymentMethod);
 
   try {
-    const idempotencyKey = `pi_${orderId}`;
+    const idempotencyKey = `pi_${resolvedOrderId}`;
     const uid = context.auth.uid;
+
+    const toExactCents = (value, allowZero) => {
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new functions.https.HttpsError('failed-precondition', 'Valor monetário do pedido inválido.');
+      }
+      const raw = String(value);
+      if (/e/i.test(raw) || !/^\d+(\.\d{1,2})?$/.test(raw)) {
+        throw new functions.https.HttpsError('failed-precondition', 'Valor monetário do pedido inválido.');
+      }
+      const [whole, fraction = ''] = raw.split('.');
+      const cents = Number(whole) * 100 + Number((fraction + '00').slice(0, 2));
+      if (!Number.isSafeInteger(cents) || cents < 0 || (!allowZero && cents === 0)) {
+        throw new functions.https.HttpsError('failed-precondition', 'Valor monetário do pedido inválido.');
+      }
+      return cents;
+    };
+
+    const orderSnap = await db.collection('orders').doc(resolvedOrderId).get();
+    if (!orderSnap.exists) throw new functions.https.HttpsError('not-found', 'Pedido não encontrado.');
+    const orderData = orderSnap.data() || {};
+    if (typeof orderData.userId !== 'string' || !orderData.userId || orderData.userId !== uid) {
+      throw new functions.https.HttpsError('permission-denied', 'Pedido não pertence ao usuário autenticado.');
+    }
+    const allowedStatus = resolvedPaymentMethod === 'pix' ? 'pending_payment' : 'pending';
+    if (orderData.status !== allowedStatus) {
+      throw new functions.https.HttpsError('failed-precondition', 'Pedido em estado inválido para pagamento.');
+    }
+    const paymentStatus = orderData.paymentStatus;
+    if (paymentStatus != null && paymentStatus !== 'pending') {
+      throw new functions.https.HttpsError('failed-precondition', 'Pedido em estado inválido para pagamento.');
+    }
+    if (resolvedPaymentMethod === 'pix' && paymentStatus !== 'pending') {
+      throw new functions.https.HttpsError('failed-precondition', 'Pedido em estado inválido para pagamento.');
+    }
+    for (const field of ['paymentIntentId', 'stripePaymentIntentId', 'clientSecret', 'producerTransferId', 'courierTransferId']) {
+      if (orderData[field] != null && orderData[field] !== '') {
+        throw new functions.https.HttpsError('failed-precondition', 'Pedido já possui referência financeira.');
+      }
+    }
+    if (typeof orderData.producerId !== 'string' || !orderData.producerId) {
+      throw new functions.https.HttpsError('failed-precondition', 'Produtor do pedido inválido.');
+    }
+    const producerSnap = await db.collection('users').doc(orderData.producerId).get();
+    if (!producerSnap.exists) {
+      throw new functions.https.HttpsError('failed-precondition', 'Produtor do pedido inválido.');
+    }
+    const producerStripeAccountId = producerSnap.data()?.stripeAccountId;
+    if (typeof producerStripeAccountId !== 'string' || !producerStripeAccountId.startsWith('acct_')) {
+      throw new functions.https.HttpsError('failed-precondition', 'Conta Connect do produtor inválida.');
+    }
+    const subtotalCents = toExactCents(orderData.subtotalProducts, false);
+    const deliveryFeeCents = toExactCents(orderData.deliveryFee, true);
+    const totalAmountCents = toExactCents(orderData.totalAmount, false);
+    if (!Number.isSafeInteger(subtotalCents + deliveryFeeCents) || subtotalCents + deliveryFeeCents !== totalAmountCents) {
+      throw new functions.https.HttpsError('failed-precondition', 'Totais do pedido inconsistentes.');
+    }
+    if (amount !== totalAmountCents) {
+      throw new functions.https.HttpsError('invalid-argument', 'Amount diverge do total do pedido.');
+    }
 
     let stripeCustomerId = customerId || null;
     if (!stripeCustomerId) {
@@ -482,11 +544,11 @@ exports.createPaymentIntent = functions
     }
 
     const paymentIntentParams = {
-      amount: Math.round(amount), // Garante que seja inteiro em centavos
-      currency,
-      transfer_group: orderId, // Vincula o pagamento ao pedido para o split (Fase 2)
+      amount: totalAmountCents,
+      currency: 'brl',
+      transfer_group: resolvedOrderId, // Vincula o pagamento ao pedido para o split (Fase 2)
       metadata: {
-        orderId,
+        orderId: resolvedOrderId,
         userId: uid,
         app: 'acucaradas-encomendas',
         paymentMethod: resolvedPaymentMethod,
@@ -526,6 +588,9 @@ exports.createPaymentIntent = functions
 
     return response;
   } catch (error) {
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
     console.error('❌ [Stripe] Erro ao criar PaymentIntent:', error);
     throw new functions.https.HttpsError('internal', error.message);
   }
