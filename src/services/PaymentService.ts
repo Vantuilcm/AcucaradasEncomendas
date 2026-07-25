@@ -155,7 +155,7 @@ export class PaymentService {
    * @returns Resultado do processamento
    */
   public async processPaymentWithSplit(
-    orderId: string,
+    _orderId: string,
     _cardDetails: CardDetails
   ): Promise<{
     success: boolean;
@@ -165,110 +165,7 @@ export class PaymentService {
     deliveryPersonTransferId?: string;
     error?: any;
   }> {
-    try {
-      // 1. Buscar dados do pedido
-      const orderRef = f.doc(this.db, 'orders', orderId);
-      const orderDoc = await f.getDoc(orderRef);
-
-      if (!orderDoc.exists()) {
-        loggingService.error('Pedido não encontrado', undefined, { orderId });
-        return { success: false };
-      }
-
-      const orderData = orderDoc.data() as any;
-
-      // Validações básicas
-      if (!orderData.producerId || !orderData.deliveryPersonId) {
-        loggingService.error('Produtor ou entregador não definido no pedido', undefined, {
-          orderId,
-        });
-        return { success: false };
-      }
-
-      const { totalAmount, deliveryFee, producerId, deliveryPersonId, userId } = orderData;
-
-      // Calcular valores para atualização (conforme teste)
-      const productAmount = totalAmount - deliveryFee;
-      const appFee = Math.round(productAmount * 0.1);
-      const producerAmount = productAmount - appFee;
-
-      // 2. Chamar StripeService para processar o split
-      const result = await this.stripeService.processPaymentWithSplit(
-        orderId,
-        totalAmount,
-        deliveryFee,
-        producerId,
-        deliveryPersonId
-      );
-
-      // 3. Atualizar Order
-      await f.updateDoc(orderRef, {
-        status: 'confirmed',
-        paymentStatus: 'completed',
-        paymentMethod: {
-          type: 'credit_card',
-          id: result.paymentIntentId || '',
-        },
-        paymentDetails: {
-          productAmount,
-          deliveryFee,
-          appFee,
-          producerAmount,
-          totalAmount,
-        },
-        updatedAt: new Date().toISOString(),
-      } as any);
-
-      // 4. Enviar Notificações
-      // Para o usuário
-      await this.notificationService.createNotification({
-        userId,
-        type: 'payment_received',
-        title: 'Pagamento confirmado',
-        message: `Seu pagamento do pedido #${orderId.substring(0, 8)} foi confirmado com sucesso.`,
-        priority: 'high',
-        read: false,
-        data: {
-          orderId,
-          amount: totalAmount,
-          receiptUrl: '',
-        },
-      });
-
-      // Para o produtor
-      await this.notificationService.createNotification({
-        userId: producerId,
-        type: 'new_order',
-        title: 'Novo pedido pago',
-        message: `Você recebeu um novo pagamento para o pedido #${orderId.substring(0, 8)}.`,
-        priority: 'high',
-        read: false,
-        data: { orderId, amount: producerAmount },
-      });
-
-      // Para o entregador
-      await this.notificationService.createNotification({
-        userId: deliveryPersonId,
-        type: 'delivery_available',
-        title: 'Nova entrega disponível',
-        message: `Pagamento confirmado para a entrega do pedido #${orderId.substring(0, 8)}.`,
-        priority: 'high',
-        read: false,
-        data: { orderId, amount: deliveryFee },
-      });
-
-      return {
-        success: true,
-        ...result,
-      };
-    } catch (error) {
-      loggingService.error(
-        'Erro ao processar pagamento com divisão',
-        error instanceof Error ? error : undefined,
-        { orderId }
-      );
-      throw error;
-    }
+    throw new Error('LEGACY_SPLIT_PAYMENT_DISABLED');
   }
 
   /**
@@ -826,8 +723,8 @@ export class PaymentService {
    * @returns Objeto com os IDs das transferências criadas e status do pagamento
    */
   public async processPaymentWithSplitAlternative(
-    orderId: string,
-    cardDetails: CardDetails
+    _orderId: string,
+    _cardDetails: CardDetails
   ): Promise<{
     success: boolean;
     paymentIntentId?: string;
@@ -835,185 +732,7 @@ export class PaymentService {
     producerTransferId?: string;
     deliveryPersonTransferId?: string;
   }> {
-    try {
-      // Obter informações do pedido
-      const orderRef = f.doc(this.db, 'orders', orderId);
-      const orderDoc = await f.getDoc(orderRef);
-
-      if (!orderDoc.exists()) {
-        loggingService.error('Pedido não encontrado', undefined, { orderId });
-        return { success: false };
-      }
-
-      const orderData = orderDoc.data() as any;
-      const amount = orderData.totalAmount;
-      const deliveryFee = orderData.deliveryFee || 0;
-      const userId = orderData.userId;
-      const producerId = orderData.producerId;
-      const deliveryPersonId = orderData.deliveryPersonId;
-
-      if (!producerId || !deliveryPersonId) {
-        loggingService.error('Produtor ou entregador não definido no pedido', undefined, {
-          orderId,
-        });
-        return { success: false };
-      }
-
-      // Criar ou obter cliente no Stripe
-      const userRef = f.doc(this.db, 'users', userId);
-      const userDoc = await f.getDoc(userRef);
-
-      if (!userDoc.exists()) {
-        loggingService.error('Usuário não encontrado', undefined, { userId });
-        return { success: false };
-      }
-
-      const userData = userDoc.data() as any;
-      let stripeCustomerId = userData.stripeCustomerId;
-
-      // Se o usuário não tiver um ID de cliente no Stripe, criar um
-      if (!stripeCustomerId) {
-        stripeCustomerId = await this.stripeService.createCustomer(userData.email, userData.name);
-
-        // Atualizar o documento do usuário com o ID do cliente Stripe
-        await f.updateDoc(
-          userRef,
-          {
-            stripeCustomerId: stripeCustomerId,
-          } as any
-        );
-      }
-
-      const paymentMethodId = await this.stripeService.createPaymentMethod({
-        number: cardDetails.number,
-        expMonth: cardDetails.expMonth,
-        expYear: cardDetails.expYear,
-        cvc: cardDetails.cvc,
-        holderName: cardDetails.holderName,
-        email: userData.email,
-      });
-
-      // Processar pagamento com divisão
-      const paymentResult = await this.stripeService.processPaymentWithSplit(
-        orderId,
-        amount,
-        deliveryFee,
-        producerId,
-        deliveryPersonId
-      );
-
-      // Confirmar pagamento
-      const confirmedPayment = await this.stripeService.processCardPayment(
-        paymentResult.paymentIntentId,
-        paymentMethodId
-      );
-
-      // Verificar status do pagamento
-      if (confirmedPayment.status !== 'succeeded') {
-        throw new Error(`Pagamento falhou com status: ${confirmedPayment.status}`);
-      }
-
-      const receiptUrl =
-        confirmedPayment.receiptUrl || confirmedPayment.charges?.data?.[0]?.receipt_url || '';
-
-      // Atualizar status do pedido
-      await f.updateDoc(
-        orderRef,
-        {
-          status: 'confirmed',
-          paymentStatus: 'completed',
-          paymentMethod: {
-            type: 'credit_card',
-            id: paymentResult.paymentIntentId || '',
-          },
-          stripePaymentIntentId: paymentResult.paymentIntentId,
-          stripePaymentMethodId: paymentMethodId,
-          stripeReceiptUrl: receiptUrl,
-          appTransferId: paymentResult.appTransferId,
-          producerTransferId: paymentResult.producerTransferId,
-          deliveryPersonTransferId: paymentResult.deliveryPersonTransferId,
-          updatedAt: new Date().toISOString(),
-          paymentDetails: {
-            productAmount: amount - deliveryFee,
-            deliveryFee: deliveryFee,
-            appFee: Math.round((amount - deliveryFee) * 0.1),
-            producerAmount: Math.round((amount - deliveryFee) * 0.9),
-            totalAmount: amount,
-          },
-        } as any
-      );
-
-      // Calcular valores para notificações detalhadas
-      const productAmount = amount - deliveryFee;
-      const producerAmount = Math.round(productAmount * 0.9); // 90% para o produtor
-
-      // Formatar valores para exibição
-      const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-          style: 'currency',
-          currency: 'BRL',
-        }).format(value / 100); // Convertendo de centavos para reais
-      };
-
-      // Enviar notificação detalhada ao cliente
-      await this.notificationService.createNotification({
-        userId: userId,
-        type: 'payment_received',
-        title: 'Pagamento confirmado',
-        message: `Seu pagamento de ${formatCurrency(amount)} para o pedido #${orderId.substring(0, 8)} foi confirmado com sucesso.`,
-        priority: 'high',
-        read: false,
-        data: {
-          orderId: orderId,
-          amount: amount,
-          receiptUrl,
-        },
-      });
-
-      // Enviar notificação detalhada ao produtor
-      await this.notificationService.createNotification({
-        userId: producerId,
-        type: 'new_order',
-        title: 'Novo pagamento recebido',
-        message: `Você recebeu ${formatCurrency(producerAmount)} pelo pedido #${orderId.substring(0, 8)}. Este valor corresponde a 90% do valor dos produtos.`,
-        priority: 'high',
-        read: false,
-        data: {
-          orderId: orderId,
-          amount: producerAmount,
-          totalOrderAmount: amount,
-          productAmount: productAmount,
-          transferId: paymentResult.producerTransferId,
-        },
-      });
-
-      // Enviar notificação detalhada ao entregador
-      await this.notificationService.createNotification({
-        userId: deliveryPersonId,
-        type: 'delivery_available',
-        title: 'Pagamento de entrega recebido',
-        message: `Você recebeu ${formatCurrency(deliveryFee)} pela entrega do pedido #${orderId.substring(0, 8)}.`,
-        priority: 'high',
-        read: false,
-        data: {
-          orderId: orderId,
-          amount: deliveryFee,
-          totalOrderAmount: amount,
-        },
-      });
-
-      return {
-        success: true,
-        ...paymentResult,
-      };
-    } catch (error) {
-      loggingService.error(
-        'Erro ao processar pagamento com divisão alternativa',
-        error instanceof Error ? error : undefined,
-        { orderId }
-      );
-      throw error;
-    }
+    throw new Error('LEGACY_SPLIT_PAYMENT_DISABLED');
   }
 
   async getTransactionHistory(userId: string): Promise<PaymentTransaction[]> {

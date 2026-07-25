@@ -261,70 +261,17 @@ export class StripeService {
    * @returns Objeto com os IDs das transferências criadas
    */
   public async processPaymentWithSplit(
-    orderId: string,
-    amount: number,
-    deliveryFee: number,
-    producerId: string,
-    deliveryPersonId: string
+    _orderId: string,
+    _amount: number,
+    _deliveryFee: number,
+    _producerId: string,
+    _deliveryPersonId: string
   ): Promise<{
     paymentIntentId: string;
     appTransferId: string;
     producerTransferId: string;
     deliveryPersonTransferId: string;
   }> {
-    try {
-      if (!orderId || !producerId || !deliveryPersonId) {
-        throw new Error('Dados de pagamento incompletos: orderId, producerId e deliveryPersonId são obrigatórios');
-      }
-
-      const paymentIntent = await this.createPaymentIntent(orderId, amount);
-      // ETAPA 3 — PADRONIZAÇÃO OWNERID NO STRIPE (BUILD 1164)
-      const producerDoc = await f.getDoc(f.doc('producers', producerId));
-      const deliveryPersonDoc = await f.getDoc(f.doc('delivery_drivers', deliveryPersonId));
-
-      if (!producerDoc.exists() || !deliveryPersonDoc.exists()) {
-        throw new Error('Produtor ou entregador não encontrado');
-      }
-
-      const producerData = producerDoc.data() as any;
-      const deliveryPersonData = deliveryPersonDoc.data() as any;
-
-      const producerStripeAccountId = producerData.stripeAccountId;
-      const deliveryPersonStripeAccountId = deliveryPersonData.stripeAccountId;
-
-      if (!producerStripeAccountId || !deliveryPersonStripeAccountId) {
-        throw new Error('Conta Stripe do produtor ou entregador não configurada');
-      }
-
-      const transferResponse = await api.post('/stripe/split-payment', {
-        orderId,
-        amount,
-        deliveryFee,
-        producerStripeAccountId,
-        deliveryPersonStripeAccountId,
-      });
-      const transferData = transferResponse.data;
-
-      loggingService.info('Pagamento com divisão processado com sucesso', {
-        orderId,
-        paymentIntentId: paymentIntent.id,
-        producerTransferId: transferData.producerTransferId,
-        deliveryPersonTransferId: transferData.deliveryPersonTransferId,
-      });
-
-      return {
-        paymentIntentId: paymentIntent.id,
-        appTransferId: transferData.appTransferId || '',
-        producerTransferId: transferData.producerTransferId,
-        deliveryPersonTransferId: transferData.deliveryPersonTransferId,
-      };
-    } catch (error) {
-      loggingService.error(
-        'Erro ao processar pagamento com divisão',
-        error instanceof Error ? error : undefined,
-        { orderId, amount, deliveryFee, producerId, deliveryPersonId }
-      );
-      throw error;
-    }
+    throw new Error('LEGACY_SPLIT_PAYMENT_DISABLED');
   }
 }

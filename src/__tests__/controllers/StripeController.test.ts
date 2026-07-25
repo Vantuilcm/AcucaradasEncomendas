@@ -3,6 +3,11 @@ import { StripeController } from '../../controllers/StripeController';
 import { PaymentService } from '../../services/PaymentService';
 import Stripe from 'stripe';
 
+// Prevent loading ESM @sentry/react-native under Jest (hoisted above imports).
+jest.mock('@sentry/react-native', () => ({
+  captureException: jest.fn(),
+}));
+
 // Mock do PaymentService
 jest.mock('../../services/PaymentService', () => ({
   PaymentService: {
@@ -68,7 +73,7 @@ describe('StripeController', () => {
       controller = new StripeController();
 
       mockReq = {
-        body: { amount: 100 },
+        body: { amount: 100, orderId: 'test-order-id' },
         user: { id: 'user123' },
       };
 
@@ -88,7 +93,7 @@ describe('StripeController', () => {
       controller = new StripeController();
 
       mockReq = {
-        body: { amount: 100 },
+        body: { amount: 100, orderId: 'test-order-id' },
         user: { id: 'user123' },
       };
 
@@ -261,20 +266,14 @@ describe('StripeController', () => {
   });
 
   describe('splitPayment', () => {
-    it('deve processar split de pagamento com sucesso', async () => {
-      const mockProducerTransfer = { id: 'tr_producer' };
-      const mockDeliveryTransfer = { id: 'tr_delivery' };
-
+    it('deve retornar hard-fail 410 sem criar transfers', async () => {
+      const createTransfer = jest.fn();
       (Stripe as jest.Mock).mockImplementation(() => ({
         transfers: {
-          create: jest
-            .fn()
-            .mockResolvedValueOnce(mockProducerTransfer)
-            .mockResolvedValueOnce(mockDeliveryTransfer),
+          create: createTransfer,
         },
       }));
 
-      // Recreate controller to pick up the new mock
       controller = new StripeController();
 
       mockReq = {
@@ -289,11 +288,12 @@ describe('StripeController', () => {
 
       await controller.splitPayment(mockReq as Request, mockRes as Response);
 
+      expect(mockRes.status).toHaveBeenCalledWith(410);
       expect(mockRes.json).toHaveBeenCalledWith({
-        appTransferId: '',
-        producerTransferId: 'tr_producer',
-        deliveryPersonTransferId: 'tr_delivery',
+        error: 'LEGACY_SPLIT_PAYMENT_DISABLED',
+        code: 'LEGACY_SPLIT_PAYMENT_DISABLED',
       });
+      expect(createTransfer).not.toHaveBeenCalled();
     });
   });
 

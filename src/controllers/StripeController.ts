@@ -193,37 +193,11 @@ export class StripeController {
     }
   };
 
-  splitPayment = async (req: Request, res: Response) => {
-    try {
-      const { orderId, amount, deliveryFee, producerStripeAccountId, deliveryPersonStripeAccountId } =
-        req.body;
-      const productAmount = amount - deliveryFee;
-      const appFee = Math.round(productAmount * 0.1);
-      const producerAmount = productAmount - appFee;
-
-      const producerTransfer = await this.stripe.transfers.create({
-        amount: producerAmount,
-        currency: 'brl',
-        destination: producerStripeAccountId,
-        transfer_group: orderId,
-      });
-
-      const deliveryTransfer = await this.stripe.transfers.create({
-        amount: deliveryFee,
-        currency: 'brl',
-        destination: deliveryPersonStripeAccountId,
-        transfer_group: orderId,
-      });
-
-      return res.json({
-        appTransferId: '',
-        producerTransferId: producerTransfer.id,
-        deliveryPersonTransferId: deliveryTransfer.id,
-      });
-    } catch (error) {
-      console.error('Erro ao processar split:', error);
-      return res.status(500).json({ error: 'Erro ao processar split' });
-    }
+  splitPayment = async (_req: Request, res: Response) => {
+    return res.status(410).json({
+      error: 'LEGACY_SPLIT_PAYMENT_DISABLED',
+      code: 'LEGACY_SPLIT_PAYMENT_DISABLED',
+    });
   };
 
   removePaymentMethod = async (req: Request, res: Response) => {
