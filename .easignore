@@ -26,3 +26,4 @@ latest_failure_log.txt
 # NÃO ignorar google-services.json e GoogleService-Info.plist aqui,
 # pois eles são necessários para o build mas estão no .gitignore.
 # Ao NÃO listá-los aqui, o EAS irá incluí-los no build local.
+temp_bundle.js
