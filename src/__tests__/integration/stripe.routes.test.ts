@@ -3,6 +3,10 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 
+jest.mock('@sentry/react-native', () => ({
+  captureException: jest.fn(),
+}));
+
 // Definir o mock do Stripe ANTES de importar as rotas
 jest.mock('stripe', () => {
   const mockCreatePaymentIntent = jest.fn();
@@ -62,6 +66,21 @@ jest.mock('../../services/PaymentService', () => ({
   },
 }));
 
+jest.mock('../../middlewares/auth', () => ({
+  authMiddleware: (req: any, res: any, next: any) => {
+    const authHeader = req?.headers?.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Token não fornecido' });
+    }
+    const [scheme, token] = authHeader.split(' ');
+    if (scheme?.toLowerCase() !== 'bearer' || !token) {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    req.user = { id: 'user123' };
+    return next();
+  },
+}));
+
 // Importar as rotas DEPOIS de mockar
 import stripeRoutes from '../../routes/stripe.routes';
 
@@ -109,7 +128,7 @@ describe('Stripe Routes', () => {
       const response = await request(app)
         .post('/stripe/create-payment-intent')
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ amount: 100 });
+        .send({ amount: 100, orderId: 'test-order-id' });
 
       if (response.status !== 200) {
         throw new Error(`Expected 200 but got ${response.status}: ${JSON.stringify(response.body)}`);
