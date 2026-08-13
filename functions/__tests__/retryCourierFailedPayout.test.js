@@ -182,6 +182,7 @@ const eligibleOrder = Object.freeze({
   deliveryDriverId: 'courier-1',
   deliveryFee: 5,
   courierPayoutAmount: 5,
+  paymentIntentId: 'pi_order_1',
 });
 
 const exactActiveTransfer = Object.freeze({
@@ -211,10 +212,14 @@ function resetOperationalSpies() {
   mockStripeConstructor.mockClear();
   mockStripeInstance.transfers.create.mockReset();
   mockStripeInstance.transfers.list.mockReset();
+  mockStripeInstance.paymentIntents.retrieve.mockReset();
   mockStripeInstance.transfers.create.mockResolvedValue({ id: 'tr_local' });
   mockStripeInstance.transfers.list.mockResolvedValue({
     data: [],
     has_more: false,
+  });
+  mockStripeInstance.paymentIntents.retrieve.mockResolvedValue({
+    latest_charge: 'ch_latest_1',
   });
   mockDocuments.set('users/admin-1', { role: 'admin' });
 }
@@ -335,6 +340,7 @@ describe('retryCourierFailedPayout', () => {
         amount: 500,
         currency: 'brl',
         destination: 'acct_courier',
+        source_transaction: 'ch_latest_1',
         transfer_group: 'order-1',
         metadata: { role: 'courier', orderId: 'order-1' },
       },
@@ -357,6 +363,48 @@ describe('retryCourierFailedPayout', () => {
     expect(mockReferences.get('users/courier-1').get).toHaveBeenCalledTimes(3);
   });
 
+  test('rejects missing paymentIntentId before transfer create', async () => {
+    setEligibleState({ paymentIntentId: null });
+    await expectCode(invokeValid(), 'failed-precondition');
+    expect(mockStripeInstance.transfers.create).not.toHaveBeenCalled();
+    expect(mockStripeInstance.paymentIntents.retrieve).not.toHaveBeenCalled();
+  });
+
+  test('uses latest_charge string as source_transaction', async () => {
+    setEligibleState();
+    mockStripeInstance.paymentIntents.retrieve.mockResolvedValueOnce({
+      latest_charge: 'ch_string_1',
+    });
+    const result = await invokeValid();
+    expect(result.courierPayoutStatus).toBe('paid');
+    expect(mockStripeInstance.transfers.create).toHaveBeenCalledWith(
+      expect.objectContaining({ source_transaction: 'ch_string_1' }),
+      { idempotencyKey: 'courier_delivery_payout_order-1' }
+    );
+  });
+
+  test('uses latest_charge object.id as source_transaction', async () => {
+    setEligibleState();
+    mockStripeInstance.paymentIntents.retrieve.mockResolvedValueOnce({
+      latest_charge: { id: 'ch_object_1' },
+    });
+    const result = await invokeValid();
+    expect(result.courierPayoutStatus).toBe('paid');
+    expect(mockStripeInstance.transfers.create).toHaveBeenCalledWith(
+      expect.objectContaining({ source_transaction: 'ch_object_1' }),
+      { idempotencyKey: 'courier_delivery_payout_order-1' }
+    );
+  });
+
+  test('rejects missing latest_charge before transfer create', async () => {
+    setEligibleState();
+    mockStripeInstance.paymentIntents.retrieve.mockResolvedValueOnce({
+      latest_charge: null,
+    });
+    await expectCode(invokeValid(), 'failed-precondition');
+    expect(mockStripeInstance.transfers.create).not.toHaveBeenCalled();
+  });
+
   test('keeps destination stable through final courier reread before create', async () => {
     mockReadSequences.set('orders/order-1', [
       { ...eligibleOrder },
@@ -372,7 +420,10 @@ describe('retryCourierFailedPayout', () => {
     expect(result.courierPayoutStatus).toBe('paid');
     expect(mockStripeInstance.transfers.create).toHaveBeenCalledTimes(1);
     expect(mockStripeInstance.transfers.create).toHaveBeenCalledWith(
-      expect.objectContaining({ destination: 'acct_courier' }),
+      expect.objectContaining({
+        destination: 'acct_courier',
+        source_transaction: 'ch_latest_1',
+      }),
       expect.any(Object)
     );
     expect(mockWrites).toHaveLength(1);

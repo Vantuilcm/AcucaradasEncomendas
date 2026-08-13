@@ -1151,7 +1151,7 @@ exports.onOrderUpdateGrowth = functions.firestore
  * TRIGGER: Repasse ao Entregador (Split do Marketplace)
  * Disparado apenas quando a entrega é concluída com sucesso.
  */
-exports.retryCourierMissingConnectPayout = functions.https.onCall(async (data, context) => {
+exports.retryCourierMissingConnectPayout = functions.runWith({ secrets: ['STRIPE_SECRET_KEY'] }).https.onCall(async (data, context) => {
   if (!context || !context.auth || !context.auth.uid) {
     throw new functions.https.HttpsError(
       'unauthenticated',
@@ -1263,12 +1263,61 @@ exports.retryCourierMissingConnectPayout = functions.https.onCall(async (data, c
   }
 
   const stripe = require('stripe')(getStripeSecret());
+
+  // Resolve source_transaction from PaymentIntent.latest_charge
+  // (same server-side field and extraction semantics as onOrderDelivered).
+  const currentOrderData = currentOrderSnapshot.data() || {};
+  const paymentIntentId =
+    typeof currentOrderData.paymentIntentId === 'string' && currentOrderData.paymentIntentId
+      ? currentOrderData.paymentIntentId
+      : null;
+
+  if (!paymentIntentId) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'PaymentIntent is unavailable for courier payout recovery.',
+      { phase: 'payment_intent_resolve', transferCreated: false }
+    );
+  }
+
+  let paymentIntent;
+  try {
+    paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ['latest_charge'],
+    });
+  } catch (error) {
+    throw new functions.https.HttpsError(
+      'unavailable',
+      'Unable to retrieve PaymentIntent for courier payout recovery.',
+      { phase: 'payment_intent_retrieve', transferCreated: false }
+    );
+  }
+
+  let latestChargeId = null;
+  if (typeof paymentIntent.latest_charge === 'string') {
+    latestChargeId = paymentIntent.latest_charge;
+  } else if (
+    paymentIntent.latest_charge &&
+    typeof paymentIntent.latest_charge.id === 'string'
+  ) {
+    latestChargeId = paymentIntent.latest_charge.id;
+  }
+
+  if (!latestChargeId || latestChargeId.trim() === '') {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'latest_charge is unavailable; source_transaction cannot be resolved for courier payout recovery.',
+      { phase: 'latest_charge_resolve', transferCreated: false }
+    );
+  }
+
   let transfer;
   try {
     transfer = await stripe.transfers.create({
       amount: initialState.amountInCents,
       currency: 'brl',
       destination: initialStripeAccountId,
+      source_transaction: latestChargeId,
       transfer_group: orderId,
       metadata: { role: 'courier', orderId }
     }, {
@@ -1701,12 +1750,60 @@ exports.retryCourierFailedPayout = functions
       });
     }
 
+    // Resolve source_transaction from PaymentIntent.latest_charge
+    // (same server-side field and extraction semantics as onOrderDelivered).
+    const preCreateOrderData = preCreateOrderSnapshot.data() || {};
+    const paymentIntentId =
+      typeof preCreateOrderData.paymentIntentId === 'string' && preCreateOrderData.paymentIntentId
+        ? preCreateOrderData.paymentIntentId
+        : null;
+
+    if (!paymentIntentId) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'PaymentIntent is unavailable for courier payout recovery.',
+        { phase: 'payment_intent_resolve', transferCreated: false }
+      );
+    }
+
+    let paymentIntent;
+    try {
+      paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+        expand: ['latest_charge'],
+      });
+    } catch (error) {
+      throw new functions.https.HttpsError(
+        'unavailable',
+        'Unable to retrieve PaymentIntent for courier payout recovery.',
+        { phase: 'payment_intent_retrieve', transferCreated: false }
+      );
+    }
+
+    let latestChargeId = null;
+    if (typeof paymentIntent.latest_charge === 'string') {
+      latestChargeId = paymentIntent.latest_charge;
+    } else if (
+      paymentIntent.latest_charge &&
+      typeof paymentIntent.latest_charge.id === 'string'
+    ) {
+      latestChargeId = paymentIntent.latest_charge.id;
+    }
+
+    if (!latestChargeId || latestChargeId.trim() === '') {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'latest_charge is unavailable; source_transaction cannot be resolved for courier payout recovery.',
+        { phase: 'latest_charge_resolve', transferCreated: false }
+      );
+    }
+
     let transfer;
     try {
       transfer = await stripe.transfers.create({
         amount: initialState.amountInCents,
         currency: 'brl',
         destination: initialStripeAccountId,
+        source_transaction: latestChargeId,
         transfer_group: orderId,
         metadata: { role: 'courier', orderId },
       }, {
