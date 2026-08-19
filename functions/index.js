@@ -2197,6 +2197,32 @@ exports.onOrderDelivered = functions
         }
 
         // 3. Resolver source_transaction (obrigatório para Transfers BR)
+        const courierPayoutAmountInCents = Math.floor(deliveryFee * 100);
+
+        let listResult;
+        let classification;
+        try {
+          listResult = await listCourierTransfersByGroup(stripe, orderId);
+
+          if (!listResult.complete) {
+            console.warn(`Courier payout reconciliation incomplete for order ${orderId}; transfer creation blocked.`);
+            return null;
+          }
+
+          classification = classifyCourierTransferGroupMatches(listResult.transfers, {
+            orderId,
+            expectedAmountCents: courierPayoutAmountInCents,
+            expectedDestination: courierStripeAccountId,
+          });
+        } catch (reconciliationError) {
+          console.warn(`Courier payout reconciliation failed for order ${orderId}; transfer creation blocked.`);
+          return null;
+        }
+
+        if (classification.resultCount !== 0) {
+          console.warn(`Courier payout reconciliation found ${classification.resultCount} transfer-group match(es) for order ${orderId}; transfer creation blocked.`);
+          return null;
+        }
         const paymentIntentId = newData.paymentIntentId;
         if (!paymentIntentId) {
           console.warn(
@@ -2231,7 +2257,6 @@ exports.onOrderDelivered = functions
         }
 
         // 4. Executar Transferência com Idempotência
-        const courierPayoutAmountInCents = Math.floor(deliveryFee * 100);
         const idempotencyKey = `courier_delivery_payout_${orderId}`;
 
         const transfer = await stripe.transfers.create({
