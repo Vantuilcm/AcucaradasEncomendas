@@ -1375,7 +1375,9 @@ async function listCourierTransfersByGroup(stripe, orderId) {
     const page = await stripe.transfers.list(params);
     const data = (page && page.data) || [];
     for (let i = 0; i < data.length; i += 1) {
-      transfers.push(data[i]);
+      if (!data[i] || !data[i].metadata || data[i].metadata.role !== 'producer') {
+        transfers.push(data[i]);
+      }
     }
 
     if (!page || !page.has_more) {
