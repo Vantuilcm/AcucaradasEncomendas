@@ -100,6 +100,15 @@ jobs:
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       # RellBuild validate-env.js exige ficheiros no workspace ANTES da validação (run 26766367770 falhou por ordem invertida)
+      - name: Validate Stripe test publishable key
+        shell: bash
+        run: |
+          STRIPE_KEY="${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}"
+          if [[ ! "$STRIPE_KEY" =~ ^pk_test_[A-Za-z0-9]+$ ]]; then
+            echo "::error::Preview Stripe publishable key must be a Stripe test key."
+            exit 1
+          fi
+          echo "STRIPE_TEST_PUBLISHABLE_KEY_GATE=PASS"
       - name: Validate Firebase Sandbox project identity
         shell: bash
         run: |
