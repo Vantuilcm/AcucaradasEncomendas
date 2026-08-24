@@ -100,6 +100,15 @@ jobs:
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       # RellBuild validate-env.js exige ficheiros no workspace ANTES da validação (run 26766367770 falhou por ordem invertida)
+      - name: Validate Firebase Sandbox project identity
+        shell: bash
+        run: |
+          EXPECTED_FIREBASE_PROJECT_ID='acucaradas-encomendas-sandbox'
+          if [ "${EXPO_PUBLIC_FIREBASE_PROJECT_ID:-}" != "$EXPECTED_FIREBASE_PROJECT_ID" ]; then
+            echo "::error::Preview Firebase project identity mismatch"
+            exit 1
+          fi
+          echo "FIREBASE_SANDBOX_PROJECT_ID_GATE=PASS"
       - name: Materialize Firebase config from secrets
         run: |
           set -euo pipefail
