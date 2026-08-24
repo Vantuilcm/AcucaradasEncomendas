@@ -59,6 +59,7 @@ jobs:
       PROFILE: preview
       EAS_PROFILE: preview
       FORCE_BUILD_MODE: LOCAL
+      AE_IOS_BUILD_MAX_ATTEMPTS: '1'
       BASELINE_COMMIT: ${{ github.event.inputs.baseline_commit }}
 
     steps:

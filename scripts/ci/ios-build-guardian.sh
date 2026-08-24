@@ -269,7 +269,7 @@ export EXPO_DEBUG=1
 mkdir -p build-logs
 
 run_eas_build_with_retry() {
-  local max_attempts=3
+  local max_attempts="${AE_IOS_BUILD_MAX_ATTEMPTS:-3}"
   local attempt=1
 
   echo "🔍 Testando DNS Expo..."
