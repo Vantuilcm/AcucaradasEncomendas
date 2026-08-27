@@ -1,4 +1,5 @@
 import { ProductService } from './ProductService';
+import { dbFunctions as f } from '../config/firebase';
 
 interface SalesData {
   totalSales: number;
@@ -25,6 +26,20 @@ interface SalesByCategoryData {
 }
 
 type PeriodFilter = 'day' | 'week' | 'month' | 'year';
+
+export interface ProducerWalletHistoryItem {
+  orderId: string;
+  createdAt: string;
+  producerPayoutAmount: number;
+  producerTransferId: string;
+  payoutStatus: 'paid';
+}
+
+export interface ProducerWalletData {
+  totalPaidPayoutAmount: number;
+  paidPayoutCount: number;
+  history: ProducerWalletHistoryItem[];
+}
 
 export class ReportService {
   private static instance: ReportService;
@@ -204,6 +219,73 @@ export class ReportService {
       hourlySalesHeader +
       hourlySalesRows
     );
+  }
+
+  public async getProducerWalletData(producerId: string): Promise<ProducerWalletData> {
+    const emptyWallet: ProducerWalletData = {
+      totalPaidPayoutAmount: 0,
+      paidPayoutCount: 0,
+      history: [],
+    };
+
+    if (!producerId || !producerId.trim()) {
+      return emptyWallet;
+    }
+
+    const ordersRef = f.collection('orders');
+    const q = f.query(
+      ordersRef,
+      f.where('producerId', '==', producerId)
+    );
+    const querySnapshot = await f.getDocs(q);
+
+    const normalizeCreatedAt = (value: any): string => {
+      if (value && typeof value.toDate === 'function') {
+        return value.toDate().toISOString();
+      }
+
+      if (value instanceof Date) {
+        return value.toISOString();
+      }
+
+      return typeof value === 'string' ? value : '';
+    };
+
+    const history: ProducerWalletHistoryItem[] = (querySnapshot.docs || [])
+      .map((docSnapshot: any) => ({
+        orderId: docSnapshot.id,
+        ...docSnapshot.data(),
+      }))
+      .filter((order: any) => (
+        order.payoutStatus === 'paid' &&
+        typeof order.producerTransferId === 'string' &&
+        order.producerTransferId.trim().length > 0 &&
+        typeof order.producerPayoutAmount === 'number' &&
+        Number.isFinite(order.producerPayoutAmount)
+      ))
+      .map((order: any) => ({
+        orderId: String(order.orderId),
+        createdAt: normalizeCreatedAt(order.createdAt),
+        producerPayoutAmount: order.producerPayoutAmount,
+        producerTransferId: order.producerTransferId.trim(),
+        payoutStatus: 'paid' as const,
+      }))
+      .sort((left: ProducerWalletHistoryItem, right: ProducerWalletHistoryItem) => {
+        const leftTimestamp = Date.parse(left.createdAt);
+        const rightTimestamp = Date.parse(right.createdAt);
+        const safeLeftTimestamp = Number.isFinite(leftTimestamp) ? leftTimestamp : 0;
+        const safeRightTimestamp = Number.isFinite(rightTimestamp) ? rightTimestamp : 0;
+        return safeRightTimestamp - safeLeftTimestamp;
+      });
+
+    return {
+      totalPaidPayoutAmount: history.reduce(
+        (total, item) => total + item.producerPayoutAmount,
+        0
+      ),
+      paidPayoutCount: history.length,
+      history,
+    };
   }
 
   private delay(ms: number): Promise<void> {

@@ -35,7 +35,7 @@ export const ProdutorProfileScreen = () => {
     }
 
     // TODO FASE 2: Habilitar rotas reais quando as telas forem implementadas
-    if (!route || route === 'Reports') {
+    if (!route) {
       Alert.alert('Em breve 💝', `A funcionalidade "${label}" estará disponível em breve.`);
       return;
     }

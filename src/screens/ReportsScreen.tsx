@@ -50,12 +50,28 @@ interface SalesByCategoryData {
   percentage: number;
 }
 
+interface ProducerWalletHistoryItem {
+  orderId: string;
+  createdAt: string;
+  producerPayoutAmount: number;
+  producerTransferId: string;
+  payoutStatus: 'paid';
+}
+
+interface ProducerWalletData {
+  totalPaidPayoutAmount: number;
+  paidPayoutCount: number;
+  history: ProducerWalletHistoryItem[];
+}
+
 export function ReportsScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const { user: _user } = useAuth();
   const { isAdmin, isProdutor } = usePermissions();
+  const producerId = String((_user as any)?.id || (_user as any)?.uid || '');
+  const isProducerWalletView = isProdutor && !isAdmin;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,17 +89,33 @@ export function ReportsScreen() {
   const [salesByPaymentMethod, setSalesByPaymentMethod] = useState<SalesByCategoryData[]>([]);
   const [menuVisible, setMenuVisible] = useState(false);
   const [chartLoading, setChartLoading] = useState(false);
+  const [producerWalletData, setProducerWalletData] = useState<ProducerWalletData>({
+    totalPaidPayoutAmount: 0,
+    paidPayoutCount: 0,
+    history: [],
+  });
 
   const reportService = ReportService.getInstance();
 
   useEffect(() => {
     loadReportData();
-  }, [selectedPeriod]);
+  }, [selectedPeriod, isProducerWalletView, producerId]);
 
   const loadReportData = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      if (isProducerWalletView) {
+        if (!producerId) {
+          throw new Error('Producer ID unavailable');
+        }
+
+        const walletData = await reportService.getProducerWalletData(producerId);
+        setProducerWalletData(walletData);
+        setLoading(false);
+        return;
+      }
 
       // Carregar dados do serviço
       const summary = await reportService.getSalesSummary(selectedPeriod);
@@ -489,6 +521,7 @@ export function ReportsScreen() {
       >
         {error && <ErrorMessage message={error} onRetry={loadReportData} />}
 
+        {!isProducerWalletView && (
         <View style={styles.summaryContainer}>
           <Card style={styles.summaryCard}>
             <Card.Content>
@@ -538,8 +571,65 @@ export function ReportsScreen() {
             </Card.Content>
           </Card>
         </View>
+        )}
 
-        {renderChartContent()}
+        {isProducerWalletView && (
+          <>
+            <View style={styles.summaryContainer}>
+              <Card style={styles.summaryCard}>
+                <Card.Content>
+                  <Text variant="titleSmall" style={styles.cardLabel}>
+                    Total recebido
+                  </Text>
+                  <Text variant="headlineSmall" style={styles.cardValue}>
+                    {formatCurrency(producerWalletData.totalPaidPayoutAmount)}
+                  </Text>
+                </Card.Content>
+              </Card>
+
+              <Card style={styles.summaryCard}>
+                <Card.Content>
+                  <Text variant="titleSmall" style={styles.cardLabel}>
+                    Repasses pagos
+                  </Text>
+                  <Text variant="headlineSmall" style={styles.cardValue}>
+                    {producerWalletData.paidPayoutCount}
+                  </Text>
+                </Card.Content>
+              </Card>
+            </View>
+
+            <Card style={styles.tableCard}>
+              <Card.Content>
+                <Text variant="titleMedium" style={styles.cardValue}>
+                  Historico de repasses
+                </Text>
+                {producerWalletData.history.length === 0 ? (
+                  <Text style={styles.cardLabel}>Nenhum repasse pago encontrado.</Text>
+                ) : (
+                  producerWalletData.history.map(item => (
+                    <View key={`${item.orderId}-${item.producerTransferId}`}>
+                      <View style={styles.walletHistoryRow}>
+                        <Text style={styles.cardLabel}>Pedido {item.orderId}</Text>
+                        <Text style={styles.cardValue}>
+                          {formatCurrency(item.producerPayoutAmount)}
+                        </Text>
+                      </View>
+                      <Text style={styles.cardLabel}>
+                        {item.createdAt
+                          ? new Date(item.createdAt).toLocaleDateString('pt-BR')
+                          : 'Data indisponivel'}
+                      </Text>
+                      <Divider />
+                    </View>
+                  ))
+                )}
+              </Card.Content>
+            </Card>
+          </>
+        )}
+
+        {!isProducerWalletView && renderChartContent()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -616,6 +706,9 @@ const createStyles = (theme: { colors: any }) =>
   cardValue: {
     fontWeight: 'bold',
     color: theme.colors.text.primary,
+  },
+  walletHistoryRow: {
+    flexDirection: 'row',
   },
   comparisonContainer: {
     flexDirection: 'row',
