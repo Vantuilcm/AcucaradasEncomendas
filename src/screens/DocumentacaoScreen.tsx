@@ -18,39 +18,39 @@ export const DocumentacaoScreen = ({ onBack }: DocumentacaoScreenProps) => {
             Documentação
           </Text>
           <Text variant="bodyMedium" style={styles.subtitle}>
-            CPF/CNPJ e verificação de identidade para produtores.
+            Dados cadastrais e verificação segura para produtores.
           </Text>
         </View>
 
         <Text variant="bodyMedium" style={styles.intro}>
-          Para vender na Açucaradas Encomendas, seu cadastro precisa estar completo e verificado.
-          Nesta área você poderá acompanhar o status da sua documentação.
+          Para vender na Açucaradas Encomendas, mantenha seus dados cadastrais completos e atualizados.
+          Quando uma verificação de identidade ou KYC for necessária para recebimentos, ela será realizada no ambiente seguro da Stripe.
         </Text>
 
         <Divider style={styles.divider} />
 
         <List.Section>
-          <List.Subheader>Documentos usualmente solicitados</List.Subheader>
+          <List.Subheader>Como funciona a verificação</List.Subheader>
           <List.Item
             title="CPF ou CNPJ"
-            description="Documento fiscal do responsável ou da empresa."
+            description="Dado cadastral utilizado quando aplicável ao perfil do produtor; não é um arquivo obrigatório para envio nesta tela."
             left={(props) => <List.Icon {...props} icon="card-account-details-outline" />}
           />
           <List.Item
             title="RG ou documento com foto"
-            description="Identificação do titular da conta."
+            description="Quando exigido para KYC, o processo é realizado pela Stripe no ambiente seguro de verificação."
             left={(props) => <List.Icon {...props} icon="badge-account-horizontal-outline" />}
           />
           <List.Item
             title="Comprovante de endereço"
-            description="Conta de consumo ou extrato recente."
+            description="Quando solicitado pela Stripe, faz parte da verificação e não é enviado por esta tela."
             left={(props) => <List.Icon {...props} icon="home-outline" />}
           />
         </List.Section>
 
         <Text variant="bodySmall" style={styles.note}>
-          O envio de documentos será habilitado em uma próxima atualização. Por enquanto, esta tela
-          serve como orientação sobre o que será necessário.
+          Atualmente, não há documentos operacionais obrigatórios para envio nesta tela. Arquivos solicitados pela Stripe
+          para identidade ou KYC permanecem no fluxo da Stripe e não são duplicados no Firebase pela Açucaradas Encomendas.
         </Text>
 
         <Button mode="contained" onPress={onBack} style={styles.backButton} buttonColor="#9C27B0">
