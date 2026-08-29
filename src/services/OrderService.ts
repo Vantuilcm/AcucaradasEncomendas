@@ -138,6 +138,33 @@ export class OrderService {
   }
 
   /**
+   * Busca todos os pedidos financeiros vinculados ao entregador.
+   * Leitura isolada para o resumo de ganhos: sem orderBy e sem limit remoto.
+   */
+  async getOrdersForDriverEarnings(driverId: string): Promise<Order[]> {
+    try {
+      if (!this.assertValidId(driverId, 'driverId')) {
+        return [];
+      }
+
+      const ordersRef = f.collection(this.collectionName);
+      const q = f.query(
+        ordersRef,
+        f.where('deliveryDriverId', '==', driverId)
+      );
+
+      const querySnapshot = await f.getDocs(q);
+      return querySnapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      })) as Order[];
+    } catch (error) {
+      loggingService.error('Erro ao buscar pedidos financeiros do entregador', { error, driverId });
+      throw error;
+    }
+  }
+
+  /**
    * Busca um pedido por ID
    * @param orderId ID do pedido
    * @returns O pedido ou null se não encontrado

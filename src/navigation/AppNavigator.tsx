@@ -27,6 +27,7 @@ import CartScreen from '../screens/CartScreen';
 import { CompradorProfileScreen } from '../screens/CompradorProfileScreen';
 import { ProdutorProfileScreen } from '../screens/ProdutorProfileScreen';
 import { EntregadorProfileScreen } from '../screens/EntregadorProfileScreen';
+import { DriverEarningsScreen } from '../screens/DriverEarningsScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import CheckoutScreen from '../screens/CheckoutScreen';
 import OrderDetailScreen from '../screens/OrderDetailScreen';
@@ -364,6 +365,11 @@ const AppNavigator = () => {
                   name="HelpCenter"
                   component={HelpCenterScreen}
                   options={{ title: 'Central de Ajuda' }}
+                />
+                <Stack.Screen
+                  name="DriverEarnings"
+                  component={DriverEarningsScreen}
+                  options={{ title: 'Resumo de Ganhos' }}
                 />
                 <Stack.Screen
                   name="ContaBancaria"

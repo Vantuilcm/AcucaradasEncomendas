@@ -71,6 +71,14 @@ export interface Order {
     plate: string;
   };
 
+  deliveryDriverId?: string;
+  courierId?: string;
+  deliveryFeeHeld?: boolean;
+  courierPayoutStatus?: 'pending_delivery' | 'paid' | 'failed' | 'missing_connected_account';
+  courierPayoutAmount?: number;
+  courierTransferId?: string;
+  courierPayoutProcessedAt?: unknown;
+
   // Informações de agendamento
   scheduledDelivery?: DeliverySchedule;
   isScheduledOrder: boolean;
