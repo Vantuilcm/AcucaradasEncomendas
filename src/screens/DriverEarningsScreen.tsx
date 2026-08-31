@@ -271,7 +271,7 @@ export const DriverEarningsScreen = () => {
             Conta de recebimento pendente: {summary.missingAccount}
           </Text>
           <Text style={styles.statusLine}>
-            Hist\u00f3rico financeiro n\u00e3o confirmado: {summary.legacy}
+            {'Hist\u00f3rico financeiro n\u00e3o confirmado: '}{summary.legacy}
           </Text>
           {summary.unconfirmed > 0 && (
             <Text style={styles.statusLine}>
