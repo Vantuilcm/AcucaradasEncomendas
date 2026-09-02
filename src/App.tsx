@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
 import { initSentry } from './config/sentry';
 import { ThemeProvider } from './components/ThemeProvider';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 import AppNavigator from './navigation/AppNavigator';
 import { CartProvider } from './contexts/CartContext';
@@ -15,12 +15,45 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { STRIPE_PUBLISHABLE_KEY } from './config/stripe';
 import { AppVersion } from './utils/AppVersion';
+import { OneSignal } from 'react-native-onesignal';
+import { initOneSignal } from './config/onesignal';
+import { UserUtils } from './utils/UserUtils';
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Estabilizada
  * O app usa Firebase JS-Only e Lazy Loading para máxima compatibilidade no iOS.
  */
 function ThemedApp() {
+  const { user, isReady } = useAuth();
+  const userId = UserUtils.getUserId(user);
+  const oneSignalInitialized = useRef(false);
+
+  useEffect(() => {
+    oneSignalInitialized.current = initOneSignal();
+  }, []);
+
+  useEffect(() => {
+    if (!isReady || !oneSignalInitialized.current) {
+      return;
+    }
+
+    const syncOneSignalIdentity = async () => {
+      try {
+        if (userId) {
+          await OneSignal.login(userId);
+          console.log('[ONESIGNAL_IDENTITY_LOGIN_OK]');
+        } else {
+          await OneSignal.logout();
+          console.log('[ONESIGNAL_IDENTITY_LOGOUT_OK]');
+        }
+      } catch (error) {
+        console.error('[ONESIGNAL_IDENTITY_SYNC_FAILED]', error);
+        Sentry.captureException(error);
+      }
+    };
+
+    void syncOneSignalIdentity();
+  }, [isReady, userId]);
   return (
     <ErrorBoundary>
       <View style={{ flex: 1, backgroundColor: '#000' }}>
