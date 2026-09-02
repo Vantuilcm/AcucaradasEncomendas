@@ -26,6 +26,7 @@ import { UserUtils } from './utils/UserUtils';
 function ThemedApp() {
   const { user, isReady } = useAuth();
   const userId = UserUtils.getUserId(user);
+  const userRole = UserUtils.getUserRole(user);
   const oneSignalInitialized = useRef(false);
 
   useEffect(() => {
@@ -41,6 +42,9 @@ function ThemedApp() {
       try {
         if (userId) {
           await OneSignal.login(userId);
+          if (userRole === 'entregador') {
+            await OneSignal.User.pushSubscription.optIn();
+          }
           console.log('[ONESIGNAL_IDENTITY_LOGIN_OK]');
         } else {
           await OneSignal.logout();
@@ -53,7 +57,7 @@ function ThemedApp() {
     };
 
     void syncOneSignalIdentity();
-  }, [isReady, userId]);
+  }, [isReady, userId, userRole]);
   return (
     <ErrorBoundary>
       <View style={{ flex: 1, backgroundColor: '#000' }}>
