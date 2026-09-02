@@ -28,6 +28,7 @@ import { CompradorProfileScreen } from '../screens/CompradorProfileScreen';
 import { ProdutorProfileScreen } from '../screens/ProdutorProfileScreen';
 import { EntregadorProfileScreen } from '../screens/EntregadorProfileScreen';
 import { DriverEarningsScreen } from '../screens/DriverEarningsScreen';
+import { DriverHistoryScreen } from '../screens/DriverHistoryScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import CheckoutScreen from '../screens/CheckoutScreen';
 import OrderDetailScreen from '../screens/OrderDetailScreen';
@@ -370,6 +371,11 @@ const AppNavigator = () => {
                   name="DriverEarnings"
                   component={DriverEarningsScreen}
                   options={{ title: 'Resumo de Ganhos' }}
+                />
+                <Stack.Screen
+                  name="DriverHistory"
+                  component={DriverHistoryScreen}
+                  options={{ title: 'Hist\u00f3rico de Corridas' }}
                 />
                 <Stack.Screen
                   name="ContaBancaria"

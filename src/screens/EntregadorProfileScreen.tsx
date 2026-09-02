@@ -88,7 +88,7 @@ export const EntregadorProfileScreen = () => {
               title="Histórico de Corridas"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="map-marker-distance" color="#555" />}
-              onPress={() => navigateTo('DriverHistory')}
+              onPress={() => RootNavigation.navigate('DriverHistory')}
               style={styles.menuItem}
             />
           </View>
