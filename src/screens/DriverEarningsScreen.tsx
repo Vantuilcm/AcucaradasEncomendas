@@ -298,7 +298,7 @@ export const DriverEarningsScreen = () => {
           financialOrders.map(order => {
             const state = getFinancialState(order);
             const amount = getPayoutAmount(order);
-            const shortId = order.id.slice(-6).toUpperCase();
+            const shortId = order.id.slice(-10).toUpperCase();
 
             return (
               <View key={order.id} style={styles.orderCard}>
