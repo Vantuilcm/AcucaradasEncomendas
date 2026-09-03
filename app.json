@@ -45,6 +45,13 @@
       }
     },
     "plugins": [
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production",
+          "disableNSE": true
+        }
+      ],
       "./plugins/withIosPermissions"
     ]
   }
