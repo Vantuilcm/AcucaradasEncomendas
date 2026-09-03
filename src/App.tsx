@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -28,6 +28,7 @@ function ThemedApp() {
   const userId = UserUtils.getUserId(user);
   const userRole = UserUtils.getUserRole(user);
   const oneSignalInitialized = useRef(false);
+  const [oneSignalDiagnostic, setOneSignalDiagnostic] = useState('OS_DIAG waiting');
 
   useEffect(() => {
     oneSignalInitialized.current = initOneSignal();
@@ -38,12 +39,70 @@ function ThemedApp() {
       return;
     }
 
+    let active = true;
+    let delayedRead: ReturnType<typeof setTimeout> | null = null;
+    let pushObserverAdded = false;
+
+    const readOneSignalDiagnostic = async (source: string) => {
+      try {
+        const [permission, subscriptionId, token, optedIn, externalId, oneSignalId] =
+          await Promise.all([
+            OneSignal.Notifications.getPermissionAsync(),
+            OneSignal.User.pushSubscription.getIdAsync(),
+            OneSignal.User.pushSubscription.getTokenAsync(),
+            OneSignal.User.pushSubscription.getOptedInAsync(),
+            OneSignal.User.getExternalId(),
+            OneSignal.User.getOnesignalId(),
+          ]);
+
+        const diagnostic =
+          'OS ' + source +
+          ' perm=' + String(permission) +
+          ' opted=' + String(optedIn) +
+          ' sub=' + (subscriptionId || '-') +
+          ' token=' + (token ? 'present' : '-') +
+          ' ext=' + (externalId || '-') +
+          ' osid=' + (oneSignalId || '-');
+
+        console.log('[ONESIGNAL_RUNTIME_DIAGNOSTIC]', diagnostic);
+
+        if (active && userRole === 'entregador') {
+          setOneSignalDiagnostic(diagnostic);
+        }
+      } catch (error) {
+        console.error('[ONESIGNAL_RUNTIME_DIAGNOSTIC_FAILED]', error);
+        if (active && userRole === 'entregador') {
+          setOneSignalDiagnostic(
+            'OS diagnostic error=' +
+              (error instanceof Error ? error.message : String(error))
+          );
+        }
+      }
+    };
+
+    const handlePushSubscriptionChange = () => {
+      console.log('[ONESIGNAL_PUSH_SUBSCRIPTION_CHANGE]');
+      void readOneSignalDiagnostic('change');
+    };
+
     const syncOneSignalIdentity = async () => {
       try {
         if (userId) {
           await OneSignal.login(userId);
           if (userRole === 'entregador') {
+            OneSignal.User.pushSubscription.addEventListener(
+              'change',
+              handlePushSubscriptionChange
+            );
+            pushObserverAdded = true;
+
+            await readOneSignalDiagnostic('pre-optin');
             await OneSignal.User.pushSubscription.optIn();
+            await readOneSignalDiagnostic('post-optin');
+
+            delayedRead = setTimeout(() => {
+              void readOneSignalDiagnostic('post-optin-5s');
+            }, 5000);
           }
           console.log('[ONESIGNAL_IDENTITY_LOGIN_OK]');
         } else {
@@ -57,12 +116,45 @@ function ThemedApp() {
     };
 
     void syncOneSignalIdentity();
+
+    return () => {
+      active = false;
+
+      if (delayedRead) {
+        clearTimeout(delayedRead);
+      }
+
+      if (pushObserverAdded) {
+        OneSignal.User.pushSubscription.removeEventListener(
+          'change',
+          handlePushSubscriptionChange
+        );
+      }
+    };
   }, [isReady, userId, userRole]);
   return (
     <ErrorBoundary>
       <View style={{ flex: 1, backgroundColor: '#000' }}>
         <StatusBar style="light" />
         <AppNavigator />
+        {userRole === 'entregador' && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 48,
+              left: 8,
+              right: 8,
+              padding: 6,
+              backgroundColor: 'rgba(0,0,0,0.78)',
+              zIndex: 9999,
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 9 }}>
+              {oneSignalDiagnostic}
+            </Text>
+          </View>
+        )}
         <View pointerEvents="none" style={{ position: 'absolute', bottom: 30, left: 0, right: 0, alignItems: 'center', zIndex: 9999 }}>
           <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 'bold' }}>
             {AppVersion.getDisplayString()}
