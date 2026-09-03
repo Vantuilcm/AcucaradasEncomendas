@@ -16,6 +16,7 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import { STRIPE_PUBLISHABLE_KEY } from './config/stripe';
 import { AppVersion } from './utils/AppVersion';
 import { OneSignal } from 'react-native-onesignal';
+import * as Notifications from 'expo-notifications';
 import { initOneSignal } from './config/onesignal';
 import { UserUtils } from './utils/UserUtils';
 
@@ -29,6 +30,7 @@ function ThemedApp() {
   const userRole = UserUtils.getUserRole(user);
   const oneSignalInitialized = useRef(false);
   const [oneSignalDiagnostic, setOneSignalDiagnostic] = useState('OS_DIAG waiting');
+  const [nativePushProbe, setNativePushProbe] = useState('EXPO_NATIVE not-run');
 
   useEffect(() => {
     oneSignalInitialized.current = initOneSignal();
@@ -42,6 +44,7 @@ function ThemedApp() {
     let active = true;
     let delayedRead: ReturnType<typeof setTimeout> | null = null;
     let pushObserverAdded = false;
+    let expoPushTokenSubscription: ReturnType<typeof Notifications.addPushTokenListener> | null = null;
 
     const readOneSignalDiagnostic = async (source: string) => {
       try {
@@ -80,6 +83,37 @@ function ThemedApp() {
       }
     };
 
+    const probeNativeApnsToken = async () => {
+      if (active) {
+        setNativePushProbe('EXPO_NATIVE pending');
+      }
+
+      try {
+        const nativeToken = await Notifications.getDevicePushTokenAsync();
+        const probeDiagnostic =
+          'EXPO_NATIVE type=' + String(nativeToken.type || '-') +
+          ' token=' + (nativeToken.data ? 'present' : '-');
+
+        console.log('[EXPO_NATIVE_APNS_PROBE]', probeDiagnostic);
+
+        if (active) {
+          setNativePushProbe(probeDiagnostic);
+        }
+
+        await readOneSignalDiagnostic('after-expo-native');
+      } catch (error) {
+        const probeDiagnostic =
+          'EXPO_NATIVE error=' +
+          (error instanceof Error ? error.message : String(error));
+
+        console.error('[EXPO_NATIVE_APNS_PROBE_FAILED]', error);
+
+        if (active) {
+          setNativePushProbe(probeDiagnostic);
+        }
+      }
+    };
+
     const handlePushSubscriptionChange = () => {
       console.log('[ONESIGNAL_PUSH_SUBSCRIPTION_CHANGE]');
       void readOneSignalDiagnostic('change');
@@ -90,6 +124,20 @@ function ThemedApp() {
         if (userId) {
           await OneSignal.login(userId);
           if (userRole === 'entregador') {
+            expoPushTokenSubscription = Notifications.addPushTokenListener((token) => {
+              const listenerDiagnostic =
+                'EXPO_LISTENER type=' + String(token.type || '-') +
+                ' token=' + (token.data ? 'present' : '-');
+
+              console.log('[EXPO_NATIVE_PUSH_TOKEN_CHANGE]', listenerDiagnostic);
+
+              if (active) {
+                setNativePushProbe(listenerDiagnostic);
+              }
+
+              void readOneSignalDiagnostic('expo-native-listener');
+            });
+
             OneSignal.User.pushSubscription.addEventListener(
               'change',
               handlePushSubscriptionChange
@@ -99,6 +147,7 @@ function ThemedApp() {
             await readOneSignalDiagnostic('pre-optin');
             await OneSignal.User.pushSubscription.optIn();
             await readOneSignalDiagnostic('post-optin');
+            void probeNativeApnsToken();
 
             delayedRead = setTimeout(() => {
               void readOneSignalDiagnostic('post-optin-5s');
@@ -122,6 +171,10 @@ function ThemedApp() {
 
       if (delayedRead) {
         clearTimeout(delayedRead);
+      }
+
+      if (expoPushTokenSubscription) {
+        expoPushTokenSubscription.remove();
       }
 
       if (pushObserverAdded) {
@@ -152,6 +205,9 @@ function ThemedApp() {
           >
             <Text style={{ color: '#FFFFFF', fontSize: 9 }}>
               {oneSignalDiagnostic}
+            </Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 9 }}>
+              {nativePushProbe}
             </Text>
           </View>
         )}
