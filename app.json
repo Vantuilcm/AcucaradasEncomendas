@@ -49,7 +49,10 @@
         "onesignal-expo-plugin",
         {
           "mode": "production",
-          "disableNSE": true
+          "disableNSE": true,
+          "sounds": [
+            "./assets/acucaradas.wav"
+          ]
         }
       ],
       "./plugins/withIosPermissions"
