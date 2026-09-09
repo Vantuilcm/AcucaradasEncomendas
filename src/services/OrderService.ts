@@ -320,9 +320,6 @@ export class OrderService {
           read: false
         });
       } catch (notificationError: any) {
-        if (notificationError?.code !== 'permission-denied') {
-          throw notificationError;
-        }
         loggingService.warn('Falha secundaria de notificacao apos atualizar status do pedido', {
           orderId,
           status,
