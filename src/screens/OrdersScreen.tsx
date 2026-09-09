@@ -21,6 +21,7 @@ import { LoadingState } from '../components/base/LoadingState';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { Order, OrderStatus, OrderFilters, OrderSummary } from '../types/Order';
 import { OrderService } from '../services/OrderService';
+import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 import { formatCurrency } from '../utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
 import { UserUtils } from '../utils/UserUtils';
@@ -289,7 +290,7 @@ export function OrdersScreen() {
                       <Ionicons name="calendar" size={16} color="#FF69B4" />
                       <Text style={styles.scheduledText}>
                         Agendado para{' '}
-                        {new Date(order.scheduledDelivery.date).toLocaleDateString('pt-BR')}
+                        {StoreAvailabilityService.parseLocalDate(order.scheduledDelivery.date).toLocaleDateString('pt-BR')}
                       </Text>
                     </View>
                   )}

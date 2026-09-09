@@ -8,6 +8,7 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import { formatCurrency } from '../utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
 import { PrintOrderButton } from '../components/PrintOrderButton';
+import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 
 export default function OrderCompletedScreen() {
   const theme = useTheme();
@@ -95,7 +96,7 @@ export default function OrderCompletedScreen() {
                     style={styles.infoIcon}
                   />
                   <Text style={styles.infoText}>
-                    {new Date(order.scheduledDelivery.date).toLocaleDateString('pt-BR', {
+                    {StoreAvailabilityService.parseLocalDate(order.scheduledDelivery.date).toLocaleDateString('pt-BR', {
                       day: '2-digit',
                       month: '2-digit',
                       year: 'numeric',

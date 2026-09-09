@@ -5,6 +5,7 @@ import * as Print from '../compat/expoPrint';
 import * as Sharing from 'expo-sharing';
 import { Order } from '../types/Order';
 import { formatCurrency } from '../utils/formatters';
+import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 
 interface PrintOrderButtonProps {
   order: Order;
@@ -43,7 +44,7 @@ export const PrintOrderButton = ({ order, compact = false }: PrintOrderButtonPro
     // Informações de agendamento (se existir)
     let scheduledInfoHTML = '';
     if (order.isScheduledOrder && order.scheduledDelivery) {
-      const scheduledDate = new Date(order.scheduledDelivery.date);
+      const scheduledDate = StoreAvailabilityService.parseLocalDate(order.scheduledDelivery.date);
       const formattedDate = scheduledDate.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',

@@ -10,6 +10,7 @@ import { SkeletonList } from '../components/base/SkeletonLoading';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { Order, OrderStatus } from '../types/Order';
 import { OrderService } from '../services/OrderService';
+import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { formatCurrency } from '../utils/formatters';
 import { DeliveryTracker } from '../components/DeliveryTracker';
@@ -240,7 +241,7 @@ export function OrderDetailsScreen() {
                       style={styles.infoIcon}
                     />
                     <Text style={styles.infoText}>
-                      {new Date(order.scheduledDelivery.date).toLocaleDateString('pt-BR', {
+                      {StoreAvailabilityService.parseLocalDate(order.scheduledDelivery.date).toLocaleDateString('pt-BR', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
