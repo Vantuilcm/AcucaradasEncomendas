@@ -310,14 +310,25 @@ export class OrderService {
       } as Order;
 
       // Notificar mudança de status
-      await NotificationService.getInstance().createNotification({
-        userId: updatedOrder.userId,
-        type: 'order_status' as any,
-        title: 'Status do Pedido Atualizado',
-        message: `Seu pedido agora está: ${status}`,
-        priority: 'normal',
-        read: false
-      });
+      try {
+        await NotificationService.getInstance().createNotification({
+          userId: updatedOrder.userId,
+          type: 'order_status' as any,
+          title: 'Status do Pedido Atualizado',
+          message: `Seu pedido agora está: ${status}`,
+          priority: 'normal',
+          read: false
+        });
+      } catch (notificationError: any) {
+        if (notificationError?.code !== 'permission-denied') {
+          throw notificationError;
+        }
+        loggingService.warn('Falha secundaria de notificacao apos atualizar status do pedido', {
+          orderId,
+          status,
+          notificationError,
+        });
+      }
       
       // Se concluído, atualizar serviço de entrega
       if (status === 'delivered' || status === 'cancelled') {
