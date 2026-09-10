@@ -81,8 +81,13 @@ export default function ScheduleDeliveryScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
 
-  // Tempo de preparo padrão (poderá vir do produto/loja no futuro)
-  const PREPARATION_HOURS = 2;
+  const LEGACY_PREPARATION_MINUTES = 120;
+  const preparationMinutes = cart.items.reduce(
+    (maxMinutes, item) =>
+      Math.max(maxMinutes, item.tempoPreparacao ?? LEGACY_PREPARATION_MINUTES),
+    0
+  );
+  const preparationHours = preparationMinutes / 60;
 
   // Dados para o componente de calendário
   const today = new Date();
@@ -150,11 +155,11 @@ export default function ScheduleDeliveryScreen() {
   // Verifica se o dia selecionado é hoje e filtra horários passados
   const filterTimeSlotsByCurrentTime = (timeSlots: TimeSlot[]) => {
     if (selectedDate === minDate) {
-      const currentHour = today.getHours();
+      const currentTimeInMinutes = today.getHours() * 60 + today.getMinutes();
       return timeSlots.filter(slot => {
-        const slotHour = parseInt(slot.value.split(':')[0]);
-        // Adicionar o buffer de preparação mínima
-        return slotHour >= currentHour + PREPARATION_HOURS;
+        const [slotHour, slotMinute] = slot.value.split(':').map(Number);
+        const slotTimeInMinutes = slotHour * 60 + slotMinute;
+        return slotTimeInMinutes >= currentTimeInMinutes + preparationMinutes;
       });
     }
     return timeSlots;
@@ -194,12 +199,12 @@ export default function ScheduleDeliveryScreen() {
       
       const currentTimeInMinutes = currentHour * 60 + currentMinute;
       const selectedTimeInMinutes = selectedHour * 60 + selectedMinute;
-      const minTimeInMinutes = currentTimeInMinutes + (PREPARATION_HOURS * 60);
+      const minTimeInMinutes = currentTimeInMinutes + preparationMinutes;
 
       if (selectedTimeInMinutes < minTimeInMinutes) {
         Alert.alert(
           'Horário inválido', 
-          `O tempo mínimo de preparo é de ${PREPARATION_HOURS} horas. Por favor, escolha um horário posterior.`
+          `O tempo mínimo de preparo é de ${preparationHours} horas. Por favor, escolha um horário posterior.`
         );
         return;
       }
@@ -210,7 +215,7 @@ export default function ScheduleDeliveryScreen() {
       date: selectedDate,
       timeSlot: selectedTimeSlot,
       customTime: selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      preparationHours: PREPARATION_HOURS,
+      preparationHours: preparationHours,
       specialInstructions,
     };
 
@@ -352,7 +357,7 @@ export default function ScheduleDeliveryScreen() {
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoTitle}>Preparo Padrão</Text>
               <Text style={styles.infoDescription}>
-                Tempo estimado: {PREPARATION_HOURS} horas. Os horários disponíveis já consideram este tempo.
+                Tempo estimado: {preparationHours} horas. Os horários disponíveis já consideram este tempo.
               </Text>
             </View>
           </View>

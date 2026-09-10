@@ -5,6 +5,7 @@ export interface CartItem {
   id: string;
   productId: string;
   producerId?: string; // ID do produtor/loja deste item
+  tempoPreparacao?: number; // minutos; 0 = pronta entrega
   name: string;
   price: number;
   quantity: number;

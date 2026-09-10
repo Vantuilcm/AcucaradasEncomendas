@@ -568,7 +568,7 @@ export function ScheduledOrdersScreen() {
                       <View style={styles.prepTime}>
                         <Ionicons name="hourglass-outline" size={18} color="#FF69B4" />
                         <Text style={styles.prepTimeText}>
-                          Preparo: {order.scheduledDelivery?.preparationHours || 2}h
+                          Preparo: {order.scheduledDelivery?.preparationHours ?? 2}h
                         </Text>
                       </View>
 

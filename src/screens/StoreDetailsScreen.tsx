@@ -70,6 +70,7 @@ export function StoreDetailsScreen() {
         productId: product.id,
         name: product.nome,
         producerId: store?.producerId || product.producerId,
+        tempoPreparacao: product.tempoPreparacao,
         price: product.preco,
         quantity: 1,
         image: product.imagens?.[0]

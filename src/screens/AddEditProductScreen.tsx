@@ -63,6 +63,8 @@ export function AddEditProductScreen() {
     stock: '1',
     available: true,
   });
+  const [preparationType, setPreparationType] = useState<'ready' | 'madeToOrder'>('madeToOrder');
+  const [preparationHours, setPreparationHours] = useState('2');
 
   // Campos dinâmicos
   const [dynamicFields, setDynamicFields] = useState({
@@ -107,6 +109,14 @@ export function AddEditProductScreen() {
         stock: product.estoque?.toString() || '0',
         available: product.disponivel ?? true,
       });
+
+      const savedPreparationMinutes = product.tempoPreparacao;
+      setPreparationType(savedPreparationMinutes === 0 ? 'ready' : 'madeToOrder');
+      setPreparationHours(
+        savedPreparationMinutes !== undefined && savedPreparationMinutes > 0
+          ? String(savedPreparationMinutes / 60)
+          : '2'
+      );
       
       setDietaryTags(product.dietaryTags || []);
       setEventTags(product.eventTags || []);
@@ -178,6 +188,15 @@ export function AddEditProductScreen() {
   const handleSaveProduct = async () => {
     if (!validateForm()) return;
 
+    const parsedPreparationHours = Number(preparationHours.replace(',', '.'));
+    if (
+      preparationType === 'madeToOrder' &&
+      (!Number.isFinite(parsedPreparationHours) || parsedPreparationHours <= 0)
+    ) {
+      Alert.alert('Tempo de preparo inválido', 'Informe um tempo de preparo maior que zero.');
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -201,6 +220,7 @@ export function AddEditProductScreen() {
         categoria: productData.category,
         estoque: parseInt(productData.stock) || 0,
         disponivel: productData.available,
+        tempoPreparacao: preparationType === 'ready' ? 0 : Math.round(parsedPreparationHours * 60),
         temEstoque: (parseInt(productData.stock) || 0) > 0,
         imagens: image ? [image] : [],
         listingType,
@@ -511,7 +531,27 @@ export function AddEditProductScreen() {
             <Divider style={styles.divider} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Disponibilidade Imediata</Text>
+              <Text style={styles.sectionTitle}>Tipo de Preparo</Text>
+              <View style={styles.availabilityContainer}>
+                <Chip mode={preparationType === 'ready' ? 'flat' : 'outlined'} selected={preparationType === 'ready'} onPress={() => setPreparationType('ready')} style={styles.chip}>Pronta entrega</Chip>
+                <Chip mode={preparationType === 'madeToOrder' ? 'flat' : 'outlined'} selected={preparationType === 'madeToOrder'} onPress={() => setPreparationType('madeToOrder')} style={styles.chip}>Sob encomenda</Chip>
+              </View>
+              {preparationType === 'madeToOrder' && (
+                <TextInput
+                  label="Tempo de preparo (horas)"
+                  value={preparationHours}
+                  onChangeText={setPreparationHours}
+                  keyboardType="decimal-pad"
+                  style={styles.input}
+                  mode="outlined"
+                />
+              )}
+            </View>
+
+            <Divider style={styles.divider} />
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Disponibilidade para venda</Text>
               <View style={styles.availabilityContainer}>
                 <Chip mode={productData.available ? 'flat' : 'outlined'} selected={productData.available} onPress={() => setProductData({ ...productData, available: true })} style={[styles.chip, productData.available && styles.availableChip]}>Sim</Chip>
                 <Chip mode={!productData.available ? 'flat' : 'outlined'} selected={!productData.available} onPress={() => setProductData({ ...productData, available: false })} style={[styles.chip, !productData.available && styles.unavailableChip]}>Não</Chip>

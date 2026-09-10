@@ -123,6 +123,7 @@ export function ProductGrid({
           productId: product.id,
           name: product.nome,
           producerId: product.producerId,
+          tempoPreparacao: product.tempoPreparacao,
           price: product.preco,
           quantity: 1,
           image:
