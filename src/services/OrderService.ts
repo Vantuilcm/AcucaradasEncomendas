@@ -4,6 +4,9 @@ import { loggingService } from './LoggingService';
 // import { DeliveryService } from './DeliveryService';
 import { NotificationService } from './NotificationService';
 import { GrowthService } from './GrowthService';
+import { StoreAvailabilityService } from './StoreAvailabilityService';
+
+const COURIER_RELEASE_LEAD_MINUTES = 30;
 
 export class OrderService {
   private readonly collectionName = 'orders';
@@ -14,6 +17,50 @@ export class OrderService {
   private constructor() {
     // Inicialização do serviço
     loggingService.info('OrderService inicializado');
+  }
+
+  private isOrderReleasedForCourier(
+    order: Pick<Order, 'isScheduledOrder' | 'scheduledDelivery'>,
+    now: Date = new Date()
+  ): boolean {
+    if (!order.isScheduledOrder) return true;
+
+    const schedule = order.scheduledDelivery;
+    if (!schedule?.date) return false;
+
+    const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(schedule.date);
+    if (!dateMatch) return false;
+
+    const rawTime =
+      schedule.type === 'scheduled'
+        ? schedule.timeSlot?.split(' - ')[0]?.trim()
+        : schedule.type === 'custom'
+          ? schedule.customTime?.trim()
+          : undefined;
+
+    if (!rawTime || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(rawTime)) return false;
+
+    const [hours, minutes] = rawTime.split(':').map(Number);
+    const year = Number(dateMatch[1]);
+    const month = Number(dateMatch[2]);
+    const day = Number(dateMatch[3]);
+    const scheduledStart = StoreAvailabilityService.parseLocalDate(schedule.date);
+
+    if (
+      Number.isNaN(scheduledStart.getTime()) ||
+      scheduledStart.getFullYear() !== year ||
+      scheduledStart.getMonth() !== month - 1 ||
+      scheduledStart.getDate() !== day
+    ) {
+      return false;
+    }
+
+    scheduledStart.setHours(hours, minutes, 0, 0);
+    const releaseAt = new Date(
+      scheduledStart.getTime() - COURIER_RELEASE_LEAD_MINUTES * 60 * 1000
+    );
+
+    return now.getTime() >= releaseAt.getTime();
   }
 
   public static getInstance(): OrderService {
@@ -384,6 +431,10 @@ export class OrderService {
 
         // Se o status não for mais 'ready' (pode ter sido cancelado, etc)
         if (data.status !== 'ready') {
+          throw new Error('ORDER_NOT_AVAILABLE');
+        }
+
+        if (!this.isOrderReleasedForCourier(data)) {
           throw new Error('ORDER_NOT_AVAILABLE');
         }
 

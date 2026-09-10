@@ -17,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAppTheme } from '../components/ThemeProvider';
 import { OrderService } from '../services/OrderService';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
+import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 import { Order, OrderStatus } from '../types/Order';
 import { DeliveryDriver } from '../types/DeliveryDriver';
 import { formatCurrency } from '../utils/formatters';
@@ -37,6 +38,49 @@ const isDriverToggleDiagnosticEnv =
   Constants.expoConfig?.extra?.env === 'preview';
 
 const isDriverLoadForensicEnv = isDriverToggleDiagnosticEnv;
+
+const COURIER_RELEASE_LEAD_MINUTES = 30;
+
+const isOrderReleasedForCourier = (order: Order, now: Date = new Date()): boolean => {
+  if (!order.isScheduledOrder) return true;
+
+  const schedule = order.scheduledDelivery;
+  if (!schedule?.date) return false;
+
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(schedule.date);
+  if (!dateMatch) return false;
+
+  const rawTime =
+    schedule.type === 'scheduled'
+      ? schedule.timeSlot?.split(' - ')[0]?.trim()
+      : schedule.type === 'custom'
+        ? schedule.customTime?.trim()
+        : undefined;
+
+  if (!rawTime || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(rawTime)) return false;
+
+  const [hours, minutes] = rawTime.split(':').map(Number);
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const scheduledStart = StoreAvailabilityService.parseLocalDate(schedule.date);
+
+  if (
+    Number.isNaN(scheduledStart.getTime()) ||
+    scheduledStart.getFullYear() !== year ||
+    scheduledStart.getMonth() !== month - 1 ||
+    scheduledStart.getDate() !== day
+  ) {
+    return false;
+  }
+
+  scheduledStart.setHours(hours, minutes, 0, 0);
+  const releaseAt = new Date(
+    scheduledStart.getTime() - COURIER_RELEASE_LEAD_MINUTES * 60 * 1000
+  );
+
+  return now.getTime() >= releaseAt.getTime();
+};
 
 export function DriverHomeScreen() {
   const { theme } = useAppTheme();
@@ -142,7 +186,9 @@ export function DriverHomeScreen() {
 
         if (!active) return;
 
-        const available = allOrders.filter(o => o.status === 'ready' && !o.deliveryDriver);
+        const available = allOrders.filter(
+          o => o.status === 'ready' && !o.deliveryDriver && isOrderReleasedForCourier(o)
+        );
         const activeOrders = allOrders.filter(o => 
           o.deliveryDriver?.id === driver?.id && 
           ['ready', 'delivering'].includes(o.status)
