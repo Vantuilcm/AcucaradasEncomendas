@@ -557,14 +557,6 @@ export function AdminDashboardScreen() {
 
           <Divider />
 
-          <List.Item
-            title="Promoções"
-            description="Gerenciar cupons e descontos"
-            left={() => <List.Icon icon="tag" color={theme.colors.primary} />}
-            right={() => <List.Icon icon="chevron-right" />}
-            onPress={() => (navigation as any).navigate('PromotionManagement')}
-            style={styles.menuItem}
-          />
 
           <Divider />
 

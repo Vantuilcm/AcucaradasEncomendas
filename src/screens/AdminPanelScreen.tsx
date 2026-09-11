@@ -93,7 +93,6 @@ const AdminPanelScreen = () => {
           <MenuItem title="Detalhes da Loja" subtitle="Nome, logo e banner" icon="store-edit-outline" route="settings" color="#FF9800" />
 
           <Text style={styles.sectionTitle}>🎉 Promoções</Text>
-          <MenuItem title="Cupons de Desconto" subtitle="Crie ofertas exclusivas" icon="ticket-percent-outline" route="" color="#4CAF50" />
           <MenuItem title="Combos" subtitle="Agrupe produtos" icon="package-variant" route="" color="#FF5722" />
 
           <Text style={styles.sectionTitle}>⏰ Atendimento</Text>
