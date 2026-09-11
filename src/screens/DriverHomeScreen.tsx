@@ -326,13 +326,21 @@ export function DriverHomeScreen() {
 
     try {
       // Usa o novo método atômico para blindar corrida fantasma/concorrência
-      await orderService.acceptOrderAtomic(order.id, {
+      const acceptedOrder = await orderService.acceptOrderAtomic(order.id, {
         id: driver.id,
         name: driver.name,
         phone: driver.phone,
         vehicle: driver.vehicle.model,
         plate: driver.vehicle.plate
       });
+
+      setAvailableOrders(previousOrders =>
+        previousOrders.filter(existingOrder => existingOrder.id !== acceptedOrder.id)
+      );
+      setActiveOrders(previousOrders => [
+        acceptedOrder,
+        ...previousOrders.filter(existingOrder => existingOrder.id !== acceptedOrder.id),
+      ]);
       
       Alert.alert('Sucesso', 'Entrega aceita! Vá até a loja para retirar.');
     } catch (error: any) {
