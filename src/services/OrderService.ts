@@ -347,14 +347,14 @@ export class OrderService {
       }
 
       const updatedAt = new Date().toISOString();
-      await f.updateDoc(orderRef, { status, updatedAt });
-
       const updatedOrder = {
         id: orderId,
         ...orderDoc.data(),
         status,
         updatedAt,
       } as Order;
+
+      await f.updateDoc(orderRef, { status, updatedAt });
 
       // Notificar mudança de status
       try {
