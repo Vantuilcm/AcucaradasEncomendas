@@ -174,13 +174,38 @@ export function OrderManagementScreen() {
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    let diagnosticStage = 'SERVICE_CALL';
+
     try {
       await orderService.updateOrderStatus(orderId, newStatus);
-      // O onSnapshot cuidará de atualizar a lista de pedidos automaticamente
+      diagnosticStage = 'SERVICE_RESOLVED';
+
+      diagnosticStage = 'MENU_CLOSE';
       setMenuVisible(null);
+      diagnosticStage = 'MENU_CLOSED';
     } catch (error) {
+      const callerFailureStage = diagnosticStage;
+      diagnosticStage = 'CALLER_CATCH';
+
+      const serviceStage =
+        error && typeof error === 'object'
+          ? (error as any).__aeOrderStatusStage
+          : undefined;
+
+      const safeServiceStage =
+        typeof serviceStage === 'string' &&
+        /^[A-Z_]+$/.test(serviceStage) &&
+        serviceStage.length <= 40
+          ? serviceStage
+          : undefined;
+
+      const failureStage = safeServiceStage || callerFailureStage;
+
       console.error('Erro ao atualizar status do pedido:', error);
-      Alert.alert('Erro', 'Não foi possível atualizar o status do pedido.');
+      Alert.alert(
+        'Erro',
+        `Não foi possível atualizar o status do pedido. [DIAG:${failureStage}]`
+      );
     }
   };
 

@@ -335,17 +335,35 @@ export class OrderService {
    * @returns O pedido atualizado
    */
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+    let diagnosticStage = 'VALIDATE_ID';
+
+    const attachDiagnosticStage = (error: unknown, stage: string): void => {
+      if (error && typeof error === 'object') {
+        try {
+          (error as any).__aeOrderStatusStage = stage;
+        } catch {
+          // Diagnostic metadata must never replace the original failure.
+        }
+      }
+    };
+
     try {
       if (!this.assertValidId(orderId, 'orderId')) {
         throw new Error('ID de pedido inválido');
       }
+
+      diagnosticStage = 'DOC_REF';
       const orderRef = f.doc(this.collectionName, orderId);
+
+      diagnosticStage = 'GETDOC';
       const orderDoc = await f.getDoc(orderRef);
 
+      diagnosticStage = 'EXISTS_CHECK';
       if (!orderDoc.exists()) {
         throw new Error('Pedido não encontrado');
       }
 
+      diagnosticStage = 'BUILD_UPDATED_ORDER';
       const updatedAt = new Date().toISOString();
       const updatedOrder = {
         id: orderId,
@@ -354,10 +372,13 @@ export class OrderService {
         updatedAt,
       } as Order;
 
+      diagnosticStage = 'UPDATEDOC';
       await f.updateDoc(orderRef, { status, updatedAt });
+      diagnosticStage = 'UPDATEDOC_RESOLVED';
 
       // Notificar mudança de status
       try {
+        diagnosticStage = 'NOTIFICATION';
         await NotificationService.getInstance().createNotification({
           userId: updatedOrder.userId,
           type: 'order_status' as any,
@@ -366,25 +387,40 @@ export class OrderService {
           priority: 'normal',
           read: false
         });
+        diagnosticStage = 'NOTIFICATION_RESOLVED';
       } catch (notificationError: any) {
+        diagnosticStage = 'NOTIFICATION_CAUGHT';
+        diagnosticStage = 'NOTIFICATION_CATCH_WARN';
         loggingService.warn('Falha secundaria de notificacao apos atualizar status do pedido', {
           orderId,
           status,
           notificationError,
         });
+        diagnosticStage = 'NOTIFICATION_CATCH_WARN_RESOLVED';
       }
-      
+
       // Se concluído, atualizar serviço de entrega
       if (status === 'delivered' || status === 'cancelled') {
-        // Nota: O DeliveryService original não tinha completeDelivery, 
+        // Nota: O DeliveryService original não tinha completeDelivery,
         // mas tinha updateDeliveryStatus. Como o ID da entrega pode ser diferente do ID do pedido,
         // aqui precisaríamos buscar a entrega vinculada ao pedido.
+        diagnosticStage = 'FINAL_STATUS_LOG';
         loggingService.info('Status final do pedido atingido', { orderId, status });
       }
 
+      diagnosticStage = 'RETURN';
       return updatedOrder;
     } catch (error) {
-      loggingService.error('Erro ao atualizar status do pedido', { error, orderId, status });
+      attachDiagnosticStage(error, diagnosticStage);
+
+      try {
+        diagnosticStage = 'OUTER_CATCH_LOG';
+        loggingService.error('Erro ao atualizar status do pedido', { error, orderId, status });
+      } catch (loggingError) {
+        attachDiagnosticStage(loggingError, diagnosticStage);
+        throw loggingError;
+      }
+
       throw error;
     }
   }
