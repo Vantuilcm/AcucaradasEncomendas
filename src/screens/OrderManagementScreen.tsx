@@ -201,10 +201,21 @@ export function OrderManagementScreen() {
 
       const failureStage = safeServiceStage || callerFailureStage;
 
+      const rawErrorCode =
+        error && typeof error === 'object'
+          ? (error as any).code
+          : undefined;
+
+      const safeErrorCode =
+        typeof rawErrorCode === 'string' &&
+        /^[A-Za-z0-9_./-]{1,80}$/.test(rawErrorCode)
+          ? rawErrorCode
+          : 'UNKNOWN_ERROR_CODE';
+
       console.error('Erro ao atualizar status do pedido:', error);
       Alert.alert(
         'Erro',
-        `Não foi possível atualizar o status do pedido. [DIAG:${failureStage}]`
+        `Não foi possível atualizar o status do pedido. [DIAG:${failureStage}] [CODE:${safeErrorCode}]`
       );
     }
   };
