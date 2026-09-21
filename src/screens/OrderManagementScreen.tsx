@@ -1,4 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
+// @ts-ignore
+import * as CryptoJS from 'crypto-js';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import {
   Text,
@@ -40,6 +42,13 @@ export function OrderManagementScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
+  useEffect(() => {
+    const diagnosticAuthId = (user as any)?.id || (user as any)?.uid;
+    if (!diagnosticAuthId) {
+      return;
+    }
+    console.error(`M187_AUTH_UID_SHA256=${CryptoJS.SHA256(String(diagnosticAuthId)).toString()}`);
+  }, [user]);
   const { isProdutor, isAdmin, isEntregador } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
