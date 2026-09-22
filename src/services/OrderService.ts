@@ -1,4 +1,6 @@
 import { dbFunctions as f } from '../config/firebase';
+// @ts-ignore
+import * as CryptoJS from 'crypto-js';
 import { Order, OrderFilters, OrderSummary, OrderStatus } from '../types/Order';
 import { loggingService } from './LoggingService';
 // import { DeliveryService } from './DeliveryService';
@@ -373,6 +375,39 @@ export class OrderService {
       } as Order;
 
       diagnosticStage = 'UPDATEDOC';
+      try {
+        const diagnosticResource = orderDoc.data() as Partial<Order>;
+        const diagnosticResourceProducerId =
+          typeof diagnosticResource.producerId === 'string'
+            ? diagnosticResource.producerId
+            : '';
+        const diagnosticPayloadKeys = Object.keys({ status, updatedAt }).sort();
+
+        console.error(
+          'M232_PREWRITE=' +
+            JSON.stringify({
+              ORDER_ID_SHA256: CryptoJS.SHA256(String(orderId)).toString(),
+              RESOURCE_STATUS:
+                typeof diagnosticResource.status === 'string'
+                  ? diagnosticResource.status
+                  : 'ABSENT',
+              RESOURCE_PRODUCER_ID_SHA256: diagnosticResourceProducerId
+                ? CryptoJS.SHA256(diagnosticResourceProducerId).toString()
+                : 'ABSENT',
+              TARGET_STATUS: status,
+              UPDATED_AT_PRESENT: typeof updatedAt === 'string' && updatedAt.length > 0,
+              UPDATED_AT_TYPE_CLASS: typeof updatedAt,
+              PAYLOAD_KEYS_SORTED: diagnosticPayloadKeys.join(','),
+              PAYLOAD_EXTRA_KEY_COUNT: diagnosticPayloadKeys.filter(
+                key => key !== 'status' && key !== 'updatedAt'
+              ).length,
+              PAYLOAD_FINANCIAL_KEY_INTERSECTION_COUNT: 0,
+              PAYLOAD_IDENTITY_KEY_INTERSECTION_COUNT: 0,
+            })
+        );
+      } catch {
+        // Diagnostic telemetry must never change order update behavior.
+      }
       await f.updateDoc(orderRef, { status, updatedAt });
       diagnosticStage = 'UPDATEDOC_RESOLVED';
 
