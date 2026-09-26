@@ -658,8 +658,14 @@ exports.stripeWebhook = functions
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
   } else {
-    // Apenas para fallback local/dev sem secret
-    event = req.body;
+    // Fail-closed (M033): sem webhook secret não processar evento sem assinatura.
+    console.error('⚠️ [Stripe Webhook] STRIPE_WEBHOOK_SECRET ausente; rejeitando evento sem assinatura');
+    await db.collection('stripe_webhook_errors').add({
+      error: 'webhook_secret_missing',
+      type: 'configuration',
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return res.status(500).send('Webhook Error: configuration');
   }
 
   try {
