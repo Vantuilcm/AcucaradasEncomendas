@@ -801,8 +801,9 @@ exports.stripeWebhook = functions
               }
             } catch (splitError) {
               console.error(`❌ [Split] Erro crítico ao repassar fundos para o pedido ${orderId}:`, splitError);
-              payoutStatus = 'failed';
-              updates.payoutError = splitError.message;
+              // Fail-closed (M031): abort transaction so order is not marked paid and
+              // stripe_events is not finalized; top-level catch returns 5xx for Stripe retry.
+              throw splitError;
             }
           } else {
              // Caso seja um pedido legado sem os campos novos
