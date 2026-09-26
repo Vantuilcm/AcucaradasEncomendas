@@ -158,8 +158,86 @@ service cloud.firestore {
     }
     
     // ================================
-    // Pedidos
+    // Pedidos — P5-ORD-001 update boundary
     // ================================
+    // WHAT-gates for orders/{orderId} update (WHO-gates preserved; P5-ORD-002 out of scope).
+    function orderUpdateKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function buyerOrderUpdateAllowed() {
+      return isOwner(resource.data.userId)
+        && orderUpdateKeys().hasOnly(['status', 'cancellationReason', 'updatedAt'])
+        && (
+          !orderUpdateKeys().hasAny(['status'])
+          || request.resource.data.status == 'cancelled'
+        );
+    }
+
+    function producerOrderUpdateAllowed() {
+      return isProducer()
+        && orderUpdateKeys().hasOnly([
+          'status',
+          'updatedAt',
+          'watchdogAlertSent',
+          'watchdogAlertTimestamp'
+        ])
+        && (
+          !orderUpdateKeys().hasAny(['status'])
+          || request.resource.data.status in [
+            'pending',
+            'confirmed',
+            'preparing',
+            'ready',
+            'delivering',
+            'delivered',
+            'cancelled'
+          ]
+        );
+    }
+
+    function courierOrderUpdateAllowed() {
+      return isCourier()
+        && orderUpdateKeys().hasOnly([
+          'deliveryDriver',
+          'deliveryDriverId',
+          'status',
+          'updatedAt'
+        ])
+        && (
+          !orderUpdateKeys().hasAny(['status'])
+          || request.resource.data.status in [
+            'ready',
+            'delivering',
+            'delivered',
+            'cancelled'
+          ]
+        );
+    }
+
+    function adminOrderUpdateAllowed() {
+      return isAdmin()
+        && orderUpdateKeys().hasOnly([
+          'status',
+          'cancellationReason',
+          'updatedAt',
+          'watchdogAlertSent',
+          'watchdogAlertTimestamp'
+        ])
+        && (
+          !orderUpdateKeys().hasAny(['status'])
+          || request.resource.data.status in [
+            'pending',
+            'confirmed',
+            'preparing',
+            'ready',
+            'delivering',
+            'delivered',
+            'cancelled'
+          ]
+        );
+    }
+
     match /orders/{orderId} {
       allow read: if
         isOwner(resource.data.userId) ||
@@ -170,10 +248,10 @@ service cloud.firestore {
       allow create: if isAuthenticated();
 
       allow update: if
-        isAdmin() ||
-        isOwner(resource.data.userId) ||
-        isProducer() ||
-        isCourier();
+        buyerOrderUpdateAllowed() ||
+        producerOrderUpdateAllowed() ||
+        courierOrderUpdateAllowed() ||
+        adminOrderUpdateAllowed();
 
       allow delete: if isAdmin();
     }
