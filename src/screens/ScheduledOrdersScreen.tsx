@@ -107,17 +107,11 @@ export function ScheduledOrdersScreen() {
           throw new Error('Entregador não encontrado');
         }
         ordersData = (await orderService.getOrdersByDeliveryDriver(driver.id)).filter(isScheduledOrder);
-      } else if (isProdutor || isAdmin) {
+      } else if (isAdmin) {
         const allOrders = await orderService.getOrders();
-        ordersData = allOrders.filter(order => {
-          if (!isScheduledOrder(order)) {
-            return false;
-          }
-          if (isAdmin) {
-            return true;
-          }
-          return order.producerId === userId;
-        });
+        ordersData = allOrders.filter(isScheduledOrder);
+      } else if (isProdutor) {
+        ordersData = (await orderService.getProducerOrders(userId)).filter(isScheduledOrder);
       } else {
         ordersData = (await orderService.getUserOrders(userId)).filter(isScheduledOrder);
       }

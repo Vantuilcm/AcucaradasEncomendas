@@ -653,7 +653,8 @@ export class OrderService {
   }
 
   /**
-   * Obtém pedidos de um produtor via getOrders() + filtro client-side (sem índice composto).
+   * Obtém pedidos de um produtor via where(producerId) sem orderBy (sem índice composto).
+   * Ordenação visível createdAt desc é aplicada no cliente.
    */
   async getProducerOrders(producerId: string): Promise<Order[]> {
     try {
@@ -661,8 +662,29 @@ export class OrderService {
         return [];
       }
 
-      const allOrders = await this.getOrders();
-      return allOrders.filter(order => order.producerId === producerId);
+      const ordersRef = f.collection(this.collectionName);
+      const q = f.query(ordersRef, f.where('producerId', '==', producerId));
+      const querySnapshot = await f.getDocs(q);
+
+      const orders = querySnapshot.docs.map((docSnapshot: any) => ({
+        id: docSnapshot.id,
+        ...docSnapshot.data(),
+      })) as Order[];
+
+      const createdAtMs = (order: Order): number => {
+        const value: any = order.createdAt;
+        if (!value) return 0;
+        if (typeof value?.toDate === 'function') {
+          return value.toDate().getTime();
+        }
+        if (value instanceof Date) {
+          return value.getTime();
+        }
+        const parsed = new Date(value).getTime();
+        return Number.isNaN(parsed) ? 0 : parsed;
+      };
+
+      return orders.sort((a, b) => createdAtMs(b) - createdAtMs(a));
     } catch (error) {
       loggingService.error('Erro ao buscar pedidos do produtor', { error, producerId });
       throw error;

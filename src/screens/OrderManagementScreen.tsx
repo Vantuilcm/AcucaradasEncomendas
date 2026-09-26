@@ -65,12 +65,16 @@ export function OrderManagementScreen() {
 
     const loadOrdersOnce = async () => {
       try {
-        const realtimeOrders = await orderService.getOrders();
+        const userId = (user as any)?.id || (user as any)?.uid;
+        const realtimeOrders =
+          isProdutor && !isAdmin && userId
+            ? await orderService.getProducerOrders(userId)
+            : await orderService.getOrders();
         if (active) {
           setOrders(realtimeOrders);
         }
       } catch (error) {
-        console.error('[ORDER_MANAGEMENT_DEBUG] Falha ao carregar pedidos via getOrders:', error);
+        console.error('[ORDER_MANAGEMENT_DEBUG] Falha ao carregar pedidos:', error);
       } finally {
         if (active) {
           setLoading(false);
@@ -82,7 +86,7 @@ export function OrderManagementScreen() {
     return () => {
       active = false;
     };
-  }, [orderService]);
+  }, [orderService, user, isProdutor, isAdmin]);
 
   useEffect(() => {
     filterOrders();
