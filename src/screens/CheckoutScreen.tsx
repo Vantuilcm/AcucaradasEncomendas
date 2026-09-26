@@ -20,7 +20,6 @@ import { Card, Button, Divider, Chip } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { OrderItem } from '../types/Order';
 import { OrderService } from '../services/OrderService';
-import { PaymentService } from '../services/PaymentService';
 import { ProductService } from '../services/ProductService';
 import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 import { StoreService } from '../services/StoreService';
@@ -145,7 +144,6 @@ export default function CheckoutScreen() {
   const { user } = useAuth();
   const validationService = ValidationService.getInstance();
   const orderService = OrderService.getInstance();
-  const paymentService = PaymentService.getInstance();
   const storeService = new StoreService();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
@@ -334,21 +332,11 @@ export default function CheckoutScreen() {
     }
 
     if (paymentMethod === 'creditCard' && !ENABLE_STRIPE) {
-      // Validar cartão de crédito (fluxo legado sem PaymentSheet)
-      if (!cardNumber || !cardholderName || !expirationDate || !cvv) {
-        Alert.alert('Erro', 'Por favor, preencha todos os dados do cartão');
-        return;
-      }
-
-      if (cardNumber.replace(/\s/g, '').length !== 16) {
-        Alert.alert('Erro', 'Número do cartão inválido');
-        return;
-      }
-
-      if (cvv.length < 3) {
-        Alert.alert('Erro', 'Código de segurança inválido');
-        return;
-      }
+      Alert.alert(
+        'Pagamento com cartão indisponível',
+        'O fluxo legado de cartão foi desativado. Ative o pagamento Stripe (PaymentSheet) ou use PIX quando disponível.'
+      );
+      return;
     }
 
     if (!user) {
@@ -670,20 +658,11 @@ export default function CheckoutScreen() {
               throw stripeErr;
             }
           } else {
-            // Fluxo antigo de fallback
-            const [expMonth, expYear] = expirationDate.split('/');
-            const cardDetails = {
-              number: cardNumber.replace(/\s/g, ''),
-              expMonth: Number(expMonth),
-              expYear: Number(`20${expYear}`),
-              cvc: cvv,
-              holderName: cardholderName,
-            };
-
-            const paymentResult = await paymentService.processCreditCardPayment(newOrder.id, cardDetails);
-            if (!paymentResult) {
-              throw new Error('Pagamento recusado');
-            }
+            // Legacy card fallback neutralized (M027):
+            // previous client path marked orders paid and sent BRL major as Stripe cents.
+            throw new Error(
+              'Pagamento com cartão indisponível: fluxo legado desativado. Use Stripe PaymentSheet.'
+            );
           }
 
           const updatedOrder = await orderService.getOrderById(newOrder.id);
