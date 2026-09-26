@@ -183,67 +183,14 @@ export function OrderManagementScreen() {
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
-    let diagnosticStage = 'SERVICE_CALL';
-
     try {
       await orderService.updateOrderStatus(orderId, newStatus);
-      diagnosticStage = 'SERVICE_RESOLVED';
-
-      diagnosticStage = 'MENU_CLOSE';
       setMenuVisible(null);
-      diagnosticStage = 'MENU_CLOSED';
     } catch (error) {
-      const callerFailureStage = diagnosticStage;
-      diagnosticStage = 'CALLER_CATCH';
-
-      const serviceStage =
-        error && typeof error === 'object'
-          ? (error as any).__aeOrderStatusStage
-          : undefined;
-
-      const safeServiceStage =
-        typeof serviceStage === 'string' &&
-        /^[A-Z_]+$/.test(serviceStage) &&
-        serviceStage.length <= 40
-          ? serviceStage
-          : undefined;
-
-      const failureStage = safeServiceStage || callerFailureStage;
-
-      const rawErrorCode =
-        error && typeof error === 'object'
-          ? (error as any).code
-          : undefined;
-
-      const safeErrorCode =
-        typeof rawErrorCode === 'string' &&
-        /^[A-Za-z0-9_./-]{1,80}$/.test(rawErrorCode)
-          ? rawErrorCode
-          : 'UNKNOWN_ERROR_CODE';
-      const diagnosticOrder = orders.find(order => order.id === orderId);
-      const diagnosticUserId = (user as any)?.id || (user as any)?.uid;
-
-      const diagnosticUidMatch =
-        !diagnosticOrder || !diagnosticUserId
-          ? 'Unknown'
-          : diagnosticOrder.producerId === diagnosticUserId
-            ? 'True'
-            : 'False';
-
-      const diagnosticRoleProdutor = isProdutor ? 'True' : 'False';
-
-      const diagnosticUserStatus = (user as any)?.status;
-      const diagnosticStatusBlocked =
-        typeof diagnosticUserStatus !== 'string'
-          ? 'Unknown'
-          : diagnosticUserStatus === 'blocked'
-            ? 'True'
-            : 'False';
-
       console.error('Erro ao atualizar status do pedido:', error);
       Alert.alert(
         'Erro',
-        `Não foi possível atualizar o status do pedido. [DIAG:${failureStage}] [CODE:${safeErrorCode}] [UID_MATCH:${diagnosticUidMatch}] [ROLE_PRODUTOR:${diagnosticRoleProdutor}] [STATUS_BLOCKED:${diagnosticStatusBlocked}]`
+        `Não foi possível atualizar o status do pedido.`
       );
     }
   };
