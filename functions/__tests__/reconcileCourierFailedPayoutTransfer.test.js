@@ -457,6 +457,19 @@ describe('reconcileCourierFailedPayoutTransfer', () => {
     expect(result.reconciliation.classification).toBe('divergent_match');
   });
 
+  test('filters producer transfers before reconciliation', async () => {
+    setEligibleState();
+    mockStripeInstance.transfers.list.mockResolvedValue({
+      data: [{
+        ...exactActiveTransfer,
+        metadata: { role: 'producer', orderId: 'order-1' },
+      }],
+      has_more: false,
+    });
+    const result = await invokeValid();
+    expect(result.reconciliation.classification).toBe('zero_matches');
+  });
+
   test('classifies live mode anomaly', async () => {
     setEligibleState();
     mockStripeInstance.transfers.list.mockResolvedValue({
