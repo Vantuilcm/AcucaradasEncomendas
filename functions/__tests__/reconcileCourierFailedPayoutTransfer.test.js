@@ -449,7 +449,7 @@ describe('reconcileCourierFailedPayoutTransfer', () => {
     mockStripeInstance.transfers.list.mockResolvedValue({
       data: [{
         ...exactActiveTransfer,
-        metadata: { role: 'producer', orderId: 'order-1' },
+        metadata: { role: 'courier', orderId: 'order-2' },
       }],
       has_more: false,
     });
