@@ -473,7 +473,7 @@ describe('R32_R3L stripeWebhook canonical success marker', () => {
     expect(functionsSource).toContain('idempotencyKey: `payout_producer_${orderId}`');
   });
 
-  test('M13 FAILURE EVENT: no marker write/delete; no status payment_failed', async () => {
+  test('M13 FAILURE EVENT: no marker write/delete; writes status payment_failed', async () => {
     const orderId = 'order-m13';
     mockState.store.orders[orderId] = baseOrder({
       status: 'pending',
@@ -482,10 +482,10 @@ describe('R32_R3L stripeWebhook canonical success marker', () => {
     await invokeWebhook(failureEvent(orderId, 'evt_m13'));
     expect(mockState.writes.markerSets).toHaveLength(0);
     expect(Object.keys(mockState.store[mockMarkerCollection])).toHaveLength(0);
-    expect(mockState.writes.orderUpdates[0].data.status).toBeUndefined();
+    expect(mockState.writes.orderUpdates[0].data.status).toBe('payment_failed');
     expect(mockState.writes.orderUpdates[0].data.paymentStatus).toBe('failed');
     expect(mockState.writes.orderUpdates[0].data.paymentError).toBe('card_declined');
-    expect(mockState.store.orders[orderId].status).toBe('pending');
+    expect(mockState.store.orders[orderId].status).toBe('payment_failed');
   });
 
   test('M14 LATE FAILURE AFTER COMPLETED: skipped, no regression', async () => {

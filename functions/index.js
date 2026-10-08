@@ -680,6 +680,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           console.error(`❌ [Stripe Webhook] Falha no pagamento do pedido ${orderId}`);
           const lastError = paymentIntent.last_payment_error?.message || 'Erro desconhecido';
           transaction.update(orderRef, {
+            status: 'payment_failed',
             paymentStatus: 'failed',
             paymentError: lastError,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
