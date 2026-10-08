@@ -113,6 +113,26 @@ jobs:
           find . -name "Info.plist" -exec grep -A1 "CFBundleVersion" {} \; || true
           echo "=========================================="
 
+      - name: Validate Firebase Production project identity
+        shell: bash
+        run: |
+          if [ "${EXPO_PUBLIC_FIREBASE_PROJECT_ID:-}" != "acucaradas-encomendas" ]; then
+            echo "::error::FIREBASE_PRODUCTION_PROJECT_ID_GATE=FAIL"
+            exit 1
+          fi
+          echo "FIREBASE_PRODUCTION_PROJECT_ID_GATE=PASS"
+
+      - name: Validate Stripe live publishable key
+        shell: bash
+        run: |
+          STRIPE_KEY="${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}"
+          if [[ ! "$STRIPE_KEY" =~ ^pk_live_[A-Za-z0-9]+$ ]]; then
+            echo "::error::STRIPE_LIVE_PUBLISHABLE_KEY_GATE=FAIL"
+            exit 1
+          fi
+          echo "STRIPE_LIVE_PUBLISHABLE_KEY_GATE=PASS"
+          unset STRIPE_KEY
+
       - name: Generate public_config.json
         run: |
           echo "🔄 [CONFIG] Gerando public_config.json antes do guardião"
@@ -122,6 +142,63 @@ jobs:
         run: |
           chmod +x ./scripts/ci/ios-build-guardian.sh
           ./scripts/ci/ios-build-guardian.sh
+
+      - name: Stage IPA + SHA256 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          shopt -s nullglob
+          IPA_CANDIDATES=( *.ipa )
+          IPA_COUNT=${#IPA_CANDIDATES[@]}
+          if [ "$IPA_COUNT" -eq 0 ]; then
+            echo "::error::IPA_TRACEABILITY_GATE=FAIL_ZERO_CANDIDATES"
+            exit 1
+          fi
+          if [ "$IPA_COUNT" -ne 1 ]; then
+            echo "::error::IPA_TRACEABILITY_GATE=FAIL_MULTIPLE_CANDIDATES count=${IPA_COUNT}"
+            exit 1
+          fi
+          SOURCE_IPA="${IPA_CANDIDATES[0]}"
+          cp "$SOURCE_IPA" dist/production-local.ipa
+          IPA_BASENAME="$(basename "$SOURCE_IPA")"
+          IPA_BYTES="$(wc -c < dist/production-local.ipa | tr -d ' ')"
+          IPA_SHA256="$(shasum -a 256 dist/production-local.ipa | awk '{print $1}')"
+          BUILD_NUMBER_VALUE="${BUILD_NUMBER:-}"
+          if [ -z "$BUILD_NUMBER_VALUE" ] && [ -f version-state.json ]; then
+            BUILD_NUMBER_VALUE="$(node -e "const fs=require('fs'); const v=JSON.parse(fs.readFileSync('version-state.json','utf8')); process.stdout.write(String(v.buildNumber ?? ''))")"
+          fi
+          MARKETING_VERSION_VALUE="${MARKETING_VERSION:-}"
+          if [ -z "$MARKETING_VERSION_VALUE" ] && [ -f version-state.json ]; then
+            MARKETING_VERSION_VALUE="$(node -e "const fs=require('fs'); const v=JSON.parse(fs.readFileSync('version-state.json','utf8')); process.stdout.write(String(v.version ?? ''))")"
+          fi
+          {
+            echo "ipa_basename=${IPA_BASENAME}"
+            echo "ipa_bytes=${IPA_BYTES}"
+            echo "sha256=${IPA_SHA256}"
+            echo "github.workflow=${{ github.workflow }}"
+            echo "github.run_id=${{ github.run_id }}"
+            echo "github.run_attempt=${{ github.run_attempt }}"
+            echo "github.sha=${{ github.sha }}"
+            echo "github.ref_name=${{ github.ref_name }}"
+            echo "profile=${PROFILE}"
+            echo "force_build_mode=${FORCE_BUILD_MODE}"
+            echo "build_number=${BUILD_NUMBER_VALUE}"
+            echo "marketing_version=${MARKETING_VERSION_VALUE}"
+          } > dist/production-build-metadata.txt
+          echo "IPA_TRACEABILITY_GATE=PASS"
+          echo "IPA_SHA256=${IPA_SHA256}"
+          echo "IPA_BYTES=${IPA_BYTES}"
+
+      - name: Upload Production IPA + metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-ipa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            dist/production-local.ipa
+            dist/production-build-metadata.txt
+          retention-days: 14
+          if-no-files-found: error
 
       - name: 📄 Upload Build Logs
         if: always()
