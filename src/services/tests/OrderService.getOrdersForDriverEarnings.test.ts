@@ -1,6 +1,7 @@
 /**
- * R33_R5 — Driver earnings/history identity contract (OrderService)
- * Cases: TEST_01 .. TEST_08, TEST_10 (executable)
+ * R33_R8 — Driver earnings/history query-fallback identity contract (OrderService)
+ * Updates R33_R5: nested-only orders are now visible via dual independent queries
+ * (deliveryDriverId + deliveryDriver.id) with document-ID deduplication.
  * TEST_09: STATIC_ONLY — OrderManagementScreen.handleAdvanceStatus writes nested
  * deliveryDriver only (no deliveryDriverId). Proven in R33_R3; not a screen test here.
  */
@@ -78,7 +79,22 @@ function getNestedValue(data: Record<string, unknown>, field: string): unknown {
   return nested?.[child];
 }
 
-describe('OrderService.getOrdersForDriverEarnings — R33_R5 identity contract', () => {
+function earningsWhereCalls(): Array<{ field: string; op: string; value: unknown }> {
+  return (f.where as jest.Mock).mock.calls
+    .map((args: unknown[]) => ({
+      field: String(args[0]),
+      op: String(args[1]),
+      value: args[2],
+    }))
+    .filter(
+      (c) =>
+        (c.field === 'deliveryDriverId' || c.field === 'deliveryDriver.id') &&
+        c.op === '==' &&
+        c.value === DRIVER_UID
+    );
+}
+
+describe('OrderService.getOrdersForDriverEarnings — R33_R8 query-fallback contract', () => {
   let service: OrderService;
   let fixtures: FixtureOrder[];
 
@@ -134,7 +150,7 @@ describe('OrderService.getOrdersForDriverEarnings — R33_R5 identity contract',
     }));
   });
 
-  it('TEST_01: flat-only order is returned via where(deliveryDriverId == DRIVER_UID)', async () => {
+  it('TEST_01 / T2: flat-only order is returned exactly once via deliveryDriverId query', async () => {
     fixtures = [
       {
         id: 'order-flat-only',
@@ -146,23 +162,15 @@ describe('OrderService.getOrdersForDriverEarnings — R33_R5 identity contract',
     const result = await service.getOrdersForDriverEarnings(DRIVER_UID);
 
     expect(f.where).toHaveBeenCalledWith('deliveryDriverId', '==', DRIVER_UID);
+    expect(f.where).toHaveBeenCalledWith('deliveryDriver.id', '==', DRIVER_UID);
     expect(f.orderBy).not.toHaveBeenCalled();
     expect(f.limit).not.toHaveBeenCalled();
-    const queryArgs = (f.query as jest.Mock).mock.calls[0];
-    expect(queryArgs[1]).toEqual(
-      expect.objectContaining({
-        __constraint: 'where',
-        field: 'deliveryDriverId',
-        op: '==',
-        value: DRIVER_UID,
-      })
-    );
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('order-flat-only');
     expect(result[0].deliveryDriverId).toBe(DRIVER_UID);
   });
 
-  it('TEST_02: nested-only matching order is NOT returned', async () => {
+  it('TEST_02 / T1: nested-only matching order IS returned exactly once', async () => {
     fixtures = [
       {
         id: 'order-nested-only',
@@ -174,10 +182,14 @@ describe('OrderService.getOrdersForDriverEarnings — R33_R5 identity contract',
     const result = await service.getOrdersForDriverEarnings(DRIVER_UID);
 
     expect(f.where).toHaveBeenCalledWith('deliveryDriverId', '==', DRIVER_UID);
-    expect(result).toHaveLength(0);
+    expect(f.where).toHaveBeenCalledWith('deliveryDriver.id', '==', DRIVER_UID);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('order-nested-only');
+    expect(result[0].deliveryDriver?.id).toBe(DRIVER_UID);
+    expect(result[0].deliveryDriverId).toBeUndefined();
   });
 
-  it('TEST_03: both-match order is returned exactly once', async () => {
+  it('TEST_03 / T3: both-match same Firestore document is returned exactly once', async () => {
     fixtures = [
       {
         id: 'order-both-match',
@@ -193,7 +205,7 @@ describe('OrderService.getOrdersForDriverEarnings — R33_R5 identity contract',
     expect(result[0].id).toBe('order-both-match');
   });
 
-  it('TEST_04: other-driver order is not returned', async () => {
+  it('TEST_04 / T4: other-driver order is not returned', async () => {
     fixtures = [
       {
         id: 'order-other-flat',
@@ -218,7 +230,45 @@ describe('OrderService.getOrdersForDriverEarnings — R33_R5 identity contract',
     expect(result[0].id).toBe('order-mine');
   });
 
-  it('TEST_10: getOrdersByDeliveryDriver nested query is not equivalent to earnings flat query', async () => {
+  it('TEST_11 / T5+T6: dual equality queries only — no OR, orderBy, or limit', async () => {
+    fixtures = [
+      {
+        id: 'order-flat-only',
+        deliveryDriverId: DRIVER_UID,
+        status: 'delivered',
+      },
+      {
+        id: 'order-nested-only',
+        deliveryDriver: { id: DRIVER_UID },
+        status: 'delivered',
+      },
+    ];
+
+    const result = await service.getOrdersForDriverEarnings(DRIVER_UID);
+
+    const whereCalls = earningsWhereCalls();
+    const fields = whereCalls.map((c) => c.field).sort();
+    expect(fields).toEqual(['deliveryDriver.id', 'deliveryDriverId']);
+    expect(whereCalls.every((c) => c.op === '==' && c.value === DRIVER_UID)).toBe(true);
+    expect(f.query).toHaveBeenCalledTimes(2);
+    expect(f.getDocs).toHaveBeenCalledTimes(2);
+    expect(f.orderBy).not.toHaveBeenCalled();
+    expect(f.limit).not.toHaveBeenCalled();
+    // No OR helper on dbFunctions harness — prove neither query used multi-constraint OR payload
+    for (const call of (f.query as jest.Mock).mock.calls) {
+      expect(call.length).toBe(2); // ref + single where constraint
+      expect(call[1]).toEqual(
+        expect.objectContaining({
+          __constraint: 'where',
+          op: '==',
+          value: DRIVER_UID,
+        })
+      );
+    }
+    expect(result.map((o) => o.id).sort()).toEqual(['order-flat-only', 'order-nested-only']);
+  });
+
+  it('TEST_10: getOrdersByDeliveryDriver remains non-equivalent (orderBy+limit) vs earnings dual query', async () => {
     fixtures = [
       {
         id: 'order-nested-only',
@@ -235,7 +285,7 @@ describe('OrderService.getOrdersForDriverEarnings — R33_R5 identity contract',
     ];
 
     const nestedVisible = await service.getOrdersByDeliveryDriver(DRIVER_UID);
-    const flatVisible = await service.getOrdersForDriverEarnings(DRIVER_UID);
+    const earningsVisible = await service.getOrdersForDriverEarnings(DRIVER_UID);
 
     expect(f.where).toHaveBeenCalledWith('deliveryDriver.id', '==', DRIVER_UID);
     expect(f.where).toHaveBeenCalledWith('deliveryDriverId', '==', DRIVER_UID);
@@ -243,8 +293,13 @@ describe('OrderService.getOrdersForDriverEarnings — R33_R5 identity contract',
     expect(f.limit).toHaveBeenCalled();
 
     expect(nestedVisible.map((o) => o.id)).toEqual(['order-nested-only']);
-    expect(flatVisible.map((o) => o.id)).toEqual(['order-flat-only']);
-    expect(nestedVisible.map((o) => o.id)).not.toEqual(flatVisible.map((o) => o.id));
+    expect(earningsVisible.map((o) => o.id).sort()).toEqual([
+      'order-flat-only',
+      'order-nested-only',
+    ]);
+    expect(nestedVisible.map((o) => o.id)).not.toEqual(
+      earningsVisible.map((o) => o.id).sort()
+    );
   });
 });
 
@@ -295,7 +350,7 @@ describe('OrderService.acceptOrderAtomic — R33_R5 flat+nested write contract',
     });
   });
 
-  it('TEST_05: acceptOrderAtomic writes deliveryDriverId === driverData.userId when present', async () => {
+  it('TEST_05 / T7: acceptOrderAtomic writes deliveryDriverId === driverData.userId when present', async () => {
     const driverData = {
       id: 'driver-doc-alt',
       userId: DRIVER_UID,
@@ -316,7 +371,7 @@ describe('OrderService.acceptOrderAtomic — R33_R5 flat+nested write contract',
     expect(lastUpdatePayload?.deliveryDriverId).toBe(driverData.userId);
   });
 
-  it('TEST_06: acceptOrderAtomic falls back to driverData.id when userId absent', async () => {
+  it('TEST_06 / T8: acceptOrderAtomic falls back to driverData.id when userId absent', async () => {
     const driverData = {
       id: DRIVER_UID,
       name: 'Courier',
@@ -353,7 +408,7 @@ describe('OrderService.acceptOrderAtomic — R33_R5 flat+nested write contract',
     expect(typeof lastUpdatePayload?.deliveryDriverId).toBe('string');
   });
 
-  it('TEST_08: createDriver convention — driver.id/auth uid matches UserUtils.getUserId consumer key', async () => {
+  it('TEST_08 / T8: createDriver convention — driver.id/auth uid matches UserUtils.getUserId consumer key', async () => {
     // createDriver stores delivery_drivers doc id = userId; DriverHome passes { id: driver.id } without userId
     const driverData = {
       id: DRIVER_UID,

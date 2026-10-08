@@ -189,6 +189,8 @@ export class OrderService {
   /**
    * Busca todos os pedidos financeiros vinculados ao entregador.
    * Leitura isolada para o resumo de ganhos: sem orderBy e sem limit remoto.
+   * Compatibilidade R33_R8: consulta flat (deliveryDriverId) + nested (deliveryDriver.id),
+   * com deduplicação determinística por document ID.
    */
   async getOrdersForDriverEarnings(driverId: string): Promise<Order[]> {
     try {
@@ -197,16 +199,37 @@ export class OrderService {
       }
 
       const ordersRef = f.collection(this.collectionName);
-      const q = f.query(
+      const flatQuery = f.query(
         ordersRef,
         f.where('deliveryDriverId', '==', driverId)
       );
+      const nestedQuery = f.query(
+        ordersRef,
+        f.where('deliveryDriver.id', '==', driverId)
+      );
 
-      const querySnapshot = await f.getDocs(q);
-      return querySnapshot.docs.map((docSnapshot: any) => ({
-        id: docSnapshot.id,
-        ...docSnapshot.data(),
-      })) as Order[];
+      const [flatSnapshot, nestedSnapshot] = await Promise.all([
+        f.getDocs(flatQuery),
+        f.getDocs(nestedQuery),
+      ]);
+
+      const byDocId = new Map<string, Order>();
+      const ingest = (docs: any[]) => {
+        for (const docSnapshot of docs) {
+          if (byDocId.has(docSnapshot.id)) {
+            continue;
+          }
+          byDocId.set(docSnapshot.id, {
+            id: docSnapshot.id,
+            ...docSnapshot.data(),
+          } as Order);
+        }
+      };
+
+      ingest(flatSnapshot.docs);
+      ingest(nestedSnapshot.docs);
+
+      return Array.from(byDocId.values());
     } catch (error) {
       loggingService.error('Erro ao buscar pedidos financeiros do entregador', { error, driverId });
       throw error;
