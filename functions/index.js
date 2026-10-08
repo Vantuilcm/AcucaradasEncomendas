@@ -549,6 +549,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
     }
 
     const orderRef = db.collection('orders').doc(orderId);
+    const successCommitRef = db.collection('stripe_payment_success_commits').doc(orderId);
 
     // Executa a operação do webhook dentro de uma Transaction para garantir consistência
     await db.runTransaction(async (transaction) => {
@@ -559,12 +560,18 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         return; // Retorna silenciosamente da transação
       }
 
+      // All transaction reads must precede writes (legacy + canonical marker)
+      const successCommitDoc = await transaction.get(successCommitRef);
+
       const orderData = orderDoc.data();
 
       switch (event.type) {
         case 'payment_intent.succeeded':
-          // Evita sobrescrever se já foi processado
-          if (orderData.status === 'paid' && orderData.paymentStatus === 'completed') {
+          // Legacy: status paid + payment completed; Canonical: payment completed + server marker
+          if (
+            (orderData.status === 'paid' && orderData.paymentStatus === 'completed') ||
+            (orderData.paymentStatus === 'completed' && successCommitDoc.exists)
+          ) {
             console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já estava pago. Ignorando.`);
             break;
           }
@@ -573,7 +580,6 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           
           let payoutStatus = 'pending';
           const updates = {
-            status: 'paid',
             paymentStatus: 'completed',
             paymentIntentId: paymentIntent.id,
             paidAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -654,11 +660,19 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           updates.payoutProcessedAt = admin.firestore.FieldValue.serverTimestamp();
 
           transaction.update(orderRef, updates);
+          transaction.set(successCommitRef, {
+            committedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
           break;
 
         case 'payment_intent.payment_failed':
-          // Evita sobrescrever se o pedido já avançou no fluxo ou já foi pago
-          if (orderData.status === 'paid' || orderData.status === 'delivering' || orderData.status === 'completed') {
+          // Evita sobrescrever se pagamento já confirmado ou pedido avançou no fluxo
+          if (
+            orderData.paymentStatus === 'completed' ||
+            orderData.status === 'paid' ||
+            orderData.status === 'delivering' ||
+            orderData.status === 'completed'
+          ) {
              console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já está num estado avançado (${orderData.status}). Ignorando falha tardia.`);
              break;
           }
@@ -666,7 +680,6 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           console.error(`❌ [Stripe Webhook] Falha no pagamento do pedido ${orderId}`);
           const lastError = paymentIntent.last_payment_error?.message || 'Erro desconhecido';
           transaction.update(orderRef, {
-            status: 'payment_failed',
             paymentStatus: 'failed',
             paymentError: lastError,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
