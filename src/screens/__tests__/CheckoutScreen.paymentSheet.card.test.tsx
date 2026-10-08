@@ -294,6 +294,33 @@ function firePaidSnapshot(orderId = 'order-1') {
   });
 }
 
+function fireLegacyPaymentFailedStatusSnapshot(orderId = 'order-1') {
+  if (!onSnapshotSuccess) {
+    throw new Error('onSnapshot success handler was not registered');
+  }
+  onSnapshotSuccess({
+    data: () => ({
+      status: 'payment_failed',
+      paymentError: 'legacy payment_failed status',
+      id: orderId,
+    }),
+  });
+}
+
+function firePaymentStatusFailedPendingSnapshot(orderId = 'order-1') {
+  if (!onSnapshotSuccess) {
+    throw new Error('onSnapshot success handler was not registered');
+  }
+  onSnapshotSuccess({
+    data: () => ({
+      status: 'pending',
+      paymentStatus: 'failed',
+      paymentError: 'canonical paymentStatus failed',
+      id: orderId,
+    }),
+  });
+}
+
 describe('CheckoutScreen — R32_R2 active CARD PaymentSheet matrix', () => {
   beforeAll(() => {
     jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
@@ -451,6 +478,58 @@ describe('CheckoutScreen — R32_R2 active CARD PaymentSheet matrix', () => {
       expect(mockUpdateOrderStatus).toHaveBeenCalledWith('order-1', 'cancelled');
       expect(mockClearCart).not.toHaveBeenCalled();
       expect(mockNavigate).not.toHaveBeenCalledWith('OrderCompleted', expect.anything());
+    });
+  });
+
+  it('R32_R3H: paymentStatus failed with pending status takes failure path without TIMEOUT_PENDING', async () => {
+    const utils = render(<CheckoutScreen />);
+    await settleAddressAndPricing();
+    await pressFinalize(utils);
+
+    await waitFor(() => {
+      expect(mockPresentPaymentSheet).toHaveBeenCalledTimes(1);
+      expect(onSnapshotSuccess).not.toBeNull();
+    });
+
+    await act(async () => {
+      firePaymentStatusFailedPendingSnapshot('order-1');
+    });
+
+    await waitFor(() => {
+      expect(mockUpdateOrderStatus).toHaveBeenCalledWith('order-1', 'cancelled');
+      expect(mockClearCart).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalledWith('OrderCompleted', expect.anything());
+      expect(mockNavigate).not.toHaveBeenCalledWith(
+        'MainTabs',
+        expect.objectContaining({ screen: 'Orders' })
+      );
+      expect(mockCreateOrder).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('R32_R3H: legacy status payment_failed still takes failure path', async () => {
+    const utils = render(<CheckoutScreen />);
+    await settleAddressAndPricing();
+    await pressFinalize(utils);
+
+    await waitFor(() => {
+      expect(mockPresentPaymentSheet).toHaveBeenCalledTimes(1);
+      expect(onSnapshotSuccess).not.toBeNull();
+    });
+
+    await act(async () => {
+      fireLegacyPaymentFailedStatusSnapshot('order-1');
+    });
+
+    await waitFor(() => {
+      expect(mockUpdateOrderStatus).toHaveBeenCalledWith('order-1', 'cancelled');
+      expect(mockClearCart).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalledWith('OrderCompleted', expect.anything());
+      expect(mockNavigate).not.toHaveBeenCalledWith(
+        'MainTabs',
+        expect.objectContaining({ screen: 'Orders' })
+      );
+      expect(mockCreateOrder).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -448,7 +448,10 @@ export default function CheckoutScreen() {
                       clearTimeout(timeoutId);
                       unsubscribe();
                       resolve(true);
-                    } else if (currentOrderData?.status === 'payment_failed') {
+                    } else if (
+                      currentOrderData?.status === 'payment_failed' ||
+                      currentOrderData?.paymentStatus === 'failed'
+                    ) {
                       clearTimeout(timeoutId);
                       unsubscribe();
                       reject(new Error(currentOrderData?.paymentError || 'Pagamento falhou no servidor'));
