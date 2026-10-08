@@ -23,11 +23,15 @@ export interface Cart {
   lastUpdated: string;
 }
 
-export type AddItemFailureReason = 'DIFFERENT_PRODUCER';
+export type AddItemFailureReason = 'DIFFERENT_PRODUCER' | 'MISSING_PRODUCER_ID';
 
 export type AddItemResult =
   | { success: true; cart: Cart }
   | { success: false; reason: AddItemFailureReason };
+
+function isValidProducerId(producerId: string | undefined | null): boolean {
+  return typeof producerId === 'string' && producerId.trim().length > 0;
+}
 
 export class CartService {
   private readonly CART_STORAGE_KEY = 'acucaradas:cart';
@@ -69,14 +73,16 @@ export class CartService {
     try {
       const cart = await this.getCart();
 
+      if (!isValidProducerId(item.producerId)) {
+        return { success: false, reason: 'MISSING_PRODUCER_ID' };
+      }
+
       if (cart.items.length > 0) {
         const cartProducerId = cart.items[0]?.producerId;
-        const itemProducerId = item.producerId;
-        if (
-          cartProducerId &&
-          itemProducerId &&
-          cartProducerId !== itemProducerId
-        ) {
+        if (!isValidProducerId(cartProducerId)) {
+          return { success: false, reason: 'MISSING_PRODUCER_ID' };
+        }
+        if (cartProducerId!.trim() !== item.producerId!.trim()) {
           return { success: false, reason: 'DIFFERENT_PRODUCER' };
         }
       }

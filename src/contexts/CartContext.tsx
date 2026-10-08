@@ -5,7 +5,7 @@ import { CartService, CartItem, Cart } from '../services/CartService';
 
 export type AddItemResponse =
   | { success: true; swapped?: boolean }
-  | { success: false; reason: 'DIFFERENT_PRODUCER' | 'CANCELLED' };
+  | { success: false; reason: 'DIFFERENT_PRODUCER' | 'CANCELLED' | 'MISSING_PRODUCER_ID' };
 
 interface CartContextType {
   cart: Cart;
@@ -107,6 +107,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!result.success && result.reason === 'DIFFERENT_PRODUCER') {
         return promptProducerSwap(item);
+      }
+
+      if (!result.success && result.reason === 'MISSING_PRODUCER_ID') {
+        return { success: false, reason: 'MISSING_PRODUCER_ID' };
       }
 
       if (result.success) {

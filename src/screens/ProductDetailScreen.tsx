@@ -31,7 +31,7 @@ type ProductDetailRouteProp = RouteProp<RootStackParamList, 'ProductDetail'>;
 export default function ProductDetailScreen() {
   const route = useRoute<ProductDetailRouteProp>();
   const navigation = useNavigation<any>();
-  const { addToCart } = useCart() as any;
+  const { addItem } = useCart();
   const { user } = useAuth();
   
   // Suporte a passar o objeto inteiro ou apenas o ID
@@ -111,12 +111,26 @@ export default function ProductDetailScreen() {
     return () => { isMounted = false; };
   }, [product, user, recommendationService]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     try {
       if (!product) return;
 
-      if (typeof addToCart === 'function') {
-        addToCart(product);
+      const result = await addItem({
+        productId: product.id,
+        name: product.nome || product.name || 'Produto',
+        producerId: product.producerId,
+        tempoPreparacao: product.tempoPreparacao,
+        price: product.preco ?? product.price ?? 0,
+        quantity: 1,
+        image:
+          (Array.isArray(product.imagens) && product.imagens.length > 0
+            ? product.imagens[0]
+            : product.image) || '',
+      });
+
+      if (!result.success) {
+        showToast('Não foi possível adicionar ao carrinho', FeedbackType.ERROR);
+        return;
       }
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
