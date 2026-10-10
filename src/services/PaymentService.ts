@@ -120,14 +120,7 @@ export class PaymentService {
       const result = await stripeService.processCardPayment(paymentIntentId, paymentMethodId);
 
       if (result.status === 'succeeded') {
-        // Atualizar pedido para pago
-        await f.updateDoc(orderRef, {
-          status: 'confirmed',
-          paymentStatus: 'paid',
-          paymentIntentId,
-          updatedAt: f.serverTimestamp(),
-        } as any);
-
+        // R4F: não gravar paymentStatus/status/paymentIntentId em orders (webhook canônico)
         // Registrar transação
         await f.addDoc(f.collection(this.db, this.transactionsCollection), {
           orderId,
@@ -201,23 +194,7 @@ export class PaymentService {
         deliveryPersonId
       );
 
-      // 3. Atualizar Order
-      await f.updateDoc(orderRef, {
-        status: 'confirmed',
-        paymentStatus: 'completed',
-        paymentMethod: {
-          type: 'credit_card',
-          id: result.paymentIntentId || '',
-        },
-        paymentDetails: {
-          productAmount,
-          deliveryFee,
-          appFee,
-          producerAmount,
-          totalAmount,
-        },
-        updatedAt: new Date().toISOString(),
-      } as any);
+      // R4F: não gravar paymentStatus/status/paymentDetails em orders (webhook canônico)
 
       // 4. Enviar Notificações
       // Para o usuário
@@ -916,32 +893,7 @@ export class PaymentService {
       const receiptUrl =
         confirmedPayment.receiptUrl || confirmedPayment.charges?.data?.[0]?.receipt_url || '';
 
-      // Atualizar status do pedido
-      await f.updateDoc(
-        orderRef,
-        {
-          status: 'confirmed',
-          paymentStatus: 'completed',
-          paymentMethod: {
-            type: 'credit_card',
-            id: paymentResult.paymentIntentId || '',
-          },
-          stripePaymentIntentId: paymentResult.paymentIntentId,
-          stripePaymentMethodId: paymentMethodId,
-          stripeReceiptUrl: receiptUrl,
-          appTransferId: paymentResult.appTransferId,
-          producerTransferId: paymentResult.producerTransferId,
-          deliveryPersonTransferId: paymentResult.deliveryPersonTransferId,
-          updatedAt: new Date().toISOString(),
-          paymentDetails: {
-            productAmount: amount - deliveryFee,
-            deliveryFee: deliveryFee,
-            appFee: Math.round((amount - deliveryFee) * 0.1),
-            producerAmount: Math.round((amount - deliveryFee) * 0.9),
-            totalAmount: amount,
-          },
-        } as any
-      );
+      // R4F: não gravar paymentStatus/status/transfer ids/paymentDetails em orders (webhook canônico)
 
       // Calcular valores para notificações detalhadas
       const productAmount = amount - deliveryFee;

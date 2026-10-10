@@ -19,7 +19,6 @@ import { Card, Button, Divider, Chip } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { OrderItem } from '../types/Order';
 import { OrderService } from '../services/OrderService';
-import { PaymentService } from '../services/PaymentService';
 import { ProductService } from '../services/ProductService';
 import { StoreAvailabilityService } from '../services/StoreAvailabilityService';
 import { StoreService } from '../services/StoreService';
@@ -47,7 +46,6 @@ export default function CheckoutScreen() {
   const { user } = useAuth();
   const validationService = ValidationService.getInstance();
   const orderService = OrderService.getInstance();
-  const paymentService = PaymentService.getInstance();
   const storeService = new StoreService();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
@@ -505,20 +503,10 @@ export default function CheckoutScreen() {
               throw stripeErr;
             }
           } else {
-            // Fluxo antigo de fallback
-            const [expMonth, expYear] = expirationDate.split('/');
-            const cardDetails = {
-              number: cardNumber.replace(/\s/g, ''),
-              expMonth: Number(expMonth),
-              expYear: Number(`20${expYear}`),
-              cvc: cvv,
-              holderName: cardholderName,
-            };
-
-            const paymentResult = await paymentService.processCreditCardPayment(newOrder.id, cardDetails);
-            if (!paymentResult) {
-              throw new Error('Pagamento recusado');
-            }
+            // R4F: legado ENABLE_STRIPE=false fail-closed — sem processCreditCardPayment como sucesso
+            throw new Error(
+              'Pagamentos com cartão exigem Stripe PaymentSheet (ENABLE_STRIPE). Fluxo legado desativado.'
+            );
           }
 
           const updatedOrder = await orderService.getOrderById(newOrder.id);
