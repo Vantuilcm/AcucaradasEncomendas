@@ -37,8 +37,9 @@ jobs:
       EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
       EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
       EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      # Preview: iOS GoogleService exclusively from SANDBOX base64.
+      # Do NOT inject GOOGLE_SERVICE_INFO_PLIST — Guardian would overwrite the validated plist.
       GOOGLE_SERVICES_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICES_INFO_PLIST_BASE64_SANDBOX }}
-      GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
       EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
       EXPO_PUBLIC_PROJECT_ID: '6090106b-e327-4744-bce5-9ddb0d037045'
       EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY_SANDBOX }}
@@ -119,6 +120,7 @@ jobs:
           fi
           echo "FIREBASE_SANDBOX_PROJECT_ID_GATE=PASS"
       - name: Materialize Firebase config from secrets
+        shell: bash
         run: |
           set -euo pipefail
           if [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
@@ -128,15 +130,31 @@ jobs:
             echo "❌ GOOGLE_SERVICES_JSON ausente nos secrets do workflow"
             exit 1
           fi
-          if [ -n "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
-            echo "${GOOGLE_SERVICES_INFO_PLIST_BASE64}" | base64 --decode > GoogleService-Info.plist
-          elif [ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]; then
-            printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" > GoogleService-Info.plist
-          else
-            echo "❌ GoogleService-Info.plist: configure GOOGLE_SERVICES_INFO_PLIST_BASE64 ou GOOGLE_SERVICE_INFO_PLIST"
+          # Fail-closed: Sandbox base64 only — no GOOGLE_SERVICE_INFO_PLIST fallback
+          if [ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]; then
+            echo "::error::GOOGLE_SERVICE_INFO_PLIST must not be set in Preview (sandbox-only source)"
+            exit 1
+          fi
+          if [ -z "${GOOGLE_SERVICES_INFO_PLIST_BASE64:-}" ]; then
+            echo "::error::Preview requires GOOGLE_SERVICES_INFO_PLIST_BASE64_SANDBOX"
+            exit 1
+          fi
+          echo "${GOOGLE_SERVICES_INFO_PLIST_BASE64}" | base64 --decode > GoogleService-Info.plist
+          if [ ! -s GoogleService-Info.plist ]; then
+            echo "::error::GoogleService-Info.plist missing or empty after decode"
             exit 1
           fi
           echo "✅ GoogleService-Info.plist ($(wc -c < GoogleService-Info.plist | tr -d ' ') bytes)"
+          EXPECTED_PLIST_PROJECT_ID='acucaradas-encomendas-sandbox'
+          if ! ACTUAL_PLIST_PROJECT_ID="$(/usr/libexec/PlistBuddy -c 'Print :PROJECT_ID' GoogleService-Info.plist)"; then
+            echo "::error::GoogleService-Info.plist PROJECT_ID unreadable"
+            exit 1
+          fi
+          if [ -z "${ACTUAL_PLIST_PROJECT_ID}" ] || [ "${ACTUAL_PLIST_PROJECT_ID}" != "${EXPECTED_PLIST_PROJECT_ID}" ]; then
+            echo "::error::GoogleService-Info.plist PROJECT_ID identity mismatch"
+            exit 1
+          fi
+          echo "GOOGLESERVICE_PLIST_PROJECT_ID_GATE=PASS"
 
       - name: Validate environment (fail-fast)
         run: node scripts/validate-env.js
@@ -189,8 +207,35 @@ jobs:
       - name: Generate public_config.json
         run: npx expo config --type public --json > public_config.json
 
-      - name: iOS Build Guardian (local preview)
+      # Final plist identity gate immediately before Guardian (last writer before eas build).
+      # Unset GOOGLE_SERVICE_INFO_PLIST so Guardian cannot silently replace the validated file.
+      - name: Pre-Guardian GoogleService-Info.plist Sandbox gate
+        shell: bash
         run: |
+          set -euo pipefail
+          unset GOOGLE_SERVICE_INFO_PLIST || true
+          echo "GOOGLE_SERVICE_INFO_PLIST=" >> "$GITHUB_ENV"
+          if [ ! -s GoogleService-Info.plist ]; then
+            echo "::error::GoogleService-Info.plist missing or empty before Guardian"
+            exit 1
+          fi
+          EXPECTED_PLIST_PROJECT_ID='acucaradas-encomendas-sandbox'
+          if ! ACTUAL_PLIST_PROJECT_ID="$(/usr/libexec/PlistBuddy -c 'Print :PROJECT_ID' GoogleService-Info.plist)"; then
+            echo "::error::GoogleService-Info.plist PROJECT_ID unreadable before Guardian"
+            exit 1
+          fi
+          if [ -z "${ACTUAL_PLIST_PROJECT_ID}" ] || [ "${ACTUAL_PLIST_PROJECT_ID}" != "${EXPECTED_PLIST_PROJECT_ID}" ]; then
+            echo "::error::GoogleService-Info.plist PROJECT_ID identity mismatch before Guardian"
+            exit 1
+          fi
+          echo "PRE_GUARDIAN_GOOGLESERVICE_PLIST_PROJECT_ID_GATE=PASS"
+
+      - name: iOS Build Guardian (local preview)
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset GOOGLE_SERVICE_INFO_PLIST || true
+          export GOOGLE_SERVICE_INFO_PLIST=
           chmod +x ./scripts/ci/ios-build-guardian.sh
           ./scripts/ci/ios-build-guardian.sh
 
