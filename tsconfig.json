@@ -43,6 +43,10 @@
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
-    "**/*.spec.tsx"
+    "**/*.spec.tsx",
+    "AcucaradasEncomendas-tsc-baseline-15a/**",
+    "AcucaradasEncomendas-tsc-repair-17/**",
+    "AcucaradasEncomendas-functional-baseline-30y-b4b/**",
+    "_AE_SAFETY_ARCHIVE/**"
   ]
 }
