@@ -10,10 +10,38 @@ import * as Sentry from '@sentry/react-native';
 // 🛡️ [RECOVERY-LOG] Verificar se os dados vieram do Constants.expoConfig.extra (Fallback físico)
 const extra = Constants.expoConfig?.extra || {};
 
+const EXPECTED_PREVIEW_FIREBASE_PROJECT_ID = 'acucaradas-encomendas-sandbox';
+const PRODUCTION_FIREBASE_PROJECT_ID = 'acucaradas-encomendas';
+
+/**
+ * Preview: fail-closed — never silent-fallback to Production projectId.
+ * Production / other envs: preserve legacy Production fallback.
+ */
+const resolveFirebaseProjectId = (): string => {
+  const appEnv =
+    process.env.EXPO_PUBLIC_APP_ENV ||
+    process.env.APP_ENV ||
+    (typeof extra.env === 'string' ? extra.env : undefined);
+  const isPreview = appEnv === 'preview';
+  // ENV already merges process.env + Constants.extra.firebaseProjectId
+  const resolved = (ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '').trim();
+
+  if (isPreview) {
+    if (resolved !== EXPECTED_PREVIEW_FIREBASE_PROJECT_ID) {
+      throw new Error(
+        `[FIREBASE] Preview fail-closed: EXPO_PUBLIC_FIREBASE_PROJECT_ID must be ${EXPECTED_PREVIEW_FIREBASE_PROJECT_ID}`
+      );
+    }
+    return resolved;
+  }
+
+  return resolved || PRODUCTION_FIREBASE_PROJECT_ID;
+};
+
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || extra.firebaseApiKey,
   authDomain: ENV.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: ENV.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "acucaradas-encomendas",
+  projectId: resolveFirebaseProjectId(),
   storageBucket: ENV.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: ENV.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: ENV.EXPO_PUBLIC_FIREBASE_APP_ID,

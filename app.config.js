@@ -45,7 +45,22 @@ export default ({ config }) => {
     }
   }
 
-  let firebaseProjectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "acucaradas-encomendas";
+  // Preview: fail-closed — never silent-fallback to Production projectId.
+  // Production / other envs: preserve legacy Production fallback.
+  const EXPECTED_PREVIEW_FIREBASE_PROJECT_ID = 'acucaradas-encomendas-sandbox';
+  const PRODUCTION_FIREBASE_PROJECT_ID = 'acucaradas-encomendas';
+  let firebaseProjectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
+  if (isPreview) {
+    const resolvedPreviewProjectId = (firebaseProjectId || '').trim();
+    if (resolvedPreviewProjectId !== EXPECTED_PREVIEW_FIREBASE_PROJECT_ID) {
+      throw new Error(
+        `[FIREBASE] Preview fail-closed: EXPO_PUBLIC_FIREBASE_PROJECT_ID must be ${EXPECTED_PREVIEW_FIREBASE_PROJECT_ID}`
+      );
+    }
+    firebaseProjectId = resolvedPreviewProjectId;
+  } else {
+    firebaseProjectId = firebaseProjectId || PRODUCTION_FIREBASE_PROJECT_ID;
+  }
   let firebaseAppId = process.env.EXPO_PUBLIC_FIREBASE_APP_ID;
 
   console.log("🔍 [DEBUG_ENV] EXPO_PUBLIC_FIREBASE_API_KEY do ENV:", firebaseApiKey ? "EXISTE" : "AUSENTE");
