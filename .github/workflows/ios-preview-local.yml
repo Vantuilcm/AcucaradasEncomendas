@@ -156,6 +156,106 @@ jobs:
           fi
           echo "GOOGLESERVICE_PLIST_PROJECT_ID_GATE=PASS"
 
+      # R50: install once, run after materialize and again pre-Guardian (same script = harness parity).
+      - name: Install Firebase JS/plist multifield consistency gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          GATE_SCRIPT="${RUNNER_TEMP:-/tmp}/ae-firebase-js-plist-multifield-gate.sh"
+          cat > "$GATE_SCRIPT" <<'AE_FIREBASE_MULTIFIELD_GATE_EOF'
+          #!/usr/bin/env bash
+          # AE_FIREBASE_JS_PLIST_MULTIFIELD_GATE — Preview fail-closed identity
+          set -euo pipefail
+          PLIST="${AE_GOOGLESERVICE_PLIST_PATH:-GoogleService-Info.plist}"
+          EXPECTED_PROJECT_ID='acucaradas-encomendas-sandbox'
+          EXPECTED_BUNDLE_ID='com.acucaradas.encomendas'
+          EXPECTED_AUTH_DOMAIN="${EXPECTED_PROJECT_ID}.firebaseapp.com"
+
+          fail() { echo "::error::$1"; exit 1; }
+
+          if [ ! -s "$PLIST" ]; then
+            fail "GoogleService-Info.plist missing or empty"
+          fi
+          if [ -n "${GOOGLE_SERVICE_INFO_PLIST:-}" ]; then
+            fail "GOOGLE_SERVICE_INFO_PLIST must not be set when validating Preview plist identity"
+          fi
+
+          plist_get() {
+            local key="$1"
+            local val
+            if ! val="$(/usr/libexec/PlistBuddy -c "Print :${key}" "$PLIST" 2>/dev/null)"; then
+              fail "plist field ${key} unreadable"
+            fi
+            val="$(printf '%s' "$val" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+            if [ -z "$val" ]; then
+              fail "plist field ${key} empty"
+            fi
+            printf '%s' "$val"
+          }
+
+          require_env() {
+            local name="$1"
+            local val
+            val="$(printenv "$name" 2>/dev/null || true)"
+            val="$(printf '%s' "$val" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+            if [ -z "$val" ]; then
+              fail "required env ${name} missing or empty"
+            fi
+            printf '%s' "$val"
+          }
+
+          eq_or_fail() {
+            local label="$1"
+            local actual="$2"
+            local expected="$3"
+            if [ "$actual" != "$expected" ]; then
+              fail "${label} identity mismatch"
+            fi
+          }
+
+          PLIST_PROJECT_ID="$(plist_get PROJECT_ID)"
+          PLIST_GOOGLE_APP_ID="$(plist_get GOOGLE_APP_ID)"
+          PLIST_GCM_SENDER_ID="$(plist_get GCM_SENDER_ID)"
+          PLIST_API_KEY="$(plist_get API_KEY)"
+          PLIST_STORAGE_BUCKET="$(plist_get STORAGE_BUCKET)"
+          PLIST_BUNDLE_ID="$(plist_get BUNDLE_ID)"
+
+          ENV_PROJECT_ID="$(require_env EXPO_PUBLIC_FIREBASE_PROJECT_ID)"
+          ENV_APP_ID="$(require_env EXPO_PUBLIC_FIREBASE_APP_ID)"
+          ENV_SENDER="$(require_env EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID)"
+          ENV_API_KEY="$(require_env EXPO_PUBLIC_FIREBASE_API_KEY)"
+          ENV_BUCKET="$(require_env EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET)"
+          ENV_AUTH_DOMAIN="$(require_env EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN)"
+
+          eq_or_fail "PROJECT_ID" "$PLIST_PROJECT_ID" "$EXPECTED_PROJECT_ID"
+          eq_or_fail "EXPO_PUBLIC_FIREBASE_PROJECT_ID" "$ENV_PROJECT_ID" "$EXPECTED_PROJECT_ID"
+          eq_or_fail "GOOGLE_APP_ID/EXPO_PUBLIC_FIREBASE_APP_ID" "$PLIST_GOOGLE_APP_ID" "$ENV_APP_ID"
+          eq_or_fail "GCM_SENDER_ID/EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID" "$PLIST_GCM_SENDER_ID" "$ENV_SENDER"
+          eq_or_fail "API_KEY/EXPO_PUBLIC_FIREBASE_API_KEY" "$PLIST_API_KEY" "$ENV_API_KEY"
+          # Exact match only — no appspot↔firebasestorage.app rewrite without proof
+          eq_or_fail "STORAGE_BUCKET/EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET" "$PLIST_STORAGE_BUCKET" "$ENV_BUCKET"
+          eq_or_fail "BUNDLE_ID" "$PLIST_BUNDLE_ID" "$EXPECTED_BUNDLE_ID"
+          eq_or_fail "AUTH_DOMAIN" "$ENV_AUTH_DOMAIN" "$EXPECTED_AUTH_DOMAIN"
+
+          if [ "${#ENV_API_KEY}" -lt 10 ]; then
+            fail "EXPO_PUBLIC_FIREBASE_API_KEY too short for Preview (recovery fallback risk)"
+          fi
+
+          echo "FIREBASE_JS_PLIST_MULTIFIELD_CONSISTENCY_GATE=PASS"
+          AE_FIREBASE_MULTIFIELD_GATE_EOF
+          # Dedent YAML-indented heredoc body (portable on macos-15)
+          export GATE_SCRIPT
+          python3 -c 'import os,textwrap,pathlib; p=pathlib.Path(os.environ["GATE_SCRIPT"]); p.write_text(textwrap.dedent(p.read_text()), encoding="utf-8")'
+          chmod +x "$GATE_SCRIPT"
+          echo "AE_FIREBASE_MULTIFIELD_GATE_SCRIPT=$GATE_SCRIPT" >> "$GITHUB_ENV"
+          echo "FIREBASE_MULTIFIELD_GATE_INSTALLED=PASS"
+
+      - name: Firebase JS/plist multifield consistency gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash "${AE_FIREBASE_MULTIFIELD_GATE_SCRIPT}"
+
       - name: Validate environment (fail-fast)
         run: node scripts/validate-env.js
 
@@ -207,28 +307,17 @@ jobs:
       - name: Generate public_config.json
         run: npx expo config --type public --json > public_config.json
 
-      # Final plist identity gate immediately before Guardian (last writer before eas build).
+      # Final multifield identity gate immediately before Guardian (last writer before eas build).
       # Unset GOOGLE_SERVICE_INFO_PLIST so Guardian cannot silently replace the validated file.
-      - name: Pre-Guardian GoogleService-Info.plist Sandbox gate
+      - name: Pre-Guardian Firebase JS/plist multifield consistency gate
         shell: bash
         run: |
           set -euo pipefail
           unset GOOGLE_SERVICE_INFO_PLIST || true
           echo "GOOGLE_SERVICE_INFO_PLIST=" >> "$GITHUB_ENV"
-          if [ ! -s GoogleService-Info.plist ]; then
-            echo "::error::GoogleService-Info.plist missing or empty before Guardian"
-            exit 1
-          fi
-          EXPECTED_PLIST_PROJECT_ID='acucaradas-encomendas-sandbox'
-          if ! ACTUAL_PLIST_PROJECT_ID="$(/usr/libexec/PlistBuddy -c 'Print :PROJECT_ID' GoogleService-Info.plist)"; then
-            echo "::error::GoogleService-Info.plist PROJECT_ID unreadable before Guardian"
-            exit 1
-          fi
-          if [ -z "${ACTUAL_PLIST_PROJECT_ID}" ] || [ "${ACTUAL_PLIST_PROJECT_ID}" != "${EXPECTED_PLIST_PROJECT_ID}" ]; then
-            echo "::error::GoogleService-Info.plist PROJECT_ID identity mismatch before Guardian"
-            exit 1
-          fi
-          echo "PRE_GUARDIAN_GOOGLESERVICE_PLIST_PROJECT_ID_GATE=PASS"
+          export GOOGLE_SERVICE_INFO_PLIST=
+          bash "${AE_FIREBASE_MULTIFIELD_GATE_SCRIPT}"
+          echo "PRE_GUARDIAN_FIREBASE_JS_PLIST_MULTIFIELD_CONSISTENCY_GATE=PASS"
 
       - name: iOS Build Guardian (local preview)
         shell: bash
