@@ -388,6 +388,21 @@ export class OrderService {
         throw new Error('Pedido não encontrado');
       }
 
+      const orderData = orderDoc.data() as any;
+      const fulfillmentAdvancingStatuses: OrderStatus[] = [
+        'confirmed',
+        'preparing',
+        'ready',
+        'delivering',
+        'delivered',
+      ];
+      if (
+        fulfillmentAdvancingStatuses.includes(status) &&
+        orderData?.paymentStatus !== 'completed'
+      ) {
+        throw new Error('Pagamento não confirmado; não é possível avançar o fulfillment');
+      }
+
       diagnosticStage = 'BUILD_UPDATED_ORDER';
       const updatedAt = new Date().toISOString();
       const updatedOrder = {
