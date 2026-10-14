@@ -16,21 +16,68 @@ class BuildNumberEnforcer {
     this.integrityLogPath = path.join(this.projectRoot, 'build-integrity.json');
   }
 
-  getAppleLatest() {
+  isPreviewEnv() {
+    return process.env.APP_ENV === 'preview' || process.env.EXPO_PUBLIC_APP_ENV === 'preview';
+  }
+
+  /**
+   * Preview-only: require AE_BUILD_NUMBER_FLOOR as a strict positive safe integer decimal.
+   * Rejects empty, whitespace-padded, zero, negative, fractional, scientific, and non-numeric values.
+   */
+  requirePreviewBuildNumberFloor() {
+    const raw = process.env.AE_BUILD_NUMBER_FLOOR;
+    if (raw === undefined || raw === null) {
+      throw new Error('[ENFORCE] Preview requires AE_BUILD_NUMBER_FLOOR');
+    }
+    if (typeof raw !== 'string' && typeof raw !== 'number') {
+      throw new Error('[ENFORCE] AE_BUILD_NUMBER_FLOOR must be a decimal integer string');
+    }
+    const asString = String(raw);
+    if (asString.trim() === '' || asString !== asString.trim()) {
+      throw new Error('[ENFORCE] AE_BUILD_NUMBER_FLOOR must be a non-empty integer without surrounding whitespace');
+    }
+    if (!/^[1-9][0-9]*$/.test(asString)) {
+      throw new Error('[ENFORCE] AE_BUILD_NUMBER_FLOOR must be a positive decimal integer');
+    }
+    const floor = Number(asString);
+    if (!Number.isSafeInteger(floor) || floor < 1) {
+      throw new Error('[ENFORCE] AE_BUILD_NUMBER_FLOOR exceeds safe integer range');
+    }
+    return floor;
+  }
+
+  getAppleLatest({ failClosed = false } = {}) {
     try {
       console.log('🍎 [Apple] Verificando histórico de builds no EAS (JSON mode)...');
-      // Consultar os últimos 20 builds em formato JSON para extrair o buildNumber real
-      const output = execSync('npx eas build:list --platform ios --limit 20 --non-interactive --json', { encoding: 'utf8' });
-      
-      const builds = JSON.parse(output);
-      const buildNumbers = builds
-        .map(b => parseInt(b.buildNumber || "0"))
-        .filter(bn => !isNaN(bn) && bn > 0);
+      // Harness hook (synthetic fixtures only): AE_EAS_BUILD_LIST_JSON / AE_EAS_BUILD_LIST_FORCE_ERROR
+      let output;
+      if (Object.prototype.hasOwnProperty.call(process.env, 'AE_EAS_BUILD_LIST_JSON')) {
+        if (process.env.AE_EAS_BUILD_LIST_FORCE_ERROR === '1') {
+          throw new Error('Forced EAS list failure (harness)');
+        }
+        output = process.env.AE_EAS_BUILD_LIST_JSON;
+      } else {
+        // Consultar os últimos 20 builds em formato JSON para extrair o buildNumber real
+        output = execSync('npx eas build:list --platform ios --limit 20 --non-interactive --json', { encoding: 'utf8' });
+      }
 
+      const builds = JSON.parse(output);
+      if (!Array.isArray(builds)) {
+        throw new Error('EAS build:list JSON is not an array');
+      }
+      const buildNumbers = builds
+        .map(b => parseInt(b && b.buildNumber != null ? b.buildNumber : '0', 10))
+        .filter(bn => Number.isFinite(bn) && bn > 0);
+
+      // Empty list is a legitimate zero contribution (not an EAS failure).
       const latest = buildNumbers.length > 0 ? Math.max(...buildNumbers) : 0;
       console.log(`🍎 [Apple] Maior buildNumber encontrado no EAS: ${latest}`);
       return latest;
     } catch (e) {
+      if (failClosed) {
+        console.error('❌ [Apple] Falha ao listar builds no EAS — Preview fail-closed (sem fallback 0).');
+        throw e;
+      }
       console.error('⚠️ [Apple] Falha ao listar builds no EAS (possível projeto sem builds Cloud). Usando fallback 0.');
       return 0;
     }
@@ -62,7 +109,14 @@ class BuildNumberEnforcer {
 
   enforce() {
     console.log('🚀 [ENFORCE] Iniciando auto-incremento de Build Number...');
-    
+
+    const preview = this.isPreviewEnv();
+    let previewFloor = 0;
+    if (preview) {
+      previewFloor = this.requirePreviewBuildNumberFloor();
+      console.log(`🛡️ [Preview] AE_BUILD_NUMBER_FLOOR=${previewFloor}`);
+    }
+
     const appJson = JSON.parse(fs.readFileSync(this.appJsonPath, 'utf8'));
     const statePath = path.join(this.projectRoot, 'version-state.json');
     let currentLocal = parseInt(appJson.expo.ios.buildNumber || '0', 10);
@@ -72,15 +126,17 @@ class BuildNumberEnforcer {
         currentLocal = parseInt(state.buildNumber, 10);
       }
     }
-    const appleLatest = this.getAppleLatest();
+    // Preview: EAS query failure must not collapse to zero. Empty list may contribute 0.
+    const appleLatest = this.getAppleLatest({ failClosed: preview });
     const historyLatest = this.getHistoryLatest();
 
     // Lógica: Maior de todos + 1 (Fonte de verdade absoluta)
     // Adicionado floor de 1233 para garantir que o próximo seja > 1233
-    const baseline = Math.max(currentLocal, appleLatest, historyLatest, 1233);
+    // Preview also folds AE_BUILD_NUMBER_FLOOR into the max baseline.
+    const baseline = Math.max(currentLocal, appleLatest, historyLatest, previewFloor, 1233);
     const finalBN = baseline + 1;
 
-    console.log(`📊 [Metrics] Local: ${currentLocal} | Apple: ${appleLatest} | History: ${historyLatest}`);
+    console.log(`📊 [Metrics] Local: ${currentLocal} | Apple: ${appleLatest} | History: ${historyLatest} | Floor: ${previewFloor}`);
     console.log(`✅ [Target] Próximo Build Number: ${finalBN}`);
 
     // Atualizar app.json
@@ -107,11 +163,17 @@ class BuildNumberEnforcer {
     fs.writeFileSync(this.integrityLogPath, JSON.stringify(integrity, null, 2));
 
     // Log da operação legado
+    let commit = 'UNKNOWN';
+    try {
+      commit = execSync('git rev-parse HEAD', { encoding: 'utf8' }).toString().trim();
+    } catch (_) {
+      // Isolated fixtures may not be a git worktree.
+    }
     const log = {
       timestamp: new Date().toISOString(),
       previousBN: currentLocal,
       newBN: finalBN,
-      commit: execSync('git rev-parse HEAD').toString().trim()
+      commit
     };
     fs.writeFileSync(this.logPath, JSON.stringify(log, null, 2));
 
@@ -221,15 +283,24 @@ class BuildNumberEnforcer {
 const args = process.argv.slice(2);
 const enforcer = new BuildNumberEnforcer();
 
-if (args.includes('--run')) {
-  enforcer.enforce();
-} else if (args.includes('--validate-ipa')) {
-  const ipaPath = args[args.indexOf('--validate-ipa') + 1];
-  const bn = args[args.indexOf('--validate-ipa') + 2];
-  const version = args[args.indexOf('--validate-ipa') + 3];
-  const bundleId = args[args.indexOf('--validate-ipa') + 4];
-  enforcer.validateIpa(ipaPath, bn, version, bundleId);
-} else if (args.includes('--finalize')) {
-  const status = args[args.indexOf('--finalize') + 1];
-  enforcer.finalize(status);
+if (require.main === module) {
+  if (args.includes('--run')) {
+    try {
+      enforcer.enforce();
+    } catch (e) {
+      console.error(`❌ [ENFORCE] ${e && e.message ? e.message : e}`);
+      process.exit(1);
+    }
+  } else if (args.includes('--validate-ipa')) {
+    const ipaPath = args[args.indexOf('--validate-ipa') + 1];
+    const bn = args[args.indexOf('--validate-ipa') + 2];
+    const version = args[args.indexOf('--validate-ipa') + 3];
+    const bundleId = args[args.indexOf('--validate-ipa') + 4];
+    enforcer.validateIpa(ipaPath, bn, version, bundleId);
+  } else if (args.includes('--finalize')) {
+    const status = args[args.indexOf('--finalize') + 1];
+    enforcer.finalize(status);
+  }
 }
+
+module.exports = { BuildNumberEnforcer };
