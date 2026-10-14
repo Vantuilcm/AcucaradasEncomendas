@@ -374,6 +374,25 @@ jobs:
           echo "PREVIEW_IPA=dist/preview-local.ipa" >> $GITHUB_ENV
           ls -lh dist/preview-local.ipa
 
+      # R88: attest embedded GoogleService-Info.plist AFTER last IPA mutation (Stage), BEFORE IPA upload.
+      - name: Post-build IPA Firebase native identity attestation
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./scripts/ci/attest-ipa-firebase-native-identity.sh
+          ATTEST_OUT="$(./scripts/ci/attest-ipa-firebase-native-identity.sh dist/preview-local.ipa)"
+          printf '%s\n' "$ATTEST_OUT"
+          ATTESTED_IPA_PATH="$(printf '%s\n' "$ATTEST_OUT" | sed -n 's/^ATTESTED_IPA_PATH=//p' | tail -n 1)"
+          ATTESTED_IPA_SHA256="$(printf '%s\n' "$ATTEST_OUT" | sed -n 's/^ATTESTED_IPA_SHA256=//p' | tail -n 1)"
+          test -n "$ATTESTED_IPA_SHA256"
+          test "$ATTESTED_IPA_PATH" = "dist/preview-local.ipa"
+          {
+            echo "ATTESTED_IPA_PATH=$ATTESTED_IPA_PATH"
+            echo "ATTESTED_IPA_SHA256=$ATTESTED_IPA_SHA256"
+          } >> "$GITHUB_ENV"
+          echo "POST_BUILD_IPA_FIREBASE_NATIVE_ATTESTATION=PASS"
+
       - name: Capture build metadata
         if: always()
         run: |
@@ -390,16 +409,49 @@ jobs:
           if [ -f dist/preview-local.ipa ]; then
             echo "| IPA artifact | preview-local.ipa |" >> "$GITHUB_STEP_SUMMARY"
           fi
+          if [ -n "${ATTESTED_IPA_SHA256:-}" ]; then
+            echo "| Attested IPA SHA256 | \`$ATTESTED_IPA_SHA256\` |" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
-      - name: Upload preview IPA and logs
+      # R88: IPA upload only on success — attested path only (no build-*.ipa / *.ipa globs).
+      - name: Upload attested preview IPA
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          UPLOAD_IPA_PATH=dist/preview-local.ipa
+          test -f "$UPLOAD_IPA_PATH"
+          test -s "$UPLOAD_IPA_PATH"
+          test "${ATTESTED_IPA_PATH:-}" = "$UPLOAD_IPA_PATH"
+          if command -v shasum >/dev/null 2>&1; then
+            PRE_UPLOAD_IPA_SHA256="$(shasum -a 256 "$UPLOAD_IPA_PATH" | awk '{print $1}')"
+          else
+            PRE_UPLOAD_IPA_SHA256="$(sha256sum "$UPLOAD_IPA_PATH" | awk '{print $1}')"
+          fi
+          echo "UPLOAD_IPA_PATH=$UPLOAD_IPA_PATH"
+          echo "PRE_UPLOAD_IPA_SHA256=$PRE_UPLOAD_IPA_SHA256"
+          if [ -z "${ATTESTED_IPA_SHA256:-}" ] || [ "$PRE_UPLOAD_IPA_SHA256" != "$ATTESTED_IPA_SHA256" ]; then
+            echo "::error::PRE_UPLOAD IPA SHA256 diverges from ATTESTED_IPA_SHA256 (fail-closed)"
+            exit 1
+          fi
+          echo "SAME_ARTIFACT_SHA_PROOF=PASS"
+          echo "PRE_UPLOAD_IPA_SHA256=$PRE_UPLOAD_IPA_SHA256" >> "$GITHUB_ENV"
+
+      - name: Upload attested preview IPA artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-preview-local-${{ github.run_number }}-attested-ipa
+          path: dist/preview-local.ipa
+          retention-days: 14
+          if-no-files-found: error
+
+      # Diagnostic logs only — never IPA binaries / GoogleService plists / secrets.
+      - name: Upload diagnostic build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-preview-local-${{ github.run_number }}
-          path: |
-            dist/preview-local.ipa
-            build-logs/
-            build-*.ipa
-            *.ipa
+          name: ios-preview-local-${{ github.run_number }}-logs
+          path: build-logs/
           retention-days: 14
           if-no-files-found: warn
