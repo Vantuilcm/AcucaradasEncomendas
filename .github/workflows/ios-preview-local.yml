@@ -22,6 +22,10 @@ on:
         description: 'Branch ou ref para build (vazio = branch atual do dispatch)'
         required: false
         default: ''
+      AE_BUILD_NUMBER_FLOOR:
+        description: 'Proven lower-bound build number for Preview (positive decimal integer). Operator evidence only — not a reservation or uniqueness proof.'
+        required: true
+        type: string
 
 jobs:
   preview-local-build:
@@ -62,6 +66,8 @@ jobs:
       FORCE_BUILD_MODE: LOCAL
       AE_IOS_BUILD_MAX_ATTEMPTS: '1'
       BASELINE_COMMIT: ${{ github.event.inputs.baseline_commit }}
+      # Preview fail-closed floor for R56 enforcer — no numeric default; runtime gate validates.
+      AE_BUILD_NUMBER_FLOOR: ${{ github.event.inputs.AE_BUILD_NUMBER_FLOOR }}
 
     steps:
       - name: Checkout
@@ -297,12 +303,38 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-      - name: Build Number Enforcer (Source of Truth)
+      - name: Validate AE_BUILD_NUMBER_FLOOR (fail-closed)
+        shell: bash
         run: |
+          set -euo pipefail
+          FLOOR="${AE_BUILD_NUMBER_FLOOR:-}"
+          if [ -z "$FLOOR" ]; then
+            echo "::error::AE_BUILD_NUMBER_FLOOR is required (no silent default)"
+            exit 1
+          fi
+          # Reject whitespace padding, zero, negatives, fractions, scientific, non-decimal.
+          if [[ ! "$FLOOR" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::AE_BUILD_NUMBER_FLOOR must be a positive decimal integer string"
+            exit 1
+          fi
+          # Number.MAX_SAFE_INTEGER — reject overflow before enforcer.
+          if [ "$FLOOR" -gt 9007199254740991 ]; then
+            echo "::error::AE_BUILD_NUMBER_FLOOR exceeds safe integer range"
+            exit 1
+          fi
+          echo "AE_BUILD_NUMBER_FLOOR=$FLOOR" >> "$GITHUB_ENV"
+          echo "AE_BUILD_NUMBER_FLOOR_GATE=PASS ($FLOOR)"
+
+      - name: Build Number Enforcer (Source of Truth)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Inherited from job.env + Validate step GITHUB_ENV; fail-closed if missing.
+          export AE_BUILD_NUMBER_FLOOR="${AE_BUILD_NUMBER_FLOOR:?AE_BUILD_NUMBER_FLOOR required}"
           node scripts/ci/force-build-number.js --run
           BUILD_NUMBER=$(jq -r '.buildNumber' version-state.json)
-          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
-          echo "CURRENT_BN=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "CURRENT_BN=$BUILD_NUMBER" >> "$GITHUB_ENV"
 
       - name: Generate public_config.json
         run: npx expo config --type public --json > public_config.json
