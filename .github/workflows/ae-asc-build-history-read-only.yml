@@ -1,0 +1,54 @@
+# AE R62 — Isolated App Store Connect build-history GET-only query.
+# Manual dispatch only. No build, submit, upload, deploy, enforcer --run, or Guardian.
+name: AE ASC Build History Read-Only
+
+'on':
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ae-asc-build-history-read-only
+  cancel-in-progress: false
+
+jobs:
+  asc-build-history-read-only:
+    name: ASC builds history (GET-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      EXPO_ASC_PRIVATE_KEY_BASE64: ${{ secrets.EXPO_ASC_PRIVATE_KEY_BASE64 }}
+      AE_ASC_EXPECTED_APP_ID: '6756029389'
+      AE_ASC_EXPECTED_BUNDLE_ID: 'com.acucaradas.encomendas'
+
+    steps:
+      - name: Checkout (read-only depth)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run ASC build-history GET-only client
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fail closed if secrets absent (names only; never echo values).
+          if [ -z "${EXPO_ASC_KEY_ID:-}" ] || [ -z "${EXPO_ASC_ISSUER_ID:-}" ]; then
+            echo "::error::ASC Key ID / Issuer ID missing"
+            exit 1
+          fi
+          if [ -z "${EXPO_ASC_PRIVATE_KEY:-}" ] && [ -z "${EXPO_ASC_PRIVATE_KEY_BASE64:-}" ]; then
+            echo "::error::ASC private key missing"
+            exit 1
+          fi
+          node scripts/ci/asc-build-history-read-only.js
