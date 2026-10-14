@@ -26,14 +26,19 @@ function u32(n) {
   b.writeUInt32LE(n >>> 0, 0);
   return b;
 }
-/** Minimal ZIP (store) with forward-slash paths — IPA-compatible for unzip. */
+/** Minimal ZIP (store). entries: [name, data] or [name, data, { unixMode }]. */
 function writeZip(filePath, entries) {
   const locals = [];
   const centrals = [];
   let offset = 0;
-  for (const [name, data] of entries) {
+  for (const entry of entries) {
+    const name = entry[0];
+    const data = Buffer.isBuffer(entry[1]) ? entry[1] : Buffer.from(entry[1], 'utf8');
+    const opts = entry[2] || {};
     const nameBuf = Buffer.from(name, 'utf8');
     const crc = crc32(data);
+    const madeBy = opts.unixMode ? 0x0314 : 20; // Unix when mode set
+    const extAttr = opts.unixMode ? ((opts.unixMode & 0xffff) << 16) >>> 0 : 0;
     const local = Buffer.concat([
       u32(0x04034b50),
       u16(20),
@@ -51,7 +56,7 @@ function writeZip(filePath, entries) {
     ]);
     const central = Buffer.concat([
       u32(0x02014b50),
-      u16(20),
+      u16(madeBy),
       u16(20),
       u16(0),
       u16(0),
@@ -65,7 +70,7 @@ function writeZip(filePath, entries) {
       u16(0),
       u16(0),
       u16(0),
-      u32(0),
+      u32(extAttr),
       u32(offset),
       nameBuf,
     ]);
@@ -191,6 +196,54 @@ fs.writeFileSync(
     'AIzaSyProductionKey0001'
   )
 );
+
+// R90 / R89-D01: unsafe ZIP member path fixtures (must reject pre-extract)
+const sandboxPlist = plist(
+  'acucaradas-encomendas-sandbox',
+  'com.acucaradas.encomendas',
+  '1:sandbox:app',
+  '111',
+  'acucaradas-encomendas-sandbox.appspot.com',
+  'AIzaSySandboxTestKey001'
+);
+const payloadBenign = {
+  'Payload/AucaradasEncomendas.app/GoogleService-Info.plist': sandboxPlist,
+  'Payload/AucaradasEncomendas.app/Info.plist': '<plist></plist>\n',
+};
+
+packIpa(path.join(fix, 'zip-abs-path'), {
+  ...payloadBenign,
+  '/tmp/ae-r90-zipslip-abs-should-not-exist': 'ABS_ESCAPE\n',
+});
+// Would land in /tmp if unzip ran under mktemp -d /tmp/ae-ipa-attest.XXXXXX
+packIpa(path.join(fix, 'zip-parent-dotdot'), {
+  ...payloadBenign,
+  'Payload/../../ae-r90-zipslip-dotdot-should-not-exist': 'DOTDOT_ESCAPE\n',
+});
+packIpa(path.join(fix, 'zip-nested-dotdot'), {
+  ...payloadBenign,
+  'Payload/foo/../../../ae-r90-zipslip-nested-should-not-exist': 'NESTED_ESCAPE\n',
+});
+{
+  const dir = path.join(fix, 'zip-backslash');
+  fs.mkdirSync(dir, { recursive: true });
+  writeZip(path.join(dir, 'test.ipa'), [
+    ['Payload/AucaradasEncomendas.app/GoogleService-Info.plist', Buffer.from(sandboxPlist, 'utf8')],
+    ['Payload/AucaradasEncomendas.app/Info.plist', Buffer.from('<plist></plist>\n', 'utf8')],
+    ['Payload\\evil.txt', Buffer.from('BACKSLASH\n', 'utf8')],
+  ]);
+}
+{
+  const dir = path.join(fix, 'zip-symlink');
+  fs.mkdirSync(dir, { recursive: true });
+  // Unix symlink member (S_IFLNK | 0777) — zipinfo permission column starts with 'l'
+  writeZip(path.join(dir, 'test.ipa'), [
+    ['Payload/AucaradasEncomendas.app/GoogleService-Info.plist', Buffer.from(sandboxPlist, 'utf8')],
+    ['Payload/AucaradasEncomendas.app/Info.plist', Buffer.from('<plist></plist>\n', 'utf8')],
+    ['Payload/link-escape', Buffer.from('/tmp/ae-r90-zipslip-symlink-target', 'utf8'), { unixMode: 0o120777 }],
+  ]);
+}
+
 console.log('FIXTURES_OK', fix);
 // silence unused
 void zlib;

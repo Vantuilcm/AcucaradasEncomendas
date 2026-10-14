@@ -55,8 +55,104 @@ if ! unzip -tqq "$IPA_PATH" >/dev/null 2>&1; then
   fail "IPA is not a valid zip/IPA archive"
 fi
 
+# R90 / R89-D01: fail-closed ZIP member path inspection BEFORE any extract.
+# Do not rely on post-extract plist prefix checks to stop zip-slip writes.
+assert_safe_zip_members() {
+  local ipa="$1"
+  local listing=""
+  local member=""
+  local rest=""
+  local part=""
+
+  if ! command -v zipinfo >/dev/null 2>&1; then
+    fail "zipinfo required for pre-extraction ZIP member validation"
+  fi
+
+  # Reject symbolic-link members (zipinfo permission column starts with 'l')
+  if zipinfo "$ipa" 2>/dev/null | grep -E '^l' >/dev/null 2>&1; then
+    fail "ZIP contains symlink member (escape risk)"
+  fi
+
+  if ! listing="$(zipinfo -1 "$ipa" 2>/dev/null)"; then
+    fail "ZIP member listing failed"
+  fi
+  if [ -z "$(printf '%s' "$listing" | tr -d '[:space:]')" ]; then
+    fail "ZIP member listing empty"
+  fi
+
+  while IFS= read -r member || [ -n "$member" ]; do
+    [ -z "$member" ] && continue
+
+    # Absolute / UNC / drive-letter paths
+    case "$member" in
+      /*|\\*)
+        fail "ZIP member has absolute path"
+        ;;
+    esac
+    if printf '%s' "$member" | grep -Eq '^[A-Za-z]:[\\/]'; then
+      fail "ZIP member has drive-letter absolute path"
+    fi
+
+    # Platform-ambiguous separators (reject before extract)
+    case "$member" in
+      *\\*)
+        fail "ZIP member contains backslash path separator"
+        ;;
+    esac
+
+    # Null byte / control chars in member names
+    if printf '%s' "$member" | grep -Eq $'[\x00-\x1f]'; then
+      fail "ZIP member contains control characters"
+    fi
+
+    # Reject ".." path components (including nested)
+    rest="$member"
+    while :; do
+      case "$rest" in
+        */*)
+          part="${rest%%/*}"
+          rest="${rest#*/}"
+          ;;
+        *)
+          part="$rest"
+          rest=""
+          ;;
+      esac
+      if [ "$part" = ".." ]; then
+        fail "ZIP member contains parent-directory component"
+      fi
+      # Empty segment from leading/duplicate slashes — reject ambiguity
+      if [ -z "$part" ] && [ -n "$rest" ]; then
+        fail "ZIP member has empty path segment"
+      fi
+      [ -z "$rest" ] && break
+    done
+  done <<EOF
+$listing
+EOF
+}
+
+assert_safe_zip_members "$IPA_PATH"
+
 if ! unzip -q "$IPA_PATH" -d "$TMPDIR_ATTEST"; then
   fail "IPA extraction failed"
+fi
+
+# Post-extract containment: every extracted path must remain under TMPDIR_ATTEST
+# (defense-in-depth; primary control is pre-extraction member validation).
+if command -v find >/dev/null 2>&1; then
+  while IFS= read -r extracted || [ -n "$extracted" ]; do
+    [ -z "$extracted" ] && continue
+    case "$extracted" in
+      "$TMPDIR_ATTEST"/*) ;;
+      "$TMPDIR_ATTEST") ;;
+      *)
+        fail "extracted path escaped attestation temp directory"
+        ;;
+    esac
+  done <<EOF
+$(find "$TMPDIR_ATTEST" 2>/dev/null || true)
+EOF
 fi
 
 # Exactly one Payload/*.app (bash 3.2-portable; no mapfile)

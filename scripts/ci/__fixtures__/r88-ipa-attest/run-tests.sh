@@ -38,6 +38,41 @@ reject EMPTY_IPA "$FIX/empty-ipa/test.ipa"
 reject CORRUPTED_ZIP "$FIX/corrupt-zip/test.ipa"
 reject MULTIPLE_APP_PAYLOADS "$FIX/multi-app/test.ipa"
 
+# R90 / R89-D01: pre-extract ZIP member path traversal rejects + outside-temp proof
+CANARY_DIR="${TMPDIR:-/tmp}/ae-r90-zipslip-canary-$$"
+mkdir -p "$CANARY_DIR"
+CANARY_MARK="$CANARY_DIR/CANARY_MARKER"
+echo "KEEP" > "$CANARY_MARK"
+reject_zipslip() {
+  local name="$1" path="$2" probe="$3"
+  set +e
+  OUT=$("$SCRIPT" "$path" 2>&1)
+  EC=$?
+  set -e
+  if [ "$EC" -eq 0 ]; then
+    fail "$name"
+    echo "$OUT" | tail -8
+    return
+  fi
+  if [ -e "$probe" ]; then
+    fail "${name}_OUTSIDE_TEMP_WRITTEN"
+    echo "probe exists: $probe"
+    return
+  fi
+  if [ ! -f "$CANARY_MARK" ] || [ "$(cat "$CANARY_MARK")" != "KEEP" ]; then
+    fail "${name}_CANARY_TAMPERED"
+    return
+  fi
+  pass "$name"
+  pass "${name}_NO_OUTSIDE_TEMP"
+}
+reject_zipslip ZIP_ABS_PATH "$FIX/zip-abs-path/test.ipa" "/tmp/ae-r90-zipslip-abs-should-not-exist"
+reject_zipslip ZIP_PARENT_DOTDOT "$FIX/zip-parent-dotdot/test.ipa" "/tmp/ae-r90-zipslip-dotdot-should-not-exist"
+reject_zipslip ZIP_NESTED_DOTDOT "$FIX/zip-nested-dotdot/test.ipa" "/tmp/ae-r90-zipslip-nested-should-not-exist"
+reject_zipslip ZIP_BACKSLASH "$FIX/zip-backslash/test.ipa" "$FIX/Payload/evil.txt"
+reject_zipslip ZIP_SYMLINK "$FIX/zip-symlink/test.ipa" "/tmp/ae-r90-zipslip-symlink-target"
+rm -rf "$CANARY_DIR"
+
 set +e
 OUT=$("$SCRIPT" "$FIX/valid-sandbox/test.ipa" "$FIX/workspace-GoogleService-Info.plist" 2>&1)
 EC=$?
