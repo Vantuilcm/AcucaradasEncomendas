@@ -1,8 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { usePermissions } from './usePermissions';
-import { Role } from '../services/PermissionsService';
 
 /**
  * Hook to handle role-based navigation redirects.
@@ -11,7 +9,6 @@ import { Role } from '../services/PermissionsService';
 export const useRoleRedirect = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
-  const { isProdutor, isEntregador, isAdmin } = usePermissions();
 
   const redirectToDashboard = useCallback(() => {
     if (!user) {
@@ -19,36 +16,10 @@ export const useRoleRedirect = () => {
       return;
     }
 
-    const role = (user.role || '').toLowerCase();
-
-    // MISSÃO ZERO TELA BRANCA: Forçar todos para BootDiagnostic
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'BootDiagnostic' }],
-    });
-    return true;
-
-    /* Original Logic Commented Out for Debugging
-    if (isProdutor || isAdmin || role === Role.PRODUTOR || role === Role.ADMIN) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'AdminPanel' }],
-      });
-      return true;
-    }
-
-    if (isEntregador || role === Role.ENTREGADOR) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'DriverHome' }],
-      });
-      return true;
-    }
-
-    // Default for Comprador
+    // Authenticated routing is owned by AppNavigator / HomeScreen embeds.
+    // Do not reset to unregistered diagnostic routes.
     return false;
-    */
-  }, [user, isProdutor, isEntregador, isAdmin, navigation]);
+  }, [user, navigation]);
 
   return { redirectToDashboard };
 };
