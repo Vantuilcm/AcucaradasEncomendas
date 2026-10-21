@@ -741,16 +741,9 @@ exports.executePaymentSplit = functions.https.onCall(async (data, context) => {
       metadata: { role: 'producer', orderId }
     }));
 
-    // 2. Transfer para o Entregador (100% da taxa de entrega)
-    if (courierAccountId && deliveryFee > 0) {
-      transfers.push(stripe.transfers.create({
-        amount: deliveryFee,
-        currency: 'brl',
-        destination: courierAccountId,
-        transfer_group: orderId,
-        metadata: { role: 'courier', orderId }
-      }));
-    }
+
+    // Courier payout ocorre após a entrega via onOrderDelivered (G6R1 selective port).
+
 
     const results = await Promise.all(transfers);
 
@@ -883,7 +876,973 @@ exports.onOrderUpdateGrowth = functions.firestore
  * TRIGGER: Repasse ao Entregador (Split do Marketplace)
  * Disparado apenas quando a entrega é concluída com sucesso.
  */
-exports.onOrderDelivered = functions.firestore
+exports.retryCourierMissingConnectPayout = functions.runWith({ secrets: ['STRIPE_SECRET_KEY'] }).https.onCall(async (data, context) => {
+  if (!context || !context.auth || !context.auth.uid) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Authentication required.'
+    );
+  }
+
+  await validateAdmin(context.auth.uid);
+
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid request payload.');
+  }
+
+  const inputKeys = Object.keys(data);
+  if (
+    inputKeys.length !== 1 ||
+    inputKeys[0] !== 'orderId' ||
+    typeof data.orderId !== 'string' ||
+    data.orderId.trim() === ''
+  ) {
+    throw new functions.https.HttpsError('invalid-argument', 'Only orderId is accepted.');
+  }
+
+  const orderId = data.orderId.trim();
+  const orderRef = db.collection('orders').doc(orderId);
+
+  const resolveOrderState = (snapshot, staleCheck = false) => {
+    if (!snapshot.exists) {
+      throw new functions.https.HttpsError(
+        staleCheck ? 'aborted' : 'not-found',
+        staleCheck ? 'Order state changed.' : 'Order not found.'
+      );
+    }
+
+    const order = snapshot.data() || {};
+    if (
+      order.status !== 'delivered' ||
+      order.deliveryFeeHeld !== true ||
+      order.courierPayoutStatus !== 'missing_connected_account' ||
+      order.courierTransferId
+    ) {
+      throw new functions.https.HttpsError(
+        staleCheck ? 'aborted' : 'failed-precondition',
+        staleCheck ? 'Order state changed.' : 'Order is not eligible for retry.'
+      );
+    }
+
+    const courierId = order.deliveryDriverId || order.courierId;
+    if (typeof courierId !== 'string' || courierId.trim() === '') {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Courier identity is unavailable.'
+      );
+    }
+
+    const deliveryFee = order.deliveryFee || order.courierPayoutAmount;
+    const amountInCents = Math.floor(deliveryFee * 100);
+    if (
+      !Number.isFinite(deliveryFee) ||
+      deliveryFee <= 0 ||
+      !Number.isSafeInteger(amountInCents) ||
+      amountInCents <= 0
+    ) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Courier payout amount is invalid.'
+      );
+    }
+
+    return { courierId: courierId.trim(), deliveryFee, amountInCents };
+  };
+
+  const initialOrderSnapshot = await orderRef.get();
+  const initialState = resolveOrderState(initialOrderSnapshot);
+  const courierRef = db.collection('users').doc(initialState.courierId);
+  const initialCourierSnapshot = await courierRef.get();
+  const initialStripeAccountId = initialCourierSnapshot.exists
+    ? initialCourierSnapshot.data()?.stripeAccountId
+    : null;
+
+  if (
+    typeof initialStripeAccountId !== 'string' ||
+    !initialStripeAccountId.startsWith('acct_')
+  ) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'Courier connected account is unavailable.'
+    );
+  }
+
+  const [currentOrderSnapshot, currentCourierSnapshot] = await Promise.all([
+    orderRef.get(),
+    courierRef.get(),
+  ]);
+  const currentState = resolveOrderState(currentOrderSnapshot, true);
+  const currentStripeAccountId = currentCourierSnapshot.exists
+    ? currentCourierSnapshot.data()?.stripeAccountId
+    : null;
+
+  if (
+    currentState.courierId !== initialState.courierId ||
+    currentState.deliveryFee !== initialState.deliveryFee ||
+    currentState.amountInCents !== initialState.amountInCents ||
+    typeof currentStripeAccountId !== 'string' ||
+    !currentStripeAccountId.startsWith('acct_') ||
+    currentStripeAccountId !== initialStripeAccountId
+  ) {
+    throw new functions.https.HttpsError('aborted', 'Payout state changed.');
+  }
+
+  const stripe = require('stripe')(getStripeSecret());
+
+  // Resolve source_transaction from PaymentIntent.latest_charge
+  // (same server-side field and extraction semantics as onOrderDelivered).
+  const currentOrderData = currentOrderSnapshot.data() || {};
+  const paymentIntentId =
+    typeof currentOrderData.paymentIntentId === 'string' && currentOrderData.paymentIntentId
+      ? currentOrderData.paymentIntentId
+      : null;
+
+  if (!paymentIntentId) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'PaymentIntent is unavailable for courier payout recovery.',
+      { phase: 'payment_intent_resolve', transferCreated: false }
+    );
+  }
+
+  let paymentIntent;
+  try {
+    paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ['latest_charge'],
+    });
+  } catch (error) {
+    throw new functions.https.HttpsError(
+      'unavailable',
+      'Unable to retrieve PaymentIntent for courier payout recovery.',
+      { phase: 'payment_intent_retrieve', transferCreated: false }
+    );
+  }
+
+  let latestChargeId = null;
+  if (typeof paymentIntent.latest_charge === 'string') {
+    latestChargeId = paymentIntent.latest_charge;
+  } else if (
+    paymentIntent.latest_charge &&
+    typeof paymentIntent.latest_charge.id === 'string'
+  ) {
+    latestChargeId = paymentIntent.latest_charge.id;
+  }
+
+  if (!latestChargeId || latestChargeId.trim() === '') {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'latest_charge is unavailable; source_transaction cannot be resolved for courier payout recovery.',
+      { phase: 'latest_charge_resolve', transferCreated: false }
+    );
+  }
+
+  let transfer;
+  try {
+    transfer = await stripe.transfers.create({
+      amount: initialState.amountInCents,
+      currency: 'brl',
+      destination: initialStripeAccountId,
+      source_transaction: latestChargeId,
+      transfer_group: orderId,
+      metadata: { role: 'courier', orderId }
+    }, {
+      idempotencyKey: `courier_delivery_payout_${orderId}`
+    });
+
+    await orderRef.update({
+      courierPayoutStatus: 'paid',
+      courierTransferId: transfer.id,
+      courierPayoutProcessedAt: admin.firestore.FieldValue.serverTimestamp(),
+      deliveryFeeHeld: false
+    });
+  } catch (error) {
+    throw new functions.https.HttpsError(
+      'internal',
+      'Courier payout retry failed.'
+    );
+  }
+
+  return {
+    success: true,
+    orderId,
+    courierTransferId: transfer.id,
+    courierPayoutStatus: 'paid'
+  };
+});
+
+/**
+ * Admin recovery for generic failed courier payout after transfer_group
+ * reconciliation finds zero matches.
+ *
+ * Intentionally separate from retryCourierMissingConnectPayout:
+ * does not accept missing_connected_account and always reconciles
+ * Stripe transfers by transfer_group before create.
+ */
+const COURIER_FAILED_RECOVERY_PAGE_LIMIT = 100;
+const COURIER_FAILED_RECOVERY_MAX_PAGES = 10;
+
+async function listCourierTransfersByGroup(stripe, orderId) {
+  const transfers = [];
+  let startingAfter = null;
+  let pageCount = 0;
+  let complete = true;
+
+  while (pageCount < COURIER_FAILED_RECOVERY_MAX_PAGES) {
+    pageCount += 1;
+    const params = {
+      transfer_group: orderId,
+      limit: COURIER_FAILED_RECOVERY_PAGE_LIMIT,
+    };
+    if (startingAfter) {
+      params.starting_after = startingAfter;
+    }
+
+    const page = await stripe.transfers.list(params);
+    const data = (page && page.data) || [];
+    for (let i = 0; i < data.length; i += 1) {
+      if (!data[i] || !data[i].metadata || data[i].metadata.role !== 'producer') {
+        transfers.push(data[i]);
+      }
+    }
+
+    if (!page || !page.has_more) {
+      complete = true;
+      break;
+    }
+    if (data.length === 0) {
+      complete = false;
+      break;
+    }
+
+    startingAfter = data[data.length - 1].id;
+    if (pageCount >= COURIER_FAILED_RECOVERY_MAX_PAGES && page.has_more) {
+      complete = false;
+    }
+  }
+
+  return { transfers, pageCount, complete };
+}
+
+function classifyCourierTransferGroupMatches(transfers, expectations) {
+  const {
+    orderId,
+    expectedAmountCents,
+    expectedDestination,
+  } = expectations;
+
+  let exactActiveCount = 0;
+  let divergentCount = 0;
+  let reversedCount = 0;
+  let partiallyReversedCount = 0;
+  let liveModeCount = 0;
+
+  for (let i = 0; i < transfers.length; i += 1) {
+    const transfer = transfers[i] || {};
+    const metadata = transfer.metadata || {};
+    const amountReversed = transfer.amount_reversed || 0;
+    const reversed = transfer.reversed === true;
+    const livemode = transfer.livemode === true;
+    const exactActive =
+      transfer.amount === expectedAmountCents &&
+      transfer.currency === 'brl' &&
+      transfer.destination === expectedDestination &&
+      transfer.transfer_group === orderId &&
+      metadata.role === 'courier' &&
+      metadata.orderId === orderId &&
+      reversed === false &&
+      amountReversed === 0 &&
+      livemode === false;
+
+    if (exactActive) {
+      exactActiveCount += 1;
+      continue;
+    }
+    if (livemode) {
+      liveModeCount += 1;
+    }
+    if (reversed && amountReversed > 0 && amountReversed < transfer.amount) {
+      partiallyReversedCount += 1;
+    } else if (reversed || (amountReversed > 0 && amountReversed === transfer.amount)) {
+      reversedCount += 1;
+    } else {
+      divergentCount += 1;
+    }
+  }
+
+  return {
+    resultCount: transfers.length,
+    exactActiveCount,
+    divergentCount,
+    reversedCount,
+    partiallyReversedCount,
+    liveModeCount,
+  };
+}
+
+function isAmbiguousStripeCreateError(error) {
+  if (!error) return false;
+  const type = error.type || error.rawType || '';
+  const statusCode = error.statusCode;
+  const stripeErrorCode = error.code || (error.raw && error.raw.code);
+  if (stripeErrorCode === 'idempotency_key_in_use') return true;
+  if (type === 'StripeConnectionError') return true;
+  if (type === 'StripeAPIError' && (statusCode === 500 || statusCode === 502 || statusCode === 503 || statusCode === 504)) {
+    return true;
+  }
+  if (statusCode === 408 || statusCode === 429) return true;
+  if (error.code === 'ETIMEDOUT' || error.code === 'ECONNRESET') return true;
+  return false;
+}
+
+function hashOrderIdPrefixForCourierRetryLog(orderId) {
+  const crypto = require('crypto');
+  return crypto
+    .createHash('sha256')
+    .update(String(orderId), 'utf8')
+    .digest('hex')
+    .slice(0, 12);
+}
+
+function sanitizeCourierRetryStripeErrorMessage(rawMessage) {
+  if (rawMessage == null) return null;
+  let message = String(rawMessage).replace(/[\r\n]+/g, ' ');
+  message = message
+    .replace(/acct_[A-Za-z0-9]+/g, 'acct_[REDACTED]')
+    .replace(/tr_[A-Za-z0-9]+/g, 'tr_[REDACTED]')
+    .replace(/pi_[A-Za-z0-9]+/g, 'pi_[REDACTED]')
+    .replace(/ch_[A-Za-z0-9]+/g, 'ch_[REDACTED]')
+    .replace(/req_[A-Za-z0-9]+/g, 'req_[REDACTED]')
+    .replace(/sk_test_[A-Za-z0-9]+/g, '[REDACTED_SECRET]')
+    .replace(/sk_live_[A-Za-z0-9]+/g, '[REDACTED_SECRET]')
+    .replace(/pk_test_[A-Za-z0-9]+/g, '[REDACTED_SECRET]')
+    .replace(/pk_live_[A-Za-z0-9]+/g, '[REDACTED_SECRET]');
+  if (message.length > 300) {
+    message = message.slice(0, 300);
+  }
+  return message;
+}
+
+function sanitizeCourierRetryStripeErrorMetaField(value) {
+  if (value == null || value === '') return null;
+  return sanitizeCourierRetryStripeErrorMessage(value);
+}
+
+function stripeRequestIdLast4ForCourierRetryLog(error) {
+  if (!error) return null;
+  const requestId =
+    (typeof error.requestId === 'string' && error.requestId) ||
+    (error.raw && typeof error.raw.requestId === 'string' && error.raw.requestId) ||
+    null;
+  if (!requestId || requestId.length < 4) return null;
+  return requestId.slice(-4);
+}
+
+function logCourierRetryTransferCreateError(orderId, error, ambiguous) {
+  const statusCode = error && typeof error.statusCode === 'number' ? error.statusCode : null;
+  console.error('[COURIER_PAYOUT_RETRY_TRANSFER_CREATE_ERROR]', {
+    phase: 'transfer_create',
+    orderIdHashPrefix: hashOrderIdPrefixForCourierRetryLog(orderId),
+    errorType: sanitizeCourierRetryStripeErrorMetaField(
+      error && (error.type || error.rawType)
+    ),
+    errorCode: sanitizeCourierRetryStripeErrorMetaField(
+      error && (error.code || (error.raw && error.raw.code))
+    ),
+    declineCode: sanitizeCourierRetryStripeErrorMetaField(
+      error && (error.decline_code || (error.raw && error.raw.decline_code))
+    ),
+    errorParam: sanitizeCourierRetryStripeErrorMetaField(
+      error && (error.param || (error.raw && error.raw.param))
+    ),
+    stripeRequestIdLast4: stripeRequestIdLast4ForCourierRetryLog(error),
+    httpStatusCode: statusCode,
+    message: sanitizeCourierRetryStripeErrorMessage(error && error.message),
+    ambiguousClassification: ambiguous === true,
+  });
+}
+
+exports.retryCourierFailedPayout = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .https.onCall(async (data, context) => {
+    if (!context || !context.auth || !context.auth.uid) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'Authentication required.'
+      );
+    }
+
+    await validateAdmin(context.auth.uid);
+
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Invalid request payload.');
+    }
+
+    const inputKeys = Object.keys(data);
+    if (
+      inputKeys.length !== 1 ||
+      inputKeys[0] !== 'orderId' ||
+      typeof data.orderId !== 'string' ||
+      data.orderId.trim() === ''
+    ) {
+      throw new functions.https.HttpsError('invalid-argument', 'Only orderId is accepted.');
+    }
+
+    const orderId = data.orderId.trim();
+    const orderRef = db.collection('orders').doc(orderId);
+
+    const resolveFailedOrderState = (snapshot, staleCheck = false) => {
+      if (!snapshot.exists) {
+        throw new functions.https.HttpsError(
+          staleCheck ? 'aborted' : 'not-found',
+          staleCheck ? 'Order state changed.' : 'Order not found.'
+        );
+      }
+
+      const order = snapshot.data() || {};
+      if (
+        order.status !== 'delivered' ||
+        order.deliveryFeeHeld !== true ||
+        order.courierPayoutStatus !== 'failed' ||
+        order.courierTransferId
+      ) {
+        throw new functions.https.HttpsError(
+          staleCheck ? 'aborted' : 'failed-precondition',
+          staleCheck ? 'Order state changed.' : 'Order is not eligible for failed payout recovery.'
+        );
+      }
+
+      const courierId = order.deliveryDriverId || order.courierId;
+      if (typeof courierId !== 'string' || courierId.trim() === '') {
+        throw new functions.https.HttpsError(
+          'failed-precondition',
+          'Courier identity is unavailable.'
+        );
+      }
+
+      const deliveryFee = order.deliveryFee || order.courierPayoutAmount;
+      const amountInCents = Math.floor(deliveryFee * 100);
+      if (
+        !Number.isFinite(deliveryFee) ||
+        deliveryFee <= 0 ||
+        !Number.isSafeInteger(amountInCents) ||
+        amountInCents <= 0
+      ) {
+        throw new functions.https.HttpsError(
+          'failed-precondition',
+          'Courier payout amount is invalid.'
+        );
+      }
+
+      return { courierId: courierId.trim(), deliveryFee, amountInCents };
+    };
+
+    const initialOrderSnapshot = await orderRef.get();
+    const initialState = resolveFailedOrderState(initialOrderSnapshot);
+    const courierRef = db.collection('users').doc(initialState.courierId);
+    const initialCourierSnapshot = await courierRef.get();
+    const initialStripeAccountId = initialCourierSnapshot.exists
+      ? initialCourierSnapshot.data()?.stripeAccountId
+      : null;
+
+    if (
+      typeof initialStripeAccountId !== 'string' ||
+      !initialStripeAccountId.startsWith('acct_')
+    ) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Courier connected account is unavailable.'
+      );
+    }
+
+    const [currentOrderSnapshot, currentCourierSnapshot] = await Promise.all([
+      orderRef.get(),
+      courierRef.get(),
+    ]);
+    const currentState = resolveFailedOrderState(currentOrderSnapshot, true);
+    const currentStripeAccountId = currentCourierSnapshot.exists
+      ? currentCourierSnapshot.data()?.stripeAccountId
+      : null;
+
+    if (
+      currentState.courierId !== initialState.courierId ||
+      currentState.deliveryFee !== initialState.deliveryFee ||
+      currentState.amountInCents !== initialState.amountInCents ||
+      typeof currentStripeAccountId !== 'string' ||
+      !currentStripeAccountId.startsWith('acct_') ||
+      currentStripeAccountId !== initialStripeAccountId
+    ) {
+      throw new functions.https.HttpsError('aborted', 'Payout state changed.');
+    }
+
+    const stripe = require('stripe')(getStripeSecret());
+
+    let listResult;
+    try {
+      listResult = await listCourierTransfersByGroup(stripe, orderId);
+    } catch (error) {
+      throw new functions.https.HttpsError(
+        'unavailable',
+        'Unable to reconcile courier transfers before recovery.',
+        { phase: 'transfer_group_list', transferCreated: false }
+      );
+    }
+
+    if (!listResult.complete) {
+      throw new functions.https.HttpsError(
+        'aborted',
+        'Transfer group reconciliation result set is incomplete.',
+        { phase: 'transfer_group_list', transferCreated: false }
+      );
+    }
+
+    const classification = classifyCourierTransferGroupMatches(listResult.transfers, {
+      orderId,
+      expectedAmountCents: initialState.amountInCents,
+      expectedDestination: initialStripeAccountId,
+    });
+
+    if (classification.resultCount > 1) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Multiple transfers found for this transfer_group. Manual reconciliation required.',
+        {
+          phase: 'transfer_group_classify',
+          transferCreated: false,
+          classification: 'multiple_matches',
+          resultCount: classification.resultCount,
+        }
+      );
+    }
+
+    if (classification.resultCount === 1 && classification.exactActiveCount === 1) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Confirmed courier transfer already exists for this transfer_group. Do not create another transfer.',
+        {
+          phase: 'transfer_group_classify',
+          transferCreated: false,
+          classification: 'exact_active_match',
+        }
+      );
+    }
+
+    if (classification.resultCount === 1 && classification.exactActiveCount === 0) {
+      const classificationName =
+        classification.partiallyReversedCount > 0
+          ? 'partially_reversed'
+          : classification.reversedCount > 0
+            ? 'reversed'
+            : classification.liveModeCount > 0
+              ? 'live_mode_anomaly'
+              : 'divergent_match';
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'A divergent transfer already exists for this transfer_group. Manual reconciliation required.',
+        {
+          phase: 'transfer_group_classify',
+          transferCreated: false,
+          classification: classificationName,
+        }
+      );
+    }
+
+    // Final pre-create guard after reconciliation: revalidate order and Connect destination.
+    const [
+      preCreateOrderSnapshot,
+      preCreateCourierSnapshot,
+    ] = await Promise.all([
+      orderRef.get(),
+      courierRef.get(),
+    ]);
+    const preCreateState = resolveFailedOrderState(preCreateOrderSnapshot, true);
+    const preCreateStripeAccountId = preCreateCourierSnapshot.exists
+      ? preCreateCourierSnapshot.data()?.stripeAccountId
+      : null;
+    if (
+      preCreateState.courierId !== initialState.courierId ||
+      preCreateState.amountInCents !== initialState.amountInCents ||
+      typeof preCreateStripeAccountId !== 'string' ||
+      !preCreateStripeAccountId.startsWith('acct_') ||
+      preCreateStripeAccountId !== initialStripeAccountId
+    ) {
+      const destinationOnlyDrift =
+        preCreateState.courierId === initialState.courierId &&
+        preCreateState.amountInCents === initialState.amountInCents;
+      throw new functions.https.HttpsError('aborted', 'Payout state changed.', {
+        phase: 'pre_create_guard',
+        transferCreated: false,
+        ...(destinationOnlyDrift
+          ? { classification: 'destination_drift' }
+          : {}),
+      });
+    }
+
+    // Resolve source_transaction from PaymentIntent.latest_charge
+    // (same server-side field and extraction semantics as onOrderDelivered).
+    const preCreateOrderData = preCreateOrderSnapshot.data() || {};
+    const paymentIntentId =
+      typeof preCreateOrderData.paymentIntentId === 'string' && preCreateOrderData.paymentIntentId
+        ? preCreateOrderData.paymentIntentId
+        : null;
+
+    if (!paymentIntentId) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'PaymentIntent is unavailable for courier payout recovery.',
+        { phase: 'payment_intent_resolve', transferCreated: false }
+      );
+    }
+
+    let paymentIntent;
+    try {
+      paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+        expand: ['latest_charge'],
+      });
+    } catch (error) {
+      throw new functions.https.HttpsError(
+        'unavailable',
+        'Unable to retrieve PaymentIntent for courier payout recovery.',
+        { phase: 'payment_intent_retrieve', transferCreated: false }
+      );
+    }
+
+    let latestChargeId = null;
+    if (typeof paymentIntent.latest_charge === 'string') {
+      latestChargeId = paymentIntent.latest_charge;
+    } else if (
+      paymentIntent.latest_charge &&
+      typeof paymentIntent.latest_charge.id === 'string'
+    ) {
+      latestChargeId = paymentIntent.latest_charge.id;
+    }
+
+    if (!latestChargeId || latestChargeId.trim() === '') {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'latest_charge is unavailable; source_transaction cannot be resolved for courier payout recovery.',
+        { phase: 'latest_charge_resolve', transferCreated: false }
+      );
+    }
+
+    let transfer;
+    try {
+      transfer = await stripe.transfers.create({
+        amount: initialState.amountInCents,
+        currency: 'brl',
+        destination: initialStripeAccountId,
+        source_transaction: latestChargeId,
+        transfer_group: orderId,
+        metadata: { role: 'courier', orderId },
+      }, {
+        idempotencyKey: `courier_delivery_payout_${orderId}`,
+      });
+    } catch (error) {
+      const ambiguous = isAmbiguousStripeCreateError(error);
+      logCourierRetryTransferCreateError(orderId, error, ambiguous);
+      if (ambiguous) {
+        throw new functions.https.HttpsError(
+          'unavailable',
+          'Courier payout recovery result is ambiguous. Reconcile transfer_group before retrying.',
+          {
+            phase: 'transfer_create_ambiguous',
+            transferCreated: 'unknown',
+          }
+        );
+      }
+      throw new functions.https.HttpsError(
+        'internal',
+        'Courier payout recovery failed before paid write.',
+        {
+          phase: 'transfer_create',
+          transferCreated: false,
+        }
+      );
+    }
+
+    try {
+      await orderRef.update({
+        courierPayoutStatus: 'paid',
+        courierTransferId: transfer.id,
+        courierPayoutProcessedAt: admin.firestore.FieldValue.serverTimestamp(),
+        deliveryFeeHeld: false,
+      });
+    } catch (error) {
+      // Never write failed after a Transfer may already exist.
+      const transferId = typeof transfer.id === 'string' ? transfer.id : '';
+      throw new functions.https.HttpsError(
+        'internal',
+        'Courier payout recovery paid write failed after transfer create.',
+        {
+          phase: 'paid_write',
+          transferCreated: true,
+          transferIdLast4: transferId.length >= 4 ? transferId.slice(-4) : null,
+        }
+      );
+    }
+
+    return {
+      success: true,
+      orderId,
+      courierTransferId: transfer.id,
+      courierPayoutStatus: 'paid',
+      reconciliation: {
+        resultCount: 0,
+        classification: 'zero_matches_created',
+      },
+    };
+  });
+
+/**
+ * Admin read-only reconciliation for ambiguous failed courier payout create.
+ * Lists transfers by transfer_group and classifies locally.
+ * Never creates, reverses, or writes Firestore.
+ */
+function mapCourierFailedPayoutReconciliationClassification(classification) {
+  if (classification.resultCount === 0) {
+    return { classification: 'zero_matches', manualReviewRequired: true };
+  }
+  if (classification.resultCount > 1) {
+    return { classification: 'multiple_matches', manualReviewRequired: true };
+  }
+  if (classification.exactActiveCount === 1) {
+    return { classification: 'exact_active_match', manualReviewRequired: false };
+  }
+  if (classification.partiallyReversedCount > 0) {
+    return { classification: 'partially_reversed', manualReviewRequired: true };
+  }
+  if (classification.reversedCount > 0) {
+    return { classification: 'reversed', manualReviewRequired: true };
+  }
+  if (classification.liveModeCount > 0) {
+    return { classification: 'live_mode_anomaly', manualReviewRequired: true };
+  }
+  return { classification: 'divergent_match', manualReviewRequired: true };
+}
+
+exports.reconcileCourierFailedPayoutTransfer = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .https.onCall(async (data, context) => {
+    if (!context || !context.auth || !context.auth.uid) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'Authentication required.'
+      );
+    }
+
+    await validateAdmin(context.auth.uid);
+
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Invalid request payload.');
+    }
+
+    const inputKeys = Object.keys(data);
+    if (
+      inputKeys.length !== 1 ||
+      inputKeys[0] !== 'orderId' ||
+      typeof data.orderId !== 'string' ||
+      data.orderId.trim() === ''
+    ) {
+      throw new functions.https.HttpsError('invalid-argument', 'Only orderId is accepted.');
+    }
+
+    const orderId = data.orderId.trim();
+    const orderRef = db.collection('orders').doc(orderId);
+
+    const resolveFailedOrderState = (snapshot, staleCheck = false) => {
+      if (!snapshot.exists) {
+        throw new functions.https.HttpsError(
+          staleCheck ? 'aborted' : 'not-found',
+          staleCheck ? 'Order state changed.' : 'Order not found.',
+          staleCheck
+            ? {
+                phase: 'post_reconciliation_guard',
+                classification: 'state_drift',
+                transferCreated: 'unknown',
+                firestoreWritten: false,
+              }
+            : { phase: 'order_read' }
+        );
+      }
+
+      const order = snapshot.data() || {};
+      if (
+        order.status !== 'delivered' ||
+        order.deliveryFeeHeld !== true ||
+        order.courierPayoutStatus !== 'failed' ||
+        order.courierTransferId
+      ) {
+        throw new functions.https.HttpsError(
+          staleCheck ? 'aborted' : 'failed-precondition',
+          staleCheck
+            ? 'Order state changed.'
+            : 'Order is not eligible for failed payout reconciliation.',
+          staleCheck
+            ? {
+                phase: 'post_reconciliation_guard',
+                classification: 'state_drift',
+                transferCreated: 'unknown',
+                firestoreWritten: false,
+              }
+            : { phase: 'order_precondition' }
+        );
+      }
+
+      const courierId = order.deliveryDriverId || order.courierId;
+      if (typeof courierId !== 'string' || courierId.trim() === '') {
+        throw new functions.https.HttpsError(
+          staleCheck ? 'aborted' : 'failed-precondition',
+          staleCheck ? 'Order state changed.' : 'Courier identity is unavailable.',
+          staleCheck
+            ? {
+                phase: 'post_reconciliation_guard',
+                classification: 'state_drift',
+                transferCreated: 'unknown',
+                firestoreWritten: false,
+              }
+            : { phase: 'order_precondition' }
+        );
+      }
+
+      const deliveryFee = order.deliveryFee || order.courierPayoutAmount;
+      const amountInCents = Math.floor(Number(deliveryFee) * 100);
+      if (
+        !Number.isFinite(deliveryFee) ||
+        deliveryFee <= 0 ||
+        !Number.isSafeInteger(amountInCents) ||
+        amountInCents <= 0
+      ) {
+        throw new functions.https.HttpsError(
+          staleCheck ? 'aborted' : 'failed-precondition',
+          staleCheck ? 'Order state changed.' : 'Courier payout amount is invalid.',
+          staleCheck
+            ? {
+                phase: 'post_reconciliation_guard',
+                classification: 'state_drift',
+                transferCreated: 'unknown',
+                firestoreWritten: false,
+              }
+            : { phase: 'order_precondition' }
+        );
+      }
+
+      return { courierId: courierId.trim(), deliveryFee, amountInCents };
+    };
+
+    const initialOrderSnapshot = await orderRef.get();
+    const initialState = resolveFailedOrderState(initialOrderSnapshot);
+    const courierRef = db.collection('users').doc(initialState.courierId);
+    const initialCourierSnapshot = await courierRef.get();
+    const initialStripeAccountId = initialCourierSnapshot.exists
+      ? initialCourierSnapshot.data()?.stripeAccountId
+      : null;
+
+    if (!initialCourierSnapshot.exists) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Courier user is unavailable.',
+        { phase: 'courier_read' }
+      );
+    }
+
+    if (
+      typeof initialStripeAccountId !== 'string' ||
+      !initialStripeAccountId.startsWith('acct_')
+    ) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Courier connected account is unavailable.',
+        { phase: 'courier_read' }
+      );
+    }
+
+    const stripe = require('stripe')(getStripeSecret());
+
+    let listResult;
+    try {
+      listResult = await listCourierTransfersByGroup(stripe, orderId);
+    } catch (error) {
+      throw new functions.https.HttpsError(
+        'unavailable',
+        'Unable to reconcile courier transfers.',
+        {
+          phase: 'transfer_group_list',
+          transferCreated: 'unknown',
+          firestoreWritten: false,
+        }
+      );
+    }
+
+    if (!listResult.complete) {
+      throw new functions.https.HttpsError(
+        'aborted',
+        'Transfer group reconciliation result set is incomplete.',
+        {
+          phase: 'transfer_group_incomplete',
+          transferCreated: 'unknown',
+          firestoreWritten: false,
+          classification: 'incomplete_results',
+        }
+      );
+    }
+
+    const classificationCounts = classifyCourierTransferGroupMatches(listResult.transfers, {
+      orderId,
+      expectedAmountCents: initialState.amountInCents,
+      expectedDestination: initialStripeAccountId,
+    });
+    const mapped = mapCourierFailedPayoutReconciliationClassification(classificationCounts);
+
+    const [finalOrderSnapshot, finalCourierSnapshot] = await Promise.all([
+      orderRef.get(),
+      courierRef.get(),
+    ]);
+    const finalState = resolveFailedOrderState(finalOrderSnapshot, true);
+    const finalStripeAccountId = finalCourierSnapshot.exists
+      ? finalCourierSnapshot.data()?.stripeAccountId
+      : null;
+
+    if (
+      finalState.courierId !== initialState.courierId ||
+      finalState.amountInCents !== initialState.amountInCents ||
+      typeof finalStripeAccountId !== 'string' ||
+      !finalStripeAccountId.startsWith('acct_') ||
+      finalStripeAccountId !== initialStripeAccountId
+    ) {
+      throw new functions.https.HttpsError('aborted', 'Payout state changed.', {
+        phase: 'post_reconciliation_guard',
+        classification: 'state_drift',
+        transferCreated: 'unknown',
+        firestoreWritten: false,
+      });
+    }
+
+    const response = {
+      success: true,
+      orderId,
+      reconciliation: {
+        classification: mapped.classification,
+        resultCount: classificationCounts.resultCount,
+        exactActiveCount: classificationCounts.exactActiveCount,
+        complete: true,
+        manualReviewRequired: mapped.manualReviewRequired,
+        safeToCreateTransfer: false,
+        safeToRepairFirestore: false,
+      },
+    };
+
+    if (classificationCounts.resultCount === 1) {
+      const onlyTransfer = listResult.transfers[0] || {};
+      const transferId = typeof onlyTransfer.id === 'string' ? onlyTransfer.id : '';
+      response.transferIdLast4 =
+        transferId.length >= 4 ? transferId.slice(-4) : null;
+    }
+
+    return response;
+  });
+
+exports.onOrderDelivered = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY'] })
+  .firestore
   .document('orders/{orderId}')
   .onUpdate(async (change, context) => {
     const newData = change.after.data();
@@ -891,8 +1850,47 @@ exports.onOrderDelivered = functions.firestore
     const orderId = context.params.orderId;
 
     // Apenas agir se o status mudou para 'delivered'
-    if (newData.status === 'delivered' && oldData.status !== 'delivered') {
-      
+    const becameDelivered =
+      newData.status === 'delivered' && oldData.status !== 'delivered';
+    const holdBecameReadyAfterDelivery =
+      newData.status === 'delivered' &&
+      newData.deliveryFeeHeld === true &&
+      oldData.deliveryFeeHeld !== true;
+    if (!becameDelivered && !holdBecameReadyAfterDelivery) {
+      return null;
+    }
+    if (becameDelivered || holdBecameReadyAfterDelivery) {
+
+      // HARDENING remoto: transição normal deve ser exatamente delivering → delivered.
+      // O caminho holdBecameReadyAfterDelivery permanece válido para o webhook tardio.
+      if (becameDelivered && oldData.status !== 'delivering') {
+        console.log(
+          `ℹ️ [Split Entregador] Pedido ${orderId} delivered sem before.status=delivering (era ${oldData.status}). Ignorando repasse.`
+        );
+        return null;
+      }
+
+      // HARDENING remoto: exige hold explícito pending_delivery.
+      if (newData.courierPayoutStatus !== 'pending_delivery') {
+        console.log(
+          `ℹ️ [Split Entregador] Pedido ${orderId} courierPayoutStatus=${newData.courierPayoutStatus || 'undefined'} (exige pending_delivery). Ignorando repasse.`
+        );
+        return null;
+      }
+
+      // HARDENING remoto: se paymentStatus existir, deve ser completed/paid.
+      if (
+        newData.paymentStatus !== undefined &&
+        newData.paymentStatus !== null &&
+        newData.paymentStatus !== 'completed' &&
+        newData.paymentStatus !== 'paid'
+      ) {
+        console.log(
+          `ℹ️ [Split Entregador] Pedido ${orderId} paymentStatus inválido (${newData.paymentStatus}). Ignorando repasse.`
+        );
+        return null;
+      }
+
       // 1. Validar se há fundos retidos para o entregador
       if (!newData.deliveryFeeHeld || newData.courierPayoutStatus === 'paid') {
         console.log(`ℹ️ [Split Entregador] Pedido ${orderId} entregue, mas sem taxa retida ou já pago. Ignorando repasse.`);
@@ -925,21 +1923,81 @@ exports.onOrderDelivered = functions.firestore
           return;
         }
 
-        // 3. Executar Transferência com Idempotência
+        // 3. Resolver source_transaction (obrigatório para Transfers BR)
         const courierPayoutAmountInCents = Math.floor(deliveryFee * 100);
+
+        let listResult;
+        let classification;
+        try {
+          listResult = await listCourierTransfersByGroup(stripe, orderId);
+
+          if (!listResult.complete) {
+            console.warn(`Courier payout reconciliation incomplete for order ${orderId}; transfer creation blocked.`);
+            return null;
+          }
+
+          classification = classifyCourierTransferGroupMatches(listResult.transfers, {
+            orderId,
+            expectedAmountCents: courierPayoutAmountInCents,
+            expectedDestination: courierStripeAccountId,
+          });
+        } catch (reconciliationError) {
+          console.warn(`Courier payout reconciliation failed for order ${orderId}; transfer creation blocked.`);
+          return null;
+        }
+
+        if (classification.resultCount !== 0) {
+          console.warn(`Courier payout reconciliation found ${classification.resultCount} transfer-group match(es) for order ${orderId}; transfer creation blocked.`);
+          return null;
+        }
+        const paymentIntentId = newData.paymentIntentId;
+        if (!paymentIntentId) {
+          console.warn(
+            `⚠️ [Split Entregador] Pedido ${orderId} sem paymentIntentId; não foi possível resolver source_transaction.`
+          );
+          await change.after.ref.update({
+            courierPayoutStatus: 'failed',
+            courierPayoutError:
+              'paymentIntentId ausente; não foi possível resolver source_transaction para repasse courier'
+          });
+          return null;
+        }
+
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['latest_charge'] });
+        let chargeId = null;
+        if (typeof paymentIntent.latest_charge === 'string') {
+          chargeId = paymentIntent.latest_charge;
+        } else if (paymentIntent.latest_charge && paymentIntent.latest_charge.id) {
+          chargeId = paymentIntent.latest_charge.id;
+        }
+
+        if (!chargeId) {
+          console.warn(
+            `⚠️ [Split Entregador] Pedido ${orderId} PaymentIntent ${paymentIntentId} sem latest_charge; source_transaction não resolvido.`
+          );
+          await change.after.ref.update({
+            courierPayoutStatus: 'failed',
+            courierPayoutError:
+              'latest_charge ausente no PaymentIntent; source_transaction não resolvido para repasse courier'
+          });
+          return null;
+        }
+
+        // 4. Executar Transferência com Idempotência
         const idempotencyKey = `courier_delivery_payout_${orderId}`;
 
         const transfer = await stripe.transfers.create({
           amount: courierPayoutAmountInCents,
           currency: 'brl',
           destination: courierStripeAccountId,
+          source_transaction: chargeId,
           transfer_group: orderId,
           metadata: { role: 'courier', orderId }
         }, {
           idempotencyKey
         });
 
-        // 4. Confirmar sucesso no Firestore
+        // 5. Confirmar sucesso no Firestore
         await change.after.ref.update({
           courierPayoutStatus: 'paid',
           courierTransferId: transfer.id,
