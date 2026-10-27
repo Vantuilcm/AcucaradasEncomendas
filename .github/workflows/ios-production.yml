@@ -14,7 +14,7 @@ on:
       release_approved:
         description: 'Aprovar build de produção?'
         required: true
-        default: 'true'
+        default: false
         type: boolean
 
 jobs:
@@ -56,8 +56,14 @@ jobs:
         with:
           fetch-depth: 0
       - name: Verify Production contract before building
+        env:
+          RELEASE_APPROVED: ${{ inputs.release_approved }}
         run: |
           set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME:-}" != "workflow_dispatch" ] || [ "${RELEASE_APPROVED:-false}" != "true" ]; then
+            echo "FAIL: explicit release approval required"
+            exit 1
+          fi
           echo "=== Production contract gate (no secrets printed) ==="
           EXPECT_BRANCH='safe/ae-production-ios-release-r3-r3-contract-20261026-v1'
           ORIGINAL_SHA='d93159b627693d1b2405e49e86520c52beaf1ee7'
