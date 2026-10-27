@@ -45,12 +45,76 @@ jobs:
       
       EXPO_PUBLIC_PROJECT_ID: "6090106b-e327-4744-bce5-9ddb0d037045"
       PROFILE: "production_v13"
+      APP_ENV: "production"
+      EXPO_PUBLIC_APP_ENV: "production"
+      EAS_PROFILE: "production_v13"
       FORCE_BUILD_MODE: "LOCAL"
 
     steps:
       - name: 📦 Checkout Repository
         uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0
+      - name: Verify Production contract before building
+        run: |
+          set -euo pipefail
+          echo "=== Production contract gate (no secrets printed) ==="
+          EXPECT_BRANCH='safe/ae-production-ios-release-r3-r3-contract-20261026-v1'
+          ORIGINAL_SHA='d93159b627693d1b2405e49e86520c52beaf1ee7'
+          if [ "${GITHUB_REF_NAME}" != "${EXPECT_BRANCH}" ]; then
+            echo "FAIL: GITHUB_REF_NAME mismatch"
+            exit 1
+          fi
+          HEAD_SHA=$(git rev-parse HEAD)
+          if [ "${HEAD_SHA}" != "${GITHUB_SHA}" ]; then
+            echo "FAIL: HEAD != GITHUB_SHA"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "${ORIGINAL_SHA}" HEAD; then
+            echo "FAIL: Original commit is not an ancestor of HEAD"
+            exit 1
+          fi
+          DIFF_FILES=$(git diff --name-only "${ORIGINAL_SHA}" HEAD)
+          EXPECT_FILE='.github/workflows/ios-production.yml'
+          if [ "${DIFF_FILES}" != "${EXPECT_FILE}" ]; then
+            echo "FAIL: diff vs Original is not exclusively ios-production.yml"
+            exit 1
+          fi
+          [ "${APP_ENV}" = "production" ] || { echo "FAIL: APP_ENV"; exit 1; }
+          [ "${EXPO_PUBLIC_APP_ENV}" = "production" ] || { echo "FAIL: EXPO_PUBLIC_APP_ENV"; exit 1; }
+          [ "${PROFILE}" = "production_v13" ] || { echo "FAIL: PROFILE"; exit 1; }
+          [ "${EAS_PROFILE}" = "production_v13" ] || { echo "FAIL: EAS_PROFILE"; exit 1; }
+          [ "${EXPO_PUBLIC_FIREBASE_PROJECT_ID}" = "acucaradas-encomendas" ] || { echo "FAIL: FIREBASE_PROJECT_ID"; exit 1; }
+          if [ -z "${EXPO_PUBLIC_FIREBASE_APP_ID:-}" ]; then
+            echo "FAIL: FIREBASE_APP_ID empty"
+            exit 1
+          fi
+          if [ -z "${GOOGLE_SERVICE_INFO_PLIST:-}" ]; then
+            echo "FAIL: GOOGLE_SERVICE_INFO_PLIST missing"
+            exit 1
+          fi
+          PLIST_TMP=$(mktemp)
+          if printf '%s' "${GOOGLE_SERVICE_INFO_PLIST}" | grep -q '<plist'; then
+            printf '%s' "${GOOGLE_SERVICE_INFO_PLIST}" > "${PLIST_TMP}"
+          else
+            printf '%s' "${GOOGLE_SERVICE_INFO_PLIST}" | base64 --decode > "${PLIST_TMP}" 2>/dev/null || {
+              echo "FAIL: plist neither XML nor valid Base64"
+              rm -f "${PLIST_TMP}"
+              exit 1
+            }
+          fi
+          if ! grep -q 'acucaradas-encomendas' "${PLIST_TMP}"; then
+            echo "FAIL: plist project identity mismatch"
+            rm -f "${PLIST_TMP}"
+            exit 1
+          fi
+          rm -f "${PLIST_TMP}"
+          case "${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}" in
+            pk_live_*) ;;
+            *) echo "FAIL: Stripe publishable key must be pk_live_*"; exit 1 ;;
+          esac
+          [ "${EXPO_PUBLIC_ENABLE_STRIPE_PAYMENTS}" = "false" ] || { echo "FAIL: Stripe payments must remain false"; exit 1; }
+          echo "PASS: Production contract gate"
       - name: 🔍 Diagnose macOS/Xcode
         run: |
           echo "=== System Info ==="
