@@ -194,6 +194,17 @@ jobs:
           chmod +x ./scripts/ci/ios-build-guardian.sh
           ./scripts/ci/ios-build-guardian.sh
 
+      - name: 📦 Upload Production IPA Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-ipa-v4
+          path: |
+            build-*.ipa
+            *.ipa
+          if-no-files-found: error
+          retention-days: 7
+
       - name: 📄 Upload Build Logs
         if: always()
         uses: actions/upload-artifact@v4
