@@ -82,9 +82,9 @@ jobs:
             exit 1
           fi
           DIFF_FILES=$(git diff --name-only "${ORIGINAL_SHA}" HEAD)
-          EXPECT_FILES=$(printf '%s\n%s\n' '.github/workflows/ios-production.yml' 'scripts/ci/ios-build-guardian.sh')
+          EXPECT_FILES=$(printf '%s\n' '.github/workflows/ios-production.yml' 'app.json' 'scripts/ci/ios-build-guardian.sh' 'version-state.json')
           if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
-            echo "FAIL: diff vs Original is not exclusively ios-production.yml"
+            echo "FAIL: diff vs Original is not exactly the four allowlisted release paths"
             exit 1
           fi
           [ "${APP_ENV}" = "production" ] || { echo "FAIL: APP_ENV"; exit 1; }
@@ -167,11 +167,25 @@ jobs:
 
       - name: 🛡️ Build Number Enforcer (Source of Truth)
         run: |
+          set -euo pipefail
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
           node scripts/ci/force-build-number.js --run
-          BUILD_NUMBER=$(jq -r '.buildNumber' version-state.json)
-          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
-          echo "CURRENT_BN=$BUILD_NUMBER" >> $GITHUB_ENV
+          TARGET_VERSION='1.1.8'
+          TARGET_BUILD='1304'
+          TARGET_BUNDLE='com.acucaradas.encomendas'
+          APP_VERSION=$(jq -er '.expo.version' app.json)
+          STATE_VERSION=$(jq -er '.version' version-state.json)
+          APP_BUILD=$(jq -er '.expo.ios.buildNumber' app.json)
+          STATE_BUILD=$(jq -er '.buildNumber' version-state.json)
+          APP_BUNDLE=$(jq -er '.expo.ios.bundleIdentifier' app.json)
+          [ "$APP_VERSION" = "$TARGET_VERSION" ] || { echo 'FAIL: app version mismatch'; exit 1; }
+          [ "$STATE_VERSION" = "$TARGET_VERSION" ] || { echo 'FAIL: version-state version mismatch'; exit 1; }
+          [ "$APP_BUILD" = "$TARGET_BUILD" ] || { echo 'FAIL: app build number mismatch'; exit 1; }
+          [ "$STATE_BUILD" = "$TARGET_BUILD" ] || { echo 'FAIL: version-state build number mismatch'; exit 1; }
+          [ "$APP_BUNDLE" = "$TARGET_BUNDLE" ] || { echo 'FAIL: bundle identifier mismatch'; exit 1; }
+          BUILD_NUMBER="$STATE_BUILD"
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "CURRENT_BN=$BUILD_NUMBER" >> "$GITHUB_ENV"
 
       - name: DIAGNOSTICO Validar Build Number Propagado
         run: |
