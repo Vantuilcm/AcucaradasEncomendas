@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
+set +x
 # HOTFIX: UTF-8 s/ BOM - 2026-04-25
 # DEBUG TRIGGER: 1196-v1
 # 🍎 iOSBuildGuardianAI_V2_LOCAL
 # MISSÃO: Garantir build iOS LOCAL 100% independente, com Build Number dinâmico.
 # V9: Usar credentials.json para evitar prompts interativos de extensões.
 
-# Usar -x para debug total e -e para parar em erros
-set -xeo pipefail
-
+# Usar -e e pipefail para parar em erros; xtrace desativado (set +x acima)
+set -eo pipefail
 echo "🛡️ [iOS-BUILD-GUARDIAN] Iniciando Missão de Build Local V2.2 (v9)..."
 echo "------------------------------------------------------------"
 

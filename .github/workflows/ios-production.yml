@@ -82,8 +82,8 @@ jobs:
             exit 1
           fi
           DIFF_FILES=$(git diff --name-only "${ORIGINAL_SHA}" HEAD)
-          EXPECT_FILE='.github/workflows/ios-production.yml'
-          if [ "${DIFF_FILES}" != "${EXPECT_FILE}" ]; then
+          EXPECT_FILES=$(printf '%s\n%s\n' '.github/workflows/ios-production.yml' 'scripts/ci/ios-build-guardian.sh')
+          if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
             echo "FAIL: diff vs Original is not exclusively ios-production.yml"
             exit 1
           fi
