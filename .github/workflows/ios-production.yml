@@ -81,12 +81,43 @@ jobs:
             echo "FAIL: Original commit is not an ancestor of HEAD"
             exit 1
           fi
-          DIFF_FILES=$(git diff --name-only "${ORIGINAL_SHA}" HEAD)
-          EXPECT_FILES=$(printf '%s\n' '.github/workflows/ios-production.yml' 'app.json' 'scripts/ci/ios-build-guardian.sh' 'version-state.json')
-          if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
-            echo "FAIL: diff vs Original is not exactly the four allowlisted release paths"
+          APPROVED_G06_SHA='3b9a9578a87e864ba9193d129d362df64edd96bb'
+          if ! git merge-base --is-ancestor "${APPROVED_G06_SHA}" HEAD; then
+            echo "FAIL: Approved G06 commit is not an ancestor of HEAD"
             exit 1
           fi
+          DIFF_FILES=$(git diff --name-only "${ORIGINAL_SHA}" HEAD)
+          EXPECT_FILES=$(printf '%s\n' \
+            '.github/workflows/ios-production.yml' \
+            'app.json' \
+            'scripts/ci/ios-build-guardian.sh' \
+            'src/screens/DriverHomeScreen.tsx' \
+            'src/services/OrderService.ts' \
+            'src/services/__tests__/OrderService.acceptOrderAtomic.courierUid.test.ts' \
+            'src/utils/__tests__/courierAcceptAuthGate.test.ts' \
+            'src/utils/courierAcceptAuthGate.ts' \
+            'version-state.json')
+          if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
+            echo "FAIL: diff vs Original is not exactly the nine allowlisted release+G06 paths"
+            exit 1
+          fi
+          G06_INTEGRITY_FILES=$(printf '%s\n' \
+            'src/screens/DriverHomeScreen.tsx' \
+            'src/services/OrderService.ts' \
+            'src/services/__tests__/OrderService.acceptOrderAtomic.courierUid.test.ts' \
+            'src/utils/__tests__/courierAcceptAuthGate.test.ts' \
+            'src/utils/courierAcceptAuthGate.ts')
+          while IFS= read -r g06_path; do
+            [ -n "${g06_path}" ] || continue
+            HEAD_BLOB=$(git rev-parse "HEAD:${g06_path}")
+            G06_BLOB=$(git rev-parse "${APPROVED_G06_SHA}:${g06_path}")
+            if [ "${HEAD_BLOB}" != "${G06_BLOB}" ]; then
+              echo "FAIL: G06 file content diverged from approved SHA: ${g06_path}"
+              exit 1
+            fi
+          done <<EOF
+${G06_INTEGRITY_FILES}
+EOF
           [ "${APP_ENV}" = "production" ] || { echo "FAIL: APP_ENV"; exit 1; }
           [ "${EXPO_PUBLIC_APP_ENV}" = "production" ] || { echo "FAIL: EXPO_PUBLIC_APP_ENV"; exit 1; }
           [ "${PROFILE}" = "production_v13" ] || { echo "FAIL: PROFILE"; exit 1; }
