@@ -334,6 +334,14 @@ export class OrderService {
       if (!this.assertValidId(orderId, 'orderId')) {
         throw new Error('ID de pedido inválido');
       }
+
+      // G06_R3: require Auth UID on driverData.userId — never fall back to cadastro auto-id.
+      const validatedUserId =
+        typeof driverData?.userId === 'string' ? driverData.userId.trim() : '';
+      if (!validatedUserId) {
+        throw new Error('DRIVER_USERID_REQUIRED');
+      }
+
       const orderRef = f.doc(this.collectionName, orderId);
 
       const result = await f.runTransaction(async (transaction: any) => {
@@ -358,6 +366,7 @@ export class OrderService {
         const updatedAt = new Date().toISOString();
         const updatePayload = {
           deliveryDriver: driverData,
+          deliveryDriverId: validatedUserId,
           updatedAt
         };
 
@@ -381,6 +390,12 @@ export class OrderService {
       if (error.message === 'ORDER_NOT_AVAILABLE') {
         loggingService.warn('[DELIVERY_TRANSACTION] Pedido não está mais disponível', { orderId });
         throw new Error('Esta entrega não está mais disponível para retirada.');
+      }
+      if (error.message === 'DRIVER_USERID_REQUIRED') {
+        loggingService.warn('[DELIVERY_TRANSACTION] Aceite bloqueado: userId ausente', { orderId });
+        throw new Error(
+          'Identidade do entregador incompleta (userId). Não é possível aceitar a entrega.'
+        );
       }
       
       loggingService.error('[DELIVERY_TRANSACTION] Falha na transação de aceite', { error, orderId });

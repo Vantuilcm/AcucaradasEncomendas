@@ -22,6 +22,7 @@ import { DeliveryDriver } from '../types/DeliveryDriver';
 import { formatCurrency } from '../utils/formatters';
 import { LoadingState } from '../components/base/LoadingState';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { buildCourierAcceptAuthPayload } from '../utils/courierAcceptAuthGate';
 
 export function DriverHomeScreen() {
   const { theme } = useAppTheme();
@@ -130,15 +131,28 @@ export function DriverHomeScreen() {
       return;
     }
 
+    // G06_R3: Auth UID must match driver.userId; flat deliveryDriverId = authUid only.
+    // Keep deliveryDriver.id as cadastro id. No fallback to random driver.id.
+    const authGate = buildCourierAcceptAuthPayload(user, {
+      id: driver.id,
+      userId: driver.userId,
+      name: driver.name,
+      phone: driver.phone,
+      vehicle: driver.vehicle,
+    });
+    if (!authGate.ok) {
+      console.error('[COURIER_ACCEPT_AUTH_GATE]', {
+        reason: authGate.reason,
+        driverId: driver.id,
+        action: 'acceptOrder',
+      });
+      Alert.alert('Aviso', authGate.message);
+      return;
+    }
+
     try {
       // Usa o novo método atômico para blindar corrida fantasma/concorrência
-      await orderService.acceptOrderAtomic(order.id, {
-        id: driver.id,
-        name: driver.name,
-        phone: driver.phone,
-        vehicle: driver.vehicle.model,
-        plate: driver.vehicle.plate
-      });
+      await orderService.acceptOrderAtomic(order.id, authGate.payload);
       
       Alert.alert('Sucesso', 'Entrega aceita! Vá até a loja para retirar.');
     } catch (error: any) {
