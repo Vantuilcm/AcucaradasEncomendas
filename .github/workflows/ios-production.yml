@@ -116,8 +116,8 @@ jobs:
               exit 1
             fi
           done <<EOF
-${G06_INTEGRITY_FILES}
-EOF
+          ${G06_INTEGRITY_FILES}
+          EOF
           [ "${APP_ENV}" = "production" ] || { echo "FAIL: APP_ENV"; exit 1; }
           [ "${EXPO_PUBLIC_APP_ENV}" = "production" ] || { echo "FAIL: EXPO_PUBLIC_APP_ENV"; exit 1; }
           [ "${PROFILE}" = "production_v13" ] || { echo "FAIL: PROFILE"; exit 1; }
