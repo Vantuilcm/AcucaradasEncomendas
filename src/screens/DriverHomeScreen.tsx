@@ -26,6 +26,7 @@ import {
   canGoOnline,
   canViewAvailableOrders,
 } from '../utils/driverStatusPolicy';
+import { buildCourierAcceptAuthPayload } from '../utils/courierAcceptAuthGate';
 import { AppVersion } from '../utils/AppVersion';
 import { LoadingState } from '../components/base/LoadingState';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -324,15 +325,32 @@ export function DriverHomeScreen() {
       return;
     }
 
+    // G06: Auth UID must match driver.userId before accept; flat deliveryDriverId
+    // remains OrderService (userId || id). Do not fall back across mismatched IDs.
+    const authGate = buildCourierAcceptAuthPayload(user, {
+      id: driver.id,
+      userId: driver.userId,
+      name: driver.name,
+      phone: driver.phone,
+      vehicle: driver.vehicle,
+    });
+    if (!authGate.ok) {
+      console.error('[COURIER_ACCEPT_AUTH_GATE]', {
+        reason: authGate.reason,
+        driverId: driver.id,
+        driverUserId: driver.userId ?? null,
+        action: 'acceptOrder',
+      });
+      Alert.alert('Aviso', authGate.message);
+      return;
+    }
+
     try {
       // Usa o novo método atômico para blindar corrida fantasma/concorrência
-      const acceptedOrder = await orderService.acceptOrderAtomic(order.id, {
-        id: driver.id,
-        name: driver.name,
-        phone: driver.phone,
-        vehicle: driver.vehicle.model,
-        plate: driver.vehicle.plate
-      });
+      const acceptedOrder = await orderService.acceptOrderAtomic(
+        order.id,
+        authGate.payload
+      );
 
       setAvailableOrders(previousOrders =>
         previousOrders.filter(existingOrder => existingOrder.id !== acceptedOrder.id)
