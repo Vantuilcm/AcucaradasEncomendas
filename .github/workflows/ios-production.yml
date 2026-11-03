@@ -202,7 +202,7 @@ jobs:
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
           node scripts/ci/force-build-number.js --run
           TARGET_VERSION='1.1.8'
-          TARGET_BUILD='1304'
+          TARGET_BUILD='1305'
           TARGET_BUNDLE='com.acucaradas.encomendas'
           APP_VERSION=$(jq -er '.expo.version' app.json)
           STATE_VERSION=$(jq -er '.version' version-state.json)
