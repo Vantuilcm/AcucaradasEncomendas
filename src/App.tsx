@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
 import { initSentry } from './config/sentry';
 import { ThemeProvider } from './components/ThemeProvider';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 import AppNavigator from './navigation/AppNavigator';
 import { CartProvider } from './contexts/CartContext';
@@ -14,6 +14,41 @@ import { ErrorBoundary } from './core/monitoring/ErrorBoundary';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { STRIPE_PUBLISHABLE_KEY } from './config/stripe';
+import { initOneSignal } from './config/onesignal';
+
+function resolveAuthUid(user: any): string | null {
+  if (!user) return null;
+  const uid = user.uid || user.id;
+  return typeof uid === 'string' && uid.length > 0 ? uid : null;
+}
+
+/**
+ * A01_017 — Minimal auth-gated OneSignal bootstrap.
+ * Renders nothing. Calls initOneSignal once per app lifecycle after Auth is ready.
+ * Does not mount the full notifications hook; initOneSignal owns the native permission request.
+ */
+export function OneSignalAuthInit() {
+  const { user, loading, profileLoading, isReady } = useAuth();
+  const didInitRef = useRef(false);
+
+  useEffect(() => {
+    if (didInitRef.current) return;
+    if (!isReady || loading || profileLoading) return;
+    if (!resolveAuthUid(user)) return;
+
+    didInitRef.current = true;
+    try {
+      initOneSignal();
+    } catch (error) {
+      console.warn('[ONESIGNAL_AUTH_INIT] non-fatal init failure');
+      if (__DEV__) {
+        console.warn(error);
+      }
+    }
+  }, [user, loading, profileLoading, isReady]);
+
+  return null;
+}
 
 /**
  * 🛡️ ZeroNativeCrashRecoveryAI - Versão Estabilizada
@@ -61,6 +96,7 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider>
+            <OneSignalAuthInit />
             <LocationProvider>
               <CartProvider>
                 <PaperProvider>
