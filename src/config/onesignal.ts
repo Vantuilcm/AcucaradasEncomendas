@@ -170,6 +170,7 @@ export const sendOneSignalNotification = async (
         include_external_user_ids: userIds,
         headings: { en: title, pt: title },
         contents: { en: message, pt: message },
+        ios_sound: 'acucaradas.wav',
         data: data || {}
       })
     });

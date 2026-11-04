@@ -45,6 +45,16 @@
       }
     },
     "plugins": [
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production",
+          "disableNSE": true,
+          "sounds": [
+            "./assets/acucaradas.wav"
+          ]
+        }
+      ],
       "./plugins/withIosPermissions"
     ]
   }
