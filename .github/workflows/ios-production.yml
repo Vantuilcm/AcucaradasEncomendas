@@ -66,7 +66,7 @@ jobs:
             exit 1
           fi
           echo "=== Production contract gate (no secrets printed) ==="
-          EXPECT_BRANCH='safe/ae-production-ios-release-r3-r3-contract-20261026-v1'
+          EXPECT_BRANCH='safe/ae-onesignal-a01-ios-ci-contract-1306-009'
           ORIGINAL_SHA='d93159b627693d1b2405e49e86520c52beaf1ee7'
           if [ "${GITHUB_REF_NAME}" != "${EXPECT_BRANCH}" ]; then
             echo "FAIL: GITHUB_REF_NAME mismatch"
@@ -90,7 +90,9 @@ jobs:
           EXPECT_FILES=$(printf '%s\n' \
             '.github/workflows/ios-production.yml' \
             'app.json' \
+            'assets/acucaradas.wav' \
             'scripts/ci/ios-build-guardian.sh' \
+            'src/config/onesignal.ts' \
             'src/screens/DriverHomeScreen.tsx' \
             'src/services/OrderService.ts' \
             'src/services/__tests__/OrderService.acceptOrderAtomic.courierUid.test.ts' \
@@ -98,7 +100,7 @@ jobs:
             'src/utils/courierAcceptAuthGate.ts' \
             'version-state.json')
           if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
-            echo "FAIL: diff vs Original is not exactly the nine allowlisted release+G06 paths"
+            echo "FAIL: diff vs Original is not exactly the eleven allowlisted release+G06+A01 paths"
             exit 1
           fi
           G06_INTEGRITY_FILES=$(printf '%s\n' \
@@ -202,7 +204,7 @@ jobs:
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
           node scripts/ci/force-build-number.js --run
           TARGET_VERSION='1.1.8'
-          TARGET_BUILD='1305'
+          TARGET_BUILD='1306'
           TARGET_BUNDLE='com.acucaradas.encomendas'
           APP_VERSION=$(jq -er '.expo.version' app.json)
           STATE_VERSION=$(jq -er '.version' version-state.json)
