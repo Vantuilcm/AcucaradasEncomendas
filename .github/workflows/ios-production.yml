@@ -66,7 +66,7 @@ jobs:
             exit 1
           fi
           echo "=== Production contract gate (no secrets printed) ==="
-          EXPECT_BRANCH='safe/ae-onesignal-a01-ios-ci-contract-1307-021'
+          EXPECT_BRANCH='safe/ae-b01-009-ios-1308-contract-v1'
           ORIGINAL_SHA='d93159b627693d1b2405e49e86520c52beaf1ee7'
           if [ "${GITHUB_REF_NAME}" != "${EXPECT_BRANCH}" ]; then
             echo "FAIL: GITHUB_REF_NAME mismatch"
@@ -94,19 +94,24 @@ jobs:
             'scripts/ci/ios-build-guardian.sh' \
             'src/App.tsx' \
             'src/config/onesignal.ts' \
+            'src/navigation/AppNavigator.tsx' \
+            'src/screens/DriverEarningsScreen.tsx' \
             'src/screens/DriverHomeScreen.tsx' \
+            'src/screens/EntregadorProfileScreen.tsx' \
             'src/services/OrderService.ts' \
             'src/services/__tests__/OrderService.acceptOrderAtomic.courierUid.test.ts' \
+            'src/services/__tests__/OrderService.getOrdersForDriverEarnings.test.ts' \
+            'src/types/Order.ts' \
             'src/utils/__tests__/courierAcceptAuthGate.test.ts' \
             'src/utils/courierAcceptAuthGate.ts' \
             'version-state.json')
           if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
-            echo "FAIL: diff vs Original is not exactly the twelve allowlisted release+G06+A01 paths"
+            echo "FAIL: diff vs Original is not exactly the seventeen allowlisted release+G06+A01+B01 paths"
             exit 1
           fi
+          # G06 non-OrderService files: exact blob equality to approved G06 SHA
           G06_INTEGRITY_FILES=$(printf '%s\n' \
             'src/screens/DriverHomeScreen.tsx' \
-            'src/services/OrderService.ts' \
             'src/services/__tests__/OrderService.acceptOrderAtomic.courierUid.test.ts' \
             'src/utils/__tests__/courierAcceptAuthGate.test.ts' \
             'src/utils/courierAcceptAuthGate.ts')
@@ -121,6 +126,27 @@ jobs:
           done <<EOF
           ${G06_INTEGRITY_FILES}
           EOF
+          # OrderService: immutable B01 blob (A01 + getOrdersForDriverEarnings only)
+          A01_ORDERSERVICE_BLOB='725f0364972421739fa2df877289a29c44571cb1'
+          APPROVED_B01_ORDERSERVICE_BLOB='96b4ec7a4f28fe18b5050fa9f7cd5815f1213875'
+          HEAD_OS_BLOB=$(git rev-parse 'HEAD:src/services/OrderService.ts')
+          if [ "${HEAD_OS_BLOB}" != "${APPROVED_B01_ORDERSERVICE_BLOB}" ]; then
+            echo "FAIL: OrderService HEAD blob is not the approved B01 earnings reader blob"
+            exit 1
+          fi
+          OS_DIFF=$(git diff --no-color "${A01_ORDERSERVICE_BLOB}" "${APPROVED_B01_ORDERSERVICE_BLOB}" || true)
+          if ! printf '%s\n' "${OS_DIFF}" | grep -q 'async getOrdersForDriverEarnings(driverId: string)'; then
+            echo "FAIL: approved B01 OrderService delta missing getOrdersForDriverEarnings"
+            exit 1
+          fi
+          if printf '%s\n' "${OS_DIFF}" | grep -E '^[+-].*acceptOrderAtomic|^[+-].*DRIVER_USERID_REQUIRED|^[+-].*validatedUserId|^[+-].*G06_R3' >/dev/null; then
+            echo "FAIL: OrderService A01→B01 delta touches acceptOrderAtomic/G06 Auth UID contract"
+            exit 1
+          fi
+          if ! printf '%s\n' "${OS_DIFF}" | grep -q '^@@ -137,6 +137,56 @@'; then
+            echo "FAIL: OrderService A01→B01 delta hunk anchor unexpected (must remain earnings-only insert)"
+            exit 1
+          fi
           [ "${APP_ENV}" = "production" ] || { echo "FAIL: APP_ENV"; exit 1; }
           [ "${EXPO_PUBLIC_APP_ENV}" = "production" ] || { echo "FAIL: EXPO_PUBLIC_APP_ENV"; exit 1; }
           [ "${PROFILE}" = "production_v13" ] || { echo "FAIL: PROFILE"; exit 1; }
@@ -205,7 +231,7 @@ jobs:
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
           node scripts/ci/force-build-number.js --run
           TARGET_VERSION='1.1.8'
-          TARGET_BUILD='1307'
+          TARGET_BUILD='1308'
           TARGET_BUNDLE='com.acucaradas.encomendas'
           APP_VERSION=$(jq -er '.expo.version' app.json)
           STATE_VERSION=$(jq -er '.version' version-state.json)
