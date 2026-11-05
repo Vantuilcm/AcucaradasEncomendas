@@ -138,6 +138,56 @@ export class OrderService {
   }
 
   /**
+   * Busca todos os pedidos financeiros vinculados ao entregador.
+   * Leitura isolada para o resumo de ganhos: sem orderBy e sem limit remoto.
+   * Compatibilidade R33_R8: consulta flat (deliveryDriverId) + nested (deliveryDriver.id),
+   * com deduplicação determinística por document ID.
+   */
+  async getOrdersForDriverEarnings(driverId: string): Promise<Order[]> {
+    try {
+      if (!this.assertValidId(driverId, 'driverId')) {
+        return [];
+      }
+
+      const ordersRef = f.collection(this.collectionName);
+      const flatQuery = f.query(
+        ordersRef,
+        f.where('deliveryDriverId', '==', driverId)
+      );
+      const nestedQuery = f.query(
+        ordersRef,
+        f.where('deliveryDriver.id', '==', driverId)
+      );
+
+      const [flatSnapshot, nestedSnapshot] = await Promise.all([
+        f.getDocs(flatQuery),
+        f.getDocs(nestedQuery),
+      ]);
+
+      const byDocId = new Map<string, Order>();
+      const ingest = (docs: any[]) => {
+        for (const docSnapshot of docs) {
+          if (byDocId.has(docSnapshot.id)) {
+            continue;
+          }
+          byDocId.set(docSnapshot.id, {
+            id: docSnapshot.id,
+            ...docSnapshot.data(),
+          } as Order);
+        }
+      };
+
+      ingest(flatSnapshot.docs);
+      ingest(nestedSnapshot.docs);
+
+      return Array.from(byDocId.values());
+    } catch (error) {
+      loggingService.error('Erro ao buscar pedidos financeiros do entregador', { error, driverId });
+      throw error;
+    }
+  }
+
+  /**
    * Busca um pedido por ID
    * @param orderId ID do pedido
    * @returns O pedido ou null se não encontrado

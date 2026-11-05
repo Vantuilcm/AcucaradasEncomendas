@@ -75,7 +75,7 @@ export const EntregadorProfileScreen = () => {
               title="Resumo de Ganhos"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="cash-check" color="#4CAF50" />}
-              onPress={() => navigateTo('DriverEarnings')}
+              onPress={() => RootNavigation.navigate('DriverEarnings')}
               style={styles.menuItem}
             />
           </View>

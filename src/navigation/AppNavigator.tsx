@@ -47,6 +47,7 @@ import { NotificationSettingsScreen } from '../screens/NotificationSettingsScree
 import { NotificationSettingsScreenV2 } from '../screens/NotificationSettingsScreenV2';
 import { NotificationSettingsMigrationScreen } from '../screens/NotificationSettingsMigrationScreen';
 import { DriverHomeScreen } from '../screens/DriverHomeScreen';
+import { DriverEarningsScreen } from '../screens/DriverEarningsScreen';
 import DeliveryDriverRegistration from '../screens/DeliveryDriverRegistration';
 import ScheduleDeliveryScreen from '../screens/ScheduleDeliveryScreen';
 import OrderCompletedScreen from '../screens/OrderCompletedScreen';
@@ -351,6 +352,11 @@ const AppNavigator = () => {
                   name="HelpCenter"
                   component={HelpCenterScreen}
                   options={{ title: 'Central de Ajuda' }}
+                />
+                <Stack.Screen
+                  name="DriverEarnings"
+                  component={DriverEarningsScreen}
+                  options={{ title: 'Resumo de Ganhos' }}
                 />
                 <Stack.Screen
                   name="ContaBancaria"
