@@ -48,6 +48,7 @@ import { NotificationSettingsScreenV2 } from '../screens/NotificationSettingsScr
 import { NotificationSettingsMigrationScreen } from '../screens/NotificationSettingsMigrationScreen';
 import { DriverHomeScreen } from '../screens/DriverHomeScreen';
 import { DriverEarningsScreen } from '../screens/DriverEarningsScreen';
+import { DriverVehicleScreen } from '../screens/DriverVehicleScreen';
 import DeliveryDriverRegistration from '../screens/DeliveryDriverRegistration';
 import ScheduleDeliveryScreen from '../screens/ScheduleDeliveryScreen';
 import OrderCompletedScreen from '../screens/OrderCompletedScreen';
@@ -357,6 +358,11 @@ const AppNavigator = () => {
                   name="DriverEarnings"
                   component={DriverEarningsScreen}
                   options={{ title: 'Resumo de Ganhos' }}
+                />
+                <Stack.Screen
+                  name="DriverVehicle"
+                  component={DriverVehicleScreen}
+                  options={{ title: 'Meu Veículo' }}
                 />
                 <Stack.Screen
                   name="ContaBancaria"

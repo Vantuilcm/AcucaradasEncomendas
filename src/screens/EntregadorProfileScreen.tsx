@@ -45,7 +45,7 @@ export const EntregadorProfileScreen = () => {
               title="Meu Veículo"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="car-info" color="#555" />}
-              onPress={() => navigateTo('DriverVehicle')}
+              onPress={() => RootNavigation.navigate('DriverVehicle')}
               style={styles.menuItem}
             />
           </View>
