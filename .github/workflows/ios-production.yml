@@ -66,7 +66,7 @@ jobs:
             exit 1
           fi
           echo "=== Production contract gate (no secrets printed) ==="
-          EXPECT_BRANCH='safe/ae-courier-my-vehicle-006-ios-1309-contract-v1'
+          EXPECT_BRANCH='safe/ae-courier-lookup-ios-release-contract-007-v1'
           ORIGINAL_SHA='d93159b627693d1b2405e49e86520c52beaf1ee7'
           if [ "${GITHUB_REF_NAME}" != "${EXPECT_BRANCH}" ]; then
             echo "FAIL: GITHUB_REF_NAME mismatch"
@@ -100,6 +100,7 @@ jobs:
             'src/screens/DriverVehicleScreen.tsx' \
             'src/screens/EntregadorProfileScreen.tsx' \
             'src/screens/__tests__/DriverVehicleScreen.vehicleOnly.test.tsx' \
+            'src/services/DeliveryDriverService.ts' \
             'src/services/OrderService.ts' \
             'src/services/__tests__/OrderService.acceptOrderAtomic.courierUid.test.ts' \
             'src/services/__tests__/OrderService.getOrdersForDriverEarnings.test.ts' \
@@ -108,7 +109,7 @@ jobs:
             'src/utils/courierAcceptAuthGate.ts' \
             'version-state.json')
           if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
-            echo "FAIL: diff vs Original is not exactly the nineteen allowlisted release+G06+A01+B01+MY_VEHICLE paths"
+            echo "FAIL: diff vs Original is not exactly the twenty allowlisted release+G06+A01+B01+MY_VEHICLE+LOOKUP paths"
             exit 1
           fi
           # G06 non-OrderService files: exact blob equality to approved G06 SHA
@@ -233,7 +234,7 @@ jobs:
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
           node scripts/ci/force-build-number.js --run
           TARGET_VERSION='1.1.8'
-          TARGET_BUILD='1309'
+          TARGET_BUILD='1310'
           TARGET_BUNDLE='com.acucaradas.encomendas'
           APP_VERSION=$(jq -er '.expo.version' app.json)
           STATE_VERSION=$(jq -er '.version' version-state.json)
