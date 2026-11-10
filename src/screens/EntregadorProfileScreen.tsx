@@ -51,6 +51,16 @@ export const EntregadorProfileScreen = () => {
           </View>
           <View style={styles.menuCard}>
             <List.Item
+              title="Configurações de Notificação"
+              titleStyle={styles.menuTitle}
+              left={props => <List.Icon {...props} icon="bell-outline" color="#555" />}
+              onPress={() => RootNavigation.navigate('NotificationSettings')}
+              style={styles.menuItem}
+              testID="entregador-notification-settings"
+            />
+          </View>
+          <View style={styles.menuCard}>
+            <List.Item
               title="Dados Bancários (Stripe)"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="bank" color="#555" />}
