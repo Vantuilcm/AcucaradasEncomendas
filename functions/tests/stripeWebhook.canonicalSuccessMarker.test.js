@@ -159,24 +159,25 @@ jest.mock('firebase-functions/v1', () => {
     onCall: (fn) => fn,
     HttpsError,
   };
+  const firestore = {
+    document: () => ({
+      onUpdate: (fn) => fn,
+      onCreate: (fn) => fn,
+    }),
+  };
   return {
     https,
     config: () => ({}),
-    runWith: () => ({ https }),
+    runWith: () => ({ https, firestore }),
     pubsub: {
       schedule: () => ({ onRun: (fn) => fn }),
     },
     auth: {
       user: () => ({ onCreate: (fn) => fn }),
     },
-    firestore: {
-      document: () => ({
-        onUpdate: (fn) => fn,
-        onCreate: (fn) => fn,
-      }),
-    },
+    firestore,
   };
-});
+}, { virtual: true });
 
 jest.mock('stripe', () => {
   return jest.fn(() => ({
@@ -244,17 +245,19 @@ function baseOrder(overrides = {}) {
   };
 }
 
-function successEvent(orderId, eventId = 'evt_success_1', piId = 'pi_1') {
+function successEvent(orderId, eventId = 'evt_success_1', piId = 'pi_1', latestCharge) {
+  const object = {
+    id: piId,
+    metadata: { orderId },
+    last_payment_error: null,
+  };
+  if (latestCharge) {
+    object.latest_charge = latestCharge;
+  }
   return {
     id: eventId,
     type: 'payment_intent.succeeded',
-    data: {
-      object: {
-        id: piId,
-        metadata: { orderId },
-        last_payment_error: null,
-      },
-    },
+    data: { object },
   };
 }
 
@@ -298,12 +301,14 @@ describe('R32_R3L stripeWebhook canonical success marker', () => {
 
   test('M2 LEGACY pending+completed without marker does NOT newly skip', async () => {
     const orderId = 'order-m2';
+    const chargeId = 'ch_m2';
     mockState.store.orders[orderId] = baseOrder({
       status: 'pending',
       paymentStatus: 'completed',
     });
-    await invokeWebhook(successEvent(orderId, 'evt_m2'));
+    await invokeWebhook(successEvent(orderId, 'evt_m2', 'pi_1', chargeId));
     expect(mockState.writes.transfers.length).toBeGreaterThan(0);
+    expect(mockState.writes.transfers[0][0].source_transaction).toBe(chargeId);
     expect(mockState.writes.orderUpdates[0].data.status).toBeUndefined();
     expect(mockState.writes.orderUpdates[0].data.paymentStatus).toBe('completed');
     expect(mockState.store.orders[orderId].status).toBe('pending');
@@ -312,24 +317,27 @@ describe('R32_R3L stripeWebhook canonical success marker', () => {
 
   test('M3 LEGACY confirmed+completed without marker does NOT newly skip', async () => {
     const orderId = 'order-m3';
+    const chargeId = 'ch_m3';
     mockState.store.orders[orderId] = baseOrder({
       status: 'confirmed',
       paymentStatus: 'completed',
     });
-    await invokeWebhook(successEvent(orderId, 'evt_m3'));
+    await invokeWebhook(successEvent(orderId, 'evt_m3', 'pi_1', chargeId));
     expect(mockState.writes.transfers.length).toBeGreaterThan(0);
+    expect(mockState.writes.transfers[0][0].source_transaction).toBe(chargeId);
     expect(mockState.store.orders[orderId].status).toBe('confirmed');
     expect(mockState.writes.markerSets.some((m) => m.id === orderId)).toBe(true);
   });
 
   test('M4 CANONICAL ATOMIC COMMIT: no status paid, marker+event+paymentStatus', async () => {
     const orderId = 'order-m4';
+    const chargeId = 'ch_m4';
     mockState.store.orders[orderId] = baseOrder({
       status: 'pending',
       paymentStatus: 'pending',
       deliveryFee: 12,
     });
-    await invokeWebhook(successEvent(orderId, 'evt_m4'));
+    await invokeWebhook(successEvent(orderId, 'evt_m4', 'pi_1', chargeId));
     const orderUpdate = mockState.writes.orderUpdates[0].data;
     expect(orderUpdate.status).toBeUndefined();
     expect(orderUpdate.paymentStatus).toBe('completed');
@@ -339,6 +347,9 @@ describe('R32_R3L stripeWebhook canonical success marker', () => {
     expect(orderUpdate.courierPayoutStatus).toBe('pending_delivery');
     expect(orderUpdate.courierPayoutAmount).toBe(12);
     expect(mockState.writes.transfers[0][0].amount).toBe(Math.floor(100 * 0.9 * 100));
+    expect(mockState.writes.transfers[0][0].source_transaction).toBe(chargeId);
+    expect(mockState.writes.transfers[0][0].destination).toBe('acct_producer_1');
+    expect(mockState.writes.transfers[0][0].transfer_group).toBe(orderId);
     expect(mockState.writes.markerSets).toHaveLength(1);
     expect(mockState.writes.markerSets[0].id).toBe(orderId);
     expect(mockState.writes.markerSets[0].data.committedAt).toBe(
@@ -374,7 +385,7 @@ describe('R32_R3L stripeWebhook canonical success marker', () => {
       paymentStatus: 'pending',
     });
     mockState.transferCreate.mockRejectedValueOnce(new Error('transfer_failed'));
-    await invokeWebhook(successEvent(orderId, 'evt_m6'));
+    await invokeWebhook(successEvent(orderId, 'evt_m6', 'pi_1', 'ch_m6'));
     expect(mockState.writes.orderUpdates[0].data.paymentStatus).toBe('completed');
     expect(mockState.writes.orderUpdates[0].data.payoutStatus).toBe('failed');
     expect(mockState.writes.orderUpdates[0].data.status).toBeUndefined();
@@ -462,15 +473,36 @@ describe('R32_R3L stripeWebhook canonical success marker', () => {
 
   test('M12 TRANSFER IDEMPOTENCY KEY unchanged', async () => {
     const orderId = 'order-m12';
+    const chargeId = 'ch_m12';
     mockState.store.orders[orderId] = baseOrder({
       status: 'pending',
       paymentStatus: 'pending',
     });
-    await invokeWebhook(successEvent(orderId, 'evt_m12'));
+    await invokeWebhook(successEvent(orderId, 'evt_m12', 'pi_1', chargeId));
     expect(mockState.writes.transfers.length).toBeGreaterThan(0);
+    const transferPayload = mockState.writes.transfers[0][0];
     const opts = mockState.writes.transfers[0][1];
+    expect(transferPayload.source_transaction).toBe(chargeId);
     expect(opts.idempotencyKey).toBe(`${mockTransferIdempotencyPrefix}${orderId}`);
     expect(functionsSource).toContain('idempotencyKey: `payout_producer_${orderId}`');
+  });
+
+  test('M16 MISSING LATEST_CHARGE: no producer transfer; payout failed; marker written', async () => {
+    const orderId = 'order-m16';
+    mockState.store.orders[orderId] = baseOrder({
+      status: 'pending',
+      paymentStatus: 'pending',
+    });
+    await invokeWebhook(successEvent(orderId, 'evt_m16', 'pi_1'));
+    expect(mockState.writes.transfers).toHaveLength(0);
+    expect(mockState.writes.orderUpdates[0].data.paymentStatus).toBe('completed');
+    expect(mockState.writes.orderUpdates[0].data.payoutStatus).toBe('failed');
+    expect(mockState.writes.orderUpdates[0].data.payoutError).toContain(
+      'Charge ID indisponível'
+    );
+    expect(mockState.writes.orderUpdates[0].data.deliveryFeeHeld).toBeUndefined();
+    expect(mockState.writes.markerSets.some((m) => m.id === orderId)).toBe(true);
+    expect(mockState.store.orders[orderId].status).toBe('pending');
   });
 
   test('M13 FAILURE EVENT: no marker write/delete; writes status payment_failed', async () => {

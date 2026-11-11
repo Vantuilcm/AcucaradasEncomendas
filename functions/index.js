@@ -611,6 +611,15 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                 const producerPayoutAmount = Math.floor(netSubtotal * 0.90 * 100); // 90% em centavos
                 const platformFeeAmount = Math.floor(netSubtotal * 0.10 * 100);    // 10% retido
 
+                // M036 selective port: resolve latest_charge for BR producer transfer source_transaction
+                const chargeId = typeof paymentIntent.latest_charge === 'string'
+                  ? paymentIntent.latest_charge
+                  : paymentIntent.latest_charge?.id;
+
+                if (!chargeId) {
+                  throw new Error(`Charge ID indisponível para transfer BR do pedido ${orderId}`);
+                }
+
                 const transfersToExecute = [];
 
                 // Repasse do Produtor (Imediato)
@@ -619,6 +628,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                     amount: producerPayoutAmount,
                     currency: 'brl',
                     destination: producerStripeAccountId,
+                    source_transaction: chargeId,
                     transfer_group: orderId,
                     metadata: { role: 'producer', orderId }
                   }, {
