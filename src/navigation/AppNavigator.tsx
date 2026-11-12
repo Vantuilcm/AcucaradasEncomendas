@@ -48,7 +48,7 @@ import { NotificationSettingsScreenV2 } from '../screens/NotificationSettingsScr
 import { NotificationSettingsMigrationScreen } from '../screens/NotificationSettingsMigrationScreen';
 import { DriverHomeScreen } from '../screens/DriverHomeScreen';
 import { DriverEarningsScreen } from '../screens/DriverEarningsScreen';
-import DriverHistoryScreen from '../screens/DriverHistoryScreen';
+import { DriverHistoryScreen } from '../screens/DriverHistoryScreen';
 import { DriverVehicleScreen } from '../screens/DriverVehicleScreen';
 import DeliveryDriverRegistration from '../screens/DeliveryDriverRegistration';
 import ScheduleDeliveryScreen from '../screens/ScheduleDeliveryScreen';
