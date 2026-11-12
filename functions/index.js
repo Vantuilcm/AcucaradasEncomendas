@@ -36,11 +36,19 @@ function getStripeSecret() {
 }
 
 function getWebhookSecret() {
-  try {
-    return functions.config().stripe.webhook_secret;
-  } catch (e) {
-    return null;
+  // 1. Secret Manager binding (firebase-functions v7 / runWith secrets)
+  let webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || null;
+
+  // 2. Fallback legado — functions.config() removido em firebase-functions v7
+  if (!webhookSecret) {
+    try {
+      webhookSecret = functions.config().stripe?.webhook_secret;
+    } catch (e) {
+      // Ignora erro se functions.config() não estiver disponível
+    }
   }
+
+  return webhookSecret;
 }
 
 const db = admin.firestore();
@@ -416,6 +424,30 @@ exports.createSetupIntent = functions
   });
 
 /**
+ * Normaliza paymentMethod do client para whitelist interna (card | pix).
+ */
+function normalizeCreatePaymentIntentMethod(paymentMethod) {
+  if (paymentMethod == null || paymentMethod === '') {
+    return 'card';
+  }
+
+  const normalized = String(paymentMethod).trim().toLowerCase();
+
+  if (normalized === 'card' || normalized === 'creditcard' || normalized === 'credit_card') {
+    return 'card';
+  }
+
+  if (normalized === 'pix') {
+    return 'pix';
+  }
+
+  throw new functions.https.HttpsError(
+    'invalid-argument',
+    'paymentMethod inválido. Valores aceitos: card, creditCard ou pix.'
+  );
+}
+
+/**
  * Cria um PaymentIntent com suporte a transfer_group para split futuro
  * STRIPE_SECRET_KEY injetada via Secret Manager (mesmo padrão Connect/onboarding).
  */
@@ -425,19 +457,83 @@ exports.createPaymentIntent = functions
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Requer autenticação.');
 
   const stripe = require('stripe')(getStripeSecret());
-  const { amount, currency = 'brl', orderId, customerId } = data;
+  const { amount, currency = 'brl', orderId, customerId, paymentMethod } = data;
 
-  if (!amount || amount <= 0 || !orderId) {
-    throw new functions.https.HttpsError('invalid-argument', 'Amount (maior que 0) e OrderId são obrigatórios.');
+  if (typeof orderId !== 'string' || !orderId.trim()) {
+    throw new functions.https.HttpsError('invalid-argument', 'OrderId é obrigatório.');
   }
-
-  if (currency.toLowerCase() !== 'brl') {
+  const resolvedOrderId = orderId.trim();
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
+    throw new functions.https.HttpsError('invalid-argument', 'Amount (inteiro em centavos maior que 0) é obrigatório.');
+  }
+  if (typeof currency !== 'string' || currency.toLowerCase() !== 'brl') {
     throw new functions.https.HttpsError('invalid-argument', 'Apenas a moeda BRL é suportada para transações.');
   }
 
+  const resolvedPaymentMethod = normalizeCreatePaymentIntentMethod(paymentMethod);
+
   try {
-    const idempotencyKey = `pi_${orderId}`;
+    const idempotencyKey = `pi_${resolvedOrderId}`;
     const uid = context.auth.uid;
+
+    const toExactCents = (value, allowZero) => {
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new functions.https.HttpsError('failed-precondition', 'Valor monetário do pedido inválido.');
+      }
+      const raw = String(value);
+      if (/e/i.test(raw) || !/^\d+(\.\d{1,2})?$/.test(raw)) {
+        throw new functions.https.HttpsError('failed-precondition', 'Valor monetário do pedido inválido.');
+      }
+      const [whole, fraction = ''] = raw.split('.');
+      const cents = Number(whole) * 100 + Number((fraction + '00').slice(0, 2));
+      if (!Number.isSafeInteger(cents) || cents < 0 || (!allowZero && cents === 0)) {
+        throw new functions.https.HttpsError('failed-precondition', 'Valor monetário do pedido inválido.');
+      }
+      return cents;
+    };
+
+    const orderSnap = await db.collection('orders').doc(resolvedOrderId).get();
+    if (!orderSnap.exists) throw new functions.https.HttpsError('not-found', 'Pedido não encontrado.');
+    const orderData = orderSnap.data() || {};
+    if (typeof orderData.userId !== 'string' || !orderData.userId || orderData.userId !== uid) {
+      throw new functions.https.HttpsError('permission-denied', 'Pedido não pertence ao usuário autenticado.');
+    }
+    const allowedStatus = resolvedPaymentMethod === 'pix' ? 'pending_payment' : 'pending';
+    if (orderData.status !== allowedStatus) {
+      throw new functions.https.HttpsError('failed-precondition', 'Pedido em estado inválido para pagamento.');
+    }
+    const paymentStatus = orderData.paymentStatus;
+    if (paymentStatus != null && paymentStatus !== 'pending') {
+      throw new functions.https.HttpsError('failed-precondition', 'Pedido em estado inválido para pagamento.');
+    }
+    if (resolvedPaymentMethod === 'pix' && paymentStatus !== 'pending') {
+      throw new functions.https.HttpsError('failed-precondition', 'Pedido em estado inválido para pagamento.');
+    }
+    for (const field of ['paymentIntentId', 'stripePaymentIntentId', 'clientSecret', 'producerTransferId', 'courierTransferId']) {
+      if (orderData[field] != null && orderData[field] !== '') {
+        throw new functions.https.HttpsError('failed-precondition', 'Pedido já possui referência financeira.');
+      }
+    }
+    if (typeof orderData.producerId !== 'string' || !orderData.producerId) {
+      throw new functions.https.HttpsError('failed-precondition', 'Produtor do pedido inválido.');
+    }
+    const producerSnap = await db.collection('users').doc(orderData.producerId).get();
+    if (!producerSnap.exists) {
+      throw new functions.https.HttpsError('failed-precondition', 'Produtor do pedido inválido.');
+    }
+    const producerStripeAccountId = producerSnap.data()?.stripeAccountId;
+    if (typeof producerStripeAccountId !== 'string' || !producerStripeAccountId.startsWith('acct_')) {
+      throw new functions.https.HttpsError('failed-precondition', 'Conta Connect do produtor inválida.');
+    }
+    const subtotalCents = toExactCents(orderData.subtotalProducts, false);
+    const deliveryFeeCents = toExactCents(orderData.deliveryFee, true);
+    const totalAmountCents = toExactCents(orderData.totalAmount, false);
+    if (!Number.isSafeInteger(subtotalCents + deliveryFeeCents) || subtotalCents + deliveryFeeCents !== totalAmountCents) {
+      throw new functions.https.HttpsError('failed-precondition', 'Totais do pedido inconsistentes.');
+    }
+    if (amount !== totalAmountCents) {
+      throw new functions.https.HttpsError('invalid-argument', 'Amount diverge do total do pedido.');
+    }
 
     let stripeCustomerId = customerId || null;
     if (!stripeCustomerId) {
@@ -448,15 +544,20 @@ exports.createPaymentIntent = functions
     }
 
     const paymentIntentParams = {
-      amount: Math.round(amount), // Garante que seja inteiro em centavos
-      currency,
-      transfer_group: orderId, // Vincula o pagamento ao pedido para o split (Fase 2)
+      amount: totalAmountCents,
+      currency: 'brl',
+      transfer_group: resolvedOrderId, // Vincula o pagamento ao pedido para o split (Fase 2)
       metadata: {
-        orderId,
+        orderId: resolvedOrderId,
         userId: uid,
         app: 'acucaradas-encomendas',
+        paymentMethod: resolvedPaymentMethod,
       },
     };
+
+    if (resolvedPaymentMethod === 'pix') {
+      paymentIntentParams.payment_method_types = ['pix'];
+    }
 
     let ephemeralKeySecret = null;
     if (stripeCustomerId) {
@@ -487,16 +588,57 @@ exports.createPaymentIntent = functions
 
     return response;
   } catch (error) {
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
     console.error('❌ [Stripe] Erro ao criar PaymentIntent:', error);
     throw new functions.https.HttpsError('internal', error.message);
   }
   });
 
 /**
+ * Estados operacionais em que o pedido já foi pago ou avançou no fluxo.
+ */
+const ADVANCED_ORDER_STATUSES = ['confirmed', 'preparing', 'ready', 'delivering', 'delivered', 'paid', 'completed'];
+
+function isOrderPaymentSettled(orderData) {
+  return (
+    orderData.paymentStatus === 'completed' ||
+    ADVANCED_ORDER_STATUSES.includes(orderData.status)
+  );
+}
+
+function isOrderPaymentTerminalFailure(orderData) {
+  return (
+    orderData.paymentStatus === 'failed' ||
+    orderData.paymentStatus === 'expired' ||
+    orderData.status === 'cancelled' ||
+    orderData.status === 'payment_failed'
+  );
+}
+
+function extractPaymentMethodType(paymentIntent) {
+  const fromMetadata = paymentIntent.metadata?.paymentMethod;
+  if (fromMetadata === 'pix') return 'pix';
+  if (fromMetadata === 'card') return 'credit_card';
+
+  const types = paymentIntent.payment_method_types;
+  if (Array.isArray(types) && types.length > 0) {
+    if (types[0] === 'pix') return 'pix';
+    if (types[0] === 'card') return 'credit_card';
+  }
+
+  return null;
+}
+
+/**
  * Stripe Webhook: Ouve eventos assíncronos de pagamento
  * IMPORTANTE: É onRequest (HTTP puro), não onCall.
+ * STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET injetadas via Secret Manager.
  */
-exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
+exports.stripeWebhook = functions
+  .runWith({ secrets: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'] })
+  .https.onRequest(async (req, res) => {
   const stripe = require('stripe')(getStripeSecret());
   const endpointSecret = getWebhookSecret();
 
@@ -516,8 +658,14 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
   } else {
-    // Apenas para fallback local/dev sem secret
-    event = req.body;
+    // Fail-closed (M033): sem webhook secret não processar evento sem assinatura.
+    console.error('⚠️ [Stripe Webhook] STRIPE_WEBHOOK_SECRET ausente; rejeitando evento sem assinatura');
+    await db.collection('stripe_webhook_errors').add({
+      error: 'webhook_secret_missing',
+      type: 'configuration',
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return res.status(500).send('Webhook Error: configuration');
   }
 
   try {
@@ -549,7 +697,6 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
     }
 
     const orderRef = db.collection('orders').doc(orderId);
-    const successCommitRef = db.collection('stripe_payment_success_commits').doc(orderId);
 
     // Executa a operação do webhook dentro de uma Transaction para garantir consistência
     await db.runTransaction(async (transaction) => {
@@ -560,19 +707,17 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         return; // Retorna silenciosamente da transação
       }
 
-      // All transaction reads must precede writes (legacy + canonical marker)
-      const successCommitDoc = await transaction.get(successCommitRef);
-
       const orderData = orderDoc.data();
 
       switch (event.type) {
         case 'payment_intent.succeeded':
-          // Legacy: status paid + payment completed; Canonical: payment completed + server marker
-          if (
-            (orderData.status === 'paid' && orderData.paymentStatus === 'completed') ||
-            (orderData.paymentStatus === 'completed' && successCommitDoc.exists)
-          ) {
-            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já estava pago. Ignorando.`);
+          // Evita sobrescrever se já foi processado (legado: status paid; atual: status confirmed)
+          const splitAlreadyDone =
+            orderData.producerTransferId ||
+            orderData.payoutStatus === 'paid';
+
+          if (orderData.paymentStatus === 'completed' && splitAlreadyDone) {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já pago e split concluído. Ignorando.`);
             break;
           }
 
@@ -580,11 +725,17 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           
           let payoutStatus = 'pending';
           const updates = {
+            status: 'confirmed',
             paymentStatus: 'completed',
             paymentIntentId: paymentIntent.id,
             paidAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
           };
+
+          const paymentMethodType = extractPaymentMethodType(paymentIntent);
+          if (paymentMethodType) {
+            updates.paymentMethodType = paymentMethodType;
+          }
 
           // 1. Extração de Valores e Identificadores do Pedido
           const { producerId, deliveryDriverId, courierId, subtotalProducts, deliveryFee, totalAmount } = orderData;
@@ -611,6 +762,14 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                 const producerPayoutAmount = Math.floor(netSubtotal * 0.90 * 100); // 90% em centavos
                 const platformFeeAmount = Math.floor(netSubtotal * 0.10 * 100);    // 10% retido
 
+                const chargeId = typeof paymentIntent.latest_charge === 'string'
+                  ? paymentIntent.latest_charge
+                  : paymentIntent.latest_charge?.id;
+
+                if (!chargeId) {
+                  throw new Error(`Charge ID indisponível para transfer BR do pedido ${orderId}`);
+                }
+
                 const transfersToExecute = [];
 
                 // Repasse do Produtor (Imediato)
@@ -619,6 +778,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                     amount: producerPayoutAmount,
                     currency: 'brl',
                     destination: producerStripeAccountId,
+                    source_transaction: chargeId,
                     transfer_group: orderId,
                     metadata: { role: 'producer', orderId }
                   }, {
@@ -647,8 +807,9 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
               }
             } catch (splitError) {
               console.error(`❌ [Split] Erro crítico ao repassar fundos para o pedido ${orderId}:`, splitError);
-              payoutStatus = 'failed';
-              updates.payoutError = splitError.message;
+              // Fail-closed (M031): abort transaction so order is not marked paid and
+              // stripe_events is not finalized; top-level catch returns 5xx for Stripe retry.
+              throw splitError;
             }
           } else {
              // Caso seja um pedido legado sem os campos novos
@@ -660,21 +821,17 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           updates.payoutProcessedAt = admin.firestore.FieldValue.serverTimestamp();
 
           transaction.update(orderRef, updates);
-          transaction.set(successCommitRef, {
-            committedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
           break;
 
         case 'payment_intent.payment_failed':
-          // Evita sobrescrever se pagamento já confirmado ou pedido avançou no fluxo
-          if (
-            orderData.paymentStatus === 'completed' ||
-            orderData.status === 'paid' ||
-            orderData.status === 'delivering' ||
-            orderData.status === 'completed'
-          ) {
-             console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já está num estado avançado (${orderData.status}). Ignorando falha tardia.`);
-             break;
+          if (isOrderPaymentSettled(orderData)) {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já pago/operacional (${orderData.status}). Ignorando falha tardia.`);
+            break;
+          }
+
+          if (isOrderPaymentTerminalFailure(orderData)) {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já marcado como falha/cancelado. Ignorando.`);
+            break;
           }
 
           console.error(`❌ [Stripe Webhook] Falha no pagamento do pedido ${orderId}`);
@@ -682,9 +839,49 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           transaction.update(orderRef, {
             status: 'payment_failed',
             paymentStatus: 'failed',
+            paymentIntentId: paymentIntent.id,
             paymentError: lastError,
+            paymentFailedAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
           });
+          break;
+
+        case 'payment_intent.canceled':
+          if (isOrderPaymentSettled(orderData)) {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já pago/operacional (${orderData.status}). Ignorando cancelamento tardio.`);
+            break;
+          }
+
+          if (isOrderPaymentTerminalFailure(orderData)) {
+            console.log(`ℹ️ [Stripe Webhook] Pedido ${orderId} já marcado como falha/cancelado. Ignorando cancelamento duplicado.`);
+            break;
+          }
+
+          {
+            const canceledMethodType = extractPaymentMethodType(paymentIntent);
+            const isPixCancellation = canceledMethodType === 'pix';
+            console.warn(`⚠️ [Stripe Webhook] PaymentIntent cancelado para pedido ${orderId} (${isPixCancellation ? 'PIX' : 'pagamento'})`);
+
+            const cancelUpdates = {
+              status: 'cancelled',
+              paymentStatus: isPixCancellation ? 'expired' : 'failed',
+              paymentIntentId: paymentIntent.id,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            };
+
+            if (isPixCancellation) {
+              cancelUpdates.expiredAt = admin.firestore.FieldValue.serverTimestamp();
+            } else {
+              cancelUpdates.cancelledAt = admin.firestore.FieldValue.serverTimestamp();
+            }
+
+            const cancelReason = paymentIntent.cancellation_reason;
+            if (cancelReason) {
+              cancelUpdates.paymentError = cancelReason;
+            }
+
+            transaction.update(orderRef, cancelUpdates);
+          }
           break;
 
         default:
@@ -733,17 +930,63 @@ exports.executePaymentSplit = functions.https.onCall(async (data, context) => {
     const transfers = [];
 
     // 1. Transfer para o Produtor (90% do valor dos produtos)
+    const orderSnapshot = await db
+      .collection('orders')
+      .doc(orderId)
+      .get();
+
+    if (!orderSnapshot.exists) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Pedido inválido para processamento do repasse.'
+      );
+    }
+
+    const orderData = orderSnapshot.data() || {};
+    const paymentIntentId =
+      typeof orderData.paymentIntentId === 'string' &&
+      orderData.paymentIntentId
+        ? orderData.paymentIntentId
+        : typeof orderData.stripePaymentIntentId === 'string'
+          ? orderData.stripePaymentIntentId
+          : null;
+
+    if (!paymentIntentId || !paymentIntentId.startsWith('pi_')) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Pagamento indisponível para processamento do repasse.'
+      );
+    }
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      paymentIntentId,
+      { expand: ['latest_charge'] }
+    );
+    const sourceChargeId =
+      typeof paymentIntent.latest_charge === 'string'
+        ? paymentIntent.latest_charge
+        : paymentIntent.latest_charge &&
+            typeof paymentIntent.latest_charge.id === 'string'
+          ? paymentIntent.latest_charge.id
+          : null;
+
+    if (!sourceChargeId || !sourceChargeId.startsWith('ch_')) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Cobrança indisponível para processamento do repasse.'
+      );
+    }
+
     transfers.push(stripe.transfers.create({
       amount: producerAmount,
       currency: 'brl',
       destination: producerAccountId,
+      source_transaction: sourceChargeId,
       transfer_group: orderId,
       metadata: { role: 'producer', orderId }
     }));
 
-
-    // Courier payout ocorre após a entrega via onOrderDelivered (G6R1 selective port).
-
+    // Courier payout ocorre após a entrega via stripeWebhook/onOrderDelivered.
 
     const results = await Promise.all(transfers);
 
@@ -770,7 +1013,40 @@ exports.executePaymentSplit = functions.https.onCall(async (data, context) => {
 // ======================================================
 
 /**
- * TRIGGER: Gerar Referral Code automaticamente para novos usuários
+ * Gera código de indicação (ex.: JOAO1A2) a partir do nome do perfil.
+ */
+function generateReferralCodeFromName(name) {
+  const prefix = (name || 'DOCE').substring(0, 4).toUpperCase().replace(/\s/g, '') || 'DOCE';
+  const suffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return `${prefix}${suffix}`;
+}
+
+/**
+ * Complementa users/{uid} apenas com campos de growth/referral (merge seguro).
+ */
+async function mergeGrowthReferralFields(uid, nameForCode) {
+  const referralCode = generateReferralCodeFromName(nameForCode);
+  const update = {
+    referralCode,
+    referralCount: 0,
+    totalReferralValue: 0,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  await db.collection('users').doc(uid).set(update, { merge: true });
+
+  try {
+    await db.collection('usuarios').doc(uid).set(update, { merge: true });
+  } catch (e) {
+    // Ignora erros na coleção legada
+  }
+
+  return referralCode;
+}
+
+/**
+ * AUTH onCreate — não grava mais users/{uid} (evita race com AuthContext.register).
+ * Referral é aplicado em onUserProfileCreateGrowth após o perfil completo existir.
  */
 exports.onUserCreateGrowth = functions.auth.user().onCreate(async (user) => {
   const name = user.displayName || 'DOCE';
