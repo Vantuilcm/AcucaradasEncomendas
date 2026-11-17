@@ -51,6 +51,7 @@ import { DriverEarningsScreen } from '../screens/DriverEarningsScreen';
 import { DriverHistoryScreen } from '../screens/DriverHistoryScreen';
 import { DriverVehicleScreen } from '../screens/DriverVehicleScreen';
 import DeliveryDriverRegistration from '../screens/DeliveryDriverRegistration';
+import DriverDocumentsScreen from '../screens/DriverDocumentsScreen';
 import ScheduleDeliveryScreen from '../screens/ScheduleDeliveryScreen';
 import OrderCompletedScreen from '../screens/OrderCompletedScreen';
 import { HelpCenterScreen } from '../screens/HelpCenterScreen';
@@ -536,7 +537,7 @@ const AppNavigator = () => {
                 <Stack.Screen name="Favorites" component={PlaceholderScreen} options={{ title: 'Favoritos' }} />
                 <Stack.Screen name="DriverVehicle" component={PlaceholderScreen} options={{ title: 'Veículo' }} />
                 <Stack.Screen name="DriverPix" component={PlaceholderScreen} options={{ title: 'Pix' }} />
-                <Stack.Screen name="DriverDocuments" component={PlaceholderScreen} options={{ title: 'Documentos' }} />
+                <Stack.Screen name="DriverDocuments" component={DriverDocumentsScreen} options={{ title: 'Documentos' }} />
                 <Stack.Screen name="DriverEarnings" component={PlaceholderScreen} options={{ title: 'Ganhos' }} />
                 <Stack.Screen name="DriverHistory" component={PlaceholderScreen} options={{ title: 'Corridas' }} />
                 <Stack.Screen name="ContaBancaria" component={ContaBancariaScreen} options={{ title: 'Recebimentos' }} />

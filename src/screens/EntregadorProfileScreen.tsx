@@ -66,7 +66,7 @@ export const EntregadorProfileScreen = () => {
               title="Meus Documentos"
               titleStyle={styles.menuTitle}
               left={props => <List.Icon {...props} icon="file-document-outline" color="#555" />}
-              onPress={() => navigateTo('DriverDocuments')}
+              onPress={() => RootNavigation.navigate('DriverDocuments')}
               style={styles.menuItem}
             />
           </View>
