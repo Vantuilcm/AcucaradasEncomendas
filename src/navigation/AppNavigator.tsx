@@ -376,6 +376,11 @@ const AppNavigator = () => {
                   component={ContaBancariaScreen}
                   options={{ title: 'Recebimentos' }}
                 />
+                <Stack.Screen
+                  name="DriverDocuments"
+                  component={DriverDocumentsScreen}
+                  options={{ title: 'Documentos' }}
+                />
               </>
             ) : (
               <>
