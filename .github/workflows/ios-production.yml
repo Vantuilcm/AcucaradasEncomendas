@@ -66,8 +66,9 @@ jobs:
             exit 1
           fi
           echo "=== Production contract gate (no secrets printed) ==="
-          EXPECT_BRANCH='safe/ae-courier-my-vehicle-006-ios-1309-contract-v1'
-          ORIGINAL_SHA='d93159b627693d1b2405e49e86520c52beaf1ee7'
+          # B03 release: ORIGINAL is pre-B03 port (10620551). B03 lineage is not a descendant of 1311.
+          EXPECT_BRANCH='safe/ae-b03-ios-118-production-release-contract-1312-v1'
+          ORIGINAL_SHA='10620551d4aab848c1b6dde35609bdfe91723c7d'
           if [ "${GITHUB_REF_NAME}" != "${EXPECT_BRANCH}" ]; then
             echo "FAIL: GITHUB_REF_NAME mismatch"
             exit 1
@@ -89,29 +90,16 @@ jobs:
           DIFF_FILES=$(git diff --name-only "${ORIGINAL_SHA}" HEAD)
           EXPECT_FILES=$(printf '%s\n' \
             '.github/workflows/ios-production.yml' \
-            'app.json' \
-            'assets/acucaradas.wav' \
-            'scripts/ci/ios-build-guardian.sh' \
-            'src/App.tsx' \
-            'src/config/onesignal.ts' \
+            'src/hooks/driverOnboardingPersonalStore.ts' \
             'src/navigation/AppNavigator.tsx' \
-            'src/screens/DriverEarningsScreen.tsx' \
-            'src/screens/DriverHomeScreen.tsx' \
-            'src/screens/DriverVehicleScreen.tsx' \
+            'src/screens/DriverDocumentsScreen.tsx' \
             'src/screens/EntregadorProfileScreen.tsx' \
-            'src/screens/__tests__/DriverVehicleScreen.vehicleOnly.test.tsx' \
-            'src/services/OrderService.ts' \
-            'src/services/__tests__/OrderService.acceptOrderAtomic.courierUid.test.ts' \
-            'src/services/__tests__/OrderService.getOrdersForDriverEarnings.test.ts' \
-            'src/types/Order.ts' \
-            'src/utils/__tests__/courierAcceptAuthGate.test.ts' \
-            'src/utils/courierAcceptAuthGate.ts' \
             'version-state.json')
           if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
-            echo "FAIL: diff vs Original is not exactly the nineteen allowlisted release+G06+A01+B01+MY_VEHICLE paths"
+            echo "FAIL: diff vs Original is not exactly the six allowlisted B03 production-contract paths"
             exit 1
           fi
-          # G06 non-OrderService files: exact blob equality to approved G06 SHA
+          # G06 non-OrderService files: exact blob equality to approved G06 SHA (unchanged by B03)
           G06_INTEGRITY_FILES=$(printf '%s\n' \
             'src/screens/DriverHomeScreen.tsx' \
             'src/services/__tests__/OrderService.acceptOrderAtomic.courierUid.test.ts' \
@@ -147,6 +135,19 @@ jobs:
           fi
           if ! printf '%s\n' "${OS_DIFF}" | grep -q '^@@ -137,6 +137,56 @@'; then
             echo "FAIL: OrderService A01→B01 delta hunk anchor unexpected (must remain earnings-only insert)"
+            exit 1
+          fi
+          # B03 sanitized Driver Documents blobs (exact)
+          APPROVED_B03_DRIVER_DOCUMENTS_BLOB='28c1280073a2721ff690c18ca552f36badc6f3d0'
+          APPROVED_B03_PERSONAL_STORE_BLOB='100435ef0b1763aeefc5c1dfeda8c312bb85992b'
+          HEAD_DD_BLOB=$(git rev-parse 'HEAD:src/screens/DriverDocumentsScreen.tsx')
+          HEAD_PS_BLOB=$(git rev-parse 'HEAD:src/hooks/driverOnboardingPersonalStore.ts')
+          if [ "${HEAD_DD_BLOB}" != "${APPROVED_B03_DRIVER_DOCUMENTS_BLOB}" ]; then
+            echo "FAIL: DriverDocumentsScreen blob is not the approved B03 sanitized blob"
+            exit 1
+          fi
+          if [ "${HEAD_PS_BLOB}" != "${APPROVED_B03_PERSONAL_STORE_BLOB}" ]; then
+            echo "FAIL: driverOnboardingPersonalStore blob is not the approved B03 sanitized blob"
             exit 1
           fi
           [ "${APP_ENV}" = "production" ] || { echo "FAIL: APP_ENV"; exit 1; }
@@ -233,7 +234,7 @@ jobs:
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
           node scripts/ci/force-build-number.js --run
           TARGET_VERSION='1.1.8'
-          TARGET_BUILD='1309'
+          TARGET_BUILD='1312'
           TARGET_BUNDLE='com.acucaradas.encomendas'
           APP_VERSION=$(jq -er '.expo.version' app.json)
           STATE_VERSION=$(jq -er '.version' version-state.json)
