@@ -67,7 +67,7 @@ jobs:
           fi
           echo "=== Production contract gate (no secrets printed) ==="
           # B03 release: ORIGINAL is pre-B03 port (10620551). B03 lineage is not a descendant of 1311.
-          EXPECT_BRANCH='safe/ae-b03-driver-documents-production-1313-contract-v1'
+          EXPECT_BRANCH='safe/ae-courier-vehicle-m006-production-1314-contract-v1'
           ORIGINAL_SHA='10620551d4aab848c1b6dde35609bdfe91723c7d'
           if [ "${GITHUB_REF_NAME}" != "${EXPECT_BRANCH}" ]; then
             echo "FAIL: GITHUB_REF_NAME mismatch"
@@ -94,9 +94,16 @@ jobs:
             'src/navigation/AppNavigator.tsx' \
             'src/screens/DriverDocumentsScreen.tsx' \
             'src/screens/EntregadorProfileScreen.tsx' \
+            'src/services/DeliveryDriverService.ts' \
             'version-state.json')
           if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
-            echo "FAIL: diff vs Original is not exactly the six allowlisted B03 production-contract paths"
+            echo "FAIL: diff vs Original is not exactly the seven allowlisted production-contract paths"
+            exit 1
+          fi
+          APPROVED_M006_DDS_BLOB='2d90e02ae6a70821ad1cf95b39cc9f809302e2f5'
+          HEAD_DDS_BLOB=$(git rev-parse 'HEAD:src/services/DeliveryDriverService.ts')
+          if [ "${HEAD_DDS_BLOB}" != "${APPROVED_M006_DDS_BLOB}" ]; then
+            echo "FAIL: DeliveryDriverService blob is not the approved M006 reader blob"
             exit 1
           fi
           # G06 non-OrderService files: exact blob equality to approved G06 SHA (unchanged by B03)
@@ -234,7 +241,7 @@ jobs:
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
           node scripts/ci/force-build-number.js --run
           TARGET_VERSION='1.1.8'
-          TARGET_BUILD='1313'
+          TARGET_BUILD='1314'
           TARGET_BUNDLE='com.acucaradas.encomendas'
           APP_VERSION=$(jq -er '.expo.version' app.json)
           STATE_VERSION=$(jq -er '.version' version-state.json)
