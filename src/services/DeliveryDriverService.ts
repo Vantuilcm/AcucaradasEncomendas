@@ -32,7 +32,7 @@ export class DeliveryDriverService {
 
   async getDriverByUserId(userId: string): Promise<DeliveryDriver | null> {
     try {
-      const driversRef = collection(db, this.collection);
+      const driversRef = collection(this.collection);
       const q = query(driversRef, where('userId', '==', userId));
       const querySnapshot = (await getDocs(q as any)) as any;
 
