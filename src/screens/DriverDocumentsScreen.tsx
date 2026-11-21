@@ -231,7 +231,7 @@ export default function DriverDocumentsScreen() {
   const [selfieStatus, setSelfieStatus] = useState<DocumentStatus>(
     personalData.faceImage ? 'review' : 'pending'
   );
-  const [documentStatuses, setDocumentStatuses] = useState<Record<PersonalDocumentKey, DocumentStatus>>({
+  const [documentStatuses] = useState<Record<PersonalDocumentKey, DocumentStatus>>({
     identity: 'pending',
     cpfDocument: 'pending',
     residenceProof: 'pending',
@@ -347,12 +347,8 @@ export default function DriverDocumentsScreen() {
     Alert.alert('Em breve', 'Esta etapa será ativada na próxima fase.');
   };
 
-  const handleDocumentPress = (key: PersonalDocumentKey) => {
+  const handleDocumentPress = (_key: PersonalDocumentKey) => {
     showComingSoon();
-    setDocumentStatuses(prev => ({
-      ...prev,
-      [key]: prev[key] === 'pending' ? 'review' : prev[key],
-    }));
   };
 
   const handleSelfiePress = async () => {
