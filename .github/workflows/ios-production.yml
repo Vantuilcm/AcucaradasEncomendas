@@ -67,7 +67,7 @@ jobs:
           fi
           echo "=== Production contract gate (no secrets printed) ==="
           # B03 release: ORIGINAL is pre-B03 port (10620551). B03 lineage is not a descendant of 1311.
-          EXPECT_BRANCH='safe/ae-courier-vehicle-m006-production-1314-contract-v1'
+          EXPECT_BRANCH='safe/ae-security-f03-storage-rules-sync-038-v1'
           ORIGINAL_SHA='10620551d4aab848c1b6dde35609bdfe91723c7d'
           if [ "${GITHUB_REF_NAME}" != "${EXPECT_BRANCH}" ]; then
             echo "FAIL: GITHUB_REF_NAME mismatch"
@@ -95,9 +95,10 @@ jobs:
             'src/screens/DriverDocumentsScreen.tsx' \
             'src/screens/EntregadorProfileScreen.tsx' \
             'src/services/DeliveryDriverService.ts' \
+            'storage.rules' \
             'version-state.json')
           if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
-            echo "FAIL: diff vs Original is not exactly the seven allowlisted production-contract paths"
+            echo "FAIL: diff vs Original is not exactly the eight allowlisted production-contract paths"
             exit 1
           fi
           APPROVED_M006_DDS_BLOB='2d90e02ae6a70821ad1cf95b39cc9f809302e2f5'
@@ -145,7 +146,7 @@ jobs:
             exit 1
           fi
           # B03 sanitized Driver Documents blobs (exact)
-          APPROVED_B03_DRIVER_DOCUMENTS_BLOB='28c1280073a2721ff690c18ca552f36badc6f3d0'
+          APPROVED_B03_DRIVER_DOCUMENTS_BLOB='f761dd45fc2f5e758913cd607def85fa0ccec202'
           APPROVED_B03_PERSONAL_STORE_BLOB='100435ef0b1763aeefc5c1dfeda8c312bb85992b'
           HEAD_DD_BLOB=$(git rev-parse 'HEAD:src/screens/DriverDocumentsScreen.tsx')
           HEAD_PS_BLOB=$(git rev-parse 'HEAD:src/hooks/driverOnboardingPersonalStore.ts')
