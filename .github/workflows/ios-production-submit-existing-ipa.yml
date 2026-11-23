@@ -1,0 +1,323 @@
+name: iOS Production 1315 - EAS Submit Existing IPA Only
+
+# M125: submit-only mechanism for Production IPA 1315.
+# Dispatch requires a separate literal mission approval outside this file.
+# Does not build. Does not run on push.
+
+concurrency:
+  group: ios-production-submit-1315-existing-ipa
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      submit_approved:
+        description: 'Confirm this dispatch is intentionally approved for IPA 1315 submit-only'
+        required: true
+        default: false
+        type: boolean
+      expected_ipa_sha256:
+        description: 'Exact SHA256 of build-1795446935885.ipa'
+        required: true
+        type: string
+      source_run_id:
+        description: 'Exact GitHub Actions run id that produced the IPA'
+        required: true
+        type: string
+      artifact_name:
+        description: 'Exact artifact name from the source run'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  submit-existing-ipa-1315:
+    name: Validate and EAS Submit IPA 1315
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      FIXED_RUN_ID: '45196848274'
+      FIXED_ARTIFACT_ID: '14833260785'
+      FIXED_ARTIFACT_NAME: 'production-ipa-v4'
+      FIXED_IPA_NAME: 'build-1795446935885.ipa'
+      FIXED_IPA_SHA256: 'cf2fd9b6d4d5b5f5003ad6c25a50f70004b326bbe165ee872460ac605a5155ed'
+      FIXED_SOURCE_SHA: 'd5e3c062df93811162d04fc0f575cd88e228a0ae'
+      FIXED_SOURCE_BRANCH: 'safe/ae-security-f03-storage-rules-sync-038-v1'
+      FIXED_VERSION: '1.1.8'
+      FIXED_BUILD: '1315'
+      FIXED_BUNDLE_ID: 'com.acucaradas.encomendas'
+      FIXED_FIREBASE_PROJECT: 'acucaradas-encomendas'
+      FIXED_ASC_APP_ID: '6756029389'
+      FIXED_SUBMIT_PROFILE: 'production_v13'
+      INPUT_SUBMIT_APPROVED: ${{ inputs.submit_approved }}
+      INPUT_IPA_SHA256: ${{ inputs.expected_ipa_sha256 }}
+      INPUT_SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      INPUT_ARTIFACT_NAME: ${{ inputs.artifact_name }}
+
+    steps:
+      - name: Gate identity inputs (fail-closed)
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]; then
+            echo "FAIL: event must be workflow_dispatch"
+            exit 1
+          fi
+          if [ "${INPUT_SUBMIT_APPROVED}" != "true" ]; then
+            echo "FAIL: submit_approved must be true (dispatch gate only; external mission approval still required)"
+            exit 1
+          fi
+          if [ "${INPUT_SOURCE_RUN_ID}" != "${FIXED_RUN_ID}" ]; then
+            echo "FAIL: source_run_id mismatch"
+            exit 1
+          fi
+          if [ "${INPUT_ARTIFACT_NAME}" != "${FIXED_ARTIFACT_NAME}" ]; then
+            echo "FAIL: artifact_name mismatch"
+            exit 1
+          fi
+          if [ "${INPUT_IPA_SHA256}" != "${FIXED_IPA_SHA256}" ]; then
+            echo "FAIL: expected_ipa_sha256 mismatch"
+            exit 1
+          fi
+          if ! printf '%s' "${INPUT_IPA_SHA256}" | grep -Eq '^[0-9a-f]{64}$'; then
+            echo "FAIL: expected_ipa_sha256 format"
+            exit 1
+          fi
+          echo "PASS: dispatch identity gates"
+
+      - name: Checkout Production application SHA only
+        uses: actions/checkout@v4
+        with:
+          ref: d5e3c062df93811162d04fc0f575cd88e228a0ae
+          fetch-depth: 1
+
+      - name: Confirm checkout SHA and submit profile
+        run: |
+          set -euo pipefail
+          HEAD_SHA=$(git rev-parse HEAD)
+          if [ "${HEAD_SHA}" != "${FIXED_SOURCE_SHA}" ]; then
+            echo "FAIL: checkout HEAD != FIXED_SOURCE_SHA"
+            exit 1
+          fi
+          PROFILE=$(jq -er '.submit.production_v13.ios.ascAppId' eas.json)
+          if [ "${PROFILE}" != "${FIXED_ASC_APP_ID}" ]; then
+            echo "FAIL: submit.production_v13 ascAppId mismatch"
+            exit 1
+          fi
+          jq -e '.submit.production_v13.ios.appleId' eas.json >/dev/null
+          jq -e '.submit.production_v13.ios.appleTeamId' eas.json >/dev/null
+          echo "PASS: application source + eas submit profile"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify source run and artifact metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          META=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${FIXED_RUN_ID}")
+          echo "${META}" | jq -e '.conclusion == "success"' >/dev/null
+          echo "${META}" | jq -e --arg s "${FIXED_SOURCE_SHA}" '.head_sha == $s' >/dev/null
+          BRANCH=$(echo "${META}" | jq -r '.head_branch // empty')
+          if [ "${BRANCH}" != "${FIXED_SOURCE_BRANCH}" ]; then
+            echo "FAIL: source run branch mismatch: ${BRANCH}"
+            exit 1
+          fi
+          ARTS=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${FIXED_RUN_ID}/artifacts")
+          MATCH=$(echo "${ARTS}" | jq -c --arg id "${FIXED_ARTIFACT_ID}" --arg n "${FIXED_ARTIFACT_NAME}" '.artifacts[] | select((.id|tostring) == $id and .name == $n)')
+          if [ -z "${MATCH}" ]; then
+            echo "FAIL: artifact id/name not found on source run"
+            exit 1
+          fi
+          echo "${MATCH}" | jq -e '.expired == false' >/dev/null
+          echo "PASS: source run + artifact metadata"
+
+      - name: Download approved Production IPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: production-ipa-v4
+          run-id: 45196848274
+          github-token: ${{ github.token }}
+          path: ./ipa-artifact
+
+      - name: Validate IPA identity (SHA256, plist, signing, production)
+        run: |
+          set -euo pipefail
+          mapfile -t IPAS < <(find ./ipa-artifact -type f -name '*.ipa' | sort)
+          if [ "${#IPAS[@]}" -ne 1 ]; then
+            echo "FAIL: expected exactly one IPA, found ${#IPAS[@]}"
+            exit 1
+          fi
+          IPA_PATH="${IPAS[0]}"
+          IPA_BASE=$(basename "${IPA_PATH}")
+          if [ "${IPA_BASE}" != "${FIXED_IPA_NAME}" ]; then
+            echo "FAIL: IPA filename mismatch: ${IPA_BASE}"
+            exit 1
+          fi
+          cp "${IPA_PATH}" "./${FIXED_IPA_NAME}"
+          GOT_SHA=$(shasum -a 256 "./${FIXED_IPA_NAME}" | awk '{print $1}')
+          if [ "${GOT_SHA}" != "${FIXED_IPA_SHA256}" ]; then
+            echo "FAIL: IPA SHA256 mismatch"
+            exit 1
+          fi
+          EXTRACT=$(mktemp -d)
+          unzip -q "./${FIXED_IPA_NAME}" -d "${EXTRACT}"
+          APP=$(find "${EXTRACT}" -type d -name '*.app' | head -n 1)
+          if [ -z "${APP}" ]; then
+            echo "FAIL: .app not found inside IPA"
+            exit 1
+          fi
+          BV=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "${APP}/Info.plist")
+          BS=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "${APP}/Info.plist")
+          BI=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "${APP}/Info.plist")
+          [ "${BV}" = "${FIXED_BUILD}" ] || { echo "FAIL: CFBundleVersion"; exit 1; }
+          [ "${BS}" = "${FIXED_VERSION}" ] || { echo "FAIL: CFBundleShortVersionString"; exit 1; }
+          [ "${BI}" = "${FIXED_BUNDLE_ID}" ] || { echo "FAIL: CFBundleIdentifier"; exit 1; }
+          if [ ! -f "${APP}/embedded.mobileprovision" ]; then
+            echo "FAIL: embedded.mobileprovision missing"
+            exit 1
+          fi
+          security cms -D -i "${APP}/embedded.mobileprovision" > /tmp/m125_prov.plist
+          PROV_NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' /tmp/m125_prov.plist || true)
+          GET_TASK=$(/usr/libexec/PlistBuddy -c 'Print Entitlements:get-task-allow' /tmp/m125_prov.plist 2>/dev/null || echo 'missing')
+          ALL_DEVICES=$(/usr/libexec/PlistBuddy -c 'Print ProvisionsAllDevices' /tmp/m125_prov.plist 2>/dev/null || echo 'false')
+          if [ "${GET_TASK}" = "true" ]; then
+            echo "FAIL: get-task-allow true (not App Store Distribution)"
+            exit 1
+          fi
+          if [ "${ALL_DEVICES}" = "true" ]; then
+            echo "FAIL: ProvisionsAllDevices true (enterprise/dev pattern)"
+            exit 1
+          fi
+          echo "Provision name (non-secret): ${PROV_NAME}"
+          case "${PROV_NAME}" in
+            *App*Store*|*Distribution*|*appstore*|*distribution*) ;;
+            *)
+              echo "WARN: provision name did not match App Store/Distribution keywords; continuing with entitlement gates only"
+              ;;
+          esac
+          if [ -f "${APP}/GoogleService-Info.plist" ]; then
+            FP=$(/usr/libexec/PlistBuddy -c 'Print PROJECT_ID' "${APP}/GoogleService-Info.plist")
+            [ "${FP}" = "${FIXED_FIREBASE_PROJECT}" ] || { echo "FAIL: Firebase PROJECT_ID mismatch (${FP})"; exit 1; }
+          else
+            echo "FAIL: GoogleService-Info.plist missing inside app"
+            exit 1
+          fi
+          codesign -dv --verbose=2 "${APP}" 2>/tmp/m125_codesign.txt || true
+          if ! grep -qi 'Authority=.*Distribution\|Authority=.*Apple Distribution\|Authority=iPhone Distribution' /tmp/m125_codesign.txt; then
+            if ! grep -qi 'Authority=' /tmp/m125_codesign.txt; then
+              echo "FAIL: codesign authority missing"
+              exit 1
+            fi
+            if grep -qi 'Authority=.*Development\|Authority=iPhone Developer' /tmp/m125_codesign.txt; then
+              echo "FAIL: development signing detected"
+              exit 1
+            fi
+          fi
+          if echo "${FP}" | grep -qi sandbox; then
+            echo "FAIL: sandbox firebase identity"
+            exit 1
+          fi
+          rm -rf "${EXTRACT}"
+          echo "PASS: IPA identity gates"
+          echo "IPA_PATH=./${FIXED_IPA_NAME}" >> "${GITHUB_ENV}"
+
+      - name: Prepare ASC API key (no secret values printed)
+        run: |
+          set -euo pipefail
+          : "${EXPO_TOKEN:?EXPO_TOKEN missing}"
+          : "${EXPO_ASC_KEY_ID:?EXPO_ASC_KEY_ID missing}"
+          : "${EXPO_ASC_ISSUER_ID:?EXPO_ASC_ISSUER_ID missing}"
+          : "${EXPO_ASC_PRIVATE_KEY:?EXPO_ASC_PRIVATE_KEY missing}"
+          if printf '%s' "${EXPO_ASC_PRIVATE_KEY}" | grep -q 'BEGIN PRIVATE KEY'; then
+            printf '%s' "${EXPO_ASC_PRIVATE_KEY}" | sed 's/\\n/\n/g' > AuthKey.p8
+          else
+            printf '%s' "${EXPO_ASC_PRIVATE_KEY}" | base64 --decode > AuthKey.p8
+          fi
+          if ! grep -q 'BEGIN PRIVATE KEY' AuthKey.p8; then
+            echo "FAIL: AuthKey.p8 invalid"
+            exit 1
+          fi
+          export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
+          echo "EXPO_ASC_PRIVATE_KEY_PATH=${EXPO_ASC_PRIVATE_KEY_PATH}" >> "${GITHUB_ENV}"
+          echo "PASS: ASC key material prepared (contents not logged)"
+
+      - name: Duplicate submission gate (ASC build 1315)
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const crypto = require('crypto');
+          const fs = require('fs');
+          const keyId = process.env.EXPO_ASC_KEY_ID;
+          const issuerId = process.env.EXPO_ASC_ISSUER_ID;
+          const appId = process.env.FIXED_ASC_APP_ID;
+          const build = process.env.FIXED_BUILD;
+          const version = process.env.FIXED_VERSION;
+          const key = fs.readFileSync('AuthKey.p8');
+          const b64url = (buf) => Buffer.from(buf).toString('base64url');
+          const now = Math.floor(Date.now() / 1000);
+          const header = b64url(JSON.stringify({ alg: 'ES256', kid: keyId, typ: 'JWT' }));
+          const payload = b64url(JSON.stringify({ iss: issuerId, iat: now, exp: now + 1100, aud: 'appstoreconnect-v1' }));
+          const data = `${header}.${payload}`;
+          const sign = crypto.createSign('SHA256');
+          sign.update(data);
+          sign.end();
+          const sig = sign.sign({ key, dsaEncoding: 'ieee-p1363' });
+          const token = `${data}.${b64url(sig)}`;
+          const url = new URL('https://api.appstoreconnect.apple.com/v1/builds');
+          url.searchParams.set('filter[app]', appId);
+          url.searchParams.set('filter[version]', build);
+          url.searchParams.set('filter[preReleaseVersion.version]', version);
+          url.searchParams.set('limit', '50');
+          fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+            .then(async (res) => {
+              const text = await res.text();
+              if (!res.ok) {
+                console.error('FAIL: ASC builds query unsuccessful; refuse to assume absence');
+                console.error('HTTP', res.status);
+                process.exit(1);
+              }
+              let body;
+              try { body = JSON.parse(text); } catch {
+                console.error('FAIL: ASC response not JSON');
+                process.exit(1);
+              }
+              const rows = Array.isArray(body.data) ? body.data : null;
+              if (!rows) {
+                console.error('FAIL: ASC response missing data array');
+                process.exit(1);
+              }
+              if (rows.length > 0) {
+                const states = rows.map((r) => (r.attributes && r.attributes.processingState) || 'UNKNOWN');
+                console.error('FAIL: build 1315 already present or processing on ASC:', states.join(','));
+                process.exit(1);
+              }
+              console.log('PASS: no ASC build 1315 for 1.1.8');
+            })
+            .catch((err) => {
+              console.error('FAIL: ASC query error; refuse to assume absence');
+              console.error(String(err && err.message ? err.message : err));
+              process.exit(1);
+            });
+          NODE
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: EAS Submit existing IPA (single attempt, no retry)
+        run: |
+          set -euo pipefail
+          if [ ! -f "./${FIXED_IPA_NAME}" ]; then
+            echo "FAIL: IPA missing before submit"
+            exit 1
+          fi
+          eas submit --platform ios --path "./${FIXED_IPA_NAME}" --profile "${FIXED_SUBMIT_PROFILE}" --non-interactive
