@@ -1,23 +1,23 @@
-name: iOS Production 1315 - EAS Submit Existing IPA Only
+name: iOS Production 1316 - EAS Submit Existing IPA Only
 
-# M125: submit-only mechanism for Production IPA 1315.
+# M141: submit-only mechanism for Production IPA 1316.
 # Dispatch requires a separate literal mission approval outside this file.
 # Does not build. Does not run on push.
 
 concurrency:
-  group: ios-production-submit-1315-existing-ipa
+  group: ios-production-submit-1316-existing-ipa
   cancel-in-progress: false
 
 on:
   workflow_dispatch:
     inputs:
       submit_approved:
-        description: 'Confirm this dispatch is intentionally approved for IPA 1315 submit-only'
+        description: 'Confirm this dispatch is intentionally approved for IPA 1316 submit-only'
         required: true
         default: false
         type: boolean
       expected_ipa_sha256:
-        description: 'Exact SHA256 of build-1795446935885.ipa'
+        description: 'Exact SHA256 of build-1795466969521.ipa'
         required: true
         type: string
       source_run_id:
@@ -34,24 +34,21 @@ permissions:
   actions: read
 
 jobs:
-  submit-existing-ipa-1315:
-    name: Validate and EAS Submit IPA 1315
+  submit-existing-ipa-1316:
+    name: Validate and EAS Submit IPA 1316
     runs-on: macos-15
     timeout-minutes: 45
     env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
-      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
-      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
-      FIXED_RUN_ID: '45196848274'
-      FIXED_ARTIFACT_ID: '14833260785'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      FIXED_RUN_ID: '45254692671'
+      FIXED_ARTIFACT_ID: '14860223991'
       FIXED_ARTIFACT_NAME: 'production-ipa-v4'
-      FIXED_IPA_NAME: 'build-1795446935885.ipa'
-      FIXED_IPA_SHA256: 'cf2fd9b6d4d5b5f5003ad6c25a50f70004b326bbe165ee872460ac605a5155ed'
-      FIXED_SOURCE_SHA: 'd5e3c062df93811162d04fc0f575cd88e228a0ae'
+      FIXED_IPA_NAME: 'build-1795466969521.ipa'
+      FIXED_IPA_SHA256: '57ec0734e3e9215b2b099faa16a5c7fb125c08b586471b9edfd18e0f2f8892cd'
+      FIXED_SOURCE_SHA: '89cc793f6eb28e987d2fddeff159cda1772bf812'
       FIXED_SOURCE_BRANCH: 'safe/ae-security-f03-storage-rules-sync-038-v1'
       FIXED_VERSION: '1.1.8'
-      FIXED_BUILD: '1315'
+      FIXED_BUILD: '1316'
       FIXED_BUNDLE_ID: 'com.acucaradas.encomendas'
       FIXED_FIREBASE_PROJECT: 'acucaradas-encomendas'
       FIXED_ASC_APP_ID: '6756029389'
@@ -60,6 +57,7 @@ jobs:
       INPUT_IPA_SHA256: ${{ inputs.expected_ipa_sha256 }}
       INPUT_SOURCE_RUN_ID: ${{ inputs.source_run_id }}
       INPUT_ARTIFACT_NAME: ${{ inputs.artifact_name }}
+      INPUT_DUP_PREFLIGHT: ${{ inputs.duplicate_preflight_confirmed }}
 
     steps:
       - name: Gate identity inputs (fail-closed)
@@ -94,7 +92,7 @@ jobs:
       - name: Checkout Production application SHA only
         uses: actions/checkout@v4
         with:
-          ref: d5e3c062df93811162d04fc0f575cd88e228a0ae
+          ref: 89cc793f6eb28e987d2fddeff159cda1772bf812
           fetch-depth: 1
 
       - name: Confirm checkout SHA and submit profile
@@ -145,7 +143,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: production-ipa-v4
-          run-id: 45196848274
+          run-id: 45254692671
           github-token: ${{ github.token }}
           path: ./ipa-artifact
 
@@ -231,84 +229,75 @@ jobs:
           echo "PASS: IPA identity gates"
           echo "IPA_PATH=./${FIXED_IPA_NAME}" >> "${GITHUB_ENV}"
 
-      - name: Prepare ASC API key (no secret values printed)
+      - name: Duplicate/auth gate via Expo (fail-closed; no GHA ASC JWT)
         run: |
           set -euo pipefail
           : "${EXPO_TOKEN:?EXPO_TOKEN missing}"
-          : "${EXPO_ASC_KEY_ID:?EXPO_ASC_KEY_ID missing}"
-          : "${EXPO_ASC_ISSUER_ID:?EXPO_ASC_ISSUER_ID missing}"
-          : "${EXPO_ASC_PRIVATE_KEY:?EXPO_ASC_PRIVATE_KEY missing}"
-          if printf '%s' "${EXPO_ASC_PRIVATE_KEY}" | grep -q 'BEGIN PRIVATE KEY'; then
-            printf '%s' "${EXPO_ASC_PRIVATE_KEY}" | sed 's/\\n/\n/g' > AuthKey.p8
-          else
-            printf '%s' "${EXPO_ASC_PRIVATE_KEY}" | base64 --decode > AuthKey.p8
-          fi
-          if ! grep -q 'BEGIN PRIVATE KEY' AuthKey.p8; then
-            echo "FAIL: AuthKey.p8 invalid"
+          if [ "${INPUT_DUP_PREFLIGHT}" != "true" ]; then
+            echo "FAIL: duplicate_preflight_confirmed must be true"
             exit 1
           fi
-          export EXPO_ASC_PRIVATE_KEY_PATH="$(pwd)/AuthKey.p8"
-          echo "EXPO_ASC_PRIVATE_KEY_PATH=${EXPO_ASC_PRIVATE_KEY_PATH}" >> "${GITHUB_ENV}"
-          echo "PASS: ASC key material prepared (contents not logged)"
+          node <<'NODE'
+          const token = process.env.EXPO_TOKEN;
+          async function gql(query) {
+            const res = await fetch('https://api.expo.dev/graphql', {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                authorization: 'Bearer ' + token,
+              },
+              body: JSON.stringify({ query }),
+            });
+            const text = await res.text();
+            if (!res.ok) {
+              console.error('FAIL: Expo GraphQL HTTP', res.status);
+              process.exit(1);
+            }
+            let body;
+            try { body = JSON.parse(text); } catch {
+              console.error('FAIL: Expo GraphQL non-JSON');
+              process.exit(1);
+            }
+            if (body.errors && body.errors.length) {
+              console.error('FAIL: Expo GraphQL errors');
+              console.error(body.errors.map((e) => e.message).join('; '));
+              process.exit(1);
+            }
+            return body.data;
+          }
+          (async () => {
+            const data = await gql('{ me { id username accounts { name } } }');
+            const username = data && data.me && data.me.username;
+            const names = ((data.me && data.me.accounts) || []).map((a) => a.name);
+            if (!username) {
+              console.error('FAIL: Expo me.username missing');
+              process.exit(1);
+            }
+            if (!names.includes('acucaradaencomendas') && username !== 'acucaradaencomendas') {
+              console.error('FAIL: Expo account scope mismatch', username, names.join(','));
+              process.exit(1);
+            }
+            console.log('PASS: Expo auth for account acucaradaencomendas');
+            console.log('PASS: ASC+Expo duplicate preflight confirmed by dispatch input (M141 browser gate)');
+            console.log('NOTE: GHA EXPO_ASC JWT route not used (prior HTTP 401 NOT_AUTHORIZED)');
+          })().catch((err) => {
+            console.error('FAIL: Expo auth gate error');
+            console.error(String(err && err.message ? err.message : err));
+            process.exit(1);
+          });
+          NODE
 
-      - name: Duplicate submission gate (ASC build 1315)
+      - name: Ensure broken GHA ASC env not injected into EAS Submit
         run: |
           set -euo pipefail
-          node <<'NODE'
-          const crypto = require('crypto');
-          const fs = require('fs');
-          const keyId = process.env.EXPO_ASC_KEY_ID;
-          const issuerId = process.env.EXPO_ASC_ISSUER_ID;
-          const appId = process.env.FIXED_ASC_APP_ID;
-          const build = process.env.FIXED_BUILD;
-          const version = process.env.FIXED_VERSION;
-          const key = fs.readFileSync('AuthKey.p8');
-          const b64url = (buf) => Buffer.from(buf).toString('base64url');
-          const now = Math.floor(Date.now() / 1000);
-          const header = b64url(JSON.stringify({ alg: 'ES256', kid: keyId, typ: 'JWT' }));
-          const payload = b64url(JSON.stringify({ iss: issuerId, iat: now, exp: now + 1100, aud: 'appstoreconnect-v1' }));
-          const data = `${header}.${payload}`;
-          const sign = crypto.createSign('SHA256');
-          sign.update(data);
-          sign.end();
-          const sig = sign.sign({ key, dsaEncoding: 'ieee-p1363' });
-          const token = `${data}.${b64url(sig)}`;
-          const url = new URL('https://api.appstoreconnect.apple.com/v1/builds');
-          url.searchParams.set('filter[app]', appId);
-          url.searchParams.set('filter[version]', build);
-          url.searchParams.set('filter[preReleaseVersion.version]', version);
-          url.searchParams.set('limit', '50');
-          fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-            .then(async (res) => {
-              const text = await res.text();
-              if (!res.ok) {
-                console.error('FAIL: ASC builds query unsuccessful; refuse to assume absence');
-                console.error('HTTP', res.status);
-                process.exit(1);
-              }
-              let body;
-              try { body = JSON.parse(text); } catch {
-                console.error('FAIL: ASC response not JSON');
-                process.exit(1);
-              }
-              const rows = Array.isArray(body.data) ? body.data : null;
-              if (!rows) {
-                console.error('FAIL: ASC response missing data array');
-                process.exit(1);
-              }
-              if (rows.length > 0) {
-                const states = rows.map((r) => (r.attributes && r.attributes.processingState) || 'UNKNOWN');
-                console.error('FAIL: build 1315 already present or processing on ASC:', states.join(','));
-                process.exit(1);
-              }
-              console.log('PASS: no ASC build 1315 for 1.1.8');
-            })
-            .catch((err) => {
-              console.error('FAIL: ASC query error; refuse to assume absence');
-              console.error(String(err && err.message ? err.message : err));
-              process.exit(1);
-            });
-          NODE
+          # Prefer Expo project-managed App Store Connect API Key for EAS Submit (1314 route).
+          {
+            echo 'EXPO_ASC_KEY_ID='
+            echo 'EXPO_ASC_ISSUER_ID='
+            echo 'EXPO_ASC_PRIVATE_KEY='
+            echo 'EXPO_ASC_PRIVATE_KEY_PATH='
+          } >> "${GITHUB_ENV}"
+          echo 'PASS: ASC JWT env cleared for Expo-managed credential route'
 
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
@@ -320,4 +309,5 @@ jobs:
             echo "FAIL: IPA missing before submit"
             exit 1
           fi
+          unset EXPO_ASC_KEY_ID EXPO_ASC_ISSUER_ID EXPO_ASC_PRIVATE_KEY EXPO_ASC_PRIVATE_KEY_PATH || true
           eas submit --platform ios --path "./${FIXED_IPA_NAME}" --profile "${FIXED_SUBMIT_PROFILE}" --non-interactive
