@@ -152,12 +152,12 @@ jobs:
       - name: Validate IPA identity (SHA256, plist, signing, production)
         run: |
           set -euo pipefail
-          mapfile -t IPAS < <(find ./ipa-artifact -type f -name '*.ipa' | sort)
-          if [ "${#IPAS[@]}" -ne 1 ]; then
-            echo "FAIL: expected exactly one IPA, found ${#IPAS[@]}"
+          IPA_COUNT=$(find ./ipa-artifact -type f -name '*.ipa' | wc -l | tr -d '[:space:]')
+          if [ "${IPA_COUNT}" -ne 1 ]; then
+            echo "FAIL: expected exactly one IPA, found ${IPA_COUNT}"
             exit 1
           fi
-          IPA_PATH="${IPAS[0]}"
+          IPA_PATH=$(find ./ipa-artifact -type f -name '*.ipa' | sort | head -n 1)
           IPA_BASE=$(basename "${IPA_PATH}")
           if [ "${IPA_BASE}" != "${FIXED_IPA_NAME}" ]; then
             echo "FAIL: IPA filename mismatch: ${IPA_BASE}"
