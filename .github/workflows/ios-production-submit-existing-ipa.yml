@@ -16,6 +16,11 @@ on:
         required: true
         default: false
         type: boolean
+      duplicate_preflight_confirmed:
+        description: 'Confirm ASC+Expo preflight verified 1316 ABSENT in authorized mission before dispatch'
+        required: true
+        default: false
+        type: boolean
       expected_ipa_sha256:
         description: 'Exact SHA256 of build-1795466969521.ipa'
         required: true
@@ -39,7 +44,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 45
     env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       FIXED_RUN_ID: '45254692671'
       FIXED_ARTIFACT_ID: '14860223991'
       FIXED_ARTIFACT_NAME: 'production-ipa-v4'
