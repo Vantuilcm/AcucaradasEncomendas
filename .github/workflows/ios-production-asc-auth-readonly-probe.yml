@@ -1,0 +1,200 @@
+name: iOS Production 1315 - ASC Auth Readonly Probe
+
+# M130: single authenticated GET to App Store Connect for HTTP 401 diagnosis.
+# No IPA download. No EAS Submit. No build. Dispatch requires separate approval.
+
+concurrency:
+  group: ios-production-asc-auth-readonly-probe-1315
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      probe_approved:
+        description: 'Confirm this ASC auth readonly probe dispatch is intentionally approved'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  asc-auth-readonly-probe:
+    name: ASC Auth Readonly Probe 1315
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      EXPO_ASC_KEY_ID: ${{ secrets.EXPO_ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.EXPO_ASC_ISSUER_ID }}
+      EXPO_ASC_PRIVATE_KEY: ${{ secrets.EXPO_ASC_PRIVATE_KEY }}
+      FIXED_ASC_APP_ID: '6756029389'
+      FIXED_VERSION: '1.1.8'
+      FIXED_BUILD: '1315'
+      FIXED_BUNDLE_ID: 'com.acucaradas.encomendas'
+      INPUT_PROBE_APPROVED: ${{ inputs.probe_approved }}
+
+    steps:
+      - name: Gate probe approval (fail-closed)
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]; then
+            echo "FAIL: event must be workflow_dispatch"
+            exit 1
+          fi
+          if [ "${INPUT_PROBE_APPROVED}" != "true" ]; then
+            echo "FAIL: probe_approved must be true"
+            exit 1
+          fi
+          if [ -n "${NODE_TLS_REJECT_UNAUTHORIZED:-}" ]; then
+            echo "FAIL: NODE_TLS_REJECT_UNAUTHORIZED must not be set"
+            exit 1
+          fi
+          echo "PASS: probe dispatch gate"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Prepare ASC key and run single readonly GET
+        run: |
+          set -euo pipefail
+          : "${EXPO_ASC_KEY_ID:?EXPO_ASC_KEY_ID missing}"
+          : "${EXPO_ASC_ISSUER_ID:?EXPO_ASC_ISSUER_ID missing}"
+          : "${EXPO_ASC_PRIVATE_KEY:?EXPO_ASC_PRIVATE_KEY missing}"
+
+          KEY_FILE="$(mktemp "${RUNNER_TEMP}/asc-authkey.XXXXXX.p8")"
+          chmod 600 "${KEY_FILE}"
+          cleanup() { rm -f "${KEY_FILE}"; }
+          trap cleanup EXIT
+
+          if printf '%s' "${EXPO_ASC_PRIVATE_KEY}" | grep -q 'BEGIN PRIVATE KEY'; then
+            printf '%s' "${EXPO_ASC_PRIVATE_KEY}" | sed 's/\\n/\n/g' > "${KEY_FILE}"
+          else
+            printf '%s' "${EXPO_ASC_PRIVATE_KEY}" | base64 --decode > "${KEY_FILE}"
+          fi
+          if ! grep -q 'BEGIN PRIVATE KEY' "${KEY_FILE}"; then
+            echo "FAIL: AuthKey structural validation failed"
+            exit 1
+          fi
+          echo "PASS: AuthKey structural validation"
+
+          # Same JWT contract as ios-production-submit-existing-ipa.yml (M127).
+          # Do not trim secret values. Do not print JWT, Authorization, or key material.
+          export ASC_KEY_FILE="${KEY_FILE}"
+          node <<'NODE'
+          const crypto = require('crypto');
+          const fs = require('fs');
+          const keyId = process.env.EXPO_ASC_KEY_ID;
+          const issuerId = process.env.EXPO_ASC_ISSUER_ID;
+          const appId = process.env.FIXED_ASC_APP_ID;
+          const build = process.env.FIXED_BUILD;
+          const version = process.env.FIXED_VERSION;
+          const keyPem = fs.readFileSync(process.env.ASC_KEY_FILE);
+
+          function redact(s, max) {
+            if (s == null) return '';
+            let t = String(s);
+            t = t.replace(/Bearer\s+[A-Za-z0-9\-._~+\/]+=*/gi, '[REDACTED_TOKEN]');
+            t = t.replace(/-----BEGIN[\s\S]*?-----END[^-]*-----/g, '[REDACTED_PEM]');
+            t = t.replace(/[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/g, '[REDACTED_JWT]');
+            if (t.length > max) t = t.slice(0, max) + '…';
+            return t;
+          }
+
+          const b64url = (buf) => Buffer.from(buf).toString('base64url');
+          const now = Math.floor(Date.now() / 1000);
+          const header = b64url(JSON.stringify({ alg: 'ES256', kid: keyId, typ: 'JWT' }));
+          const payload = b64url(JSON.stringify({
+            iss: issuerId,
+            iat: now,
+            exp: now + 1100,
+            aud: 'appstoreconnect-v1',
+          }));
+          const data = `${header}.${payload}`;
+          const sign = crypto.createSign('SHA256');
+          sign.update(data);
+          sign.end();
+          let sig;
+          try {
+            sig = sign.sign({ key: keyPem, dsaEncoding: 'ieee-p1363' });
+          } catch (e) {
+            console.error('FAIL: ES256 sign capability');
+            console.error('SIGN_ERROR_CLASS=' + redact(e && e.message, 120));
+            process.exit(1);
+          }
+          if (!sig || sig.length !== 64) {
+            console.error('FAIL: unexpected ES256 signature length class');
+            process.exit(1);
+          }
+          const token = `${data}.${b64url(sig)}`;
+          console.log('JWT_STRUCT=PASS');
+          console.log('JWT_ALG=ES256');
+          console.log('JWT_AUD=appstoreconnect-v1');
+          console.log('JWT_EXP_WINDOW_SEC=1100');
+          console.log('JWT_SIG_LEN=64');
+          console.log('KEY_ID_PRESENT=' + (keyId ? 'true' : 'false'));
+          console.log('ISSUER_ID_PRESENT=' + (issuerId ? 'true' : 'false'));
+          console.log('KEY_ID_LEN=' + String(keyId || '').length);
+          console.log('ISSUER_ID_LEN=' + String(issuerId || '').length);
+
+          const url = new URL('https://api.appstoreconnect.apple.com/v1/builds');
+          url.searchParams.set('filter[app]', appId);
+          url.searchParams.set('filter[version]', build);
+          url.searchParams.set('filter[preReleaseVersion.version]', version);
+          url.searchParams.set('limit', '5');
+
+          console.log('ASC_HTTP_REQUEST_COUNT=1');
+          console.log('ASC_ENDPOINT_PATH=/v1/builds');
+          console.log('ASC_FILTER_APP_FIXED=true');
+          console.log('ASC_FILTER_BUILD=' + build);
+          console.log('ASC_FILTER_VERSION=' + version);
+
+          fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+            .then(async (res) => {
+              const text = await res.text();
+              console.log('ASC_HTTP_STATUS=' + res.status);
+              let body = null;
+              try { body = JSON.parse(text); } catch { body = null; }
+
+              if (res.status === 200) {
+                const rows = body && Array.isArray(body.data) ? body.data : null;
+                if (!rows) {
+                  console.log('ASC_AUTHENTICATION=PASS');
+                  console.log('MATCHING_BUILD_COUNT=UNKNOWN');
+                  console.log('BUILD_1315_PRESENT=UNKNOWN');
+                  console.log('ROOT_CAUSE=NOT_PROVEN');
+                  process.exit(0);
+                }
+                console.log('ASC_AUTHENTICATION=PASS');
+                console.log('MATCHING_BUILD_COUNT=' + rows.length);
+                console.log('BUILD_1315_PRESENT=' + (rows.length > 0 ? 'true' : 'false'));
+                process.exit(0);
+              }
+
+              console.log('ASC_AUTHENTICATION=FAILED');
+              const err0 = body && Array.isArray(body.errors) && body.errors[0] ? body.errors[0] : null;
+              if (!err0) {
+                console.log('ASC_ERROR_CODE=');
+                console.log('ASC_ERROR_TITLE=');
+                console.log('ASC_ERROR_DETAIL_REDACTED=');
+                console.log('ROOT_CAUSE=NOT_PROVEN');
+                process.exit(0);
+              }
+              console.log('ASC_ERROR_CODE=' + redact(err0.code || err0.status || '', 80));
+              console.log('ASC_ERROR_TITLE=' + redact(err0.title || '', 120));
+              console.log('ASC_ERROR_DETAIL_REDACTED=' + redact(err0.detail || '', 200));
+              if (String(res.status) === '401') {
+                console.log('CLASS_HINT=AUTHENTICATION_REJECTED');
+              } else if (String(res.status) === '403') {
+                console.log('CLASS_HINT=PERMISSION_REJECTED');
+              }
+              process.exit(0);
+            })
+            .catch((err) => {
+              console.error('FAIL: ASC request transport error');
+              console.error('TRANSPORT_ERROR_CLASS=' + redact(err && err.message, 120));
+              process.exit(1);
+            });
+          NODE
