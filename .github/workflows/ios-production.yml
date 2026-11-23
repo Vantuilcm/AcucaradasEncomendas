@@ -16,6 +16,10 @@ on:
         required: true
         default: false
         type: boolean
+      expected_source_sha:
+        description: 'SHA completo (40 hex minúsculos) do commit fonte previamente aprovado'
+        required: true
+        type: string
 
 jobs:
   ios-local-pipeline:
@@ -59,6 +63,7 @@ jobs:
       - name: Verify Production contract before building
         env:
           RELEASE_APPROVED: ${{ inputs.release_approved }}
+          EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
         run: |
           set -euo pipefail
           if [ "${GITHUB_EVENT_NAME:-}" != "workflow_dispatch" ] || [ "${RELEASE_APPROVED:-false}" != "true" ]; then
@@ -78,6 +83,24 @@ jobs:
             echo "FAIL: HEAD != GITHUB_SHA"
             exit 1
           fi
+          # expected_source_sha: externally approved identity; fail-closed before any build
+          if [ -z "${EXPECTED_SOURCE_SHA:-}" ]; then
+            echo "FAIL: expected_source_sha missing"
+            exit 1
+          fi
+          if ! printf '%s' "${EXPECTED_SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "FAIL: expected_source_sha format invalid (need exactly 40 lowercase hex)"
+            exit 1
+          fi
+          if [ "${EXPECTED_SOURCE_SHA}" != "${GITHUB_SHA}" ]; then
+            echo "FAIL: expected_source_sha != GITHUB_SHA"
+            exit 1
+          fi
+          if [ "${EXPECTED_SOURCE_SHA}" != "${HEAD_SHA}" ]; then
+            echo "FAIL: expected_source_sha != HEAD"
+            exit 1
+          fi
+          echo "PASS: source SHA identity matched"
           if ! git merge-base --is-ancestor "${ORIGINAL_SHA}" HEAD; then
             echo "FAIL: Original commit is not an ancestor of HEAD"
             exit 1
