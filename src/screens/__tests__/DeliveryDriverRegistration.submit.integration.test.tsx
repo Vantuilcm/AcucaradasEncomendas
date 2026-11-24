@@ -1,9 +1,12 @@
+/// <reference types="jest" />
+/// <reference types="node" />
 /**
  * M165 — Integration test of DeliveryDriverRegistration real submit path.
  * Verifies create/update service contracts after M162 T22 strip.
  *
  * Covered scenarios: T01–T20 (grouped asserts documented per describe/it).
  * REAL_SUBMIT_EXECUTED via fireEvent on "Enviar Cadastro".
+ * M167 — explicit Jest types for Cursor inferred-project diagnostics.
  */
 
 jest.mock('@sentry/react-native', () => ({
@@ -22,7 +25,7 @@ jest.mock('../../config/env', () => ({
   getEnv: () => 'test',
 }));
 
-const mockUploadBytes = jest.fn(() => Promise.resolve(undefined));
+const mockUploadBytes = jest.fn((..._args: unknown[]) => Promise.resolve(undefined));
 const mockGetDownloadURL = jest.fn((ref: { path: string }) =>
   Promise.resolve(`https://cdn.test/${ref.path}`)
 );
@@ -30,9 +33,9 @@ const mockRef = jest.fn((path: string) => ({ path }));
 
 jest.mock('../../config/firebase', () => ({
   s: {
-    ref: path => mockRef(path),
-    uploadBytes: (...args) => mockUploadBytes(...args),
-    getDownloadURL: ref => mockGetDownloadURL(ref),
+    ref: (path: string) => mockRef(path),
+    uploadBytes: (...args: unknown[]) => mockUploadBytes(...args),
+    getDownloadURL: (ref: { path: string }) => mockGetDownloadURL(ref),
   },
   f: {},
   db: {},
@@ -57,7 +60,10 @@ jest.mock('../../compat/expoDocumentPicker', () => ({
 jest.mock('../../compat/expoCamera', () => {
   const React = require('react');
   const { View } = require('react-native');
-  const Camera = React.forwardRef((props, ref) => {
+  const Camera = React.forwardRef((
+    props: { onFacesDetected?: Function },
+    ref: unknown
+  ) => {
     React.useImperativeHandle(ref, () => ({
       takePictureAsync: () =>
         Promise.resolve({
@@ -88,9 +94,9 @@ const mockUpdateDriver = jest.fn();
 
 jest.mock('../../services/DeliveryDriverService', () => ({
   DeliveryDriverService: jest.fn().mockImplementation(() => ({
-    getDriverByUserId: (...args) => mockGetDriverByUserId(...args),
-    createDriver: (...args) => mockCreateDriver(...args),
-    updateDriver: (...args) => mockUpdateDriver(...args),
+    getDriverByUserId: (...args: unknown[]) => mockGetDriverByUserId(...args),
+    createDriver: (...args: unknown[]) => mockCreateDriver(...args),
+    updateDriver: (...args: unknown[]) => mockUpdateDriver(...args),
   })),
 }));
 
