@@ -72,7 +72,8 @@ jobs:
           fi
           echo "=== Production contract gate (no secrets printed) ==="
           # B03 release: ORIGINAL is pre-B03 port (10620551). B03 lineage is not a descendant of 1311.
-          EXPECT_BRANCH='safe/ae-security-f03-storage-rules-sync-038-v1'
+          # M175: exclusive contract branch for BN 1317 from M167 tip; allowlist = exact ORIGINAL..HEAD.
+          EXPECT_BRANCH='safe/ae-ios-1317-m167-contract-v1'
           ORIGINAL_SHA='10620551d4aab848c1b6dde35609bdfe91723c7d'
           if [ "${GITHUB_REF_NAME}" != "${EXPECT_BRANCH}" ]; then
             echo "FAIL: GITHUB_REF_NAME mismatch"
@@ -113,15 +114,18 @@ jobs:
           DIFF_FILES=$(git diff --name-only "${ORIGINAL_SHA}" HEAD)
           EXPECT_FILES=$(printf '%s\n' \
             '.github/workflows/ios-production.yml' \
+            'firestore.rules' \
             'src/hooks/driverOnboardingPersonalStore.ts' \
             'src/navigation/AppNavigator.tsx' \
+            'src/screens/DeliveryDriverRegistration.tsx' \
             'src/screens/DriverDocumentsScreen.tsx' \
             'src/screens/EntregadorProfileScreen.tsx' \
+            'src/screens/__tests__/DeliveryDriverRegistration.submit.integration.test.tsx' \
             'src/services/DeliveryDriverService.ts' \
             'storage.rules' \
             'version-state.json')
           if [ "${DIFF_FILES}" != "${EXPECT_FILES}" ]; then
-            echo "FAIL: diff vs Original is not exactly the eight allowlisted production-contract paths"
+            echo "FAIL: diff vs Original is not exactly the allowlisted production-contract paths"
             exit 1
           fi
           APPROVED_M006_DDS_BLOB='2d90e02ae6a70821ad1cf95b39cc9f809302e2f5'
@@ -179,6 +183,25 @@ jobs:
           fi
           if [ "${HEAD_PS_BLOB}" != "${APPROVED_B03_PERSONAL_STORE_BLOB}" ]; then
             echo "FAIL: driverOnboardingPersonalStore blob is not the approved B03 sanitized blob"
+            exit 1
+          fi
+          # M167 functional blobs (exact) — fail-closed locks for courier Rules + registration
+          APPROVED_M167_DDR_BLOB='25ecda670185a6b68f7c1f38139606fcf16af7d7'
+          APPROVED_M167_RULES_BLOB='983115477d61985a75aab142574bfd39de72a746'
+          APPROVED_M167_DDR_SUBMIT_TEST_BLOB='450d0fd97df22252a0a3ec9ba42f34ca413a67fb'
+          HEAD_DDR_BLOB=$(git rev-parse 'HEAD:src/screens/DeliveryDriverRegistration.tsx')
+          HEAD_RULES_BLOB=$(git rev-parse 'HEAD:firestore.rules')
+          HEAD_DDR_TEST_BLOB=$(git rev-parse 'HEAD:src/screens/__tests__/DeliveryDriverRegistration.submit.integration.test.tsx')
+          if [ "${HEAD_DDR_BLOB}" != "${APPROVED_M167_DDR_BLOB}" ]; then
+            echo "FAIL: DeliveryDriverRegistration blob is not the approved M167 blob"
+            exit 1
+          fi
+          if [ "${HEAD_RULES_BLOB}" != "${APPROVED_M167_RULES_BLOB}" ]; then
+            echo "FAIL: firestore.rules blob is not the approved M167 blob"
+            exit 1
+          fi
+          if [ "${HEAD_DDR_TEST_BLOB}" != "${APPROVED_M167_DDR_SUBMIT_TEST_BLOB}" ]; then
+            echo "FAIL: DeliveryDriverRegistration submit integration test blob is not the approved M167 blob"
             exit 1
           fi
           [ "${APP_ENV}" = "production" ] || { echo "FAIL: APP_ENV"; exit 1; }
@@ -265,7 +288,7 @@ jobs:
           echo "🔄 [ENFORCE] Sincronizando Build Number..."
           node scripts/ci/force-build-number.js --run
           TARGET_VERSION='1.1.8'
-          TARGET_BUILD='1316'
+          TARGET_BUILD='1317'
           TARGET_BUNDLE='com.acucaradas.encomendas'
           APP_VERSION=$(jq -er '.expo.version' app.json)
           STATE_VERSION=$(jq -er '.version' version-state.json)
