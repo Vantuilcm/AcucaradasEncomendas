@@ -17,7 +17,11 @@ service cloud.firestore {
 
     // Verifica se o usuário está bloqueado (deny total)
     function isNotBlocked() {
-      return !isAuthenticated() || getUserData().status != 'blocked';
+      // M159 candidate: require users/{uid}; deny missing doc; deny status==blocked;
+      // missing status => not blocked (avoid undefined property error)
+      return !isAuthenticated()
+        || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && (!('status' in getUserData()) || getUserData().status != 'blocked'));
     }
 
     // Verifica se o usuário está em quarentena (suspicious)
