@@ -16,7 +16,118 @@ import * as DocumentPicker from '../compat/expoDocumentPicker';
 import { s } from '../config/firebase';
 import { DeliveryDriverService } from '../services/DeliveryDriverService';
 import { useAuth } from '../contexts/AuthContext';
+import { DeliveryDriver, DeliveryDriverUpdate } from '../types/DeliveryDriver';
 
+/** Allowed fields for owner update — must omit Rules-protected admin fields (T22). */
+export type DriverRegistrationUpdatePayload = Pick<
+  DeliveryDriverUpdate,
+  'name' | 'phone' | 'email' | 'cpf' | 'cnh' | 'vehicle' | 'documents' | 'availability'
+>;
+
+export type DriverRegistrationCreatePayload = Omit<
+  DeliveryDriver,
+  'id' | 'createdAt' | 'updatedAt' | 'location'
+>;
+
+export type DriverRegistrationFormSnapshot = {
+  name: string;
+  phone: string;
+  email: string;
+  cpf: string;
+  cnh: string;
+  vehicleType: 'car' | 'bicycle' | 'motorcycle';
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehicleYear: string;
+  vehiclePlate: string;
+  vehicleColor: string;
+};
+
+export type DriverRegistrationDocUrls = {
+  faceUrl: string;
+  cnhUrl: string;
+  vehicleDocUrl: string;
+  insuranceUrl: string;
+};
+
+export type DriverRegistrationExistingSnapshot = {
+  id: string;
+  status?: DeliveryDriver['status'];
+  rating?: number;
+  totalDeliveries?: number;
+  totalEarnings?: number;
+  availability?: DeliveryDriver['availability'];
+} | null;
+
+/**
+ * Builds create vs update payloads for delivery_drivers registration.
+ * Update path intentionally omits userId/status/rating/totalDeliveries/totalEarnings/createdAt.
+ */
+export function buildDriverRegistrationWritePlan(
+  userId: string,
+  form: DriverRegistrationFormSnapshot,
+  urls: DriverRegistrationDocUrls,
+  existing: DriverRegistrationExistingSnapshot
+):
+  | { mode: 'create'; payload: DriverRegistrationCreatePayload }
+  | { mode: 'update'; driverId: string; payload: DriverRegistrationUpdatePayload } {
+  const vehicle = {
+    type: form.vehicleType,
+    brand: form.vehicleBrand,
+    model: form.vehicleModel,
+    year: Number(form.vehicleYear),
+    plate: form.vehiclePlate,
+    color: form.vehicleColor,
+  };
+  const documents = {
+    cnhImage: urls.cnhUrl,
+    vehicleDocument: urls.vehicleDocUrl,
+    insurance: urls.insuranceUrl,
+    faceImage: urls.faceUrl,
+  };
+  const availability =
+    existing?.availability || {
+      isAvailable: false,
+      workingHours: { start: '08:00', end: '18:00' },
+      workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as DeliveryDriver['availability']['workingDays'],
+    };
+
+  if (existing) {
+    return {
+      mode: 'update',
+      driverId: existing.id,
+      payload: {
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        cpf: form.cpf,
+        cnh: form.cnh,
+        vehicle,
+        documents,
+        availability,
+      },
+    };
+  }
+
+  return {
+    mode: 'create',
+    payload: {
+      userId,
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      cpf: form.cpf,
+      cnh: form.cnh,
+      vehicle,
+      documents,
+      status: 'pending',
+      rating: 0,
+      totalDeliveries: 0,
+      totalEarnings: 0,
+      availability,
+    },
+  };
+}
 
 export default function DeliveryDriverRegistration() {
   const { user } = useAuth();
@@ -234,42 +345,31 @@ export default function DeliveryDriverRegistration() {
       const driverService = new DeliveryDriverService();
       const existing = await driverService.getDriverByUserId(userId);
 
-      const driverPayload = {
+      const writePlan = buildDriverRegistrationWritePlan(
         userId,
-        name: form.name,
-        phone: form.phone,
-        email: form.email,
-        cpf: form.cpf,
-        cnh: form.cnh,
-        vehicle: {
-          type: form.vehicleType,
-          brand: form.vehicleBrand,
-          model: form.vehicleModel,
-          year: Number(form.vehicleYear),
-          plate: form.vehiclePlate,
-          color: form.vehicleColor,
+        form,
+        {
+          faceUrl,
+          cnhUrl,
+          vehicleDocUrl,
+          insuranceUrl,
         },
-        documents: {
-          cnhImage: cnhUrl,
-          vehicleDocument: vehicleDocUrl,
-          insurance: insuranceUrl,
-          faceImage: faceUrl,
-        },
-        status: existing?.status || 'pending',
-        rating: existing?.rating || 0,
-        totalDeliveries: existing?.totalDeliveries || 0,
-        totalEarnings: existing?.totalEarnings || 0,
-        availability: existing?.availability || {
-          isAvailable: false,
-          workingHours: { start: '08:00', end: '18:00' },
-          workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-        },
-      };
+        existing
+          ? {
+              id: existing.id,
+              status: existing.status,
+              rating: existing.rating,
+              totalDeliveries: existing.totalDeliveries,
+              totalEarnings: existing.totalEarnings,
+              availability: existing.availability,
+            }
+          : null
+      );
 
-      if (existing) {
-        await driverService.updateDriver(existing.id, driverPayload);
+      if (writePlan.mode === 'update') {
+        await driverService.updateDriver(writePlan.driverId, writePlan.payload);
       } else {
-        await driverService.createDriver(driverPayload);
+        await driverService.createDriver(writePlan.payload);
       }
 
       Alert.alert('Sucesso', 'Cadastro enviado para análise!');
