@@ -73,7 +73,7 @@ jobs:
           echo "=== Production contract gate (no secrets printed) ==="
           # B03 release: ORIGINAL is pre-B03 port (10620551). B03 lineage is not a descendant of 1311.
           # M175: exclusive contract branch for BN 1317 from M167 tip; allowlist = exact ORIGINAL..HEAD.
-          EXPECT_BRANCH='safe/ae-ios-1317-m167-contract-v1'
+          EXPECT_BRANCH='safe/ae-ios-1317-courier-server-probe-m213'
           ORIGINAL_SHA='10620551d4aab848c1b6dde35609bdfe91723c7d'
           if [ "${GITHUB_REF_NAME}" != "${EXPECT_BRANCH}" ]; then
             echo "FAIL: GITHUB_REF_NAME mismatch"
@@ -173,7 +173,7 @@ jobs:
             exit 1
           fi
           # B03 sanitized Driver Documents blobs (exact)
-          APPROVED_B03_DRIVER_DOCUMENTS_BLOB='f761dd45fc2f5e758913cd607def85fa0ccec202'
+          APPROVED_B03_DRIVER_DOCUMENTS_BLOB='381422039a50f879c9ec1b7d3a6ff3bbcbe1a4ee'
           APPROVED_B03_PERSONAL_STORE_BLOB='100435ef0b1763aeefc5c1dfeda8c312bb85992b'
           HEAD_DD_BLOB=$(git rev-parse 'HEAD:src/screens/DriverDocumentsScreen.tsx')
           HEAD_PS_BLOB=$(git rev-parse 'HEAD:src/hooks/driverOnboardingPersonalStore.ts')
