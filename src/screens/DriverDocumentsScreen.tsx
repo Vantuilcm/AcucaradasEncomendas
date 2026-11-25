@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
-import { f, s } from '../config/firebase';
+import { f, s, getApp, getAuth, getDb } from '../config/firebase';
 import {
   useDriverOnboardingPersonalData,
   mergeDriverOnboardingPersonalDataFromFirestore,
@@ -277,6 +277,37 @@ export default function DriverDocumentsScreen() {
     showComingSoon();
   };
 
+  // M213 temporary diagnostic: only a deliberate long press triggers a server read.
+  const runCourierServerReadProbe = async () => {
+    const expectedProject = 'acucaradas-encomendas';
+    const authUser = getAuth().currentUser;
+    const runtimeProject = getApp().options.projectId;
+    if (runtimeProject !== expectedProject) {
+      Alert.alert('Diagnostico M213', 'PROJECT_MISMATCH');
+      return;
+    }
+    if (!authUser || !userId || authUser.uid !== userId) {
+      Alert.alert('Diagnostico M213', 'AUTH_UID_MISMATCH_OR_MISSING');
+      return;
+    }
+    try {
+      const { collection, getDocsFromServer, limit, query, where } = require('firebase/firestore');
+      const ownerQuery = query(
+        collection(getDb(), 'delivery_drivers'),
+        where('userId', '==', authUser.uid),
+        limit(2)
+      );
+      const snapshot = await getDocsFromServer(ownerQuery);
+      const ownerMatch = snapshot.docs.every((item: any) => item.data()?.userId === authUser.uid);
+      Alert.alert('Diagnostico M213',
+        `SERVER_RESULT_COUNT=${snapshot.size};OWNER_MATCH=${ownerMatch}`);
+    } catch (probeError) {
+      const code = (probeError as { code?: string })?.code;
+      const safeCode = code === 'permission-denied' || code === 'unavailable' ||
+        code === 'unauthenticated' || code === 'failed-precondition' ? code : 'unexpected';
+      Alert.alert('Diagnostico M213', `SERVER_ERROR=${safeCode}`);
+    }
+  };
   const handleSelfiePress = async () => {
     if (Platform.OS === 'web') {
       Alert.alert('Aviso', 'A captura de foto não está disponível na versão web.');
@@ -325,7 +356,7 @@ export default function DriverDocumentsScreen() {
           </View>
         )}
 
-        <Text style={styles.title}>Meus Documentos</Text>
+        <Text style={styles.title} onLongPress={runCourierServerReadProbe}>Meus Documentos</Text>
         <Text style={styles.subtitle}>
           Documentação pessoal e de segurança do parceiro entregador.
         </Text>
