@@ -343,3 +343,23 @@ jobs:
           name: build-logs-v4
           path: build-logs/
           retention-days: 7
+      - name: M224 Automatic EAS Submit 1318 (single attempt)
+        if: ${{ success() && github.run_attempt == 1 }}
+        run: |
+          set -euo pipefail
+          [ "${GITHUB_RUN_ATTEMPT}" = "1" ] || { echo 'FAIL: rerun forbidden for auto-submit'; exit 1; }
+          [ "${EAS_PROFILE}" = "production_v13" ] || { echo 'FAIL: production profile mismatch'; exit 1; }
+          [ "${SKIP_SUBMIT}" = "true" ] || { echo 'FAIL: guardian must not submit first'; exit 1; }
+          IPA_COUNT=$(find . -maxdepth 1 -type f -name 'build-*.ipa' | wc -l | tr -d '[:space:]')
+          [ "$IPA_COUNT" = "1" ] || { echo 'FAIL: exactly one IPA required'; exit 1; }
+          IPA=$(find . -maxdepth 1 -type f -name 'build-*.ipa' | head -n 1)
+          unzip -p "$IPA" 'Payload/*.app/Info.plist' > /tmp/ae-m224-ipa.plist
+          IPA_BN=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' /tmp/ae-m224-ipa.plist)
+          IPA_VER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /tmp/ae-m224-ipa.plist)
+          IPA_BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' /tmp/ae-m224-ipa.plist)
+          [ "$IPA_BN" = '1318' ] || { echo 'FAIL: IPA build number mismatch'; exit 1; }
+          [ "$IPA_VER" = '1.1.8' ] || { echo 'FAIL: IPA version mismatch'; exit 1; }
+          [ "$IPA_BUNDLE" = 'com.acucaradas.encomendas' ] || { echo 'FAIL: IPA bundle mismatch'; exit 1; }
+          shasum -a 256 "$IPA" | awk '{ print "IPA_SHA256=" $1 }'
+          echo "IPA_FILE=$IPA"
+          eas submit --platform ios --path "$IPA" --profile production_v13 --non-interactive --wait
