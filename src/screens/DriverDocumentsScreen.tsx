@@ -298,7 +298,7 @@ export default function DriverDocumentsScreen() {
         limit(2)
       );
       const snapshot = await getDocsFromServer(ownerQuery);
-      const ownerMatch = snapshot.docs.every((item: any) => item.data()?.userId === authUser.uid);
+      const ownerMatch = snapshot.size === 1 && snapshot.docs.every((item: any) => item.data()?.userId === authUser.uid);
       Alert.alert('Diagnostico M213',
         `SERVER_RESULT_COUNT=${snapshot.size};OWNER_MATCH=${ownerMatch}`);
     } catch (probeError) {
